@@ -12,4 +12,4 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 
 | N° | Tâche | État |
 |---|---|---|
-| 001 | Fondations et modèle de données | confiée à Codex (PR en cours) |
+| 001 | Fondations et modèle de données | à auditer |
