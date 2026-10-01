@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { readdir } from 'node:fs/promises';
 import { creerBase } from './helpers/db.js';
 
-const tablesAttendues = ['client_membres','clients','etablissement_identite','etablissement_membres','etablissement_modules','etablissement_parametres','etablissements','evenements','invitations','journal_audit','module_dependances','modules','numerotations','permissions','plateforme_admins','points_de_vente','profils','role_permissions','roles','solution_modules','solutions'];
+const tablesAttendues = ['client_membres','clients','etablissement_identite','etablissement_membres','etablissement_modules','etablissement_parametres','etablissements','evenements','invitations','journal_audit','module_dependances','modules','numerotations','permissions','plateforme_admins','points_de_vente','profils','role_permissions','roles','sessions_support','solution_modules','solutions'];
 
 describe('migrations', () => {
   test('leurs noms sont valides et uniques', async () => {
@@ -14,7 +14,7 @@ describe('migrations', () => {
     const [a, b] = await Promise.all([creerBase(), creerBase()]);
     await a.close(); await b.close();
   });
-  test('les 21 tables attendues existent', async () => {
+  test('les 22 tables attendues existent', async () => {
     const db = await creerBase();
     const { rows } = await db.query("select tablename from pg_tables where schemaname='public' order by tablename");
     expect(rows.map((r) => r.tablename)).toEqual(tablesAttendues);

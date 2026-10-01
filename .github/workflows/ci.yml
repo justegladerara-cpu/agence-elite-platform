@@ -6,6 +6,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+        with:
+          node-version: 20
+          cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run build
+  reconstruction-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Démarrer Supabase local et reconstruire la base
+        run: |
+          npx supabase start
+          npx supabase db reset --local
+      - name: Arrêter Supabase local
+        if: always()
+        run: npx supabase stop --no-backup

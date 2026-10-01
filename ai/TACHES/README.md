@@ -13,3 +13,9 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 | N° | Tâche | État |
 |---|---|---|
 | 001 | Fondations et modèle de données | à auditer |
+| 002 | Fonctions d’accès et RLS | à auditer |
+| 003 | Tests d’isolation et audit | à auditer |
+| 004 | Administration éditeur (base) | à auditer |
+| 005 | Application : noyau | à auditer |
+| 006 | Interfaces du socle | à auditer |
+| 007 | Reconstruction et clôture | à auditer |

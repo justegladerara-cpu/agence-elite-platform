@@ -6,10 +6,10 @@ beforeEach(async () => { db = await creerBase(); });
 afterEach(async () => { await db.close(); });
 
 describe('structure protégée', () => {
-  test('la RLS est active partout et aucune politique ne précède la tâche 002', async () => {
+  test('la RLS est active partout et les politiques de la tâche 002 sont installées', async () => {
     const { rows } = await db.query("select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'");
-    expect(rows).toHaveLength(21); expect(rows.every((r) => r.relrowsecurity)).toBe(true);
-    expect((await db.query("select * from pg_policies where schemaname='public'")).rows).toHaveLength(0);
+    expect(rows).toHaveLength(22); expect(rows.every((r) => r.relrowsecurity)).toBe(true);
+    expect((await db.query("select * from pg_policies where schemaname='public'")).rows.length).toBeGreaterThan(20);
   });
   test.each(['anon', 'authenticated'])('%s ne peut ni lire ni créer un client', async (role) => {
     const { rows: utilisateurs } = await db.query("insert into auth.users(email) values('test@example.test') returning id");

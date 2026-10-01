@@ -16,11 +16,21 @@ describe('contraintes métier du modèle', () => {
     await expect(db.query("insert into etablissement_modules(etablissement_id,module_id) values($1,'hors_solution')", [etab])).rejects.toThrow(/pas proposé/);
   });
   test('rattachement de l’établissement immuable', async () => expect(db.query("update etablissements set solution_id='hotel' where id=$1", [etab])).rejects.toThrow(/ne peuvent pas/));
-  test.each([[null,null],[client,'gerant']])('invitation avec cible invalide refusée', async (cible, roleClient) => expect(db.query('insert into invitations(email,etablissement_id,role_id,client_id,role_client,cree_par) values($1,$2,$3,$4,$5,$6)', ['x@test.test',etab,'gerant',cible,roleClient,user])).rejects.toThrow());
+  test.each([
+    ['sans-cible@test.test', null, null, null, null],
+    ['deux-cibles@test.test', etab, 'gerant', client, 'dirigeant'],
+    ['etablissement-sans-role@test.test', etab, null, null, null],
+    ['client-sans-role@test.test', null, null, client, null],
+  ])('invitation avec cible invalide refusée', async (email, cibleEtablissement, role, cibleClient, roleClient) => {
+    await expect(db.query(
+      'insert into invitations(email,etablissement_id,role_id,client_id,role_client,cree_par) values($1,$2,$3,$4,$5,$6)',
+      [email, cibleEtablissement, role, cibleClient, roleClient, user],
+    )).rejects.toThrow();
+  });
   test('email majuscule et doublon en attente refusés', async () => {
     await expect(db.query('insert into invitations(email,etablissement_id,role_id,cree_par) values($1,$2,$3,$4)', ['X@test.test',etab,'gerant',user])).rejects.toThrow();
-    await db.query('insert into invitations(email,etablissement_id,role_id,cree_par) values($1,$2,$3,$4)', ['x@test.test',etab,'gerant',user]);
-    await expect(db.query('insert into invitations(email,etablissement_id,role_id,cree_par) values($1,$2,$3,$4)', ['x@test.test',etab,'lecteur',user])).rejects.toThrow();
+    await db.query('insert into invitations(email,etablissement_id,role_id,cree_par) values($1,$2,$3,$4)', ['doublon@test.test',etab,'gerant',user]);
+    await expect(db.query('insert into invitations(email,etablissement_id,role_id,cree_par) values($1,$2,$3,$4)', ['doublon@test.test',etab,'lecteur',user])).rejects.toThrow();
   });
   test('objets JSON et préfixe de permission vérifiés', async () => {
     await expect(db.query("insert into etablissement_membres values($1,$2,'gerant','[]')", [etab,user])).rejects.toThrow();
