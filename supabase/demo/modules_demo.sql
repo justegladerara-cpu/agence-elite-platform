@@ -237,3 +237,79 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Achats : demande en attente, commande reçue en partie et payée en partie, commande reçue à payer en retard, brouillon
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  compta uuid;
+  depotier uuid;
+  hub_dep uuid;
+  grossiste uuid;
+  brasserie uuid;
+  c uuid;
+  aujourdhui date;
+  art jsonb := '{}'::jsonb;
+  ligne record;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.commandes_achat where etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into compta from auth.users where email = 'compta@demo.agence-elite.fr';
+  select id into depotier from auth.users where email = 'depot@demo.agence-elite.fr';
+  select id into hub_dep from public.hubs where etablissement_id = etab and code = 'DEP';
+  select id into grossiste from public.contacts where etablissement_id = etab and nom = 'Grossiste Démo';
+  for ligne in select reference, id from public.articles where etablissement_id = etab loop
+    art := art || jsonb_build_object(ligne.reference, ligne.id);
+  end loop;
+  aujourdhui := public.date_locale(etab);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'achats', true);
+  perform public.definir_module_etablissement(etab, 'achats', true);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  brasserie := public.enregistrer_contact(etab, jsonb_build_object('nom', 'M. Loemba', 'societe', 'Boissons Démo Distribution', 'type', 'fournisseur',
+    'telephone', '+242 05 000 00 30', 'adresse', 'Zone portuaire, Pointe-Noire'));
+
+  -- Commande reçue en entier il y a trois semaines, pas encore payée : dette en retard.
+  c := public.enregistrer_commande_achat(etab, jsonb_build_object('fournisseur_id', brasserie, 'hub_id', hub_dep, 'date_commande', aujourdhui - 25,
+    'echeance', aujourdhui - 5, 'reference_fournisseur', 'PRO-DEMO-114',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', art ->> 'EAU-15', 'quantite', 30), jsonb_build_object('article_id', art ->> 'JUS-01', 'quantite', 24))));
+  perform public.changer_statut_commande_achat(c, 'envoyee');
+  perform set_config('request.jwt.claims', json_build_object('sub', depotier, 'role', 'authenticated')::text, true);
+  perform public.receptionner_commande_achat(c, (select jsonb_agg(jsonb_build_object('ligne_id', id, 'quantite', quantite)) from public.lignes_commande_achat where commande_id = c), 'BL-DEMO-0381');
+
+  -- Commande envoyée, reçue en partie (l'huile manque), acompte versé.
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  c := public.enregistrer_commande_achat(etab, jsonb_build_object('fournisseur_id', grossiste, 'hub_id', hub_dep, 'date_commande', aujourdhui - 4,
+    'livraison_prevue', aujourdhui + 2,
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', art ->> 'RIZ-25', 'quantite', 10, 'cout_unitaire', 14800),
+      jsonb_build_object('article_id', art ->> 'HUI-05', 'quantite', 12))));
+  perform public.changer_statut_commande_achat(c, 'envoyee');
+  perform set_config('request.jwt.claims', json_build_object('sub', depotier, 'role', 'authenticated')::text, true);
+  perform public.receptionner_commande_achat(c, (select jsonb_agg(jsonb_build_object('ligne_id', id, 'quantite', case when article_id = (art ->> 'RIZ-25')::uuid then 10 else 6 end))
+    from public.lignes_commande_achat where commande_id = c), 'BL-DEMO-0402', '6 bidons d''huile en rupture chez le grossiste');
+  perform set_config('request.jwt.claims', json_build_object('sub', compta, 'role', 'authenticated')::text, true);
+  perform public.payer_fournisseur(c, 100000, 'mobile_money', 'MM-DEMO-7781', aujourdhui - 1);
+
+  -- Brouillon en préparation.
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_commande_achat(etab, jsonb_build_object('fournisseur_id', grossiste, 'hub_id', hub_dep,
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', art ->> 'SAV-40', 'quantite', 120), jsonb_build_object('article_id', art ->> 'DET-01', 'quantite', 30))));
+
+  -- Demande du dépôt en attente d'approbation.
+  perform set_config('request.jwt.claims', json_build_object('sub', depotier, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_commande_achat(etab, jsonb_build_object('demande', true, 'hub_id', hub_dep, 'notes', 'Rentrée scolaire : la demande en lait et sucre augmente.',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', art ->> 'SUC-01', 'quantite', 60), jsonb_build_object('article_id', art ->> 'LAI-40', 'quantite', 24))));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

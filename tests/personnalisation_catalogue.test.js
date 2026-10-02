@@ -118,11 +118,11 @@ describe('catalogue', () => {
   test('un module prévu ne devient jamais disponible, vendu ou activé', async () => {
     await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['hotel_chambres', '{"nom":"Chambres","statut":"actif"}'])).rejects.toThrow(/pas encore programmé/);
     await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['hotel_chambres', '{"nom":"Chambres","statut":"beta"}'])).rejects.toThrow(/pas encore programmé/);
-    await expect(comme(admin, "select accorder_module($1, 'achats', true)", [etab])).rejects.toThrow(/disponible/);
-    await expect(db.query("insert into etablissement_modules(etablissement_id, module_id, actif) values ($1, 'achats', true)", [etab])).rejects.toThrow();
+    await expect(comme(admin, "select accorder_module($1, 'site_web', true)", [etab])).rejects.toThrow(/disponible/);
+    await expect(db.query("insert into etablissement_modules(etablissement_id, module_id, actif) values ($1, 'site_web', true)", [etab])).rejects.toThrow();
     // La description d'un module prévu reste modifiable, son statut reste « futur ».
-    await comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['achats', '{"nom":"Achats","description":"Commandes fournisseurs"}']);
-    expect((await db.query("select statut from modules where id = 'achats'")).rows[0].statut).toBe('futur');
+    await comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['site_web', '{"nom":"Site web","description":"Site vitrine"}']);
+    expect((await db.query("select statut from modules where id = 'site_web'")).rows[0].statut).toBe('futur');
   });
 
   test('une dépendance en boucle est refusée', async () => {
@@ -155,7 +155,7 @@ describe('applications d’un établissement', () => {
     const parId = Object.fromEntries(apps.map((a) => [a.id, a]));
     expect(parId.caisse).toMatchObject({ disponible: true, active: true, autorise: true });
     expect(parId.depenses.autorise).toBe(false);
-    expect(parId.achats).toMatchObject({ disponible: false, inclus_offre: false, accorde: false, active: false, autorise: false, statut: 'futur' });
+    expect(parId.site_web).toMatchObject({ disponible: false, inclus_offre: false, accorde: false, active: false, autorise: false, statut: 'futur' });
     expect(parId.hotel_chambres).toBeUndefined();
     const etranger = await utilisateur('etranger@marque.test');
     await expect(comme(etranger, 'select mes_applications($1)', [etab])).rejects.toThrow(/Accès refusé/);

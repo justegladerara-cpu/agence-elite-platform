@@ -153,6 +153,21 @@ describe('application sur la base locale', () => {
     expect(screen.getByText('Enregistrer le brouillon')).toBeTruthy();
   });
 
+  test('Achats : liste, commande et réception', async () => {
+    window.location.hash = '#/achats';
+    const liste = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Dû aux fournisseurs', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /Toutes/ }));
+    fireEvent.click((await screen.findAllByText('BC-00002'))[0]);
+    expect(await screen.findByText('Réceptions', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByText('Réceptionner'));
+    expect(await screen.findByText('Valider la réception')).toBeTruthy();
+    liste.unmount();
+    window.location.hash = '#/achats/nouveau';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Ajouter un article', {}, { timeout: 10000 })).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

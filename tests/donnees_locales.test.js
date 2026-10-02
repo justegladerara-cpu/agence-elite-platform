@@ -138,4 +138,17 @@ describe('moteur de données local', () => {
     utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
     expect(await api.lire('documents_vente')).toEqual([]);
   });
+  test('la démo achats : demande, commande partielle payée en partie, dette en retard, brouillon', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const commandes = await api.lire('commandes_achat', { eq: { etablissement_id: etab } });
+    expect(commandes.map((c) => c.statut).sort()).toEqual(['brouillon', 'demande', 'partielle', 'recue']);
+    const tdb = await api.rpc('tableau_de_bord_achats', { p_etablissement_id: etab });
+    expect(tdb.demandes).toBe(1);
+    expect(Number(tdb.du_en_retard)).toBe(30 * 1800 + 24 * 850);
+    utilisateur = comptes['depot@demo.agence-elite.fr'];
+    expect((await api.lire('commandes_achat')).length).toBe(4);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    expect(await api.lire('commandes_achat')).toEqual([]);
+  });
 });

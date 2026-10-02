@@ -3,6 +3,7 @@
 // - ses widgets de tableau de bord (même règle).
 // Ajouter un module = créer son dossier + son manifeste, puis l'ajouter à MANIFESTES (docs/SOP/02_CREER_UN_MODULE.md).
 // La base reste la seule frontière de sécurité : ce registre ne fait que masquer ce qui n'est pas utilisable.
+import achats from './achats/manifeste.js';
 import articles from './articles/manifeste.js';
 import caisse from './caisse/manifeste.js';
 import cloture from './cloture/manifeste.js';
@@ -18,7 +19,7 @@ import stock from './stock/manifeste.js';
 import tableauDeBord from './tableau_de_bord/manifeste.js';
 import ventes from './ventes/manifeste.js';
 
-export const MANIFESTES = [tableauDeBord, caisse, ventes, paiements, cloture, facturation, articles, stock, contacts, depenses, rh, documents, etablissement, membres];
+export const MANIFESTES = [tableauDeBord, caisse, ventes, paiements, cloture, facturation, articles, stock, achats, contacts, depenses, rh, documents, etablissement, membres];
 
 // Ordre des groupes du menu ; un groupe inconnu déclaré par un nouveau module s'ajoute à la fin.
 export const GROUPES = ['Pilotage', 'Vente', 'Catalogue et stock', 'Relations', 'Ressources humaines', 'Organisation'];
