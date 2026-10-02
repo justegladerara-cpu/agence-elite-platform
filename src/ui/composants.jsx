@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const CHEMINS = {
@@ -24,6 +24,21 @@ const CHEMINS = {
   retour: 'M15 18l-6-6 6-6',
   fusee: 'M12 2c3 2 5 6 5 10l-2 4H9l-2-4c0-4 2-8 5-10zM12 9a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 16l-3 4 4-1M15 16l3 4-4-1',
   editeur: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 10h.01M15 10h.01',
+  hub: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5',
+  depot: 'M3 21V9l9-6 9 6v12M7 21v-8h10v8M7 17h10',
+  transfert: 'M4 8h13l-3-3M20 16H7l3 3',
+  modules: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  comptes: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4 4-6 8-6s8 2 8 6M18 8h4M20 6v4',
+  cle: 'M15 7a4 4 0 11-3.9 4.9L3 20v-3h3v-3h3l2.1-2.1A4 4 0 0115 7z',
+  points: 'M5 12h.01M12 12h.01M19 12h.01',
+  chevron: 'M9 6l6 6-6 6',
+  bas: 'M6 9l6 6 6-6',
+  clients: 'M3 21h18M5 21V5h9v16M14 9h5v12M8 9h2M8 13h2M8 17h2',
+  offres: 'M20 12l-8 8-9-9V3h8zM7 7h.01',
+  inventaire: 'M9 4h6v3H9zM6 6h3M15 6h3v15H6V6h0M9 12l2 2 4-4',
+  echeance: 'M7 3v3M17 3v3M4 8h16M5 5h14v16H5zM12 12v4l3 2',
+  activite: 'M3 12h4l3-8 4 16 3-8h4',
+  oeil: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
 };
 
 export function Icone({ nom, taille = 18 }) {
@@ -205,4 +220,310 @@ export function lireImageReduite(fichier, taille = 600) {
     };
     lecteur.readAsDataURL(fichier);
   });
+}
+
+// --- Système de composants (mise à jour 2026-10) ------------------------------------------
+// Voir docs/DESIGN_SYSTEM.md. Les anciens noms (EnTete, Indicateur, Onglets, Vide) restent valides.
+
+export function Avatar({ nom, taille = 'normal' }) {
+  const lettres = String(nom ?? '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
+  return <span className={`avatar ${taille}`} aria-hidden="true">{lettres}</span>;
+}
+
+export function FilAriane({ elements }) {
+  if (!elements?.length) return null;
+  return (
+    <nav className="fil-ariane" aria-label="Fil d’Ariane">
+      <ol>
+        {elements.map((e, i) => (
+          <li key={`${e.libelle}-${i}`}>
+            {i < elements.length - 1 && e.href ? <a href={e.href}>{e.libelle}</a> : <span aria-current={i === elements.length - 1 ? 'page' : undefined}>{e.libelle}</span>}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+export function PageHeader({ titre, sousTitre, fil, badges, actions, children }) {
+  return (
+    <header className="page-header">
+      <FilAriane elements={fil} />
+      <div className="page-header-ligne">
+        <div className="page-header-titre">
+          <h1>{titre}</h1>
+          {badges && <span className="badges">{badges}</span>}
+          {sousTitre && <p>{sousTitre}</p>}
+        </div>
+        {(actions || children) && <div className="entete-actions">{actions}{children}</div>}
+      </div>
+    </header>
+  );
+}
+
+export function StatCard({ libelle, valeur, detail, ton, icone, onClick, note }) {
+  const Balise = onClick ? 'button' : 'div';
+  return (
+    <Balise className={`stat-card ${ton ?? ''} ${onClick ? 'cliquable' : ''}`} onClick={onClick} type={onClick ? 'button' : undefined}>
+      <span className="stat-card-tete">
+        {icone && <span className="stat-card-icone"><Icone nom={icone} taille={16} /></span>}
+        <span className="stat-card-libelle">{libelle}</span>
+      </span>
+      <strong className="stat-card-valeur">{valeur}</strong>
+      {detail && <small className="stat-card-detail">{detail}</small>}
+      {note && <small className="stat-card-note">{note}</small>}
+    </Balise>
+  );
+}
+
+const STATUTS_CONNUS = {
+  actif: ['Actif', 'vert'], active: ['Active', 'vert'], valide: ['Validé', 'vert'], validee: ['Validée', 'vert'], ouverte: ['Ouverte', 'vert'],
+  payee: ['Payée', 'vert'], suspendu: ['Suspendu', 'alerte'], suspendue: ['Suspendue', 'alerte'], archive: ['Archivé', 'neutre'],
+  annule: ['Annulé', 'alerte'], annulee: ['Annulée', 'alerte'], cloturee: ['Clôturée', 'neutre'], terminee: ['Terminée', 'neutre'],
+  partielle: ['Partielle', 'attention'], impayee: ['Impayée', 'attention'], essai: ['Essai', 'bleu'], inactif: ['Inactif', 'neutre'],
+  en_preparation: ['En préparation', 'attention'], futur: ['Futur', 'neutre'], retire: ['Retiré', 'neutre'],
+};
+
+export function StatusBadge({ statut, libelle }) {
+  const [texte, ton] = STATUTS_CONNUS[statut] ?? [statut, 'neutre'];
+  return <Badge ton={ton}>{libelle ?? texte}</Badge>;
+}
+
+export function EmptyState({ titre, texte, action, icone }) {
+  return (
+    <div className="vide">
+      {icone && <span className="vide-icone"><Icone nom={icone} taille={22} /></span>}
+      <strong>{titre}</strong>
+      {texte && <p>{texte}</p>}
+      {action}
+    </div>
+  );
+}
+
+export function Tabs({ onglets, actif, onChange }) {
+  return (
+    <div className="onglets" role="tablist">
+      {onglets.map(([id, libelle, compteur]) => (
+        <button key={id} role="tab" aria-selected={actif === id} className={actif === id ? 'actif' : ''} onClick={() => onChange(id)}>
+          {libelle}
+          {compteur != null && <span className="onglet-compteur">{compteur}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Section({ titre, sousTitre, action, children, className = '' }) {
+  return (
+    <section className={`carte ${className}`}>
+      {(titre || action) && (
+        <div className="titre-ligne">
+          <div>
+            {titre && <h2>{titre}</h2>}
+            {sousTitre && <p className="texte-doux">{sousTitre}</p>}
+          </div>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+export function Squelette({ lignes = 4 }) {
+  return (
+    <div className="squelette" role="status" aria-label="Chargement">
+      {Array.from({ length: lignes }, (_, i) => <span key={i} style={{ width: `${92 - ((i * 17) % 35)}%` }} />)}
+    </div>
+  );
+}
+
+// Menu « ••• » : actions secondaires d'une fiche ou d'une ligne.
+export function MenuActions({ actions, libelle = 'Plus d’actions' }) {
+  const [ouvert, setOuvert] = useState(false);
+  const zone = useRef(null);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const fermer = (e) => {
+      if (e.type === 'keydown' ? e.key === 'Escape' : !zone.current?.contains(e.target)) setOuvert(false);
+    };
+    window.addEventListener('mousedown', fermer);
+    window.addEventListener('keydown', fermer);
+    return () => {
+      window.removeEventListener('mousedown', fermer);
+      window.removeEventListener('keydown', fermer);
+    };
+  }, [ouvert]);
+  const visibles = actions.filter(Boolean);
+  if (!visibles.length) return null;
+  return (
+    <div className="menu-actions" ref={zone}>
+      <button type="button" className="icone-bouton" aria-label={libelle} aria-haspopup="menu" aria-expanded={ouvert} onClick={(e) => { e.stopPropagation(); setOuvert((o) => !o); }}>
+        <Icone nom="points" />
+      </button>
+      {ouvert && (
+        <div className="menu-actions-liste" role="menu">
+          {visibles.map((a) => (
+            <button
+              key={a.libelle}
+              type="button"
+              role="menuitem"
+              className={a.danger ? 'danger' : ''}
+              disabled={a.desactive}
+              onClick={(e) => { e.stopPropagation(); setOuvert(false); a.onClick(); }}
+            >
+              {a.icone && <Icone nom={a.icone} taille={16} />}
+              {a.libelle}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Tableau de données : recherche, filtres, tri, pagination, ligne cliquable.
+// colonnes : [{ id, libelle, rendu: (l) => node, tri: (l) => valeur, classe }]
+export function DataTable({
+  colonnes, lignes, cle = 'id', rechercher, placeholder = 'Rechercher…', filtres = [], triInitial, parPage = 20,
+  onLigne, vide, actions, chargement,
+}) {
+  const [texte, setTexte] = useState('');
+  const [valeursFiltres, setValeursFiltres] = useState({});
+  const [tri, setTri] = useState(triInitial ?? null);
+  const [page, setPage] = useState(0);
+  const resultat = useMemo(() => {
+    let liste = lignes ?? [];
+    const t = texte.trim().toLowerCase();
+    if (t && rechercher) liste = liste.filter((l) => rechercher(l).toLowerCase().includes(t));
+    for (const f of filtres) {
+      const v = valeursFiltres[f.id];
+      if (v) liste = liste.filter((l) => f.appliquer(l, v));
+    }
+    if (tri) {
+      const colonne = colonnes.find((c) => c.id === tri.id);
+      if (colonne?.tri) {
+        liste = [...liste].sort((a, b) => {
+          const x = colonne.tri(a);
+          const y = colonne.tri(b);
+          const comparaison = typeof x === 'number' && typeof y === 'number' ? x - y : String(x ?? '').localeCompare(String(y ?? ''), 'fr');
+          return tri.sens === 'desc' ? -comparaison : comparaison;
+        });
+      }
+    }
+    return liste;
+  }, [lignes, texte, valeursFiltres, tri, colonnes, filtres, rechercher]);
+  const pages = Math.max(1, Math.ceil(resultat.length / parPage));
+  const pageCourante = Math.min(page, pages - 1);
+  const visibles = resultat.slice(pageCourante * parPage, (pageCourante + 1) * parPage);
+  const trier = (c) => {
+    if (!c.tri) return;
+    setTri((t) => (t?.id === c.id ? { id: c.id, sens: t.sens === 'asc' ? 'desc' : 'asc' } : { id: c.id, sens: 'asc' }));
+  };
+  return (
+    <div className="data-table">
+      {(rechercher || filtres.length > 0 || actions) && (
+        <div className="data-table-outils">
+          {rechercher && <Recherche valeur={texte} onChange={(v) => { setTexte(v); setPage(0); }} placeholder={placeholder} />}
+          {filtres.map((f) => (
+            <select key={f.id} aria-label={f.libelle} value={valeursFiltres[f.id] ?? ''} onChange={(e) => { setValeursFiltres((v) => ({ ...v, [f.id]: e.target.value })); setPage(0); }}>
+              <option value="">{f.libelle} : tous</option>
+              {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          ))}
+          <span className="data-table-compte">{resultat.length} résultat{resultat.length > 1 ? 's' : ''}</span>
+          {actions}
+        </div>
+      )}
+      {chargement && !lignes ? <Squelette /> : resultat.length === 0 ? (
+        vide ?? <EmptyState titre={texte ? 'Aucun résultat' : 'Rien à afficher'} texte={texte ? 'Modifiez la recherche ou les filtres.' : undefined} />
+      ) : (
+        <div className="tableau-conteneur">
+          <table className="tableau">
+            <thead>
+              <tr>
+                {colonnes.map((c) => (
+                  <th
+                    key={c.id}
+                    className={`${c.classe ?? ''} ${c.tri ? 'triable' : ''}`}
+                    aria-sort={tri?.id === c.id ? (tri.sens === 'asc' ? 'ascending' : 'descending') : undefined}
+                  >
+                    {c.tri ? (
+                      <button type="button" onClick={() => trier(c)}>
+                        {c.libelle}
+                        <span className="tri-indice">{tri?.id === c.id ? (tri.sens === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      </button>
+                    ) : c.libelle}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visibles.map((l) => (
+                <tr
+                  key={l[cle]}
+                  className={onLigne ? 'cliquable' : ''}
+                  onClick={onLigne ? () => onLigne(l) : undefined}
+                  onKeyDown={onLigne ? (e) => { if (e.key === 'Enter') onLigne(l); } : undefined}
+                  tabIndex={onLigne ? 0 : undefined}
+                >
+                  {colonnes.map((c) => <td key={c.id} className={c.classe ?? ''}>{c.rendu ? c.rendu(l) : l[c.id]}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {pages > 1 && (
+        <div className="pagination">
+          <Bouton disabled={pageCourante === 0} onClick={() => setPage(pageCourante - 1)}>Précédent</Bouton>
+          <span>Page {pageCourante + 1} sur {pages}</span>
+          <Bouton disabled={pageCourante >= pages - 1} onClick={() => setPage(pageCourante + 1)}>Suivant</Bouton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function compacter(n) {
+  const v = Number(n) || 0;
+  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M`;
+  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000).toLocaleString('fr-FR')} k`;
+  return Math.round(v).toLocaleString('fr-FR');
+}
+
+// Histogramme simple (une série, une échelle). donnees : [{ libelle, valeur, titre }]
+export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, onBarre, libelle = 'Graphique' }) {
+  const max = Math.max(...donnees.map((d) => Number(d.valeur) || 0), 1);
+  const largeur = 560;
+  const marge = { haut: 12, bas: 26, gauche: 46, droite: 8 };
+  const zoneL = largeur - marge.gauche - marge.droite;
+  const zoneH = hauteur - marge.haut - marge.bas;
+  const pas = zoneL / Math.max(donnees.length, 1);
+  const barre = Math.max(Math.min(pas - 8, 44), 4);
+  return (
+    <svg className="graphique" viewBox={`0 0 ${largeur} ${hauteur}`} role="img" aria-label={libelle}>
+      {[0, max / 2, max].map((g) => {
+        const y = marge.haut + zoneH - (g / max) * zoneH;
+        return (
+          <g key={g}>
+            <line x1={marge.gauche} x2={largeur - marge.droite} y1={y} y2={y} className="graphique-grille" />
+            <text x={marge.gauche - 6} y={y + 4} textAnchor="end" className="graphique-texte">{format(g)}</text>
+          </g>
+        );
+      })}
+      {donnees.map((d, i) => {
+        const h = ((Number(d.valeur) || 0) / max) * zoneH;
+        const x = marge.gauche + i * pas + (pas - barre) / 2;
+        return (
+          <g key={`${d.libelle}-${i}`} className={onBarre ? 'cliquable' : ''} onClick={onBarre ? () => onBarre(d) : undefined}>
+            <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre">
+              <title>{d.titre ?? `${d.libelle} : ${format(d.valeur)}`}</title>
+            </rect>
+            <text x={x + barre / 2} y={hauteur - 8} textAnchor="middle" className="graphique-texte">{d.libelle}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
 }

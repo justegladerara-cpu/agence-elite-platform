@@ -3,21 +3,32 @@ import { formatMontant } from './format.js';
 
 const ContexteEspace = createContext(null);
 const CLE_ETABLISSEMENT = 'ae-etablissement-actif';
+const CLE_HUB = 'ae-hub-actif';
 
-function lireChoix() {
+function lireChoix(cle = CLE_ETABLISSEMENT) {
   try {
-    return localStorage.getItem(CLE_ETABLISSEMENT);
+    return localStorage.getItem(cle);
   } catch {
     return null;
   }
 }
 
-function memoriserChoix(id) {
+function memoriserChoix(id, cle = CLE_ETABLISSEMENT) {
   try {
-    localStorage.setItem(CLE_ETABLISSEMENT, id);
+    if (id) localStorage.setItem(cle, id);
+    else localStorage.removeItem(cle);
   } catch {
     // Préférence non mémorisée.
   }
+}
+
+// Hub actif : choisi automatiquement s'il n'y a qu'un Hub (le petit commerce ne voit jamais de choix).
+// null = vue consolidée de tous les Hubs autorisés.
+function hubInitial(etablissement) {
+  const hubs = (etablissement?.hubs ?? []).filter((h) => h.actif);
+  if (hubs.length === 1) return hubs[0].id;
+  const memorise = lireChoix(`${CLE_HUB}-${etablissement?.id}`);
+  return hubs.some((h) => h.id === memorise) ? memorise : null;
 }
 
 export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, children }) {
@@ -29,6 +40,9 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
   const [messages, setMessages] = useState([]);
   const compteur = useRef(0);
   const etablissement = etablissements.find((e) => e.id === idActif) ?? etablissements[0];
+  const [hubChoisi, setHubChoisi] = useState(() => hubInitial(etablissement));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setHubChoisi(hubInitial(etablissement)), [etablissement?.id]);
 
   const notifier = useCallback((texte, ton = 'succes') => {
     compteur.current += 1;
@@ -41,10 +55,22 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
     const permissions = new Set(etablissement?.permissions ?? []);
     const modules = new Set(etablissement?.modules ?? []);
     const devise = etablissement?.devise ?? 'XAF';
+    const hubs = (etablissement?.hubs ?? []).filter((h) => h.actif);
+    const hub = hubs.find((h) => h.id === hubChoisi) ?? (hubs.length === 1 ? hubs[0] : null);
     return {
       api,
       contexte,
-      editeur: contexte.editeur === 'super_admin',
+      editeur: ['super_admin', 'admin'].includes(contexte.editeur),
+      roleEditeur: contexte.editeur,
+      compte: contexte.compte,
+      // Hubs autorisés de l'établissement ; « multiHub » faux = aucune notion de Hub à l'écran.
+      hubs,
+      hub,
+      multiHub: hubs.length > 1,
+      choisirHub: (id) => {
+        memoriserChoix(id, `${CLE_HUB}-${etablissement?.id}`);
+        setHubChoisi(id);
+      },
       utilisateur: contexte.utilisateur,
       etablissements,
       etablissement,
@@ -60,7 +86,7 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       recharger: onRecharger,
       deconnecter: onDeconnexion,
     };
-  }, [api, contexte, etablissements, etablissement, notifier, onRecharger, onDeconnexion]);
+  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion]);
 
   return (
     <ContexteEspace.Provider value={valeur}>

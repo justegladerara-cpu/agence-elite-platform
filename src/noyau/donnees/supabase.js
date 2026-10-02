@@ -36,10 +36,29 @@ export async function demarrerSupabase(env = import.meta.env) {
     ...api,
     comptes: null,
     utilisateur: () => utilisateur,
-    async connecterParMotDePasse(email, motDePasse) {
+    // « identifiant » : un identifiant de connexion ou une adresse e-mail.
+    // Supabase Auth reste l'autorité : l'identifiant est seulement traduit en adresse, côté base,
+    // après vérification du mot de passe (réponse identique si l'identifiant n'existe pas).
+    async connecterParMotDePasse(identifiant, motDePasse) {
+      let email = String(identifiant ?? '').trim();
+      if (!email.includes('@')) {
+        const { data: resolution, error: erreurResolution } = await supabase.rpc('resoudre_connexion', { p_identifiant: email, p_mot_de_passe: motDePasse });
+        if (erreurResolution) throw new Error('Connexion impossible pour le moment');
+        if (!resolution?.ok) throw new Error(resolution?.message ?? 'Identifiant ou mot de passe incorrect');
+        email = resolution.email;
+      }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: motDePasse });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(/invalid login credentials/i.test(error.message) ? 'Identifiant ou mot de passe incorrect' : error.message);
       utilisateur = data.user.id;
+    },
+    async changerMotDePasse(nouveau) {
+      const { error } = await supabase.auth.updateUser({ password: nouveau });
+      if (error) {
+        if (/same_password|different from the old/i.test(error.code ?? error.message)) throw new Error('Choisissez un mot de passe différent de l’ancien');
+        if (/weak|short|characters/i.test(error.message)) throw new Error('Mot de passe trop court ou trop simple (8 caractères au moins)');
+        if (/Database error/i.test(error.message)) throw new Error('Mot de passe refusé : trop simple, ou mot de passe temporaire expiré');
+        throw new Error(error.message);
+      }
     },
     async creerCompte(email, motDePasse, nom) {
       const { data, error } = await supabase.auth.signUp({ email, password: motDePasse, options: { data: { nom } } });

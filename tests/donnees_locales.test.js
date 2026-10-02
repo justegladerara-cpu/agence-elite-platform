@@ -41,42 +41,60 @@ describe('moteur de données local', () => {
     await expect(api.rpc('mon_contexte')).rejects.toThrow(/permission denied/);
   });
 
-  test('la démo donne au gérant deux établissements et au caissier un seul', async () => {
-    utilisateur = comptes['gerant@demo.local'];
-    expect((await api.rpc('mon_contexte')).etablissements).toHaveLength(2);
-    utilisateur = comptes['caisse@demo.local'];
+  test('la démo : la gérante voit les 3 Hubs, le caissier du marché un seul', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const gerante = await api.rpc('mon_contexte');
+    expect(gerante.etablissements).toHaveLength(1);
+    expect(gerante.etablissements[0].hubs.map((h) => h.nom)).toEqual(['Magasin principal', 'Boutique Marché Total', 'Dépôt principal']);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
     const contexte = await api.rpc('mon_contexte');
-    expect(contexte.etablissements).toHaveLength(1);
+    expect(contexte.etablissements[0].hubs.map((h) => h.nom)).toEqual(['Boutique Marché Total']);
     expect(contexte.utilisateur.nom).toContain('Junior');
   });
 
-  test('le parcours de vente fonctionne avec les nombres typés', async () => {
-    utilisateur = comptes['caisse@demo.local'];
-    const etab = (await api.rpc('mon_contexte')).etablissements[0].id;
-    const [session] = await api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } });
-    const [gants] = await api.lire('stock_articles', { eq: { etablissement_id: etab, nom: 'Gants de protection' } });
-    expect(typeof gants.quantite).toBe('number');
-    const vente = await api.rpc('enregistrer_vente', {
-      p_etablissement_id: etab, p_session_id: session.id,
-      p_lignes: [{ article_id: gants.article_id, quantite: 2 }], p_paiements: [{ mode: 'especes', montant: 10000 }],
-    });
-    expect(vente.monnaie).toBe(3000);
-    const [apres] = await api.lire('stock_articles', { eq: { article_id: gants.article_id } });
-    expect(apres.quantite).toBe(gants.quantite - 2);
-    const recu = await api.rpc('recu_vente', { p_vente_id: vente.vente_id });
-    expect(recu.lignes[0].libelle).toBe('Gants de protection');
-    const ventes = await api.lire('ventes', { eq: { etablissement_id: etab }, ordre: ['cree_le', 'desc'], limite: 50 });
-    expect(ventes.length).toBe(5);
-    expect(typeof ventes[0].total).toBe('number');
+  test('Patrondemo et Userdemo doivent changer leur mot de passe temporaire', async () => {
+    utilisateur = comptes['patrondemo@identifiants.agence-elite.fr'];
+    const contexte = await api.rpc('mon_contexte');
+    expect(contexte.compte).toMatchObject({ identifiant: 'Patrondemo', doit_changer_mot_de_passe: true });
+    expect(contexte.etablissements).toEqual([]);
   });
 
-  test('le tableau de bord de la démo est cohérent', async () => {
-    utilisateur = comptes['gerant@demo.local'];
-    const etab = (await api.rpc('mon_contexte')).etablissements.find((e) => e.nom.includes('Pointe-Noire')).id;
+  test('le parcours de vente fonctionne avec les nombres typés, dans le Hub de la caisse', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await api.rpc('mon_contexte')).etablissements[0];
+    const hubMp = etab.hubs.find((h) => h.nom === 'Magasin principal').id;
+    const [session] = await api.lire('sessions_caisse', { eq: { etablissement_id: etab.id, statut: 'ouverte' } });
+    expect(session.hub_id).toBe(hubMp);
+    const [savon] = await api.lire('articles', { eq: { etablissement_id: etab.id, reference: 'SAV-40' } });
+    const [avant] = await api.lire('stock_hubs', { eq: { hub_id: hubMp, article_id: savon.id } });
+    expect(typeof avant.quantite).toBe('number');
+    const vente = await api.rpc('enregistrer_vente', {
+      p_etablissement_id: etab.id, p_session_id: session.id,
+      p_lignes: [{ article_id: savon.id, quantite: 2 }], p_paiements: [{ mode: 'especes', montant: 2000 }],
+    });
+    expect(vente.monnaie).toBe(1000);
+    const [apres] = await api.lire('stock_hubs', { eq: { hub_id: hubMp, article_id: savon.id } });
+    expect(apres.quantite).toBe(avant.quantite - 2);
+    const recu = await api.rpc('recu_vente', { p_vente_id: vente.vente_id });
+    expect(recu.hub.nom).toBe('Magasin principal');
+    expect(recu.lignes[0].libelle).toBe('Savon de ménage 400 g');
+  });
+
+  test('le tableau de bord de la démo est cohérent, consolidé et par Hub', async () => {
+    utilisateur = comptes['patrondemo@identifiants.agence-elite.fr'];
+    expect((await api.rpc('mon_contexte')).etablissements).toEqual([]);
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await api.rpc('mon_contexte')).etablissements[0];
     const aujourdHui = new Date().toISOString().slice(0, 10);
-    const tdb = await api.rpc('tableau_de_bord_commerce', { p_etablissement_id: etab, p_du: '2000-01-01', p_au: aujourdHui });
-    expect(tdb.nombre_ventes).toBe(5);
-    expect(tdb.creances).toBe(35000);
-    expect(tdb.stock_bas.map((s) => s.nom)).toContain('Huile moteur 5 L');
+    const tdb = await api.rpc('tableau_de_bord_hub', { p_etablissement_id: etab.id, p_hub_id: null, p_du: '2000-01-01', p_au: aujourdHui });
+    expect(tdb.nombre_ventes).toBe(8);
+    expect(tdb.creances).toBe(8000);
+    const parHub = Object.fromEntries(tdb.par_hub.map((h) => [h.nom, h.nombre_ventes]));
+    expect(parHub).toEqual({ 'Magasin principal': 5, 'Boutique Marché Total': 3, 'Dépôt principal': 0 });
+    const marche = await api.rpc('tableau_de_bord_hub', {
+      p_etablissement_id: etab.id, p_hub_id: etab.hubs.find((h) => h.nom === 'Boutique Marché Total').id, p_du: '2000-01-01', p_au: aujourdHui,
+    });
+    expect(marche.chiffre_affaires).toBe(37700);
+    expect(tdb.transferts).toBe(2);
   });
 });

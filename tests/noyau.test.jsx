@@ -69,15 +69,15 @@ describe('application sur la base locale', () => {
 
   test('le caissier ne voit ni dépenses ni paramètres de gestion', async () => {
     window.location.hash = '';
-    render(<App demarrer={demarrer('caisse@demo.local')} />);
+    render(<App demarrer={demarrer('caisse-marche@demo.agence-elite.fr')} />);
     await waitFor(() => expect(screen.getAllByText('Caisse').length).toBeGreaterThan(0));
     expect(screen.queryByText('Dépenses')).toBeNull();
   });
 
   test('le gérant voit le tableau de bord avec le chiffre du jour', async () => {
     window.location.hash = '#/tableau-de-bord';
-    render(<App demarrer={demarrer('gerant@demo.local')} />);
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
     expect(await screen.findByText('Chiffre d’affaires', {}, { timeout: 10000 })).toBeTruthy();
-    expect(screen.getByLabelText('Établissement')).toBeTruthy();
+    expect(screen.getAllByText(/Commerce Démo/).length).toBeGreaterThan(0);
   });
 });

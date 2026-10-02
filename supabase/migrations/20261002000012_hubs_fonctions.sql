@@ -31,23 +31,23 @@ as $$
 declare
   existant public.hubs%rowtype;
   identifiant uuid := nullif(p_hub ->> 'id', '')::uuid;
-  type_hub text := coalesce(nullif(p_hub ->> 'type', ''), 'point_de_vente');
-  vente boolean;
-  stock boolean;
-  caisse boolean;
-  transfert boolean;
-  actif boolean := coalesce((p_hub ->> 'actif')::boolean, true);
+  v_type_hub text := coalesce(nullif(p_hub ->> 'type', ''), 'point_de_vente');
+  v_vente boolean;
+  v_stock boolean;
+  v_caisse boolean;
+  v_transfert boolean;
+  v_actif boolean := coalesce((p_hub ->> 'actif')::boolean, true);
   resultat uuid;
 begin
   perform public.exiger_gestion_hubs(p_etablissement_id);
-  if type_hub not in ('point_de_vente', 'depot', 'mixte') then
-    raise exception 'Type de Hub inconnu : %', type_hub;
+  if v_type_hub not in ('point_de_vente', 'depot', 'mixte') then
+    raise exception 'Type de Hub inconnu : %', v_type_hub;
   end if;
-  vente := coalesce((p_hub ->> 'capacite_vente')::boolean, type_hub <> 'depot');
-  stock := coalesce((p_hub ->> 'capacite_stock')::boolean, true);
-  caisse := coalesce((p_hub ->> 'capacite_caisse')::boolean, vente);
-  transfert := coalesce((p_hub ->> 'capacite_transfert')::boolean, true);
-  if caisse and not vente then
+  v_vente := coalesce((p_hub ->> 'capacite_vente')::boolean, v_type_hub <> 'depot');
+  v_stock := coalesce((p_hub ->> 'capacite_stock')::boolean, true);
+  v_caisse := coalesce((p_hub ->> 'capacite_caisse')::boolean, v_vente);
+  v_transfert := coalesce((p_hub ->> 'capacite_transfert')::boolean, true);
+  if v_caisse and not v_vente then
     raise exception 'Une caisse suppose la capacité « vente »';
   end if;
   if coalesce(btrim(p_hub ->> 'nom'), '') = '' then
@@ -56,10 +56,10 @@ begin
   if identifiant is null then
     insert into public.hubs (etablissement_id, nom, code, type, capacite_vente, capacite_stock, capacite_caisse,
       capacite_transfert, actif, adresse, telephone)
-    values (p_etablissement_id, btrim(p_hub ->> 'nom'), nullif(upper(btrim(p_hub ->> 'code')), ''), type_hub, vente, stock, caisse,
-      transfert, actif, nullif(btrim(p_hub ->> 'adresse'), ''), nullif(btrim(p_hub ->> 'telephone'), ''))
+    values (p_etablissement_id, btrim(p_hub ->> 'nom'), nullif(upper(btrim(p_hub ->> 'code')), ''), v_type_hub, v_vente, v_stock, v_caisse,
+      v_transfert, v_actif, nullif(btrim(p_hub ->> 'adresse'), ''), nullif(btrim(p_hub ->> 'telephone'), ''))
     returning id into resultat;
-    if caisse and coalesce((p_hub ->> 'creer_caisse')::boolean, true) then
+    if v_caisse and coalesce((p_hub ->> 'creer_caisse')::boolean, true) then
       insert into public.points_de_vente (etablissement_id, hub_id, nom)
       values (p_etablissement_id, resultat, 'Caisse ' || btrim(p_hub ->> 'nom'));
     end if;
@@ -69,21 +69,21 @@ begin
   if existant.id is null then
     raise exception 'Hub introuvable dans cet établissement';
   end if;
-  if existant.principal and not actif then
+  if existant.principal and not v_actif then
     raise exception 'Le Hub principal ne peut pas être désactivé';
   end if;
-  if (not actif or not caisse) and exists (
+  if (not v_actif or not v_caisse) and exists (
     select 1 from public.sessions_caisse where hub_id = existant.id and statut = 'ouverte'
   ) then
     raise exception 'Une caisse de ce Hub est ouverte : clôturez-la d''abord';
   end if;
-  if not caisse and exists (select 1 from public.points_de_vente where hub_id = existant.id and actif) then
+  if not v_caisse and exists (select 1 from public.points_de_vente where hub_id = existant.id and actif) then
     raise exception 'Désactivez d''abord les caisses de ce Hub';
   end if;
   update public.hubs set
-    nom = btrim(p_hub ->> 'nom'), code = nullif(upper(btrim(p_hub ->> 'code')), ''), type = type_hub,
-    capacite_vente = vente, capacite_stock = stock, capacite_caisse = caisse, capacite_transfert = transfert,
-    actif = actif, adresse = nullif(btrim(p_hub ->> 'adresse'), ''), telephone = nullif(btrim(p_hub ->> 'telephone'), '')
+    nom = btrim(p_hub ->> 'nom'), code = nullif(upper(btrim(p_hub ->> 'code')), ''), type = v_type_hub,
+    capacite_vente = v_vente, capacite_stock = v_stock, capacite_caisse = v_caisse, capacite_transfert = v_transfert,
+    actif = v_actif, adresse = nullif(btrim(p_hub ->> 'adresse'), ''), telephone = nullif(btrim(p_hub ->> 'telephone'), '')
   where id = existant.id;
   return existant.id;
 end
