@@ -29,7 +29,7 @@ export async function baseVide(db) {
 export async function semerDemo(db) {
   const creerCompte = async ({ email, nom }) => {
     const id = (await db.query('insert into auth.users(email) values ($1) returning id', [email])).rows[0].id;
-    await db.query('insert into public.profils(id, nom_complet) values ($1, $2)', [id, nom]);
+    await db.query('insert into public.profils(id, nom_complet) values ($1, $2) on conflict (id) do update set nom_complet = excluded.nom_complet', [id, nom]);
     return id;
   };
   const ids = [];

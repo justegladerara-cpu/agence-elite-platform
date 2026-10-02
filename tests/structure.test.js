@@ -8,7 +8,7 @@ afterEach(async () => { await db.close(); });
 describe('structure protégée', () => {
   test('la RLS est active partout et les politiques de la tâche 002 sont installées', async () => {
     const { rows } = await db.query("select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'");
-    expect(rows).toHaveLength(32); expect(rows.every((r) => r.relrowsecurity)).toBe(true);
+    expect(rows).toHaveLength(35); expect(rows.every((r) => r.relrowsecurity)).toBe(true);
     expect((await db.query("select * from pg_policies where schemaname='public'")).rows.length).toBeGreaterThan(20);
   });
   test.each(['anon', 'authenticated'])('%s ne peut ni lire ni créer un client', async (role) => {

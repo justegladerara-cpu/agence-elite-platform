@@ -5,3 +5,4 @@ coverage/
 
 dist/
 captures-parcours/
+.claude/worktrees/
