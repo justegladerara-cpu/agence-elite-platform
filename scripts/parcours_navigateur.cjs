@@ -1,4 +1,4 @@
-// Parcours complet dans Chromium (Playwright requis) : npm run build && npx vite preview --port 4173, puis node scripts/parcours_navigateur.cjs.
+// Parcours complet dans Chromium (Playwright requis) : npm run build:demo && npx vite preview --port 4173, puis node scripts/parcours_navigateur.cjs.
 // Les captures vont dans captures-parcours/ (ignoré par Git).
 require('node:fs').mkdirSync('captures-parcours', { recursive: true });
 const { chromium } = require('playwright');

@@ -1,0 +1,26 @@
+# Pilote complet sur la base de production, avec uniquement des données fictives.
+# Lancement manuel (Actions > « Pilote en production » > Run workflow).
+# Les comptes fictifs sont neutralisés à la fin, même en cas d'échec.
+name: Pilote en production
+on:
+  workflow_dispatch:
+concurrency:
+  group: pilote-production
+  cancel-in-progress: false
+jobs:
+  pilote:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Lire la configuration publique
+        run: grep -E '^VITE_SUPABASE_(URL|ANON_KEY)=' .env.production | sed 's/^VITE_//' >> "$GITHUB_ENV"
+      - name: Pilote
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/pilote_production.sh

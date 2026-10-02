@@ -1,5 +1,5 @@
 // Parcours « nouveau client sans toucher au code », dans Chromium (Playwright requis) :
-// npm run build && npx vite preview --port 4173, puis node scripts/parcours_editeur.cjs.
+// npm run build:demo && npx vite preview --port 4173, puis node scripts/parcours_editeur.cjs.
 // Agence Elite crée le client, l'établissement et la licence, invite le responsable ;
 // celui-ci configure, importe ses articles, invite son caissier, qui vend.
 const { chromium } = require('playwright');

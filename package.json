@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "build:demo": "vite build --mode demo"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",
