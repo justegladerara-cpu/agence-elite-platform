@@ -98,7 +98,12 @@ production sans accord) :
    Schéma et données sont rechargés en une seule transaction (en cas d'erreur, rien n'est appliqué) ;
    les déclencheurs de protection sont suspendus le temps du rechargement
    (`session_replication_role = replica`).
-4. Vérifier, puis pointer `.env.production` vers le nouveau projet si c'est lui
+4. Marquer les migrations comme déjà appliquées sur le projet restauré (sinon le
+   prochain déploiement voudrait les rejouer) :
+   ```bash
+   npx supabase migration repair --db-url "postgresql://…" --status applied $(ls supabase/migrations | cut -d_ -f1)
+   ```
+5. Vérifier, puis pointer `.env.production` vers le nouveau projet si c'est lui
    qui devient la production.
 
 **Vérification automatique** : à chaque push, la CI sauvegarde la base du pilote,
