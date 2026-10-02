@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 const CHEMINS = {
   tableau: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
+  coche: 'M5 12.5l4.5 4.5L19 7.5',
   caisse: 'M4 4h16v4H4zM6 10h12l1 10H5zM9 13h2v2H9zm4 0h2v2h-2z',
   ventes: 'M4 4h12l4 4v12H4zM8 10h8M8 14h8M8 18h5',
   articles: 'M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10',
@@ -40,6 +41,8 @@ const CHEMINS = {
   activite: 'M3 12h4l3-8 4 16 3-8h4',
   oeil: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
 };
+
+export const NOMS_ICONES = Object.keys(CHEMINS);
 
 export function Icone({ nom, taille = 18 }) {
   return (
@@ -218,8 +221,9 @@ export function lireImageReduite(fichier, taille = 600) {
 // --- Système de composants (mise à jour 2026-10) ------------------------------------------
 // Voir docs/DESIGN_SYSTEM.md. Les anciens noms (EnTete, Indicateur, Onglets, Vide) restent valides.
 
-export function Avatar({ nom, taille = 'normal' }) {
-  const lettres = String(nom ?? '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
+export function Avatar({ nom, taille = 'normal', image, initiales }) {
+  const lettres = initiales || String(nom ?? '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
+  if (image) return <img className={`avatar ${taille}`} src={image} alt="" aria-hidden="true" />;
   return <span className={`avatar ${taille}`} aria-hidden="true">{lettres}</span>;
 }
 

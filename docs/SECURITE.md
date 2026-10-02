@@ -39,3 +39,14 @@ Pour avoir la permission P (`module.action`) dans l'établissement E, il faut :
 - Mot de passe temporaire : expiré après la date fixée, et tant qu'il n'est pas remplacé la base refuse toute donnée métier (`doit_changer_mot_de_passe`).
 - Mots de passe faibles (dont `1234`) refusés comme mot de passe définitif par la base ; 8 caractères minimum, une lettre et un chiffre contrôlés à l'écran.
 - Rôles plateforme : Super Admin (tout : tarifs, catalogue des modules, administrateurs) ; Admin (clients, établissements, licences, Hubs, comptes, support, mais pas les tarifs, le catalogue ni les administrateurs) ; Support (rôle réservé, sans droit d'administration pour l'instant).
+
+## Personnalisation, profils, catalogue (2026-10-02)
+- Couleurs : palette fixe vérifiée par la base ; textes courts sans `<` ni `>` ; images `data:image` ou `https` seulement.
+- `marque_connexion` est la seule nouvelle fonction appelable sans connexion : elle ne renvoie que nom, logo, favicon,
+  couleur (jamais NIU, adresse, ni l'existence d'un client inactif).
+- Apparence d'un établissement par le client : `etablissement.modifier` **et** autorisation d'Agence Elite (`personnalisation_client`).
+- Profil : seule la préférence `page_accueil` est acceptée ; modifier son profil ne change ni rôle ni droits
+  (testé : `tests/personnalisation_catalogue.test.js`).
+- Catalogue : modifications réservées au Super Admin ; un module non programmé ne peut être déclaré disponible ;
+  un module non disponible ne peut être vendu, accordé ni activé (déclencheur `etablissement_modules_disponible`) ;
+  dépendances circulaires refusées ; réglages validés contre le schéma déclaré.

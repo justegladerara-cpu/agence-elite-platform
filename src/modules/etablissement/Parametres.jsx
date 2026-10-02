@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate } from '../../noyau/format.js';
-import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite } from '../../ui/composants.jsx';
+import { lireParametres } from '../../noyau/routes.js';
+import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Tabs } from '../../ui/composants.jsx';
+import { ChampsApparence } from '../../ui/Marque.jsx';
+import { ListeApplications } from './Applications.jsx';
 
-function Identite() {
+function Identite({ partie }) {
   const { api, etablissement, peut, notifier, recharger } = useEspace();
   const [valeurs, setValeurs] = useState(() => ({
-    nom_commercial: '', adresse: '', telephone: '', email: '', rccm: '', niu: '', mentions_recu: '', couleur_principale: '', logo_url: '',
+    nom_commercial: '', adresse: '', telephone: '', email: '', rccm: '', niu: '', mentions_recu: '', pied_documents: '', couleur_principale: '', logo_url: '',
     ...Object.fromEntries(Object.entries(etablissement.identite ?? {}).map(([k, v]) => [k, v ?? ''])),
   }));
+  // Valeurs héritées du client (affichées en indication quand le champ de l'établissement est vide).
+  const herite = etablissement.marque?.documents ?? {};
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const modifiable = peut('etablissement.modifier');
@@ -27,9 +32,46 @@ function Identite() {
       setChargement(false);
     }
   };
+  const enregistrerBouton = modifiable && <div className="actions"><Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton></div>;
+  if (partie === 'documents') {
+    const d = { ...herite, ...Object.fromEntries(Object.entries(valeurs).filter(([, v]) => v)) };
+    return (
+      <div className="deux-colonnes">
+        <form className="carte formulaire" onSubmit={enregistrer}>
+          <h2>Documents (reçus)</h2>
+          <p className="texte-doux">
+            Toujours imprimés, impossibles à retirer : nom de l’entreprise, numéro du reçu, date, articles, total, paiements, reste dû,
+            et vos NIU / RCCM dès qu’ils sont renseignés. Vous réglez seulement les textes ci-dessous.
+          </p>
+          <fieldset disabled={!modifiable}>
+            <Champ libelle="Message en bas du reçu" aide="Vide : « Merci de votre visite. »"><textarea rows={2} maxLength={300} value={valeurs.mentions_recu} onChange={changer('mentions_recu')} placeholder={herite.mentions ?? ''} /></Champ>
+            <Champ libelle="Pied de document" aide="Ex. conditions de retour, horaires, site web."><textarea rows={2} maxLength={300} value={valeurs.pied_documents} onChange={changer('pied_documents')} placeholder={herite.pied ?? ''} /></Champ>
+          </fieldset>
+          <Erreur message={erreur} />
+          {enregistrerBouton}
+        </form>
+        <div className="carte">
+          <h2>Aperçu de l’en-tête</h2>
+          <div className="ticket-apercu">
+            <div className="ticket">
+              {(d.logo_url) && <img className="ticket-logo" src={d.logo_url} alt="" />}
+              <strong className="ticket-nom">{d.nom_commercial ?? etablissement.nom}</strong>
+              {d.adresse && <div>{d.adresse}</div>}
+              {d.telephone && <div>Tél. {d.telephone}</div>}
+              {(d.rccm || d.niu) && <div className="ticket-petit">{[d.rccm && `RCCM ${d.rccm}`, d.niu && `NIU ${d.niu}`].filter(Boolean).join(' · ')}</div>}
+              <div className="ticket-sep" />
+              <div className="ticket-pied">{d.mentions_recu || d.mentions || 'Merci de votre visite.'}</div>
+              {(d.pied_documents || d.pied) && <div className="ticket-petit">{d.pied_documents || d.pied}</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <form className="carte formulaire" onSubmit={enregistrer}>
-      <h2>Identité sur les reçus</h2>
+      <h2>Entreprise</h2>
+      <p className="texte-doux">Ces informations figurent sur vos reçus. Un champ vide reprend celle de votre société, si Agence Elite l’a renseignée.</p>
       <fieldset disabled={!modifiable}>
         <div className="article-photo">
           {valeurs.logo_url ? <img className="vignette grande" src={valeurs.logo_url} alt="Logo" /> : <span className="vignette grande vide-logo">Logo</span>}
@@ -58,17 +100,63 @@ function Identite() {
           )}
         </div>
         <div className="grille-champs">
-          <Champ libelle="Nom commercial" className="large"><input value={valeurs.nom_commercial} onChange={changer('nom_commercial')} /></Champ>
-          <Champ libelle="Adresse" className="large"><input value={valeurs.adresse} onChange={changer('adresse')} /></Champ>
-          <Champ libelle="Téléphone"><input value={valeurs.telephone} onChange={changer('telephone')} /></Champ>
-          <Champ libelle="E-mail"><input type="email" value={valeurs.email} onChange={changer('email')} /></Champ>
-          <Champ libelle="RCCM"><input value={valeurs.rccm} onChange={changer('rccm')} /></Champ>
-          <Champ libelle="NIU"><input value={valeurs.niu} onChange={changer('niu')} /></Champ>
+          <Champ libelle="Nom commercial" className="large"><input value={valeurs.nom_commercial} onChange={changer('nom_commercial')} placeholder={herite.nom_commercial ?? ''} /></Champ>
+          <Champ libelle="Adresse" className="large"><input value={valeurs.adresse} onChange={changer('adresse')} placeholder={herite.adresse ?? ''} /></Champ>
+          <Champ libelle="Téléphone"><input value={valeurs.telephone} onChange={changer('telephone')} placeholder={herite.telephone ?? ''} /></Champ>
+          <Champ libelle="E-mail"><input type="email" value={valeurs.email} onChange={changer('email')} placeholder={herite.email ?? ''} /></Champ>
+          <Champ libelle="RCCM"><input value={valeurs.rccm} onChange={changer('rccm')} placeholder={herite.rccm ?? ''} /></Champ>
+          <Champ libelle="NIU"><input value={valeurs.niu} onChange={changer('niu')} placeholder={herite.niu ?? ''} /></Champ>
         </div>
-        <Champ libelle="Message en bas du reçu"><textarea rows={2} value={valeurs.mentions_recu} onChange={changer('mentions_recu')} /></Champ>
       </fieldset>
       <Erreur message={erreur} />
-      {modifiable && <div className="actions"><Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton></div>}
+      {enregistrerBouton}
+    </form>
+  );
+}
+
+// Apparence de l'établissement : Agence Elite, ou le client si sa formule le permet (la base vérifie).
+function Apparence() {
+  const { api, etablissement, editeur, peut, notifier, recharger } = useEspace();
+  const marque = etablissement.marque ?? {};
+  const i = etablissement.identite ?? {};
+  const [valeurs, setValeurs] = useState(() => ({
+    nom_logiciel: i.nom_logiciel ?? '', nom_court: i.nom_court ?? '', sous_titre: i.sous_titre ?? '', favicon_url: i.favicon_url ?? '', couleur_accent: i.couleur_accent ?? '',
+  }));
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const modifiable = editeur || (marque.personnalisation_client && peut('etablissement.modifier'));
+  const heritage = Object.fromEntries(Object.entries(marque).filter(([k]) => ['nom_logiciel', 'nom_court', 'sous_titre', 'couleur_accent', 'logo_url'].includes(k)));
+  const enregistrer = async (vals) => {
+    setChargement(true);
+    setErreur('');
+    try {
+      await api.rpc('enregistrer_apparence_etablissement', { p_etablissement_id: etablissement.id, p: vals });
+      notifier('Apparence enregistrée');
+      await recharger();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setChargement(false);
+    }
+  };
+  return (
+    <form className="carte formulaire" onSubmit={(e) => { e.preventDefault(); enregistrer(valeurs); }}>
+      <h2>Apparence</h2>
+      {modifiable ? (
+        <p className="texte-doux">Nom, couleur et icône affichés pour cet établissement. Un champ vide reprend l’identité de votre société, puis celle de la plateforme.</p>
+      ) : (
+        <p className="texte-doux">La personnalisation de l’apparence n’est pas incluse dans votre formule. Contactez Agence Elite pour l’ajouter.</p>
+      )}
+      <fieldset disabled={!modifiable}>
+        <ChampsApparence valeurs={valeurs} onChange={setValeurs} heritage={heritage} logo={false} onErreur={setErreur} />
+      </fieldset>
+      <Erreur message={erreur} />
+      {modifiable && (
+        <div className="actions">
+          <Bouton type="button" onClick={() => { const vide = { nom_logiciel: '', nom_court: '', sous_titre: '', favicon_url: '', couleur_accent: '' }; setValeurs(vide); enregistrer(vide); }}>Revenir à l’identité par défaut</Bouton>
+          <Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton>
+        </div>
+      )}
     </form>
   );
 }
@@ -167,25 +255,59 @@ function CarteLicence() {
   );
 }
 
+function Securite() {
+  return (
+    <div className="carte">
+      <h2>Sécurité</h2>
+      <ul className="liste-puces">
+        <li>Mot de passe personnel : 8 caractères au moins, avec une lettre et un chiffre. Les mots de passe trop simples (dont « 1234 ») sont refusés.</li>
+        <li>Un mot de passe temporaire doit être remplacé à la première connexion ; tant qu’il ne l’est pas, aucune donnée n’est accessible.</li>
+        <li>Après 5 essais manqués, la connexion est bloquée quelques minutes.</li>
+        <li>Chacun ne voit que les établissements et les Hubs qui lui sont ouverts ; la base le vérifie à chaque opération.</li>
+        <li>Agence Elite n’accède à vos données qu’en session de support, limitée dans le temps et tracée.</li>
+        <li>Aucune vente, aucun paiement ni aucune clôture ne peut être supprimé : les corrections se font par annulation motivée.</li>
+      </ul>
+      <p className="texte-doux">Pour changer votre mot de passe : menu de votre profil, en haut à droite, onglet Sécurité.</p>
+    </div>
+  );
+}
+
+const ONGLETS = [
+  ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'],
+  ['applications', 'Applications'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Licence'],
+];
+
+// Paramètres de l'établissement. Les onglets n'existent que si la fonction existe vraiment.
 export default function Parametres({ naviguer }) {
   const { etablissement, peut, moduleActif } = useEspace();
+  const onglets = ONGLETS.filter(([id]) => id !== 'caisses' || moduleActif('caisse'));
+  const demande = lireParametres().get('onglet');
+  const [onglet, setOnglet] = useState(onglets.some(([id]) => id === demande) ? demande : 'entreprise');
   return (
     <div className="page">
       <EnTete titre="Paramètres" sousTitre={`${etablissement.nom} · ${etablissement.client}`} />
-      <div className="deux-colonnes">
-        <Identite key={etablissement.id} />
-        <div className="pile">
-          {moduleActif('caisse') && <ReglagesCaisse />}
-          <CarteLicence />
-          {peut('membres.lire') && (
-            <div className="carte">
-              <h2>Équipe</h2>
-              <p className="texte-doux">Invitez vos employés et réglez leurs droits.</p>
-              <Bouton onClick={() => naviguer('equipe')}>Gérer l’équipe</Bouton>
-            </div>
-          )}
+      <Tabs onglets={onglets} actif={onglet} onChange={setOnglet} />
+      {onglet === 'entreprise' && <Identite key={`e-${etablissement.id}`} partie="entreprise" />}
+      {onglet === 'documents' && <Identite key={`d-${etablissement.id}`} partie="documents" />}
+      {onglet === 'apparence' && <Apparence key={etablissement.id} />}
+      {onglet === 'caisses' && <ReglagesCaisse />}
+      {onglet === 'applications' && <ListeApplications />}
+      {onglet === 'equipe' && (
+        <div className="deux-colonnes">
+          <div className="carte">
+            <h2>Utilisateurs</h2>
+            <p className="texte-doux">Créez les comptes de votre équipe, réglez leurs rôles et les Hubs où ils travaillent.</p>
+            {peut('membres.lire') ? <Bouton onClick={() => naviguer('equipe')}>Gérer l’équipe</Bouton> : <p className="texte-faible">Réservé aux responsables.</p>}
+          </div>
+          <div className="carte">
+            <h2>Hubs</h2>
+            <p className="texte-doux">Boutiques et dépôts de l’établissement, avec leurs caisses et leur stock.</p>
+            <Bouton onClick={() => naviguer('hubs')}>Voir les Hubs</Bouton>
+          </div>
         </div>
-      </div>
+      )}
+      {onglet === 'securite' && <Securite />}
+      {onglet === 'licence' && <CarteLicence />}
     </div>
   );
 }

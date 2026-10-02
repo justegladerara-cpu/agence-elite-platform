@@ -44,6 +44,16 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Faire une démonstration commerciale | [30](30_DEMO_COMMERCIALE.md) | Agence Elite |
 | Savoir si une tâche est finie | [31](31_DEFINITION_OF_DONE.md) | Tous |
 | Faire travailler une IA sur le projet | [32](32_REGLES_POUR_LES_IA.md) | Tous |
+| Créer une Solution, y ajouter des modules | [33](33_CREER_UNE_SOLUTION.md) | Agence Elite, Dev |
+| Déclarer les dépendances d'un module | [34](34_DECLARER_DES_DEPENDANCES.md) | Dev |
+| Ajouter un réglage à un module | [35](35_AJOUTER_UN_PARAMETRE.md) | Dev |
+| Ajouter une entrée de menu | [36](36_AJOUTER_UNE_ENTREE_DE_MENU.md) | Dev |
+| Ajouter un widget au tableau de bord | [37](37_AJOUTER_UN_WIDGET.md) | Dev |
+| Créer une offre pour une Solution | [38](38_CREER_UNE_OFFRE.md) | Agence Elite |
+| Personnaliser le logiciel d'un client (white-label) | [39](39_PERSONNALISER_UN_CLIENT.md) | Agence Elite |
+| Déclarer les capacités Hub d'un module | [40](40_DECLARER_DES_CAPACITES_HUB.md) | Dev |
+| Gérer les catégories du catalogue | [41](41_GERER_LES_CATEGORIES.md) | Agence Elite |
+| Développer, tester, déployer un module (statuts) | [42](42_CYCLE_DE_VIE_D_UN_MODULE.md) | Dev, Agence Elite |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

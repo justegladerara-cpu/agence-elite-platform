@@ -15,7 +15,7 @@ export const MENU_EDITEUR = [
   { id: 'editeur', libelle: 'Tableau de bord', icone: 'tableau' },
   { id: 'editeur/clients', libelle: 'Clients', icone: 'clients' },
   { id: 'editeur/hubs', libelle: 'Hubs', icone: 'hub' },
-  { id: 'editeur/modules', libelle: 'Centre des modules', icone: 'modules' },
+  { id: 'editeur/modules', libelle: 'Catalogue', icone: 'modules' },
   { id: 'editeur/comptes', libelle: 'Comptes', icone: 'comptes' },
   { id: 'editeur/offres', libelle: 'Offres et prix', icone: 'offres' },
 ];

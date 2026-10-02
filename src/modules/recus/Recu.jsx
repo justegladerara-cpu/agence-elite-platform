@@ -5,18 +5,32 @@ import { formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '
 import { Bouton, Chargement, Erreur, Modale } from '../../ui/composants.jsx';
 
 // Ticket de caisse 80 mm. Le même rendu sert à l'écran et à l'impression.
+// En-tête : informations de l'établissement, sinon celles de sa société (recu.documents, calculé par la base).
+// Les mentions obligatoires (numéro, date, lignes, total, paiements, NIU/RCCM connus) ne sont jamais retirables.
 export function Ticket({ recu }) {
-  const { vente, identite, etablissement, lignes, paiements } = recu;
+  const { vente, etablissement, lignes, paiements } = recu;
+  const doc = recu.documents ?? {};
+  const propre = recu.identite ?? {};
+  const identite = {
+    nom_commercial: propre.nom_commercial ?? doc.nom_commercial,
+    adresse: propre.adresse ?? doc.adresse,
+    telephone: propre.telephone ?? doc.telephone,
+    rccm: propre.rccm ?? doc.rccm,
+    niu: propre.niu ?? doc.niu,
+    mentions_recu: propre.mentions_recu ?? doc.mentions,
+    pied: propre.pied_documents ?? doc.pied,
+  };
+  const logo = recu.logo ?? doc.logo_url;
   const devise = etablissement.devise;
   const m = (n) => formatMontant(n, devise);
   const valides = paiements.filter((p) => p.statut === 'valide');
   return (
     <div className="ticket">
-      {recu.logo && <img className="ticket-logo" src={recu.logo} alt="" />}
-      <strong className="ticket-nom">{identite?.nom_commercial ?? etablissement.nom}</strong>
-      {identite?.adresse && <div>{identite.adresse}</div>}
-      {identite?.telephone && <div>Tél. {identite.telephone}</div>}
-      {(identite?.rccm || identite?.niu) && (
+      {logo && <img className="ticket-logo" src={logo} alt="" />}
+      <strong className="ticket-nom">{identite.nom_commercial ?? etablissement.nom}</strong>
+      {identite.adresse && <div>{identite.adresse}</div>}
+      {identite.telephone && <div>Tél. {identite.telephone}</div>}
+      {(identite.rccm || identite.niu) && (
         <div className="ticket-petit">
           {identite.rccm && <>RCCM {identite.rccm}</>}
           {identite.rccm && identite.niu && ' · '}
@@ -50,7 +64,8 @@ export function Ticket({ recu }) {
         <div className="ticket-ligne ticket-total"><span>Reste dû</span><span>{m(vente.total - vente.montant_paye)}</span></div>
       )}
       <div className="ticket-sep" />
-      <div className="ticket-pied">{identite?.mentions_recu ?? 'Merci de votre visite.'}</div>
+      <div className="ticket-pied">{identite.mentions_recu ?? 'Merci de votre visite.'}</div>
+      {identite.pied && <div className="ticket-petit">{identite.pied}</div>}
     </div>
   );
 }

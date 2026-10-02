@@ -6,6 +6,7 @@ import {
   Badge, Bouton, Confirmation, DataTable, EmptyState, Erreur, MenuActions, Modale, PageHeader, Section, Squelette, StatCard, StatusBadge, Tabs,
 } from '../../ui/composants.jsx';
 import { CopierTexte, messageInvitation } from '../etablissement/Equipe.jsx';
+import { ApparenceClient } from './ApparenceEditeur.jsx';
 import { BadgeLicence, FORMULES, FormulaireClient, FormulaireEtablissement, STATUTS, useAction } from './Editeur.jsx';
 
 const fil = (...suite) => [{ libelle: 'Agence Elite', href: '#/editeur' }, { libelle: 'Clients', href: '#/editeur/clients' }, ...suite];
@@ -131,11 +132,12 @@ export function PageClient({ clientId, naviguer }) {
       />
       <Erreur message={erreur || erreurAction} />
       <Tabs
-        onglets={[['apercu', 'Vue d’ensemble'], ['etablissements', 'Établissements', client.etablissements.length], ['dirigeants', 'Dirigeants', client.dirigeants.length + client.invitations.length], ['licences', 'Licences']]}
+        onglets={[['apercu', 'Vue d’ensemble'], ['etablissements', 'Établissements', client.etablissements.length], ['dirigeants', 'Dirigeants', client.dirigeants.length + client.invitations.length], ['licences', 'Licences'], ['apparence', 'Apparence']]}
         actif={onglet}
         onChange={setOnglet}
       />
 
+      {onglet === 'apparence' && <ApparenceClient clientId={client.id} naviguer={naviguer} />}
       {onglet === 'apercu' && (
         <div className="pile">
           <div className="grille-stats">

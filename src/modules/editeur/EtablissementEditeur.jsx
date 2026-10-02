@@ -5,6 +5,7 @@ import { Badge, Bouton, EmptyState, Erreur, MenuActions, PageHeader, Section, Sq
 import { GestionEquipe } from '../etablissement/Equipe.jsx';
 import { ListeMiseEnService } from '../etablissement/MiseEnService.jsx';
 import { GestionHubs } from '../hubs/GestionHubs.jsx';
+import { ApparenceEtablissement } from './ApparenceEditeur.jsx';
 import { BadgeLicence, FORMULES, OngletInfos, OngletLicence, OngletModules, OngletSupport, useAction } from './Editeur.jsx';
 
 export function PageEtablissementEditeur({ etablissementId, naviguer }) {
@@ -63,7 +64,7 @@ export function PageEtablissementEditeur({ etablissementId, naviguer }) {
       <Tabs
         onglets={[
           ['apercu', 'Vue d’ensemble'], ['hubs', 'Hubs', hubs.length], ['licence', 'Licence'], ['modules', 'Modules'], ['equipe', 'Équipe', membres],
-          ['service', 'Mise en service'], ['support', 'Support'], ['infos', 'Infos'],
+          ['service', 'Mise en service'], ['support', 'Support'], ['apparence', 'Apparence'], ['infos', 'Infos'],
         ]}
         actif={onglet}
         onChange={setOnglet}
@@ -122,6 +123,7 @@ export function PageEtablissementEditeur({ etablissementId, naviguer }) {
         </Section>
       )}
       {onglet === 'support' && <OngletSupport detail={detail} recharger={recharger} naviguer={naviguer} />}
+      {onglet === 'apparence' && <ApparenceEtablissement clientId={detail.client.id} etablissementId={e.id} />}
       {onglet === 'infos' && <OngletInfos key={e.modifie_le} detail={detail} recharger={recharger} />}
     </div>
   );

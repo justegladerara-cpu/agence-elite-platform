@@ -27,6 +27,12 @@ Procédure : [SOP 07](SOP/07_UTILISER_LE_DESIGN_SYSTEM.md).
 Police Inter (repli système). Rayon `--rayon` 10 px, cartes `--rayon-grand` 14 px. Barre du haut 60 px.
 Les couleurs d'état ne servent qu'aux états, toujours accompagnées d'un mot (badge).
 
+**Couleur de marque (white-label)** : `--accent`, `--accent-fort`, `--accent-doux` sont redéfinies à l'exécution
+par `appliquerMarque` (`src/noyau/marque.js`) à partir de la couleur choisie dans la **palette contrôlée**
+(15 couleurs lisibles avec du texte blanc, `COULEURS_MARQUE`). Ne jamais écrire `#2563eb` en dur dans un composant :
+toujours `var(--accent…)`. Les couleurs d'état (vert, orange, rouge) ne changent jamais avec la marque.
+Composants : `Marque`, `ApercuMarque`, `ChoixCouleur`, `ChampsApparence` (`src/ui/Marque.jsx`).
+
 ## Coquille
 - **Barre latérale** groupée : Pilotage · Vente · Catalogue et stock · Relations · Organisation ;
   en tête, l'espace Agence Elite pour les administrateurs plateforme.

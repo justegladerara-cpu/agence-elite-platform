@@ -107,7 +107,7 @@ describe('application sur la base locale', () => {
     expect(await screen.findByText('Activité contractuelle', {}, { timeout: 10000 })).toBeTruthy();
     expect(screen.queryByText(/encaissé/i)).toBeNull();
     expect(screen.getByText('Échéances à surveiller')).toBeTruthy();
-    expect(screen.getByText('Centre des modules')).toBeTruthy();
+    expect(screen.getByText('Catalogue')).toBeTruthy();
   });
 });
 

@@ -1,23 +1,45 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { demarrerDonnees } from './noyau/donnees/index.js';
-import { FournisseurEspace, useEspace } from './noyau/espace.jsx';
+import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
+import { appliquerMarque } from './noyau/marque.js';
+import { Marque } from './ui/Marque.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
-import { GROUPES, pagesAccessibles, pagesDuMenu } from './modules/index.js';
+import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import {
-  Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, Modale, Onglets, useFilAriane, Vide,
+  Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, lireImageReduite, Modale, Onglets, useFilAriane, Vide,
 } from './ui/composants.jsx';
 
 const LIBELLES_ROLES = { ...ROLES, dirigeant: 'Dirigeant', support: 'Support Agence Elite' };
 
-function Marque({ sousTitre = 'Solution Commerce' }) {
-  return (
-    <div className="marque">
-      <span className="marque-logo">AE</span>
-      <span className="marque-texte"><strong>Agence Elite</strong><small>{sousTitre}</small></span>
-    </div>
-  );
+const CLE_ADRESSE_CONNEXION = 'ae-adresse-connexion';
+
+// Écran de connexion à l'image d'un client : #/connexion/<adresse> (seuls nom, logo et couleur sont publics).
+function useMarqueConnexion(donnees) {
+  const [marque, setMarque] = useState(null);
+  useEffect(() => {
+    const [section, adresseRoute] = lireRoute().split('/');
+    let adresse = section === 'connexion' ? adresseRoute : null;
+    try {
+      if (adresse) localStorage.setItem(CLE_ADRESSE_CONNEXION, adresse);
+      else adresse = localStorage.getItem(CLE_ADRESSE_CONNEXION);
+    } catch {
+      // Préférence non mémorisée.
+    }
+    let actif = true;
+    donnees.rpc('marque_connexion', { p_adresse: adresse ?? null })
+      .then((m) => {
+        if (!actif) return;
+        setMarque(m);
+        appliquerMarque(m, 'Connexion');
+      })
+      .catch(() => appliquerMarque(null, 'Connexion'));
+    return () => {
+      actif = false;
+    };
+  }, [donnees]);
+  return marque;
 }
 
 function ChampMotDePasse({ libelle, valeur, onChange, aide, autoComplete = 'current-password', autoFocus, minLength }) {
@@ -67,6 +89,7 @@ function FormulaireConnexion({ donnees, onConnecte }) {
 }
 
 function ConnexionLocale({ donnees, onConnecte }) {
+  const marque = useMarqueConnexion(donnees);
   const [comptes, setComptes] = useState(null);
   const [erreur, setErreur] = useState('');
   useEffect(() => {
@@ -84,7 +107,7 @@ function ConnexionLocale({ donnees, onConnecte }) {
   return (
     <div className="connexion">
       <div className="connexion-carte large">
-        <Marque />
+        <Marque marque={marque} />
         <h1>Démonstration locale</h1>
         <p className="texte-doux">La base tourne dans ce navigateur, avec des données fictives. Rien n’est envoyé sur Internet.</p>
         <FormulaireConnexion donnees={donnees} onConnecte={onConnecte} />
@@ -117,6 +140,7 @@ function ConnexionLocale({ donnees, onConnecte }) {
 }
 
 function ConnexionSupabase({ donnees, onConnecte }) {
+  const marque = useMarqueConnexion(donnees);
   // Lien d'invitation : #/invitation?email=… ouvre directement la création du compte, adresse remplie.
   const [mode, setMode] = useState(() => (lireRoute() === 'invitation' ? 'inscription' : 'connexion'));
   const [valeurs, setValeurs] = useState(() => ({ email: lireRoute() === 'invitation' ? lireParametres().get('email') ?? '' : '', motDePasse: '', nom: '' }));
@@ -127,7 +151,7 @@ function ConnexionSupabase({ donnees, onConnecte }) {
   return (
     <div className="connexion">
       <div className="connexion-carte">
-        <Marque />
+        <Marque marque={marque} />
         <Onglets onglets={[['connexion', 'Connexion'], ['inscription', 'J’ai reçu une invitation']]} actif={mode} onChange={setMode} />
         {info && <p className="info">{info}</p>}
         {mode === 'connexion' ? <FormulaireConnexion donnees={donnees} onConnecte={onConnecte} /> : (
@@ -210,10 +234,11 @@ function FormulaireNouveauMotDePasse({ donnees, onFait, libelleAction = 'Enregis
 // Premier accès avec un mot de passe temporaire : rien d'autre n'est accessible (la base le garantit aussi).
 function NouveauMotDePasse({ donnees, contexte, onFait, onDeconnexion }) {
   const expire = contexte.compte?.temporaire_expire;
+  useEffect(() => appliquerMarque(contexte.plateforme, 'Nouveau mot de passe'), [contexte.plateforme]);
   return (
     <div className="connexion">
       <div className="connexion-carte">
-        <Marque />
+        <Marque marque={contexte.plateforme} />
         {expire ? (
           <>
             <h1>Mot de passe temporaire expiré</h1>
@@ -223,7 +248,7 @@ function NouveauMotDePasse({ donnees, contexte, onFait, onDeconnexion }) {
           <>
             <h1>Créer votre nouveau mot de passe</h1>
             <p className="texte-doux">
-              Bonjour {contexte.utilisateur.nom ?? contexte.compte?.identifiant ?? ''}. Vous vous êtes connecté(e) avec un mot de passe temporaire.
+              Bonjour {nomUtilisateur(contexte.utilisateur, contexte.compte?.identifiant ?? '')}. Vous vous êtes connecté(e) avec un mot de passe temporaire.
               Choisissez votre mot de passe personnel pour continuer ; l’ancien ne fonctionnera plus.
             </p>
             <FormulaireNouveauMotDePasse donnees={donnees} onFait={onFait} />
@@ -279,13 +304,14 @@ function Invitations({ api, contexte, onAccepte, compact }) {
 }
 
 function Accueil({ api, contexte, onRecharger, onDeconnexion }) {
+  useEffect(() => appliquerMarque(contexte.plateforme, 'Bienvenue'), [contexte.plateforme]);
   return (
     <div className="connexion">
       <div className="connexion-carte">
-        <Marque />
+        <Marque marque={contexte.plateforme} />
         {contexte.invitations.length ? (
           <>
-            <h1>Bienvenue {contexte.utilisateur.nom ?? ''}</h1>
+            <h1>Bienvenue {nomUtilisateur(contexte.utilisateur, '')}</h1>
             <p className="texte-doux">Vous êtes invité(e) à rejoindre :</p>
             <Invitations api={api} contexte={contexte} onAccepte={onRecharger} />
           </>
@@ -335,24 +361,106 @@ function Bandeaux({ naviguer }) {
   return bandeaux;
 }
 
+// Mon profil : ce que la personne règle elle-même. Le rôle, les droits et les Hubs ne se modifient jamais ici.
 function MonCompte({ onFermer }) {
-  const { api, utilisateur, compte, notifier, roleEditeur, etablissement } = useEspace();
-  const [changer, setChanger] = useState(false);
+  const espace = useEspace();
+  const { api, utilisateur, compte, notifier, roleEditeur, etablissement, recharger } = espace;
+  const [onglet, setOnglet] = useState('profil');
+  const [valeurs, setValeurs] = useState(() => ({
+    prenom: utilisateur.prenom ?? '',
+    nom: utilisateur.nom_famille ?? '',
+    nom_affiche: utilisateur.nom_affiche ?? (utilisateur.prenom || utilisateur.nom_famille ? '' : utilisateur.nom ?? ''),
+    initiales: utilisateur.initiales ?? '',
+    avatar_url: utilisateur.avatar_url ?? '',
+    telephone: utilisateur.telephone ?? '',
+    fonction: utilisateur.fonction ?? '',
+    page_accueil: utilisateur.preferences?.page_accueil ?? '',
+  }));
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const changer = (c) => (e) => setValeurs((v) => ({ ...v, [c]: e.target.value }));
+  const pages = etablissement ? pagesAccessibles(espace) : [];
+  const role = roleEditeur ? ROLES_PLATEFORME[roleEditeur] : LIBELLES_ROLES[etablissement?.role] ?? '';
+  const enregistrer = async (e) => {
+    e.preventDefault();
+    setChargement(true);
+    setErreur('');
+    try {
+      const { page_accueil: pageAccueil, ...profil } = valeurs;
+      await api.rpc('enregistrer_mon_profil', { p: { ...profil, preferences: pageAccueil ? { page_accueil: pageAccueil } : {} } });
+      notifier('Profil enregistré');
+      await recharger();
+      onFermer();
+    } catch (err) {
+      setErreur(err.message);
+      setChargement(false);
+    }
+  };
+  const apercu = valeurs.nom_affiche || [valeurs.prenom, valeurs.nom].filter(Boolean).join(' ') || utilisateur.email;
   return (
-    <Modale titre="Mon compte" onFermer={onFermer}>
+    <Modale titre="Mon profil" onFermer={onFermer} large>
       <div className="pile">
         <div className="cellule-personne grande">
-          <Avatar nom={utilisateur.nom ?? utilisateur.email} taille="grand" />
+          <Avatar nom={apercu} image={valeurs.avatar_url || null} initiales={valeurs.initiales.toUpperCase() || null} taille="grand" />
           <span>
-            <strong>{utilisateur.nom ?? '—'}</strong>
-            <small className="texte-doux bloc">{roleEditeur ? ROLES_PLATEFORME[roleEditeur] : LIBELLES_ROLES[etablissement?.role] ?? ''}</small>
+            <strong>{apercu}</strong>
+            <small className="texte-doux bloc">{[valeurs.fonction, role].filter(Boolean).join(' · ')}</small>
           </span>
         </div>
-        <dl className="details">
-          <dt>Identifiant</dt><dd>{compte?.identifiant ?? '—'}</dd>
-          <dt>E-mail</dt><dd>{utilisateur.email}</dd>
-        </dl>
-        {api.changerMotDePasse && (changer ? (
+        <Onglets onglets={[['profil', 'Profil'], ['preferences', 'Préférences'], ['securite', 'Sécurité']]} actif={onglet} onChange={setOnglet} />
+        {onglet !== 'securite' && (
+          <form className="formulaire" onSubmit={enregistrer}>
+            {onglet === 'profil' && (
+              <>
+                <div className="actions-gauche">
+                  <label className="bouton secondaire">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={async (e) => {
+                        const fichier = e.target.files?.[0];
+                        if (!fichier) return;
+                        try {
+                          const image = await lireImageReduite(fichier, 160);
+                          setValeurs((v) => ({ ...v, avatar_url: image }));
+                        } catch (err) {
+                          setErreur(err.message);
+                        }
+                      }}
+                    />
+                    Choisir une photo
+                  </label>
+                  {valeurs.avatar_url && <button type="button" className="lien" onClick={() => setValeurs((v) => ({ ...v, avatar_url: '' }))}>Retirer la photo</button>}
+                </div>
+                <div className="grille-champs">
+                  <Champ libelle="Prénom"><input value={valeurs.prenom} onChange={changer('prenom')} maxLength={60} autoComplete="given-name" /></Champ>
+                  <Champ libelle="Nom"><input value={valeurs.nom} onChange={changer('nom')} maxLength={60} autoComplete="family-name" /></Champ>
+                  <Champ libelle="Nom affiché" aide="Vide : prénom et nom."><input value={valeurs.nom_affiche} onChange={changer('nom_affiche')} maxLength={80} /></Champ>
+                  <Champ libelle="Initiales" aide="1 à 3 lettres, sans photo."><input value={valeurs.initiales} onChange={(e) => setValeurs((v) => ({ ...v, initiales: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3) }))} /></Champ>
+                  <Champ libelle="Téléphone"><input value={valeurs.telephone} onChange={changer('telephone')} autoComplete="tel" /></Champ>
+                  <Champ libelle="Fonction"><input value={valeurs.fonction} onChange={changer('fonction')} maxLength={80} placeholder="Ex. Caissière, Gérant" /></Champ>
+                </div>
+                <dl className="details">
+                  <dt>Identifiant</dt><dd>{compte?.identifiant ?? '—'}</dd>
+                  <dt>E-mail</dt><dd>{utilisateur.email}</dd>
+                  <dt>Rôle</dt><dd>{role || '—'} <small className="texte-doux bloc">Attribué par votre responsable ou Agence Elite : il ne se modifie pas depuis le profil.</small></dd>
+                </dl>
+              </>
+            )}
+            {onglet === 'preferences' && (
+              <Champ libelle="Page d’accueil" aide="L’écran ouvert à la connexion.">
+                <select value={valeurs.page_accueil} onChange={changer('page_accueil')}>
+                  <option value="">Par défaut</option>
+                  {pages.map((p) => <option key={p.id} value={p.id}>{p.libelle}</option>)}
+                </select>
+              </Champ>
+            )}
+            <Erreur message={erreur} />
+            <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton></div>
+          </form>
+        )}
+        {onglet === 'securite' && (api.changerMotDePasse ? (
           <FormulaireNouveauMotDePasse
             donnees={api}
             libelleAction="Changer mon mot de passe"
@@ -361,7 +469,7 @@ function MonCompte({ onFermer }) {
               onFermer();
             }}
           />
-        ) : <Bouton icone="cle" onClick={() => setChanger(true)}>Changer mon mot de passe</Bouton>)}
+        ) : <p className="texte-doux">Démonstration locale : le mot de passe ne se change pas ici.</p>)}
       </div>
     </Modale>
   );
@@ -383,11 +491,11 @@ function ProfilUtilisateur({ libelleRole, onCompte }) {
       window.removeEventListener('keydown', fermer);
     };
   }, [ouvert]);
-  const nom = utilisateur.nom ?? utilisateur.email;
+  const nom = nomUtilisateur(utilisateur);
   return (
     <div className="profil-chip" ref={zone}>
       <button type="button" className="profil-chip-bouton" aria-haspopup="menu" aria-expanded={ouvert} onClick={() => setOuvert((o) => !o)}>
-        <Avatar nom={nom} taille="petit" />
+        <Avatar nom={nom} image={utilisateur.avatar_url} initiales={utilisateur.initiales} taille="petit" />
         <span className="profil-chip-texte">
           <strong>{nom}</strong>
           <small>{libelleRole}</small>
@@ -397,7 +505,7 @@ function ProfilUtilisateur({ libelleRole, onCompte }) {
       {ouvert && (
         <div className="menu-actions-liste profil-chip-menu" role="menu">
           <div className="profil-chip-entete"><strong>{nom}</strong><small className="texte-doux">{utilisateur.email}</small></div>
-          <button type="button" role="menuitem" onClick={() => { setOuvert(false); onCompte(); }}><Icone nom="comptes" taille={16} /> Mon compte</button>
+          <button type="button" role="menuitem" onClick={() => { setOuvert(false); onCompte(); }}><Icone nom="comptes" taille={16} /> Mon profil</button>
           <button type="button" role="menuitem" onClick={deconnecter}><Icone nom="sortie" taille={16} /> Se déconnecter</button>
         </div>
       )}
@@ -448,7 +556,10 @@ function Coquille() {
   const surEditeur = editeur && (route.startsWith('editeur') || !etablissement);
   const premier = route.split('/')[0];
   // Tant que l'établissement n'est pas en service, son responsable arrive sur la liste de démarrage.
-  const pageParDefaut = pages.find((p) => p.id === 'mise-en-service' && !etablissement?.mis_en_service_le) ?? pages[0];
+  // Sinon : la page d'accueil choisie dans son profil, si elle lui est accessible.
+  const pageParDefaut = pages.find((p) => p.id === 'mise-en-service' && !etablissement?.mis_en_service_le)
+    ?? pages.find((p) => p.id === contexte.utilisateur?.preferences?.page_accueil)
+    ?? pages[0];
   const page = surEditeur ? null : pages.find((p) => p.id === premier) ?? pageParDefaut;
   const routeAttendue = surEditeur ? (route.startsWith('editeur') ? route : 'editeur') : page?.id;
 
@@ -464,6 +575,10 @@ function Coquille() {
   const actifEditeur = surEditeur ? routeEditeurActive(route) : null;
   const libelleRole = surEditeur || !etablissement ? ROLES_PLATEFORME[roleEditeur] ?? '' : LIBELLES_ROLES[etablissement.role] ?? '';
   const nomEtablissement = etablissement?.identite?.nom_commercial ?? etablissement?.nom;
+  // Identité affichée : celle de la plateforme dans l'espace Agence Elite, celle de l'établissement ailleurs.
+  const marque = surEditeur ? contexte.plateforme : etablissement?.marque ?? contexte.plateforme;
+  const titrePage = surEditeur ? 'Agence Elite' : page?.libelle;
+  useEffect(() => appliquerMarque(marque, titrePage), [marque, titrePage]);
   const filDefaut = surEditeur
     ? [{ libelle: 'Agence Elite' }]
     : [{ libelle: nomEtablissement ?? '' }, ...(espace.hub && espace.multiHub ? [{ libelle: espace.hub.nom }] : []), { libelle: page?.libelle ?? '' }];
@@ -472,7 +587,7 @@ function Coquille() {
     <FournisseurFil>
       <div className={`coquille ${page?.pleinEcran ? 'plein-ecran' : ''}`}>
         <aside className={`menu ${menuOuvert ? 'ouvert' : ''}`} aria-label="Navigation principale">
-          <Marque sousTitre={surEditeur ? 'Espace éditeur' : 'Solution Commerce'} />
+          <Marque marque={marque} sousTitre={surEditeur ? 'Espace éditeur' : undefined} />
           <nav>
             {editeur && (
               <div className="menu-groupe">
@@ -493,7 +608,7 @@ function Coquille() {
                     <strong>{nomEtablissement}</strong>
                   </div>
                 )}
-                {GROUPES.map((groupe) => {
+                {groupesDuMenu(menu).map((groupe) => {
                   const liens = menu.filter((p) => p.groupe === groupe);
                   if (!liens.length) return null;
                   return (

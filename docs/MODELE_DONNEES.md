@@ -86,3 +86,19 @@ Conventions :
 | `comptes_connexion` | `user_id` → auth.users, `identifiant`, `doit_changer_mot_de_passe`, `temporaire_expire_le`, `mot_de_passe_change_le`, `cree_par`, dates | identifiant unique sans casse, 3-40 caractères `A-Z a-z 0-9 . _ -` ; **aucun mot de passe stocké** (Supabase Auth seul) |
 | `plateforme_admins.role` | | ∈ `super_admin, admin, support` |
 | `modules` / `solution_modules` | statut du module ; proposition par solution (`definir_proposition_module`) | modifiables dans le centre des modules |
+
+## Identité, profils, catalogue (migration 15, 2026-10-02)
+| Table / colonne | Rôle |
+|---|---|
+| `plateforme_identite` (1 ligne) | Nom, nom court, sous-titre, logo, favicon, couleur de la plateforme |
+| `client_identite` | Identité du client + infos société (nom commercial, adresse, téléphone, e-mail, RCCM, NIU), mentions et pied des documents, `adresse_connexion`, `personnalisation_client` |
+| `etablissement_identite` + `nom_logiciel`, `nom_court`, `sous_titre`, `favicon_url`, `couleur_accent`, `pied_documents` | Surcharge par établissement |
+| `profils` + `prenom`, `nom`, `nom_affiche`, `initiales`, `avatar_url`, `fonction`, `preferences` | Profil de la personne (aucun droit) |
+| `categories_modules` | Catégories du catalogue (19) |
+| `modules` + `icone`, `documentation`, `capacites_hub`, `parametres_schema` ; statut `beta` | Fiche complète d'un module |
+| `solutions` + `icone`, `ordre` ; nouvelles : `rh`, `ecommerce`, `services` (Prévues) | Solutions |
+
+Fonctions : `identite_effective`, `marque_connexion` (anonyme, nom/logo/couleur seulement), `enregistrer_identite_plateforme`,
+`enregistrer_identite_client`, `enregistrer_apparence_etablissement`, `enregistrer_mon_profil`, `enregistrer_solution`,
+`enregistrer_categorie_module`, `editeur_catalogue`, `editeur_identite_client`, `mes_applications` ; `enregistrer_module`,
+`enregistrer_parametres_module`, `verifier_modules_offre`, `mon_contexte`, `recu_vente` remplacées.

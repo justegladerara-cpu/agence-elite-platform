@@ -58,3 +58,14 @@ Le CRM Agence Elite (outil interne), le Kangourou en production (référence fon
 - Espace Agence Elite routé par chemin (`#/editeur/clients/<id>`, `src/noyau/routes.js`) :
   tableau de bord, clients, établissements, Hubs, modules, comptes, offres.
 - Composants partagés : `src/ui/composants.jsx` ; règles : `docs/DESIGN_SYSTEM.md` ; procédures : `docs/SOP/`.
+
+## Plateforme modulaire et personnalisable (2026-10-02, migration 15)
+- **Catalogue** : `solutions` (configurations), `modules` (statut, catégorie, icône, version, documentation,
+  dépendances, capacités Hub, schéma de réglages), `categories_modules`, `solution_modules`, `module_dependances`.
+- **Niveaux d'un module pour un établissement** : disponible (catalogue) → proposé (solution) → inclus (offre)
+  → accordé (licence) → activé (`etablissement_modules`) → autorisé (permission). `mes_applications` les rend séparément.
+- **Écran** : chaque module a un manifeste `src/modules/<module>/manifeste.js` (pages, widgets) ; `src/modules/index.js`
+  les assemble (`PAGES`, `WIDGETS`, `pagesDuMenu`, `groupesDuMenu`, `widgetsAccessibles`).
+- **Identité affichée** : `plateforme_identite` → `client_identite` → `etablissement_identite`, résolue par
+  `identite_effective` (base) et appliquée par `src/noyau/marque.js` (variables CSS, titre, favicon).
+- **Profils** : `profils` (prénom, nom, nom affiché, initiales, photo, fonction, préférences) via `enregistrer_mon_profil`.

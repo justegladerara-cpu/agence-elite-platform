@@ -121,3 +121,8 @@ export function useDonnees(charger, dependances) {
   }, [...dependances, version]);
   return { ...etat, recharger: () => setVersion((v) => v + 1) };
 }
+
+// Nom affiché d'une personne : son profil réel (jamais un nom codé en dur).
+export function nomUtilisateur(u, defaut) {
+  return u?.nom_affiche || u?.nom || [u?.prenom, u?.nom_famille].filter(Boolean).join(' ') || (defaut ?? u?.email ?? '');
+}

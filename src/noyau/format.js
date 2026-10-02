@@ -57,3 +57,13 @@ export const ROLES = {
 export const ROLES_PLATEFORME = { super_admin: 'Super Admin', admin: 'Admin', support: 'Support' };
 
 export const TYPES_HUB = { point_de_vente: 'Point de vente', depot: 'Dépôt', mixte: 'Point de vente + stock' };
+
+// Statuts d'un module, tels que les voit un client ou l'équipe (la base garde les codes techniques).
+// « Disponible » = programmé, testé et documenté ; « Prévu » = déclaré au catalogue, sans écran.
+export const STATUTS_MODULE = {
+  actif: ['Disponible', 'vert'],
+  beta: ['Bêta', 'bleu'],
+  en_preparation: ['En développement', 'attention'],
+  futur: ['Prévu', 'neutre'],
+  retire: ['Indisponible', 'neutre'],
+};
