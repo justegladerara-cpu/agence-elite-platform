@@ -82,7 +82,7 @@ const U = 'http://localhost:4173/';
     });
     await etape('tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.getByText('Chiffre d’affaires').waitFor(); });
     await etape('tableau-30j', async () => { await p.getByRole('tab', { name: '30 jours' }).click(); await p.getByText('Ventes par jour').waitFor(); });
-    await etape('parametres', async () => { await p.goto(U + '#/parametres'); await p.getByText('Identité sur les reçus').waitFor(); });
+    await etape('parametres', async () => { await p.goto(U + '#/parametres'); await p.getByRole('tab', { name: 'Entreprise' }).waitFor(); });
     await p.setViewportSize({ width: 390, height: 844 });
     await etape('mobile-caisse', async () => { await p.goto(U + '#/caisse'); await p.waitForTimeout(1000); });
     await etape('mobile-tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.waitForTimeout(1000); });
