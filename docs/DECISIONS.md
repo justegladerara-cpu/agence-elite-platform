@@ -44,3 +44,4 @@ Format : date · décision · raison · impact.
 - 2026-10-02 · Clients « Pilote fictif » archivés automatiquement après chaque pilote · ils disparaissent des listes sans suppression.
 - 2026-10-02 · Procédures écrites dans `docs/SOP/` (32 SOP + modèles) · même référence pour humains et IA.
 - À décider · Nom commercial de la plateforme · ne pas en inventer.
+- 2026-10-02 · **Compte d'équipe sans e-mail** (demande de Juste) · bouton « Créer un compte » dans Équipe : identifiant + mot de passe provisoire, la personne fait directement partie de l'équipe (pas d'invitation, pas de confirmation) ; changement de mot de passe imposé à la 1re connexion · fonction `creer_membre_sans_email` (migration 14) ; seul Agence Elite peut rattacher une vraie adresse e-mail. L'invitation par e-mail reste possible en second choix.

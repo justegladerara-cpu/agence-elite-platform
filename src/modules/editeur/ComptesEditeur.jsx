@@ -24,10 +24,15 @@ function ModaleNouveauCompte({ etablissements, superAdmin, onFermer, onCree }) {
     setErreur('');
     const email = (v.email.trim() || `${v.identifiant.trim().toLowerCase()}@${DOMAINE_IDENTIFIANTS}`).toLowerCase();
     try {
-      const id = await api.rpc('creer_compte', {
-        p_email: email, p_identifiant: v.identifiant.trim(), p_nom: v.nom.trim() || null, p_mot_de_passe_temporaire: v.mdp, p_expire_jours: Number(v.jours) || 30,
-      });
-      if (v.etablissement) await api.rpc('inviter_membre', { p_etablissement_id: v.etablissement, p_email: email, p_role_id: v.role });
+      // Avec un établissement : le compte rejoint directement l'équipe (aucune invitation à accepter).
+      const id = v.etablissement
+        ? (await api.rpc('creer_membre_sans_email', {
+          p_etablissement_id: v.etablissement, p_identifiant: v.identifiant.trim(), p_nom: v.nom.trim() || v.identifiant.trim(),
+          p_role_id: v.role, p_mot_de_passe_temporaire: v.mdp, p_email: email, p_expire_jours: Number(v.jours) || 30,
+        })).user_id
+        : await api.rpc('creer_compte', {
+          p_email: email, p_identifiant: v.identifiant.trim(), p_nom: v.nom.trim() || null, p_mot_de_passe_temporaire: v.mdp, p_expire_jours: Number(v.jours) || 30,
+        });
       if (v.equipe) await api.rpc('definir_admin_plateforme', { p_user_id: id, p_role: v.equipe, p_actif: true });
       onCree(v.identifiant.trim());
     } catch (err) {
@@ -59,7 +64,7 @@ function ModaleNouveauCompte({ etablissements, superAdmin, onFermer, onCree }) {
         <fieldset className="droits-module">
           <legend>Accès (facultatif)</legend>
           <div className="grille-champs">
-            <Champ libelle="Établissement" aide="La personne verra une invitation à accepter à sa première connexion.">
+            <Champ libelle="Établissement" aide="La personne fait partie de l’équipe dès sa première connexion.">
               <select value={v.etablissement} onChange={changer('etablissement')}>
                 <option value="">Aucun pour l’instant</option>
                 {etablissements.map((e) => <option key={e.id} value={e.id}>{e.nom} · {e.client}</option>)}

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, useEspace } from './noyau/espace.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
-import { useRoute } from './noyau/routes.js';
+import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { GROUPES, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import {
@@ -117,8 +117,9 @@ function ConnexionLocale({ donnees, onConnecte }) {
 }
 
 function ConnexionSupabase({ donnees, onConnecte }) {
-  const [mode, setMode] = useState('connexion');
-  const [valeurs, setValeurs] = useState({ email: '', motDePasse: '', nom: '' });
+  // Lien d'invitation : #/invitation?email=… ouvre directement la création du compte, adresse remplie.
+  const [mode, setMode] = useState(() => (lireRoute() === 'invitation' ? 'inscription' : 'connexion'));
+  const [valeurs, setValeurs] = useState(() => ({ email: lireRoute() === 'invitation' ? lireParametres().get('email') ?? '' : '', motDePasse: '', nom: '' }));
   const [erreur, setErreur] = useState('');
   const [info, setInfo] = useState('');
   const [chargement, setChargement] = useState(false);

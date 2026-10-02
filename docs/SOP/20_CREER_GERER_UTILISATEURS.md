@@ -2,13 +2,13 @@
 
 Deux façons :
 
-**A. Compte par identifiant (sans e-mail, idéal pour un caissier)** — Agence Elite → **Comptes** → Nouveau compte.
-1. Identifiant (ex. `Awa.caisse`), nom, mot de passe temporaire, e-mail facultatif.
-2. Choisir l'établissement et le rôle pour l'inviter directement.
-3. Donner l'identifiant et le mot de passe temporaire à la personne **de vive voix**.
+**A. Compte par identifiant (sans e-mail, recommandé)** — Établissement → **Équipe** → **Créer un compte** (ou Agence Elite → **Comptes**).
+1. Nom, identifiant (ex. `Awa.caisse`), mot de passe provisoire, rôle, Hubs éventuels.
+2. Le compte fait immédiatement partie de l'équipe : aucun e-mail, aucune confirmation, aucune invitation à accepter.
+3. Copier le message proposé (site, identifiant, mot de passe provisoire) et l'envoyer par WhatsApp/SMS, ou le dire de vive voix.
 4. À la première connexion, elle doit créer son propre mot de passe (8 caractères, une lettre, un chiffre).
 
-**B. Invitation par e-mail** — Établissement → Équipe → Inviter. La personne crée son compte, puis
+**B. Invitation par e-mail** — Établissement → Équipe → Inviter par e-mail. La personne crée son compte, puis
 accepte l'invitation (onglet « J'ai reçu une invitation »).
 
 Rôles : Responsable d'établissement, Responsable, Responsable Hub, Gestionnaire dépôt, Caissier,

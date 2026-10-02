@@ -4,16 +4,19 @@ import { formatDate, ROLES } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '../../ui/composants.jsx';
 
 export function messageInvitation({ etablissement, email, role }) {
-  const lien = `${window.location.origin}${window.location.pathname}`;
-  return `Bonjour, vous êtes invité(e) à rejoindre « ${etablissement} » sur Solution Commerce (Agence Elite), en tant que ${ROLES[role] ?? role}. `
-    + `Ouvrez ${lien} et connectez-vous avec l’adresse ${email}. L’invitation est valable 7 jours.`;
+  const lien = `${window.location.origin}${window.location.pathname}#/invitation?email=${encodeURIComponent(email)}`;
+  return `Bonjour, vous êtes invité(e) à rejoindre « ${etablissement} » sur Solution Commerce (Agence Elite), en tant que ${ROLES[role] ?? role}.\n\n`
+    + `1. Ouvrez ce lien : ${lien}\n`
+    + `2. Saisissez votre nom et choisissez votre mot de passe (8 caractères au moins, avec une lettre et un chiffre). L’adresse ${email} est déjà remplie.\n`
+    + '3. Confirmez votre adresse avec le lien reçu par e-mail, puis connectez-vous et cliquez sur « Rejoindre ».\n\n'
+    + 'L’invitation est valable 7 jours.';
 }
 
 export function CopierTexte({ texte }) {
   const [copie, setCopie] = useState(false);
   return (
     <div className="message-copie">
-      <textarea readOnly value={texte} rows={4} onFocus={(e) => e.target.select()} aria-label="Message à envoyer" />
+      <textarea readOnly value={texte} rows={8} onFocus={(e) => e.target.select()} aria-label="Message à envoyer" />
       <Bouton
         type="button"
         onClick={async () => {
@@ -28,6 +31,90 @@ export function CopierTexte({ texte }) {
         {copie ? 'Copié' : 'Copier le message'}
       </Bouton>
     </div>
+  );
+}
+
+export function messageIdentifiants({ etablissement, identifiant, motDePasse }) {
+  const lien = `${window.location.origin}${window.location.pathname}`;
+  return `Bonjour, votre accès à « ${etablissement} » sur Solution Commerce (Agence Elite) est prêt.\n\n`
+    + `Site : ${lien}\n`
+    + `Identifiant : ${identifiant}\n`
+    + `Mot de passe provisoire : ${motDePasse}\n\n`
+    + 'À la première connexion, vous choisirez votre propre mot de passe.';
+}
+
+export const identifiantDepuisEmail = (email) => (email?.endsWith('@identifiants.agence-elite.fr') ? email.split('@')[0] : null);
+
+function ModaleCompteDirect({ etablissementId, nomEtablissement, roles, hubs, onFermer, onCree }) {
+  const { api } = useEspace();
+  const [v, setV] = useState({ nom: '', identifiant: '', mdp: '', role: roles.includes('employe') ? 'employe' : roles[0], hubs: [] });
+  const [cree, setCree] = useState(null);
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const changer = (c) => (e) => setV((x) => ({ ...x, [c]: e.target.value }));
+  const creer = async (e) => {
+    e.preventDefault();
+    setChargement(true);
+    setErreur('');
+    try {
+      const r = await api.rpc('creer_membre_sans_email', {
+        p_etablissement_id: etablissementId, p_identifiant: v.identifiant.trim(), p_nom: v.nom.trim(), p_role_id: v.role,
+        p_mot_de_passe_temporaire: v.mdp, p_hubs: v.hubs.length ? v.hubs : null,
+      });
+      setCree({ identifiant: r.identifiant, motDePasse: v.mdp });
+      onCree();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setChargement(false);
+    }
+  };
+  return (
+    <Modale titre="Créer un compte" onFermer={onFermer}>
+      {cree ? (
+        <div className="formulaire">
+          <p>Le compte <strong>{cree.identifiant}</strong> est prêt et fait déjà partie de l’équipe. Envoyez-lui ce message :</p>
+          <CopierTexte texte={messageIdentifiants({ etablissement: nomEtablissement, identifiant: cree.identifiant, motDePasse: cree.motDePasse })} />
+          <div className="actions"><Bouton variante="principal" onClick={onFermer}>Terminé</Bouton></div>
+        </div>
+      ) : (
+        <form className="formulaire" onSubmit={creer}>
+          <p className="texte-doux">Sans e-mail ni confirmation : la personne se connecte avec son identifiant et choisit son mot de passe à la première connexion.</p>
+          <Champ libelle="Nom"><input value={v.nom} onChange={changer('nom')} required autoFocus placeholder="Prénom et nom" /></Champ>
+          <Champ libelle="Identifiant" aide="3 à 40 caractères : lettres, chiffres, point ou tiret (ex. awa.caisse).">
+            <input value={v.identifiant} onChange={changer('identifiant')} required pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,39}" autoComplete="off" />
+          </Champ>
+          <Champ libelle="Mot de passe provisoire" aide="4 caractères au moins. Il devra être changé à la première connexion.">
+            <input value={v.mdp} onChange={changer('mdp')} required minLength={4} autoComplete="off" />
+          </Champ>
+          <Champ libelle="Rôle">
+            <select value={v.role} onChange={changer('role')}>
+              {roles.map((r) => <option key={r} value={r}>{ROLES[r]}</option>)}
+            </select>
+          </Champ>
+          {hubs.length > 1 && (
+            <fieldset className="droits-module">
+              <legend>Hubs (aucune case = tous)</legend>
+              {hubs.map((h) => (
+                <label key={h.id} className="case">
+                  <input
+                    type="checkbox"
+                    checked={v.hubs.includes(h.id)}
+                    onChange={(e) => setV((x) => ({ ...x, hubs: e.target.checked ? [...x.hubs, h.id] : x.hubs.filter((id) => id !== h.id) }))}
+                  />
+                  {h.nom}
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <Erreur message={erreur} />
+          <div className="actions">
+            <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+            <Bouton type="submit" variante="principal" chargement={chargement}>Créer le compte</Bouton>
+          </div>
+        </form>
+      )}
+    </Modale>
   );
 }
 
@@ -207,6 +294,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
     };
   }, [etablissementId]);
   const [invitation, setInvitation] = useState(false);
+  const [compteDirect, setCompteDirect] = useState(false);
   const [membre, setMembre] = useState(null);
   const [partage, setPartage] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
@@ -218,11 +306,12 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
       <Erreur message={erreur || erreurAction} />
       {peutGerer && (
         <div className="actions-gauche">
-          <Bouton variante="principal" icone="plus" onClick={() => setInvitation(true)}>Inviter une personne</Bouton>
+          <Bouton variante="principal" icone="plus" onClick={() => setCompteDirect(true)}>Créer un compte</Bouton>
+          <Bouton icone="plus" onClick={() => setInvitation(true)}>Inviter par e-mail</Bouton>
         </div>
       )}
       {donnees && !donnees.equipe.membres.length && !donnees.equipe.invitations.length && (
-        <Vide titre="Personne pour l’instant" texte="Invitez le responsable de l’établissement pour commencer." />
+        <Vide titre="Personne pour l’instant" texte="Créez le compte du responsable de l’établissement pour commencer." />
       )}
       {donnees?.equipe.membres.length > 0 && (
         <div className="tableau-conteneur">
@@ -233,7 +322,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
                 <tr key={m.user_id} className={m.actif ? '' : 'barre'}>
                   <td>
                     <strong>{m.nom || 'Sans nom'}</strong>
-                    <small className="texte-doux bloc">{m.email}</small>
+                    <small className="texte-doux bloc">{identifiantDepuisEmail(m.email) ? `Identifiant : ${identifiantDepuisEmail(m.email)}` : m.email}</small>
                   </td>
                   <td>
                     <Badge ton="bleu">{ROLES[m.role_id]}</Badge>
@@ -290,6 +379,16 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
             ))}
           </div>
         </section>
+      )}
+      {compteDirect && (
+        <ModaleCompteDirect
+          etablissementId={etablissementId}
+          nomEtablissement={nomEtablissement}
+          roles={roles}
+          hubs={hubs}
+          onFermer={() => setCompteDirect(false)}
+          onCree={recharger}
+        />
       )}
       {invitation && (
         <ModaleInvitation

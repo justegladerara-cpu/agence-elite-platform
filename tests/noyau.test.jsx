@@ -110,3 +110,13 @@ describe('application sur la base locale', () => {
     expect(screen.getByText('Centre des modules')).toBeTruthy();
   });
 });
+
+describe('message d’invitation', () => {
+  test('explique comment créer son mot de passe et pré-remplit l’adresse', async () => {
+    const { messageInvitation } = await import('../src/modules/etablissement/Equipe.jsx');
+    const texte = messageInvitation({ etablissement: 'Boutique Test', email: 'awa@exemple.test', role: 'gerant' });
+    expect(texte).toContain('#/invitation?email=awa%40exemple.test');
+    expect(texte).toContain('choisissez votre mot de passe');
+    expect(texte).toContain('Responsable d’établissement');
+  });
+});
