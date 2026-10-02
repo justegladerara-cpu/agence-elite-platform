@@ -12,10 +12,13 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 
 | N° | Tâche | État |
 |---|---|---|
-| 001 | Fondations et modèle de données | à auditer |
-| 002 | Fonctions d’accès et RLS | à auditer |
-| 003 | Tests d’isolation et audit | à auditer |
-| 004 | Administration éditeur (base) | à auditer |
-| 005 | Application : noyau | à auditer |
-| 006 | Interfaces du socle | à auditer |
-| 007 | Reconstruction et clôture | à auditer |
+| 001 | Fondations et modèle de données | fait (audité, correctifs b454990) |
+| 002 | Fonctions d’accès et RLS | fait |
+| 003 | Tests d’isolation et audit | fait |
+| 004 | Administration éditeur (base) | fait |
+| 005 | Application : noyau | fait |
+| 006 | Interfaces du socle | fait |
+| 007 | Reconstruction et clôture | fait |
+| C1 | Solution Commerce (base, RPC, écrans, mode local) | fait le 2026-10-02 par Claude, voir docs/COMMERCE.md |
+
+Depuis le 2026-10-02, Codex est en pause : Claude développe directement.

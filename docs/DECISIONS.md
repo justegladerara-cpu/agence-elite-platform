@@ -14,4 +14,10 @@ Format : date · décision · raison · impact.
 - 2026-10-01 · Supabase en local d'abord ; toutes les migrations sont versionnées · la base doit se reconstruire depuis zéro.
 - 2026-10-01 · Tests SQL sur PGlite (Postgres en WebAssembly) avec un shim qui imite Supabase · ils tournent sans Docker, aussi bien pour Codex qu'en CI. La reconstruction avec la CLI Supabase sera ajoutée en CI à la tâche 007.
 - 2026-10-01 · Organisation : Claude est manager et architecte ; Codex est développeur ; une tâche à la fois, auditée avant la suivante.
+- 2026-10-02 · Codex mis en pause ; Claude développe directement sur `main` · décision de Juste (04:04) · commits réguliers pour pouvoir revenir en arrière.
+- 2026-10-02 · Commerce : écriture uniquement par fonctions RPC, lecture par RLS · une vente, un paiement ou un mouvement de stock ne peut pas être modifié en contournant les règles.
+- 2026-10-02 · Stock calculé à partir des mouvements, jamais saisi directement · traçabilité complète.
+- 2026-10-02 · Aucune suppression sur les tables commerce ; annulation avec motif obligatoire · exigence de Juste : « les annulations doivent laisser une trace ».
+- 2026-10-02 · Annulation d'une vente seulement tant que sa caisse est ouverte · un ticket Z déjà édité ne change jamais.
+- 2026-10-02 · Mode local dans le navigateur (PGlite + mêmes migrations) · permet d'utiliser et montrer l'application sans base distante, conformément à « aucune base Supabase distante tant que nous travaillons localement ».
 - À décider · Nom commercial de la plateforme · ne pas en inventer.

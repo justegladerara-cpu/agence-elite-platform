@@ -59,4 +59,4 @@ Conventions :
   - responsable : les trois `lire`.
   - employe : `etablissement.lire`.
   - comptable et lecteur : `etablissement.lire`, `tableau_de_bord.lire`.
-- Aucun module métier et aucune table métier (Commerce, Restaurant et Hôtel arrivent au Lot 2 ou plus tard).
+- Tables de la Solution Commerce (2026-10-02) : `categories_articles`, `articles`, `contacts`, `sessions_caisse`, `ventes`, `lignes_vente`, `paiements`, `mouvements_stock`, `depenses`, `clotures`, vue `stock_articles`. Règles et fonctions : `docs/COMMERCE.md`. Restaurant et Hôtel ne sont pas développés.
