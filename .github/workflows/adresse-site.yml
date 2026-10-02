@@ -30,3 +30,5 @@ jobs:
             api "deployments/$id" | jq -r '"\(.environment) | \(.sha[0:7]) | \(.created_at)"'
             api "deployments/$id/statuses" | jq -r '.[] | "   \(.state) | \(.environment_url) | \(.target_url)"'
           done
+          echo "== Site"
+          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://agence-elite-platform.justegladerara.workers.dev/ || true
