@@ -51,6 +51,7 @@ export const ROLES = {
   gestionnaire_depot: 'Gestionnaire dépôt',
   employe: 'Caissier',
   comptable: 'Comptable',
+  commercial: 'Commercial',
   collaborateur: 'Collaborateur',
   lecteur: 'Lecteur',
 };

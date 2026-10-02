@@ -2571,3 +2571,30 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   body.impression-a4 .feuille-a4 { box-shadow: none; width: auto; min-height: 0; padding: 0; border-radius: 0; }
   @page { size: A4; margin: 12mm; }
 }
+
+/* CRM : pipeline en colonnes (glisser-déposer, ou liste « Déplacer… » au clavier) et fil des étapes. */
+.kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: flex-start; }
+.kanban-colonne {
+  flex: 0 0 240px; display: flex; flex-direction: column; gap: 8px; min-height: 120px; padding: 10px;
+  background: var(--surface-douce); border: 1px solid var(--bordure); border-radius: var(--rayon);
+}
+.kanban-colonne.survol { border-color: var(--accent); background: var(--accent-doux); }
+.kanban-colonne > header { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.kanban-colonne.kanban-fin { flex-basis: 150px; border-style: dashed; }
+.kanban-colonne.kanban-fin p { font-size: 12px; margin: 0; }
+.kanban-carte {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--surface);
+  border: 1px solid var(--bordure); border-radius: var(--rayon); font-size: 13px; cursor: grab;
+}
+.kanban-carte[draggable='false'] { cursor: default; }
+.kanban-titre { text-align: left; font-weight: 600; }
+.kanban-pied { display: flex; justify-content: space-between; gap: 8px; }
+.kanban-deplacer { font-size: 12px; padding: 2px 4px; min-height: 0; }
+.etapes-pipeline { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+.etapes-pipeline button {
+  flex: 1 1 110px; padding: 8px 10px; border: 1px solid var(--bordure); background: var(--surface);
+  border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; color: var(--texte-doux);
+}
+.etapes-pipeline button.passe { background: var(--accent-doux); color: var(--accent-fort); }
+.etapes-pipeline button.actif { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+@media (max-width: 700px) { .kanban-colonne { flex-basis: 78vw; } }

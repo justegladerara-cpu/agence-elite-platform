@@ -58,6 +58,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Envoyer une notification (cloche) | [44](44_ENVOYER_UNE_NOTIFICATION.md) | Dev |
 | Devis, facture, paiement, avoir | [45](45_FACTURER_UN_CLIENT.md) | Client, Agence Elite |
 | Demande d’achat, commande fournisseur, réception, paiement | [46](46_ACHETER_A_UN_FOURNISSEUR.md) | Client, Agence Elite |
+| Prospect, opportunité, relance, devis lié, gagné / perdu | [47](47_SUIVRE_UN_PROSPECT.md) | Client, Agence Elite |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

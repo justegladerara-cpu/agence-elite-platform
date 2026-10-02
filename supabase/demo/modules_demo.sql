@@ -313,3 +313,79 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- CRM : prospects (Instagram, WhatsApp, recommandation), pipeline, activités, devis lié, gagnée, perdue
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  p_snack uuid;
+  p_ecole uuid;
+  p_salon uuid;
+  p_boutique uuid;
+  o uuid;
+  maintenant timestamptz := now();
+  e jsonb := '{}'::jsonb;
+  ligne record;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.crm_opportunites where etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'crm_pipeline', true);
+  perform public.definir_module_etablissement(etab, 'crm_pipeline', true);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.crm_initialiser(etab);
+  for ligne in select nom, id from public.crm_etapes where etablissement_id = etab loop
+    e := e || jsonb_build_object(ligne.nom, ligne.id);
+  end loop;
+  p_snack := public.enregistrer_contact(etab, jsonb_build_object('nom', 'M. Mavoungou', 'societe', 'Snack Démo Le Palmier', 'type', 'prospect',
+    'source', 'instagram', 'telephone', '+242 05 000 00 40', 'responsable_id', gerante));
+  p_ecole := public.enregistrer_contact(etab, jsonb_build_object('nom', 'Sœur Marie', 'societe', 'Collège Démo Saint-Joseph', 'type', 'prospect',
+    'source', 'recommandation', 'telephone', '+242 05 000 00 41', 'responsable_id', gerante));
+  p_salon := public.enregistrer_contact(etab, jsonb_build_object('nom', 'Mme Nzaba', 'societe', 'Salon Démo Beauté Divine', 'type', 'prospect',
+    'source', 'whatsapp', 'telephone', '+242 05 000 00 42'));
+  p_boutique := public.enregistrer_contact(etab, jsonb_build_object('nom', 'M. Bikindou', 'type', 'prospect', 'source', 'passage',
+    'telephone', '+242 05 000 00 43'));
+
+  -- En négociation, devis envoyé, relance prévue demain.
+  o := public.enregistrer_opportunite(etab, jsonb_build_object('titre', 'Approvisionnement mensuel boissons et épicerie', 'contact_id', p_snack,
+    'montant', 185000, 'cloture_prevue', current_date + 7, 'notes', 'Le gérant veut être livré le lundi. Concurrent : grossiste du marché.'));
+  perform public.enregistrer_activite_crm(etab, jsonb_build_object('opportunite_id', o, 'type', 'message', 'sujet', 'Premier échange sur Instagram', 'faite', true,
+    'resultat', 'Intéressé, demande les tarifs.'));
+  perform public.creer_devis_opportunite(o, jsonb_build_array(
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'EAU-15'), 'quantite', 40),
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'JUS-01'), 'quantite', 48),
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'RIZ-25'), 'quantite', 2)));
+  perform public.deplacer_opportunite(o, (e ->> 'Négociation')::uuid);
+  perform public.enregistrer_activite_crm(etab, jsonb_build_object('opportunite_id', o, 'type', 'appel', 'sujet', 'Relancer sur le devis',
+    'echeance', maintenant + interval '1 day'));
+
+  -- Qualifiée, rendez-vous en retard.
+  o := public.enregistrer_opportunite(etab, jsonb_build_object('titre', 'Fournitures de la cantine (trimestre)', 'contact_id', p_ecole,
+    'montant', 420000, 'etape_id', e ->> 'Qualifié', 'cloture_prevue', current_date + 21));
+  perform public.enregistrer_activite_crm(etab, jsonb_build_object('opportunite_id', o, 'type', 'rdv', 'sujet', 'Rendez-vous avec l''économe',
+    'echeance', maintenant - interval '1 day'));
+
+  -- Nouveau, appel aujourd'hui.
+  o := public.enregistrer_opportunite(etab, jsonb_build_object('titre', 'Produits d''hygiène pour le salon', 'contact_id', p_salon, 'montant', 60000));
+  perform public.enregistrer_activite_crm(etab, jsonb_build_object('opportunite_id', o, 'type', 'appel', 'sujet', 'Appeler Mme Nzaba',
+    'echeance', date_trunc('hour', maintenant) + interval '2 hours'));
+
+  -- Gagnée (le prospect devient client) et perdue.
+  o := public.enregistrer_opportunite(etab, jsonb_build_object('titre', 'Stock de démarrage', 'contact_id', p_boutique, 'montant', 95000));
+  perform public.deplacer_opportunite(o, (e ->> 'Gagné')::uuid);
+  o := public.enregistrer_opportunite(etab, jsonb_build_object('titre', 'Boissons pour un mariage', 'contact_id', p_salon, 'montant', 150000));
+  perform public.deplacer_opportunite(o, (e ->> 'Perdu')::uuid, 'Choix d''un concurrent');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

@@ -130,7 +130,7 @@ describe('moteur de données local', () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
     const docs = await api.lire('documents_vente', { eq: { etablissement_id: etab } });
-    expect(docs.filter((d) => d.type === 'devis')).toHaveLength(2);
+    expect(docs.filter((d) => d.type === 'devis')).toHaveLength(3); // dont celui du CRM
     expect(docs.filter((d) => d.type === 'avoir')).toHaveLength(1);
     const tdb = await api.rpc('tableau_de_bord_facturation', { p_etablissement_id: etab });
     expect(tdb.nb_en_retard).toBe(1);
@@ -150,5 +150,13 @@ describe('moteur de données local', () => {
     expect((await api.lire('commandes_achat')).length).toBe(4);
     utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
     expect(await api.lire('commandes_achat')).toEqual([]);
+  });
+  test('la démo CRM : pipeline, devis lié, relance en retard, gagnée et perdue', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const tdb = await api.rpc('tableau_de_bord_crm', { p_etablissement_id: etab });
+    expect(tdb).toMatchObject({ ouvertes: 3, gagnees_mois: 1, perdues_mois: 1, activites_retard: 1, prospects: 3 });
+    const opps = await api.lire('crm_opportunites', { eq: { etablissement_id: etab } });
+    expect(opps.filter((o) => o.document_vente_id)).toHaveLength(1);
   });
 });

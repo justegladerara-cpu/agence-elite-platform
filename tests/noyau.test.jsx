@@ -168,6 +168,20 @@ describe('application sur la base locale', () => {
     expect(await screen.findByText('Ajouter un article', {}, { timeout: 10000 })).toBeTruthy();
   });
 
+  test('CRM : pipeline, fiche opportunité et étapes', async () => {
+    window.location.hash = '#/crm';
+    const vue = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Pipeline en cours', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Pipeline commercial' })).toBeTruthy();
+    fireEvent.click(screen.getByText('Fournitures de la cantine (trimestre)'));
+    expect(await screen.findByText('Rendez-vous avec l’économe'.replace('’', "'"), {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Étape du pipeline' })).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/crm/reglages';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Étapes du pipeline', {}, { timeout: 10000 })).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

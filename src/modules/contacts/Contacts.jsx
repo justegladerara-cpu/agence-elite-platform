@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
+import { SOURCES } from '../crm/commun.js';
 import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
 
-const TYPES = { client: 'Client', fournisseur: 'Fournisseur', les_deux: 'Client et fournisseur' };
+const TYPES = { client: 'Client', prospect: 'Prospect', fournisseur: 'Fournisseur', les_deux: 'Client et fournisseur' };
+const CHAMPS = ['type', 'nom', 'societe', 'identifiant_fiscal', 'telephone', 'email', 'adresse', 'notes', 'actif'];
 
 function FormulaireContact({ contact, onFermer, onEnregistre }) {
-  const { api, etablissement } = useEspace();
+  const { api, etablissement, moduleActif } = useEspace();
+  const crm = moduleActif('crm_pipeline');
   const [valeurs, setValeurs] = useState({
-    type: 'client', nom: '', societe: '', identifiant_fiscal: '', telephone: '', email: '', adresse: '', notes: '', actif: true,
+    type: 'client', nom: '', societe: '', identifiant_fiscal: '', telephone: '', email: '', adresse: '', notes: '', actif: true, source: '',
     ...(contact ? Object.fromEntries(Object.entries(contact).map(([k, v]) => [k, v ?? ''])) : {}),
   });
   const [erreur, setErreur] = useState('');
@@ -20,7 +23,8 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
     setChargement(true);
     setErreur('');
     try {
-      await api.rpc('enregistrer_contact', { p_etablissement_id: etablissement.id, p_contact: { ...valeurs, id: contact?.id } });
+      const p = Object.fromEntries([...CHAMPS, ...(crm ? ['source'] : [])].map((k) => [k, valeurs[k]]));
+      await api.rpc('enregistrer_contact', { p_etablissement_id: etablissement.id, p_contact: { ...p, id: contact?.id } });
       onEnregistre(contact ? 'Contact modifié' : 'Contact créé');
     } catch (err) {
       setErreur(err.message);
@@ -32,9 +36,17 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
       <form className="formulaire" onSubmit={enregistrer}>
         <Champ libelle="Type">
           <select value={valeurs.type} onChange={changer('type')}>
-            {Object.entries(TYPES).map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
+            {Object.entries(TYPES).filter(([id]) => crm || id !== 'prospect' || valeurs.type === 'prospect').map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
           </select>
         </Champ>
+        {crm && (
+          <Champ libelle="Origine du contact">
+            <select value={valeurs.source} onChange={changer('source')}>
+              <option value="">— Non précisée</option>
+              {Object.entries(SOURCES).map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
+            </select>
+          </Champ>
+        )}
         <Champ libelle="Nom ou raison sociale"><input value={valeurs.nom} onChange={changer('nom')} required autoFocus /></Champ>
         <div className="grille-champs">
           <Champ libelle="Téléphone"><input type="tel" value={valeurs.telephone} onChange={changer('telephone')} /></Champ>
@@ -59,8 +71,8 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
   );
 }
 
-function FicheContact({ contact, ventes, onFermer, onModifier, onChange }) {
-  const { montant, peut } = useEspace();
+function FicheContact({ contact, ventes, onFermer, onModifier, onChange, naviguer }) {
+  const { montant, peut, moduleActif } = useEspace();
   const [vente, setVente] = useState(null);
   const siennes = ventes.filter((v) => v.contact_id === contact.id);
   const du = siennes.filter((v) => v.statut === 'validee').reduce((s, v) => s + v.total - v.montant_paye, 0);
@@ -79,7 +91,12 @@ function FicheContact({ contact, ventes, onFermer, onModifier, onChange }) {
           {contact.email && <span>{contact.email}</span>}
           {contact.adresse && <span>{contact.adresse}</span>}
         </div>
+        {contact.societe && <p><strong>{contact.societe}</strong>{contact.identifiant_fiscal ? ` · NIU ${contact.identifiant_fiscal}` : ''}</p>}
+        {contact.source && <p className="texte-doux">Origine : {SOURCES[contact.source]}</p>}
         {contact.notes && <p className="texte-doux">{contact.notes}</p>}
+        {moduleActif('crm_pipeline') && peut('crm_pipeline.lire') && contact.type !== 'fournisseur' && naviguer && (
+          <button type="button" className="lien" onClick={() => naviguer(`crm/contact/${contact.id}`)}>Voir les opportunités et activités</button>
+        )}
         {peut('ventes.lire') && (
           <>
             <div className="titre-ligne">
@@ -108,8 +125,8 @@ function FicheContact({ contact, ventes, onFermer, onModifier, onChange }) {
   );
 }
 
-export default function Contacts() {
-  const { api, etablissement, montant, peut, notifier } = useEspace();
+export default function Contacts({ naviguer, sousRoute }) {
+  const { api, etablissement, montant, peut, notifier, moduleActif } = useEspace();
   const etab = etablissement.id;
   const [vue, setVue] = useState('tous');
   const [recherche, setRecherche] = useState('');
@@ -120,8 +137,11 @@ export default function Contacts() {
       api.lire('contacts', { eq: { etablissement_id: etab }, ordre: ['nom'] }),
       peut('ventes.lire') ? api.lire('ventes', { eq: { etablissement_id: etab }, ordre: ['cree_le', 'desc'] }) : [],
     ]);
+    // Lien direct « contacts/<id> » : ouvre la fiche.
+    const cible = sousRoute && contacts.find((c) => c.id === sousRoute);
+    if (cible) setFiche(cible);
     return { contacts, ventes: ventes.filter((v) => v.contact_id) };
-  }, [etab]);
+  }, [etab, sousRoute]);
 
   const soldes = {};
   for (const v of donnees?.ventes ?? []) {
@@ -129,8 +149,9 @@ export default function Contacts() {
   }
   const texte = recherche.trim().toLowerCase();
   const contacts = (donnees?.contacts ?? []).filter((c) => {
-    if (vue === 'clients' && c.type === 'fournisseur') return false;
-    if (vue === 'fournisseurs' && c.type === 'client') return false;
+    if (vue === 'clients' && !['client', 'les_deux'].includes(c.type)) return false;
+    if (vue === 'prospects' && c.type !== 'prospect') return false;
+    if (vue === 'fournisseurs' && !['fournisseur', 'les_deux'].includes(c.type)) return false;
     if (vue === 'credit' && !(soldes[c.id] > 0)) return false;
     return !texte || c.nom.toLowerCase().includes(texte) || (c.telephone ?? '').includes(texte);
   });
@@ -142,7 +163,11 @@ export default function Contacts() {
         {peut('contacts.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouveau contact</Bouton>}
       </EnTete>
       <div className="filtres">
-        <Onglets onglets={[['tous', 'Tous'], ['clients', 'Clients'], ['fournisseurs', 'Fournisseurs'], ['credit', 'Avec un solde dû']]} actif={vue} onChange={setVue} />
+        <Onglets
+          onglets={[['tous', 'Tous'], ['clients', 'Clients'], ...(moduleActif('crm_pipeline') ? [['prospects', 'Prospects']] : []), ['fournisseurs', 'Fournisseurs'], ['credit', 'Avec un solde dû']]}
+          actif={vue}
+          onChange={setVue}
+        />
         <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom ou téléphone" />
       </div>
       {chargement && !donnees && <Chargement />}
@@ -155,7 +180,7 @@ export default function Contacts() {
             <tbody>
               {contacts.map((c) => (
                 <tr key={c.id} onClick={() => setFiche(c)} className={c.actif ? '' : 'inactif'}>
-                  <td><strong>{c.nom}</strong></td>
+                  <td><strong>{c.nom}</strong>{c.societe && <small className="texte-doux bloc">{c.societe}</small>}</td>
                   <td>{TYPES[c.type]}</td>
                   <td>{c.telephone ?? '—'}</td>
                   <td className="nombre">{soldes[c.id] > 0 ? <span className="texte-alerte">{montant(soldes[c.id])}</span> : '—'}</td>
@@ -175,6 +200,7 @@ export default function Contacts() {
             setFiche(null);
           }}
           onChange={recharger}
+          naviguer={naviguer}
         />
       )}
       {edition && (
