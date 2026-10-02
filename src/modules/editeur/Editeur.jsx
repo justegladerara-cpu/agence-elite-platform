@@ -1,18 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { dateLocale, formatDate, formatDateHeure, formatMontant, ROLES } from '../../noyau/format.js';
-import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Indicateur, Modale, ModaleMotif, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
-import { CopierTexte, GestionEquipe, messageInvitation } from '../etablissement/Equipe.jsx';
-import { ListeMiseEnService } from '../etablissement/MiseEnService.jsx';
+import React, { useState } from 'react';
+import { useEspace } from '../../noyau/espace.jsx';
+import { dateLocale, formatDate, formatDateHeure, formatMontant } from '../../noyau/format.js';
+import { Badge, Bouton, Champ, Erreur, Modale, ModaleMotif, Section } from '../../ui/composants.jsx';
 
-const FORMULES = { essai: 'Essai', acquisition: 'Acquisition', mensuel: 'Mensuel', annuel: 'Annuel' };
-const EVENEMENTS = {
+export const FORMULES = { essai: 'Essai', acquisition: 'Acquisition', mensuel: 'Mensuel', annuel: 'Annuel' };
+export const EVENEMENTS = {
   attribution: 'Attribution', renouvellement: 'Renouvellement', suspension: 'Suspension', reactivation: 'Réactivation', fin: 'Fin', support: 'Support',
 };
-const STATUTS = { actif: 'Actif', suspendu: 'Suspendu', archive: 'Archivé' };
+export const STATUTS = { actif: 'Actif', suspendu: 'Suspendu', archive: 'Archivé' };
 
+// Éléments partagés de l'espace Agence Elite (formulaires, onglets de la fiche établissement).
 // Petite aide : exécuter une action, afficher l'erreur, notifier et recharger.
-function useAction(apres) {
+export function useAction(apres) {
   const { notifier } = useEspace();
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
@@ -43,7 +42,7 @@ export function BadgeLicence({ licence }) {
   return <Badge ton={jours != null && jours <= 7 ? 'attention' : licence.formule === 'essai' ? 'bleu' : 'vert'}>{texte}</Badge>;
 }
 
-function FormulaireClient({ client, onFermer, onEnregistre }) {
+export function FormulaireClient({ client, onFermer, onEnregistre }) {
   const { api } = useEspace();
   const [valeurs, setValeurs] = useState({
     nom: client?.nom ?? '', pays: client?.pays ?? 'Congo', devise_facturation: client?.devise_facturation ?? 'XAF',
@@ -91,7 +90,7 @@ function FormulaireClient({ client, onFermer, onEnregistre }) {
   );
 }
 
-function FormulaireEtablissement({ client, solutions, onFermer, onEnregistre }) {
+export function FormulaireEtablissement({ client, solutions, onFermer, onEnregistre }) {
   const { api } = useEspace();
   const actives = solutions.filter((s) => s.statut === 'active');
   const [valeurs, setValeurs] = useState({ nom: '', ville: '', pays: client.pays ?? '', devise: client.devise_facturation ?? 'XAF', solution: actives[0]?.id ?? 'commerce' });
@@ -139,7 +138,7 @@ function FormulaireEtablissement({ client, solutions, onFermer, onEnregistre }) 
   );
 }
 
-function ModaleLicence({ etablissement, offres, modules, premiere, onFermer, onEnregistre }) {
+export function ModaleLicence({ etablissement, offres, modules, premiere, onFermer, onEnregistre }) {
   const { api } = useEspace();
   const proposees = offres.filter((o) => o.solution_id === etablissement.solution_id && o.actif);
   const [offreId, setOffreId] = useState(proposees.find((o) => !o.offre_essai)?.id ?? proposees[0]?.id);
@@ -301,7 +300,7 @@ function ModaleSupport({ licence, offre, onFermer, onEnregistre }) {
   );
 }
 
-function OngletLicence({ detail, offres, recharger }) {
+export function OngletLicence({ detail, offres, recharger }) {
   const { api } = useEspace();
   const [modale, setModale] = useState(null);
   const licence = detail.licence;
@@ -381,39 +380,58 @@ function OngletLicence({ detail, offres, recharger }) {
   );
 }
 
-function OngletModules({ detail, recharger }) {
+export function OngletModules({ detail, recharger }) {
   const { api } = useEspace();
   const { erreur, agir } = useAction(recharger);
+  const supplementaires = detail.licence?.modules_supplementaires ?? [];
+  const accorder = (m, accorde) => agir(
+    () => api.rpc('accorder_module', { p_etablissement_id: detail.etablissement.id, p_module_id: m.id, p_accorde: accorde, p_motif: accorde ? 'Module accordé depuis la fiche établissement' : 'Module retiré depuis la fiche établissement' }),
+    accorde ? `${m.nom} accordé` : `${m.nom} retiré de la licence`
+  ).catch(() => {});
   return (
-    <section className="carte">
-      <h2>Modules</h2>
-      <p className="texte-doux">Un module hors licence ne peut pas être activé. Les dépendances sont vérifiées.</p>
+    <Section titre="Modules de l’établissement" sousTitre="Accordé = autorisé par la licence. Activé = visible dans l’établissement. Les dépendances sont vérifiées par la base.">
       <Erreur message={erreur} />
-      <div className="liste-simple">
-        {detail.modules.map((m) => (
-          <div key={m.id} className="liste-ligne">
-            <span>
-              <strong>{m.nom}</strong>
-              {m.depend_de.length > 0 && <small className="texte-doux bloc">dépend de : {m.depend_de.join(', ')}</small>}
-            </span>
-            {m.nature === 'socle' ? <Badge>socle</Badge> : m.couvert ? <Badge ton="vert">dans la licence</Badge> : <Badge ton="attention">hors licence</Badge>}
-            <label className="case">
-              <input
-                type="checkbox"
-                checked={m.actif}
-                disabled={!m.actif && !m.couvert}
-                onChange={(e) => agir(() => api.rpc('definir_module_etablissement', { p_etablissement_id: detail.etablissement.id, p_module_id: m.id, p_actif: e.target.checked }), 'Module mis à jour').catch(() => {})}
-              />
-              {m.actif ? 'Activé' : 'Désactivé'}
-            </label>
-          </div>
-        ))}
+      {!detail.licence && <p className="texte-doux">Sans licence en cours, aucun module ne peut être accordé.</p>}
+      <div className="tableau-conteneur">
+        <table className="tableau">
+          <thead><tr><th>Module</th><th>Licence</th><th>Activation</th><th /></tr></thead>
+          <tbody>
+            {detail.modules.map((m) => (
+              <tr key={m.id}>
+                <td>
+                  <strong>{m.nom}</strong>
+                  {m.depend_de.length > 0 && <small className="texte-doux bloc">dépend de : {m.depend_de.join(', ')}</small>}
+                </td>
+                <td>
+                  {m.nature === 'socle' ? <Badge>Socle</Badge>
+                    : supplementaires.includes(m.id) ? <Badge ton="bleu">Accordé en plus</Badge>
+                      : m.couvert ? <Badge ton="vert">Inclus dans l’offre</Badge> : <Badge ton="attention">Non accordé</Badge>}
+                </td>
+                <td>
+                  <label className="case">
+                    <input
+                      type="checkbox"
+                      checked={m.actif}
+                      disabled={!m.actif && !m.couvert}
+                      onChange={(e) => agir(() => api.rpc('definir_module_etablissement', { p_etablissement_id: detail.etablissement.id, p_module_id: m.id, p_actif: e.target.checked }), 'Module mis à jour').catch(() => {})}
+                    />
+                    {m.actif ? 'Activé' : 'Désactivé'}
+                  </label>
+                </td>
+                <td className="actions-ligne">
+                  {m.nature !== 'socle' && detail.licence && !m.couvert && <Bouton onClick={() => accorder(m, true)}>Accorder</Bouton>}
+                  {supplementaires.includes(m.id) && <button type="button" className="lien danger" onClick={() => accorder(m, false)}>Retirer</button>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </section>
+    </Section>
   );
 }
 
-function OngletInfos({ detail, recharger }) {
+export function OngletInfos({ detail, recharger }) {
   const { api } = useEspace();
   const e = detail.etablissement;
   const [valeurs, setValeurs] = useState({ nom: e.nom, ville: e.ville ?? '', pays: e.pays ?? '', devise: e.devise });
@@ -462,7 +480,7 @@ function OngletInfos({ detail, recharger }) {
   );
 }
 
-function OngletSupport({ detail, recharger, naviguer }) {
+export function OngletSupport({ detail, recharger, naviguer }) {
   const { api, recharger: rechargerContexte, choisirEtablissement } = useEspace();
   const [motif, setMotif] = useState('');
   const { erreur, enCours, agir } = useAction(recharger);
@@ -510,164 +528,7 @@ function OngletSupport({ detail, recharger, naviguer }) {
   );
 }
 
-function FicheEtablissement({ etablissementId, offres, onFermer, onChange, naviguer }) {
-  const { api } = useEspace();
-  const [onglet, setOnglet] = useState('licence');
-  const { donnees: detail, chargement, erreur, recharger } = useDonnees(
-    () => api.rpc('editeur_etablissement', { p_etablissement_id: etablissementId }),
-    [etablissementId]
-  );
-  const rafraichir = async () => {
-    recharger();
-    onChange();
-  };
-  const { erreur: erreurAction, agir } = useAction(rafraichir);
-  return (
-    <Modale titre={detail ? `${detail.etablissement.nom} · ${detail.client.nom}` : 'Établissement'} onFermer={onFermer} large>
-      {chargement && !detail && <Chargement />}
-      <Erreur message={erreur || erreurAction} />
-      {detail && (
-        <div className="pile">
-          <div className="titre-ligne">
-            <BadgeLicence licence={detail.licence} />
-            {detail.etablissement.statut !== 'actif' && <Badge ton="alerte">{STATUTS[detail.etablissement.statut]}</Badge>}
-            {detail.etablissement.mis_en_service_le ? <Badge ton="vert">En service</Badge> : <Badge>Pas encore en service</Badge>}
-          </div>
-          <Onglets
-            onglets={[['licence', 'Licence'], ['modules', 'Modules'], ['equipe', 'Équipe'], ['service', 'Mise en service'], ['support', 'Support'], ['infos', 'Infos']]}
-            actif={onglet}
-            onChange={setOnglet}
-          />
-          {onglet === 'licence' && <OngletLicence detail={detail} offres={offres} recharger={rafraichir} />}
-          {onglet === 'modules' && <OngletModules detail={detail} recharger={rafraichir} />}
-          {onglet === 'equipe' && (
-            <GestionEquipe
-              etablissementId={detail.etablissement.id}
-              nomEtablissement={detail.etablissement.nom}
-              modulesActifs={detail.modules.filter((m) => m.actif).map((m) => m.id)}
-              peutGerer
-            />
-          )}
-          {onglet === 'service' && (
-            <section className="carte">
-              <h2>{detail.mise_en_service.faites} étape(s) sur {detail.mise_en_service.total}</h2>
-              <ListeMiseEnService etat={detail.mise_en_service} />
-              {!detail.etablissement.mis_en_service_le && (
-                <div className="actions">
-                  <Bouton variante="principal" onClick={() => agir(() => api.rpc('mettre_en_service', { p_etablissement_id: detail.etablissement.id }), 'Mise en service enregistrée').catch(() => {})}>
-                    Déclarer la mise en service
-                  </Bouton>
-                </div>
-              )}
-            </section>
-          )}
-          {onglet === 'support' && <OngletSupport detail={detail} recharger={rafraichir} naviguer={naviguer} />}
-          {onglet === 'infos' && <OngletInfos key={detail.etablissement.modifie_le} detail={detail} recharger={rafraichir} />}
-        </div>
-      )}
-    </Modale>
-  );
-}
-
-function FicheClient({ client, vue, recharger, onOuvrirEtablissement }) {
-  const { api } = useEspace();
-  const [modale, setModale] = useState(null);
-  const [invite, setInvite] = useState(null);
-  const [email, setEmail] = useState('');
-  const { erreur, enCours, agir } = useAction(recharger);
-  const contact = client.contact ?? {};
-  return (
-    <div className="pile">
-      <section className="carte">
-        <div className="titre-ligne">
-          <h2>{client.nom}</h2>
-          <span className="actions-ligne">
-            <Badge ton={client.statut === 'actif' ? 'vert' : 'alerte'}>{STATUTS[client.statut]}</Badge>
-            <button className="lien" onClick={() => setModale('client')}>Modifier</button>
-          </span>
-        </div>
-        <p className="texte-doux">
-          {[client.pays, contact.responsable, contact.telephone, contact.email].filter(Boolean).join(' · ') || 'Coordonnées à compléter'}
-        </p>
-        <div className="actions-gauche">
-          {Object.entries(STATUTS).filter(([id]) => id !== client.statut).map(([id, nom]) => (
-            <Bouton
-              key={id}
-              variante={id === 'actif' ? 'secondaire' : 'danger'}
-              onClick={() => agir(() => api.rpc('definir_statut_client', { p_client_id: client.id, p_statut: id }), `Client : ${nom.toLowerCase()}`).catch(() => {})}
-            >
-              {id === 'actif' ? 'Réactiver' : nom === 'Suspendu' ? 'Suspendre' : 'Archiver'}
-            </Bouton>
-          ))}
-        </div>
-        <Erreur message={erreur} />
-      </section>
-
-      <section className="carte">
-        <div className="titre-ligne">
-          <h2>Établissements</h2>
-          <Bouton variante="principal" icone="plus" onClick={() => setModale('etablissement')}>Nouvel établissement</Bouton>
-        </div>
-        {!client.etablissements.length && <Vide titre="Aucun établissement" texte="Créez le premier établissement de ce client." />}
-        <div className="cartes-etablissements">
-          {client.etablissements.map((e) => (
-            <button key={e.id} className="carte-etablissement" onClick={() => onOuvrirEtablissement(e.id)}>
-              <strong>{e.nom}</strong>
-              <small className="texte-doux">{[e.ville, e.solution_id].filter(Boolean).join(' · ')}</small>
-              <span className="badges">
-                <BadgeLicence licence={e.licence} />
-                {e.statut !== 'actif' && <Badge ton="alerte">{STATUTS[e.statut]}</Badge>}
-                {e.mis_en_service_le && <Badge ton="vert">en service</Badge>}
-              </span>
-              <small>{e.gerants.length ? `Gérant : ${e.gerants.join(', ')}` : e.invitations_en_attente ? `${e.invitations_en_attente} invitation(s) en attente` : 'Aucun gérant'}</small>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="carte">
-        <h2>Dirigeants (lecture de tous ses établissements)</h2>
-        <div className="liste-simple">
-          {client.dirigeants.map((d) => (
-            <div key={d.email} className="liste-ligne"><span>{d.nom || d.email}</span><span className="texte-doux">{d.email}</span></div>
-          ))}
-          {client.invitations.map((i) => (
-            <div key={i.id} className="liste-ligne"><span>{i.email}</span><Badge ton="bleu">invitation en attente</Badge></div>
-          ))}
-        </div>
-        <form
-          className="ligne-formulaire"
-          onSubmit={(ev) => {
-            ev.preventDefault();
-            agir(() => api.rpc('inviter_dirigeant', { p_client_id: client.id, p_email: email }), 'Invitation créée')
-              .then(() => { setInvite(email.trim().toLowerCase()); setEmail(''); })
-              .catch(() => {});
-          }}
-        >
-          <input type="email" value={email} onChange={(ev) => setEmail(ev.target.value)} placeholder="E-mail du dirigeant" required />
-          <Bouton type="submit" chargement={enCours}>Inviter</Bouton>
-        </form>
-      </section>
-
-      {modale === 'client' && <FormulaireClient client={client} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />}
-      {modale === 'etablissement' && (
-        <FormulaireEtablissement
-          client={client}
-          solutions={vue.solutions}
-          onFermer={() => setModale(null)}
-          onEnregistre={(id) => { setModale(null); recharger(); onOuvrirEtablissement(id); }}
-        />
-      )}
-      {invite && (
-        <Modale titre="Message pour le dirigeant" onFermer={() => setInvite(null)}>
-          <CopierTexte texte={messageInvitation({ etablissement: client.nom, email: invite, role: 'Dirigeant' }).replace('en tant que Dirigeant', 'en tant que dirigeant (consultation de tous vos établissements)')} />
-        </Modale>
-      )}
-    </div>
-  );
-}
-
-function FormulaireOffre({ offre, modules, onFermer, onEnregistre }) {
+export function FormulaireOffre({ offre, modules, onFermer, onEnregistre }) {
   const { api } = useEspace();
   const [valeurs, setValeurs] = useState({
     id: offre?.id ?? '', nom: offre?.nom ?? '', description: offre?.description ?? '', modules: offre?.modules ?? [],
@@ -729,139 +590,5 @@ function FormulaireOffre({ offre, modules, onFermer, onEnregistre }) {
         </div>
       </form>
     </Modale>
-  );
-}
-
-export default function Editeur({ naviguer }) {
-  const { api } = useEspace();
-  const { donnees: vue, chargement, erreur, recharger } = useDonnees(() => api.rpc('editeur_vue'), []);
-  const [onglet, setOnglet] = useState('clients');
-  const [clientId, setClientId] = useState(null);
-  const [etablissementId, setEtablissementId] = useState(null);
-  const [recherche, setRecherche] = useState('');
-  const [nouveauClient, setNouveauClient] = useState(false);
-  const [offre, setOffre] = useState(null);
-
-  const etablissements = useMemo(
-    () => (vue?.clients ?? []).flatMap((c) => c.etablissements.map((e) => ({ ...e, client: c.nom }))),
-    [vue]
-  );
-  const echeances = etablissements
-    .filter((e) => e.licence?.echeance)
-    .sort((a, b) => a.licence.jours_restants - b.licence.jours_restants);
-  const clients = (vue?.clients ?? []).filter((c) => c.nom.toLowerCase().includes(recherche.toLowerCase())
-    || c.etablissements.some((e) => e.nom.toLowerCase().includes(recherche.toLowerCase())));
-  const client = vue?.clients.find((c) => c.id === clientId) ?? clients[0];
-  const modulesCommerce = ['articles', 'stock', 'caisse', 'ventes', 'paiements', 'recus', 'cloture', 'contacts', 'depenses'];
-
-  return (
-    <div className="page">
-      <EnTete titre="Agence Elite" sousTitre="Clients, établissements, licences et support">
-        <Bouton variante="principal" icone="plus" onClick={() => setNouveauClient(true)}>Nouveau client</Bouton>
-      </EnTete>
-      {chargement && !vue && <Chargement />}
-      <Erreur message={erreur} />
-      {vue && (
-        <>
-          <div className="grille-indicateurs">
-            <Indicateur libelle="Clients" valeur={vue.clients.length} />
-            <Indicateur libelle="Établissements" valeur={etablissements.length} detail={`${etablissements.filter((e) => e.mis_en_service_le).length} en service`} />
-            <Indicateur libelle="En essai" valeur={etablissements.filter((e) => e.licence?.formule === 'essai').length} />
-            <Indicateur
-              libelle="À renouveler (15 j)"
-              valeur={echeances.filter((e) => e.licence.jours_restants <= 15).length}
-              ton={echeances.some((e) => e.licence.jours_restants <= 7) ? 'attention' : ''}
-            />
-            <Indicateur libelle="Bloqués" valeur={etablissements.filter((e) => !e.ecriture).length} ton={etablissements.some((e) => !e.ecriture) ? 'alerte' : ''} />
-          </div>
-          <div className="filtres">
-            <Onglets onglets={[['clients', 'Clients'], ['echeances', 'Échéances'], ['offres', 'Offres et prix']]} actif={onglet} onChange={setOnglet} />
-          </div>
-
-          {onglet === 'clients' && (
-            !vue.clients.length ? (
-              <Vide titre="Aucun client" texte="Créez votre premier client pour lui attribuer Solution Commerce." action={<Bouton variante="principal" onClick={() => setNouveauClient(true)}>Nouveau client</Bouton>} />
-            ) : (
-              <div className="maitre-detail">
-                <aside className="liste-maitre">
-                  <Recherche valeur={recherche} onChange={setRecherche} placeholder="Client ou établissement" />
-                  {clients.map((c) => (
-                    <button key={c.id} className={c.id === client?.id ? 'actif' : ''} onClick={() => setClientId(c.id)}>
-                      <strong>{c.nom}</strong>
-                      <small>{c.etablissements.length} établissement(s){c.statut !== 'actif' ? ` · ${STATUTS[c.statut].toLowerCase()}` : ''}</small>
-                    </button>
-                  ))}
-                </aside>
-                {client && <FicheClient key={client.id} client={client} vue={vue} recharger={recharger} onOuvrirEtablissement={setEtablissementId} />}
-              </div>
-            )
-          )}
-
-          {onglet === 'echeances' && (
-            <div className="tableau-conteneur">
-              <table className="tableau">
-                <thead><tr><th>Établissement</th><th>Client</th><th>Offre</th><th>Échéance</th><th>État</th></tr></thead>
-                <tbody>
-                  {echeances.map((e) => (
-                    <tr key={e.id} className="cliquable" onClick={() => setEtablissementId(e.id)}>
-                      <td><strong>{e.nom}</strong></td>
-                      <td>{e.client}</td>
-                      <td>{e.licence.offre} · {FORMULES[e.licence.formule]}</td>
-                      <td>{formatDate(e.licence.echeance)} <small className="texte-doux">({e.licence.jours_restants} j)</small></td>
-                      <td><BadgeLicence licence={e.licence} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!echeances.length && <Vide titre="Aucune échéance" />}
-            </div>
-          )}
-
-          {onglet === 'offres' && (
-            <div className="pile">
-              <div className="actions-gauche"><Bouton icone="plus" onClick={() => setOffre({})}>Nouvelle offre</Bouton></div>
-              <div className="tableau-conteneur">
-                <table className="tableau">
-                  <thead><tr><th>Offre</th><th>Modules</th><th className="nombre">Acquisition</th><th className="nombre">Mensuel</th><th className="nombre">Annuel</th><th className="nombre">Mise en service</th><th className="nombre">Support / mois</th><th /></tr></thead>
-                  <tbody>
-                    {vue.offres.map((o) => (
-                      <tr key={o.id} className={o.actif ? '' : 'barre'}>
-                        <td><strong>{o.nom}</strong>{o.offre_essai && <Badge ton="bleu">offre d’essai</Badge>}<small className="texte-doux bloc">{o.description}</small></td>
-                        <td>{o.modules.length} modules</td>
-                        <td className="nombre">{formatMontant(o.prix_acquisition, o.devise)}</td>
-                        <td className="nombre">{formatMontant(o.prix_mensuel, o.devise)}</td>
-                        <td className="nombre">{formatMontant(o.prix_annuel, o.devise)}</td>
-                        <td className="nombre">{formatMontant(o.prix_mise_en_service, o.devise)}</td>
-                        <td className="nombre">{Number(o.prix_support_mensuel) > 0 ? formatMontant(o.prix_support_mensuel, o.devise) : 'à définir'}</td>
-                        <td className="actions-ligne"><button className="lien" onClick={() => setOffre(o)}>Modifier</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="texte-doux">Les prix servent à préremplir le montant lors de l’attribution d’une licence ; ils se modifient ici à tout moment. Le support est vendu à part. Rôles disponibles : {vue.roles.map((r) => ROLES[r.id] ?? r.nom).join(', ')}.</p>
-            </div>
-          )}
-        </>
-      )}
-      {nouveauClient && (
-        <FormulaireClient
-          onFermer={() => setNouveauClient(false)}
-          onEnregistre={(id) => { setNouveauClient(false); setClientId(id); setOnglet('clients'); recharger(); }}
-        />
-      )}
-      {offre && (
-        <FormulaireOffre offre={offre.id ? offre : null} modules={modulesCommerce} onFermer={() => setOffre(null)} onEnregistre={() => { setOffre(null); recharger(); }} />
-      )}
-      {etablissementId && (
-        <FicheEtablissement
-          etablissementId={etablissementId}
-          offres={vue?.offres ?? []}
-          onFermer={() => setEtablissementId(null)}
-          onChange={recharger}
-          naviguer={(id) => { setEtablissementId(null); naviguer(id); }}
-        />
-      )}
-    </div>
   );
 }

@@ -25,6 +25,8 @@ set encrypted_password = extensions.crypt(encode(extensions.gen_random_bytes(32)
 where email like '%-' || :'lot' || '@' || :'domaine';
 -- Le client fictif est archivé (masqué des listes), jamais supprimé.
 update public.clients set statut = 'archive' where nom = 'Pilote fictif ' || :'lot';
+update public.etablissements set statut = 'archive'
+where client_id in (select id from public.clients where nom = 'Pilote fictif ' || :'lot');
 SQL
   echo "Comptes fictifs du lot $PILOTE_LOT neutralisés."
 }

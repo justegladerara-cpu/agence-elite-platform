@@ -79,9 +79,11 @@ function ModaleInvitation({ etablissementId, nomEtablissement, roles, onFermer, 
   );
 }
 
-function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles, onFermer, onEnregistre }) {
+function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles, hubs = [], hubsMembre = [], onFermer, onEnregistre }) {
   const { api } = useEspace();
   const [role, setRole] = useState(membre.role_id);
+  const [restreint, setRestreint] = useState(hubsMembre.length > 0);
+  const [hubsChoisis, setHubsChoisis] = useState(hubsMembre);
   const [ajustements, setAjustements] = useState(membre.permissions_ajustees ?? {});
   const [actif, setActif] = useState(membre.actif);
   const [erreur, setErreur] = useState('');
@@ -104,6 +106,11 @@ function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles
       await api.rpc('modifier_membre', {
         p_etablissement_id: etablissementId, p_user_id: membre.user_id, p_role_id: role, p_permissions_ajustees: ajustements, p_actif: actif,
       });
+      const voulus = restreint ? hubsChoisis : [];
+      if (hubs.length > 1 && [...voulus].sort().join() !== [...hubsMembre].sort().join()) {
+        if (restreint && !voulus.length) throw new Error('Choisissez au moins un Hub, ou donnez accès à tous les Hubs');
+        await api.rpc('definir_hubs_membre', { p_etablissement_id: etablissementId, p_user_id: membre.user_id, p_hubs: voulus });
+      }
       onEnregistre();
     } catch (err) {
       setErreur(err.message);
@@ -135,6 +142,30 @@ function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles
             Accès actif
           </label>
         </div>
+        {hubs.length > 1 && (
+          <fieldset className="droits-module">
+            <legend>Hubs accessibles</legend>
+            <label className="case">
+              <input type="radio" name="portee-hubs" checked={!restreint} onChange={() => setRestreint(false)} />
+              Tous les Hubs de l’établissement
+            </label>
+            <label className="case">
+              <input type="radio" name="portee-hubs" checked={restreint} onChange={() => setRestreint(true)} />
+              Seulement certains Hubs
+            </label>
+            {restreint && hubs.map((h) => (
+              <label key={h.id} className="case retrait">
+                <input
+                  type="checkbox"
+                  checked={hubsChoisis.includes(h.id)}
+                  onChange={(e) => setHubsChoisis((l) => (e.target.checked ? [...l, h.id] : l.filter((x) => x !== h.id)))}
+                />
+                {h.nom}{h.principal ? ' (principal)' : ''}
+              </label>
+            ))}
+            <small className="champ-aide">Contrôlé par la base : ventes, caisses et stock des autres Hubs restent invisibles pour cette personne.</small>
+          </fieldset>
+        )}
         <p className="texte-doux">Cochez ou décochez pour ajuster les droits de cette personne. Un droit différent de son rôle est marqué « ajusté ».</p>
         <div className="grille-droits">
           {modules.map((m) => (
@@ -157,17 +188,21 @@ function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles
 }
 
 // Gestion d'équipe, utilisée par le gérant et par l'espace éditeur.
-export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs, peutGerer, rolesProposes }) {
+export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs, peutGerer, rolesProposes, hubs = [] }) {
   const { api, notifier } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [equipe, permissions, rolePermissions, modules] = await Promise.all([
+    const [equipe, permissions, rolePermissions, modules, restrictions] = await Promise.all([
       api.rpc('equipe_etablissement', { p_etablissement_id: etablissementId }),
       api.lire('permissions', { ordre: ['id'] }),
       api.lire('role_permissions'),
       api.lire('modules', { ordre: ['nom'] }),
+      api.lire('membre_hubs', { eq: { etablissement_id: etablissementId } }).catch(() => []),
     ]);
+    const hubsParMembre = {};
+    for (const r of restrictions) (hubsParMembre[r.user_id] ??= []).push(r.hub_id);
     return {
       equipe,
+      hubsParMembre,
       catalogue: { permissions, modules, rolePermissions: new Set(rolePermissions.map((r) => `${r.role_id}|${r.permission_id}`)) },
     };
   }, [etablissementId]);
@@ -192,7 +227,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
       {donnees?.equipe.membres.length > 0 && (
         <div className="tableau-conteneur">
           <table className="tableau">
-            <thead><tr><th>Personne</th><th>Rôle</th><th>État</th><th /></tr></thead>
+            <thead><tr><th>Personne</th><th>Rôle</th>{hubs.length > 1 && <th>Hubs</th>}<th>État</th><th /></tr></thead>
             <tbody>
               {donnees.equipe.membres.map((m) => (
                 <tr key={m.user_id} className={m.actif ? '' : 'barre'}>
@@ -204,6 +239,13 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
                     <Badge ton="bleu">{ROLES[m.role_id]}</Badge>
                     {Object.keys(m.permissions_ajustees ?? {}).length > 0 && <Badge>droits ajustés</Badge>}
                   </td>
+                  {hubs.length > 1 && (
+                    <td>
+                      {donnees.hubsParMembre[m.user_id]
+                        ? donnees.hubsParMembre[m.user_id].map((id) => hubs.find((h) => h.id === id)?.nom).filter(Boolean).join(', ')
+                        : <span className="texte-doux">Tous</span>}
+                    </td>
+                  )}
                   <td>{m.actif ? <Badge ton="vert">Actif</Badge> : <Badge>Désactivé</Badge>}</td>
                   <td className="actions-ligne">
                     {peutGerer && !m.moi && <button className="lien" onClick={() => setMembre(m)}>Modifier</button>}
@@ -270,6 +312,8 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
           catalogue={donnees.catalogue}
           modulesActifs={modulesActifs}
           roles={roles}
+          hubs={hubs}
+          hubsMembre={donnees.hubsParMembre[membre.user_id] ?? []}
           onFermer={() => setMembre(null)}
           onEnregistre={() => {
             setMembre(null);
@@ -284,7 +328,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
 
 export default function Equipe() {
   const { etablissement, peut } = useEspace();
-  const rang = ['gerant', 'responsable', 'employe', 'comptable', 'lecteur'];
+  const rang = ['gerant', 'responsable', 'responsable_hub', 'gestionnaire_depot', 'employe', 'comptable', 'lecteur'];
   const monRang = rang.indexOf(etablissement.role);
   return (
     <div className="page">
@@ -295,6 +339,7 @@ export default function Equipe() {
         modulesActifs={etablissement.modules}
         peutGerer={peut('membres.gerer')}
         rolesProposes={monRang >= 0 ? rang.slice(monRang) : rang}
+        hubs={(etablissement.hubs ?? []).filter((h) => h.actif)}
       />
     </div>
   );

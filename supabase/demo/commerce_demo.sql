@@ -194,8 +194,8 @@ begin
     jsonb_build_array(jsonb_build_object('mode', 'especes', 'montant', 10000)), client_fidele, 0, null);
   perform public.enregistrer_depense(etab, jsonb_build_object('libelle', 'Transport depuis le dépôt', 'montant', 3000, 'mode', 'especes',
     'categorie', 'Transport', 'session_caisse_id', session_mp));
-  perform public.enregistrer_depense(etab, jsonb_build_object('libelle', 'Facture électricité (fictive)', 'montant', 28000, 'mode', 'virement',
-    'categorie', 'Énergie', 'hub_id', hub_mp, 'fournisseur_id', fournisseur));
+  perform public.enregistrer_depense(etab, jsonb_build_object('libelle', 'Facture électricité (fictive)', 'montant', 18000, 'mode', 'virement',
+    'categorie', 'Énergie', 'date_depense', current_date - 5, 'hub_id', hub_mp, 'fournisseur_id', fournisseur));
 
   perform set_config('request.jwt.claims', json_build_object('sub', caisse_marche, 'role', 'authenticated')::text, true);
   session_bmt := public.ouvrir_caisse(etab, caisse_bmt, 10000);

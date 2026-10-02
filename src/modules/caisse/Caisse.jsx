@@ -22,6 +22,7 @@ export function VignetteArticle({ article, taille = 'normale' }) {
 }
 
 function OuvertureCaisse({ pointsDeVente, onOuvrir }) {
+  const { hubs, multiHub } = useEspace();
   const [fond, setFond] = useState('');
   const [pdv, setPdv] = useState(pointsDeVente[0]?.id ?? '');
   const [erreur, setErreur] = useState('');
@@ -37,15 +38,24 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir }) {
       setChargement(false);
     }
   };
+  if (!pointsDeVente.length) {
+    return (
+      <div className="ouverture-caisse">
+        <Vide titre="Aucune caisse ici" texte={multiHub ? 'Ce Hub n’a pas de caisse. Choisissez un autre Hub en haut de l’écran.' : 'Demandez à votre responsable de créer une caisse.'} />
+      </div>
+    );
+  }
+  const nomHub = (p) => (multiHub ? ` · ${hubs.find((h) => h.id === p.hub_id)?.nom ?? ''}` : '');
   return (
     <div className="ouverture-caisse">
       <form className="carte formulaire" onSubmit={valider}>
         <h2>Ouvrir la caisse</h2>
         <p className="texte-doux">Comptez les espèces présentes dans le tiroir avant la première vente.</p>
+        {pointsDeVente.length === 1 && multiHub && <p><strong>{pointsDeVente[0].nom}</strong>{nomHub(pointsDeVente[0])}</p>}
         {pointsDeVente.length > 1 && (
-          <Champ libelle="Point de vente">
+          <Champ libelle="Caisse">
             <select value={pdv} onChange={(e) => setPdv(e.target.value)}>
-              {pointsDeVente.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
+              {pointsDeVente.map((p) => <option key={p.id} value={p.id}>{p.nom}{nomHub(p)}</option>)}
             </select>
           </Champ>
         )}
@@ -199,19 +209,25 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub } = useEspace();
   const etab = etablissement.id;
+  // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
+  const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [articles, stock, categories, contacts, sessions, pointsDeVente] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
-      api.lire('stock_articles', { eq: { etablissement_id: etab } }),
+      api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }),
       api.lire('points_de_vente', { eq: { etablissement_id: etab, actif: true }, ordre: ['cree_le'] }),
     ]);
-    return { articles, stock, categories, contacts: contacts.filter((c) => c.type !== 'fournisseur'), sessions, pointsDeVente };
-  }, [etab]);
+    const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
+    return {
+      articles, stock, categories, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
+      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses,
+    };
+  }, [etab, hubsCaisse.join()]);
   const [pdvChoisi, setPdvChoisi] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [remise, setRemise] = useState('');
@@ -223,12 +239,15 @@ export default function Caisse({ naviguer }) {
   const [panierMobile, setPanierMobile] = useState(false);
 
   const parId = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
-  const stockParId = useMemo(() => Object.fromEntries((donnees?.stock ?? []).map((s) => [s.article_id, s.quantite])), [donnees]);
+  const session = donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
+  // Le stock affiché est celui du Hub de la caisse ouverte (c'est lui que la vente débitera).
+  const stockParId = useMemo(
+    () => Object.fromEntries((donnees?.stock ?? []).filter((s) => s.hub_id === session?.hub_id).map((s) => [s.article_id, Number(s.quantite)])),
+    [donnees, session?.hub_id]
+  );
 
   if (chargement && !donnees) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
-
-  const session = donnees.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees.sessions[0];
   if (!session) {
     return (
       <OuvertureCaisse
@@ -296,7 +315,7 @@ export default function Caisse({ naviguer }) {
         <div className="caisse-barre">
           <div className="caisse-session">
             <Badge ton="vert">Caisse ouverte</Badge>
-            <span>{pdvNom} · depuis {formatDateHeure(session.ouverte_le)}</span>
+            <span>{pdvNom}{multiHub ? ` · ${hubs.find((h) => h.id === session.hub_id)?.nom ?? ''}` : ''} · depuis {formatDateHeure(session.ouverte_le)}</span>
             {donnees.sessions.length > 1 && (
               <select value={session.point_de_vente_id} onChange={(e) => setPdvChoisi(e.target.value)} aria-label="Caisse">
                 {donnees.sessions.map((s) => <option key={s.id} value={s.point_de_vente_id}>{donnees.pointsDeVente.find((p) => p.id === s.point_de_vente_id)?.nom}</option>)}

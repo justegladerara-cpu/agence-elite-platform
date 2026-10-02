@@ -130,8 +130,9 @@ function SessionOuverte({ session, onCloturee }) {
 }
 
 export default function Clotures() {
-  const { api, etablissement, montant, notifier } = useEspace();
+  const { api, etablissement, montant, notifier, hubs, hub, multiHub } = useEspace();
   const etab = etablissement.id;
+  const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [zOuvert, setZOuvert] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [sessions, clotures, points] = await Promise.all([
@@ -139,9 +140,10 @@ export default function Clotures() {
       api.lire('clotures', { eq: { etablissement_id: etab }, ordre: ['cloturee_le', 'desc'], limite: 100 }),
       api.lire('points_de_vente', { eq: { etablissement_id: etab } }),
     ]);
-    const noms = Object.fromEntries(points.map((p) => [p.id, p.nom]));
-    return { sessions, clotures: clotures.map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
-  }, [etab]);
+    const noms = Object.fromEntries(points.map((p) => [p.id, `${p.nom}${multiHub ? ` · ${hubs.find((h) => h.id === p.hub_id)?.nom ?? ''}` : ''}`]));
+    const garder = (x) => !hubFiltre || x.hub_id === hubFiltre;
+    return { sessions: sessions.filter(garder), clotures: clotures.filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
+  }, [etab, hubFiltre]);
 
   return (
     <div className="page">

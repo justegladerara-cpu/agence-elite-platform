@@ -44,9 +44,16 @@ export const MODES_PAIEMENT = {
 };
 
 export const ROLES = {
-  gerant: 'Gérant',
+  gerant: 'Responsable d’établissement',
   responsable: 'Responsable',
-  employe: 'Employé',
+  responsable_hub: 'Responsable Hub',
+  gestionnaire_depot: 'Gestionnaire dépôt',
+  employe: 'Caissier',
   comptable: 'Comptable',
   lecteur: 'Lecteur',
 };
+
+// Rôles plateforme (équipe Agence Elite).
+export const ROLES_PLATEFORME = { super_admin: 'Super Admin', admin: 'Admin', support: 'Support' };
+
+export const TYPES_HUB = { point_de_vente: 'Point de vente', depot: 'Dépôt', mixte: 'Point de vente + stock' };

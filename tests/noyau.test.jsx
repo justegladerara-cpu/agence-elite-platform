@@ -77,7 +77,36 @@ describe('application sur la base locale', () => {
   test('le gérant voit le tableau de bord avec le chiffre du jour', async () => {
     window.location.hash = '#/tableau-de-bord';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
-    expect(await screen.findByText('Chiffre d’affaires', {}, { timeout: 10000 })).toBeTruthy();
+    expect((await screen.findAllByText('Chiffre d’affaires', {}, { timeout: 10000 })).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Commerce Démo/).length).toBeGreaterThan(0);
+    // Plusieurs Hubs : le sélecteur apparaît et le tableau « Par Hub » détaille chaque lieu.
+    expect(screen.getByLabelText('Hub')).toBeTruthy();
+    expect((await screen.findAllByText('Boutique Marché Total')).length).toBeGreaterThan(0);
+  });
+
+  test('un compte au mot de passe temporaire ne voit que l’écran de nouveau mot de passe', async () => {
+    window.location.hash = '#/tableau-de-bord';
+    render(<App demarrer={demarrer('patrondemo@identifiants.agence-elite.fr')} />);
+    expect(await screen.findByText('Créer votre nouveau mot de passe')).toBeTruthy();
+    expect(screen.queryByText('Tableau de bord')).toBeNull();
+    expect(screen.getByLabelText(/^Nouveau mot de passe/)).toBeTruthy();
+    expect(screen.getByLabelText('Confirmer le mot de passe')).toBeTruthy();
+  });
+
+  test('un caissier limité à un Hub ne voit aucune notion de Hub', async () => {
+    window.location.hash = '#/caisse';
+    render(<App demarrer={demarrer('caisse-marche@demo.agence-elite.fr')} />);
+    await waitFor(() => expect(screen.getAllByText('Caisse').length).toBeGreaterThan(0));
+    expect(screen.queryByLabelText('Hub')).toBeNull();
+    expect(screen.queryByText('Transferts')).toBeNull();
+  });
+
+  test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
+    window.location.hash = '#/editeur';
+    render(<App demarrer={demarrer('editeur@demo.local')} />);
+    expect(await screen.findByText('Activité contractuelle', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.queryByText(/encaissé/i)).toBeNull();
+    expect(screen.getByText('Échéances à surveiller')).toBeTruthy();
+    expect(screen.getByText('Centre des modules')).toBeTruthy();
   });
 });

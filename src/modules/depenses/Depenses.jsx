@@ -13,7 +13,7 @@ function debut(periode) {
 }
 
 function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnregistre }) {
-  const { api, etablissement } = useEspace();
+  const { api, etablissement, hub, multiHub } = useEspace();
   const [valeurs, setValeurs] = useState({
     libelle: '', montant: '', categorie: 'Divers', date_depense: dateLocale(), mode: 'especes', fournisseur_id: '', justificatif: '',
     depuis_caisse: sessions.length > 0,
@@ -34,6 +34,8 @@ function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnr
           montant: Number(valeurs.montant),
           fournisseur_id: valeurs.fournisseur_id || null,
           session_caisse_id: valeurs.mode === 'especes' && depuisCaisse ? sessions[0].id : null,
+          // Rattachée au Hub choisi en haut de l'écran (sinon : Hub de la caisse, ou Hub principal).
+          ...(multiHub && hub ? { hub_id: hub.id } : {}),
         },
       });
       onEnregistre();
@@ -106,8 +108,9 @@ function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnr
 }
 
 export default function Depenses() {
-  const { api, etablissement, montant, peut, notifier } = useEspace();
+  const { api, etablissement, montant, peut, notifier, hub, multiHub } = useEspace();
   const etab = etablissement.id;
+  const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [periode, setPeriode] = useState('mois');
   const [nouvelle, setNouvelle] = useState(false);
   const [annulation, setAnnulation] = useState(null);
@@ -115,12 +118,12 @@ export default function Depenses() {
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const depuis = debut(periode);
     const [depenses, contacts, sessions] = await Promise.all([
-      api.lire('depenses', { eq: { etablissement_id: etab }, gte: depuis ? { date_depense: depuis } : {}, ordre: ['date_depense', 'desc'], limite: 500 }),
+      api.lire('depenses', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, gte: depuis ? { date_depense: depuis } : {}, ordre: ['date_depense', 'desc'], limite: 500 }),
       peut('contacts.lire') ? api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }) : [],
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }).catch(() => []),
     ]);
-    return { depenses, fournisseurs: contacts.filter((c) => c.type !== 'client'), noms: Object.fromEntries(contacts.map((c) => [c.id, c.nom])), sessions };
-  }, [etab, periode]);
+    return { depenses, fournisseurs: contacts.filter((c) => c.type !== 'client'), noms: Object.fromEntries(contacts.map((c) => [c.id, c.nom])), sessions: sessions.filter((x) => !hubFiltre || x.hub_id === hubFiltre) };
+  }, [etab, periode, hubFiltre]);
 
   const valides = (donnees?.depenses ?? []).filter((d) => d.statut === 'valide');
   const total = valides.reduce((s, d) => s + d.montant, 0);

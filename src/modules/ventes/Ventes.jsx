@@ -189,8 +189,10 @@ export function DetailVente({ venteId, onFermer, onChange }) {
 }
 
 export default function Ventes() {
-  const { api, etablissement, montant } = useEspace();
+  const { api, etablissement, montant, hubs, hub, multiHub } = useEspace();
   const etab = etablissement.id;
+  const hubFiltre = multiHub ? hub?.id ?? null : null;
+  const nomHub = (id) => hubs.find((h) => h.id === id)?.nom ?? '—';
   const [periode, setPeriode] = useState('jour');
   const [filtre, setFiltre] = useState('toutes');
   const [recherche, setRecherche] = useState('');
@@ -198,11 +200,11 @@ export default function Ventes() {
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const debut = debutPeriode(periode);
     const [ventes, contacts] = await Promise.all([
-      api.lire('ventes', { eq: { etablissement_id: etab }, gte: debut ? { cree_le: debut } : {}, ordre: ['cree_le', 'desc'], limite: 500 }),
+      api.lire('ventes', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, gte: debut ? { cree_le: debut } : {}, ordre: ['cree_le', 'desc'], limite: 500 }),
       api.lire('contacts', { eq: { etablissement_id: etab } }).catch(() => []),
     ]);
     return { ventes, contacts: Object.fromEntries(contacts.map((c) => [c.id, c.nom])) };
-  }, [etab, periode]);
+  }, [etab, periode, hubFiltre]);
 
   const texte = recherche.trim().toLowerCase();
   const ventes = (donnees?.ventes ?? []).filter((v) => {
@@ -216,7 +218,7 @@ export default function Ventes() {
 
   return (
     <div className="page">
-      <EnTete titre="Ventes" sousTitre={`${validees.length} vente(s) validée(s) · ${montant(total)}`} />
+      <EnTete titre="Ventes" sousTitre={`${multiHub ? `${hub ? hub.nom : 'Tous les Hubs'} · ` : ''}${validees.length} vente(s) validée(s) · ${montant(total)}`} />
       <div className="filtres">
         <Onglets onglets={PERIODES} actif={periode} onChange={setPeriode} />
         <Onglets onglets={[['toutes', 'Toutes'], ['credit', 'À encaisser'], ['annulees', 'Annulées']]} actif={filtre} onChange={setFiltre} />
@@ -229,13 +231,14 @@ export default function Ventes() {
         <div className="tableau-conteneur">
           <table className="tableau cliquable">
             <thead>
-              <tr><th>N°</th><th>Date</th><th>Contact</th><th className="nombre">Total</th><th className="nombre">Reste</th><th>État</th></tr>
+              <tr><th>N°</th><th>Date</th>{multiHub && <th>Hub</th>}<th>Contact</th><th className="nombre">Total</th><th className="nombre">Reste</th><th>État</th></tr>
             </thead>
             <tbody>
               {ventes.map((v) => (
                 <tr key={v.id} onClick={() => setOuverte(v.id)}>
                   <td><strong>{v.numero}</strong></td>
                   <td>{formatDateHeure(v.cree_le)}</td>
+                  {multiHub && <td>{nomHub(v.hub_id)}</td>}
                   <td>{donnees.contacts[v.contact_id] ?? '—'}</td>
                   <td className="nombre">{montant(v.total)}</td>
                   <td className="nombre">{v.statut === 'validee' && v.total > v.montant_paye ? montant(v.total - v.montant_paye) : '—'}</td>

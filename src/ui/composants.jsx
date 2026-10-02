@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const CHEMINS = {
@@ -157,16 +157,9 @@ export function ModaleMotif({ titre, texte, libelleAction = 'Confirmer', onValid
   );
 }
 
+// Ancien nom, conservé : même rendu que PageHeader.
 export function EnTete({ titre, sousTitre, children }) {
-  return (
-    <div className="entete-page">
-      <div>
-        <h1>{titre}</h1>
-        {sousTitre && <p>{sousTitre}</p>}
-      </div>
-      {children && <div className="entete-actions">{children}</div>}
-    </div>
-  );
+  return <PageHeader titre={titre} sousTitre={sousTitre} actions={children} />;
 }
 
 export function Recherche({ valeur, onChange, placeholder = 'Rechercher…' }) {
@@ -245,14 +238,38 @@ export function FilAriane({ elements }) {
   );
 }
 
+// Fil d'Ariane : quand la coquille fournit un emplacement (barre du haut), PageHeader y place son fil.
+const ContexteFil = createContext(null);
+
+export function FournisseurFil({ children }) {
+  const [fil, setFil] = useState(null);
+  const valeur = useMemo(() => ({ fil, setFil }), [fil]);
+  return <ContexteFil.Provider value={valeur}>{children}</ContexteFil.Provider>;
+}
+
+export function useFilAriane() {
+  return useContext(ContexteFil);
+}
+
 export function PageHeader({ titre, sousTitre, fil, badges, actions, children }) {
+  const contexte = useContext(ContexteFil);
+  const cle = JSON.stringify(fil ?? null);
+  const setFil = contexte?.setFil;
+  useEffect(() => {
+    if (!setFil || !fil) return undefined;
+    setFil(fil);
+    return () => setFil(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cle, setFil]);
   return (
     <header className="page-header">
-      <FilAriane elements={fil} />
+      {!contexte && <FilAriane elements={fil} />}
       <div className="page-header-ligne">
         <div className="page-header-titre">
-          <h1>{titre}</h1>
-          {badges && <span className="badges">{badges}</span>}
+          <div className="page-header-nom">
+            <h1>{titre}</h1>
+            {badges && <span className="badges">{badges}</span>}
+          </div>
           {sousTitre && <p>{sousTitre}</p>}
         </div>
         {(actions || children) && <div className="entete-actions">{actions}{children}</div>}
@@ -493,8 +510,17 @@ function compacter(n) {
 }
 
 // Histogramme simple (une série, une échelle). donnees : [{ libelle, valeur, titre }]
-export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, onBarre, libelle = 'Graphique' }) {
-  const max = Math.max(...donnees.map((d) => Number(d.valeur) || 0), 1);
+// Plafond « rond » de l'axe (1, 2, 5 × 10^n) pour que chaque graduation tombe sur une valeur lisible.
+function plafondRond(v) {
+  if (v <= 0) return 1;
+  const puissance = 10 ** Math.floor(Math.log10(v));
+  return [1, 2, 5, 10].map((m) => m * puissance).find((c) => c >= v);
+}
+
+export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, onBarre, libelle = 'Graphique', vide = 'Aucune valeur sur la période' }) {
+  const brut = Math.max(...donnees.map((d) => Number(d.valeur) || 0), 0);
+  if (brut <= 0) return <p className="graphique-vide texte-doux">{vide}</p>;
+  const max = plafondRond(brut);
   const largeur = 560;
   const marge = { haut: 12, bas: 26, gauche: 46, droite: 8 };
   const zoneL = largeur - marge.gauche - marge.droite;
@@ -503,7 +529,7 @@ export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, on
   const barre = Math.max(Math.min(pas - 8, 44), 4);
   return (
     <svg className="graphique" viewBox={`0 0 ${largeur} ${hauteur}`} role="img" aria-label={libelle}>
-      {[0, max / 2, max].map((g) => {
+      {[0, max / 2, max].filter((g, i, t) => t.indexOf(g) === i).map((g) => {
         const y = marge.haut + zoneH - (g / max) * zoneH;
         return (
           <g key={g}>
@@ -525,5 +551,37 @@ export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, on
         );
       })}
     </svg>
+  );
+}
+
+// Confirmation d'une action (sans motif). Le texte dit ce qui se passe, l'action est nommée.
+export function Confirmation({ titre, texte, libelleAction = 'Confirmer', danger, onValider, onFermer }) {
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const valider = async () => {
+    setChargement(true);
+    setErreur('');
+    try {
+      await onValider();
+      onFermer();
+    } catch (err) {
+      setErreur(err.message);
+      setChargement(false);
+    }
+  };
+  return (
+    <Modale
+      titre={titre}
+      onFermer={onFermer}
+      pied={(
+        <>
+          <Bouton onClick={onFermer}>Annuler</Bouton>
+          <Bouton variante={danger ? 'danger' : 'principal'} chargement={chargement} onClick={valider}>{libelleAction}</Bouton>
+        </>
+      )}
+    >
+      {texte && <p>{texte}</p>}
+      <Erreur message={erreur} />
+    </Modale>
   );
 }
