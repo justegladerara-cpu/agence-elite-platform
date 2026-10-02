@@ -41,6 +41,12 @@ export async function demarrerSupabase(env = import.meta.env) {
       if (error) throw new Error(error.message);
       utilisateur = data.user.id;
     },
+    async creerCompte(email, motDePasse, nom) {
+      const { data, error } = await supabase.auth.signUp({ email, password: motDePasse, options: { data: { nom } } });
+      if (error) throw new Error(error.message);
+      utilisateur = data.session?.user?.id ?? null;
+      return Boolean(data.session);
+    },
     async deconnecter() {
       await supabase.auth.signOut();
       utilisateur = null;

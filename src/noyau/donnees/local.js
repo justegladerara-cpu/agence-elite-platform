@@ -41,6 +41,15 @@ export async function demarrerLocal() {
       utilisateur = id;
       ecrireStockage(CLE_UTILISATEUR, id);
     },
+    // Simule l'inscription : le compte est créé à la première connexion avec cette adresse.
+    async connecterParEmail(email) {
+      const courriel = String(email ?? '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(courriel)) throw new Error('Adresse e-mail invalide');
+      const existant = await db.query('select id from auth.users where lower(email) = $1', [courriel]);
+      const id = existant.rows[0]?.id ?? (await db.query('insert into auth.users(email) values ($1) returning id', [courriel])).rows[0].id;
+      utilisateur = id;
+      ecrireStockage(CLE_UTILISATEUR, id);
+    },
     async deconnecter() {
       utilisateur = null;
       ecrireStockage(CLE_UTILISATEUR, null);

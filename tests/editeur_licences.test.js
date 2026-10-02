@@ -243,3 +243,20 @@ describe('mise en service et import', () => {
     }
   });
 });
+
+describe('durcissements', () => {
+  test("une image doit être une vraie image, pas un lien javascript:", async () => {
+    await expect(comme(gerant, "select enregistrer_article($1, '{\"nom\": \"X\", \"prix_vente\": 1, \"photo\": \"javascript:alert(1)\"}'::jsonb)", [etab]))
+      .rejects.toThrow(/articles_photo_image/);
+    await expect(comme(gerant, "select enregistrer_identite($1, '{\"logo_url\": \"https://exemple.test/logo.png\"}'::jsonb)", [etab])).resolves.toBeTruthy();
+  });
+
+  test('une vente avec contact exige le module Contacts', async () => {
+    // L'offre Commerce Caisse de Magasin A ne comprend pas Contacts.
+    const contact = (await db.query("insert into contacts(etablissement_id, nom) values ($1, 'Client direct') returning id", [etab])).rows[0].id;
+    const session = await valeur(gerant, 'select ouvrir_caisse($1, null, 0)', [etab]);
+    const article = (await db.query("select id from articles where etablissement_id = $1 and reference = 'ALI-1'", [etab])).rows[0].id;
+    await expect(comme(gerant, "select enregistrer_vente($1, $2, $3::jsonb, '[]'::jsonb, $4)", [etab, session, JSON.stringify([{ article_id: article, quantite: 1 }]), contact]))
+      .rejects.toThrow(/Contacts/);
+  });
+});

@@ -3,6 +3,7 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { VignetteArticle } from '../caisse/Caisse.jsx';
+import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
 
 const VIDE = {
   nom: '', reference: '', code_barres: '', categorie_id: '', prix_vente: '', cout_achat: '', unite: 'unité',
@@ -116,12 +117,94 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
   );
 }
 
+function ImportArticles({ onFermer, onImporte }) {
+  const { api, etablissement, peut } = useEspace();
+  const [lignes, setLignes] = useState(null);
+  const [nomFichier, setNomFichier] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const modele = `data:text/csv;charset=utf-8,${encodeURIComponent(MODELE_CSV)}`;
+  const avecStock = lignes?.some((l) => l.stock_initial > 0);
+  return (
+    <Modale titre="Importer des articles" onFermer={onFermer}>
+      <div className="formulaire">
+        <p className="texte-doux">
+          Préparez un tableau (Excel, Google Sheets) avec au moins les colonnes <strong>nom</strong> et <strong>prix_vente</strong>,
+          puis enregistrez-le au format CSV. Un article dont la référence existe déjà est mis à jour.
+        </p>
+        <a className="lien" href={modele} download="modele-articles.csv">Télécharger le modèle</a>
+        <label className="bouton secondaire">
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={async (e) => {
+              const fichier = e.target.files?.[0];
+              if (!fichier) return;
+              setErreur('');
+              setNomFichier(fichier.name);
+              try {
+                setLignes(lireCsvArticles(await fichier.text()));
+              } catch (err) {
+                setLignes(null);
+                setErreur(err.message);
+              }
+            }}
+          />
+          Choisir le fichier CSV
+        </label>
+        {lignes && (
+          <p>
+            <strong>{lignes.length}</strong> article(s) lus dans {nomFichier}.
+            {avecStock && !peut('stock.ajuster') && ' Vous n’avez pas le droit de saisir du stock : retirez la colonne stock_initial.'}
+          </p>
+        )}
+        {lignes && (
+          <div className="tableau-conteneur apercu-import">
+            <table className="tableau">
+              <thead><tr><th>Nom</th><th className="nombre">Prix</th><th>Catégorie</th><th>Réf.</th><th className="nombre">Stock</th></tr></thead>
+              <tbody>
+                {lignes.slice(0, 8).map((l, i) => (
+                  <tr key={i}><td>{l.nom}</td><td className="nombre">{l.prix_vente}</td><td>{l.categorie}</td><td>{l.reference}</td><td className="nombre">{l.stock_initial}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton
+            variante="principal"
+            disabled={!lignes?.length}
+            chargement={chargement}
+            onClick={async () => {
+              setChargement(true);
+              setErreur('');
+              try {
+                const resultat = await api.rpc('importer_articles', { p_etablissement_id: etablissement.id, p_lignes: lignes });
+                onImporte(`${resultat.crees} article(s) créé(s), ${resultat.mis_a_jour} mis à jour`);
+              } catch (err) {
+                setErreur(`${err.message}. Rien n’a été importé : corrigez le fichier puis réessayez.`);
+                setChargement(false);
+              }
+            }}
+          >
+            Importer
+          </Bouton>
+        </div>
+      </div>
+    </Modale>
+  );
+}
+
 export default function Articles() {
   const { api, etablissement, montant, peut, notifier } = useEspace();
   const etab = etablissement.id;
   const [recherche, setRecherche] = useState('');
   const [vue, setVue] = useState('actifs');
   const [edition, setEdition] = useState(null);
+  const [importer, setImporter] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [articles, categories, stock] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab }, ordre: ['nom'] }),
@@ -139,8 +222,19 @@ export default function Articles() {
   return (
     <div className="page">
       <EnTete titre="Articles" sousTitre={`${donnees?.articles.filter((a) => a.actif).length ?? 0} article(s) en vente`}>
+        {peut('articles.gerer') && <Bouton onClick={() => setImporter(true)}>Importer</Bouton>}
         {peut('articles.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouvel article</Bouton>}
       </EnTete>
+      {importer && (
+        <ImportArticles
+          onFermer={() => setImporter(false)}
+          onImporte={(message) => {
+            setImporter(false);
+            notifier(message);
+            recharger();
+          }}
+        />
+      )}
       <div className="filtres">
         <Onglets onglets={[['actifs', 'En vente'], ['archives', 'Archivés']]} actif={vue} onChange={setVue} />
         <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom ou référence" />

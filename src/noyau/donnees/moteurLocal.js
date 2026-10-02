@@ -46,12 +46,20 @@ function valeurParametre(valeur) {
   return valeur;
 }
 
-export function construireAppel(nom, args = {}) {
+// Tableau JavaScript -> littéral de tableau Postgres ({"a","b"}).
+function litteralTableau(valeurs) {
+  return `{${valeurs.map((v) => (v === null ? 'NULL' : `"${String(v).replace(/[\\"]/g, '\\$&')}"`)).join(',')}}`;
+}
+
+// types : type SQL de chaque paramètre (ex. { p_modules: 'text[]' }) quand il est connu.
+export function construireAppel(nom, args = {}, types = {}) {
   const cles = Object.keys(args).filter((cle) => args[cle] !== undefined).map(verifierIdentifiant);
-  const parametres = cles.map((cle) => valeurParametre(args[cle]));
+  const tableauSql = (cle) => /^[a-z ]+\[\]$/.test(types[cle] ?? '') && (Array.isArray(args[cle]) || args[cle] === null);
+  const parametres = cles.map((cle) => (tableauSql(cle) && args[cle] !== null ? litteralTableau(args[cle]) : valeurParametre(args[cle])));
   const liste = cles.map((cle, i) => {
     const v = args[cle];
-    const cast = v !== null && typeof v === 'object' && !(v instanceof Date) ? '::jsonb' : '';
+    let cast = v !== null && typeof v === 'object' && !(v instanceof Date) ? '::jsonb' : '';
+    if (tableauSql(cle)) cast = `::${types[cle]}`;
     return `${cle} => $${i + 1}${cast}`;
   });
   return { sql: `select public.${verifierIdentifiant(nom)}(${liste.join(', ')}) as resultat`, parametres };
@@ -99,10 +107,25 @@ const NUMERIC = 1700;
 export const optionsPGlite = { parsers: { [NUMERIC]: (valeur) => Number(valeur) } };
 
 export function creerApiLocale(db, lireUtilisateur) {
+  const typesConnus = new Map();
+  const typesDe = async (nom) => {
+    if (!typesConnus.has(nom)) {
+      const { rows } = await db.query(
+        `select a.nom, format_type(a.type, null) as type
+         from pg_proc p
+         join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+         cross join lateral unnest(p.proargnames, p.proargtypes::oid[]) as a(nom, type)
+         where p.proname = $1`,
+        [nom]
+      );
+      typesConnus.set(nom, Object.fromEntries(rows.map((r) => [r.nom, r.type])));
+    }
+    return typesConnus.get(nom);
+  };
   return {
     mode: 'local',
     async rpc(nom, args) {
-      const { sql, parametres } = construireAppel(nom, args);
+      const { sql, parametres } = construireAppel(nom, args, await typesDe(verifierIdentifiant(nom)));
       return executerComme(db, lireUtilisateur(), async (tx) => (await tx.query(sql, parametres)).rows[0]?.resultat ?? null);
     },
     async lire(table, options) {

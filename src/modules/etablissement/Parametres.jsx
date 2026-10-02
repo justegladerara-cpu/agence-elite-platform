@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { ROLES } from '../../noyau/format.js';
+import { formatDate } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite } from '../../ui/composants.jsx';
 
 function Identite() {
@@ -146,34 +146,28 @@ function ReglagesCaisse() {
   );
 }
 
-function Equipe() {
-  const { api, etablissement } = useEspace();
-  const { donnees, chargement, erreur } = useDonnees(async () => {
-    const membres = await api.lire('etablissement_membres', { eq: { etablissement_id: etablissement.id } });
-    const profils = await api.lire('profils', { dans: { id: membres.map((m) => m.user_id) } });
-    const noms = Object.fromEntries(profils.map((p) => [p.id, p.nom_complet]));
-    return membres.map((m) => ({ ...m, nom: noms[m.user_id] ?? 'Utilisateur' }));
-  }, [etablissement.id]);
+function CarteLicence() {
+  const { etablissement, montant } = useEspace();
+  const l = etablissement.licence;
+  const formules = { essai: 'Essai gratuit', acquisition: 'Acquisition', mensuel: 'Abonnement mensuel', annuel: 'Abonnement annuel' };
   return (
     <div className="carte">
-      <h2>Équipe</h2>
-      {chargement && !donnees && <Chargement />}
-      <Erreur message={erreur} />
-      <div className="liste-simple">
-        {donnees?.map((m) => (
-          <div key={m.user_id} className="liste-ligne">
-            <span>{m.nom}</span>
-            <Badge ton="bleu">{ROLES[m.role_id]}</Badge>
-            {!m.actif && <Badge>Inactif</Badge>}
-          </div>
-        ))}
-      </div>
-      <p className="texte-doux">Pour ajouter une personne, demandez une invitation à Agence Elite.</p>
+      <h2>Licence</h2>
+      {l ? (
+        <dl className="details">
+          <dt>Offre</dt><dd>{l.offre}</dd>
+          <dt>Formule</dt><dd>{formules[l.formule]}</dd>
+          <dt>Échéance</dt><dd>{l.echeance ? `${formatDate(l.echeance)} (${l.jours_restants} jour(s))` : 'sans échéance'}</dd>
+          {l.montant > 0 && <><dt>Montant</dt><dd>{montant(l.montant)}</dd></>}
+          <dt>État</dt><dd>{l.valide ? <Badge ton="vert">Active</Badge> : <Badge ton="alerte">{l.statut === 'suspendue' ? 'Suspendue' : 'Expirée'}</Badge>}</dd>
+        </dl>
+      ) : <p className="texte-doux">Aucune licence en cours.</p>}
+      <p className="texte-doux">Pour changer d’offre ou renouveler, contactez Agence Elite.</p>
     </div>
   );
 }
 
-export default function Parametres() {
+export default function Parametres({ naviguer }) {
   const { etablissement, peut, moduleActif } = useEspace();
   return (
     <div className="page">
@@ -182,7 +176,14 @@ export default function Parametres() {
         <Identite key={etablissement.id} />
         <div className="pile">
           {moduleActif('caisse') && <ReglagesCaisse />}
-          {peut('membres.lire') && <Equipe />}
+          <CarteLicence />
+          {peut('membres.lire') && (
+            <div className="carte">
+              <h2>Équipe</h2>
+              <p className="texte-doux">Invitez vos employés et réglez leurs droits.</p>
+              <Bouton onClick={() => naviguer('equipe')}>Gérer l’équipe</Bouton>
+            </div>
+          )}
         </div>
       </div>
     </div>

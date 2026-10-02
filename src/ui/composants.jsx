@@ -22,6 +22,8 @@ const CHEMINS = {
   panier: 'M3 4h3l3 11h10l2-8H7M10 20a1 1 0 100-2 1 1 0 000 2zM18 20a1 1 0 100-2 1 1 0 000 2z',
   menu: 'M4 6h16M4 12h16M4 18h16',
   retour: 'M15 18l-6-6 6-6',
+  fusee: 'M12 2c3 2 5 6 5 10l-2 4H9l-2-4c0-4 2-8 5-10zM12 9a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 16l-3 4 4-1M15 16l3 4-4-1',
+  editeur: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 10h.01M15 10h.01',
 };
 
 export function Icone({ nom, taille = 18 }) {

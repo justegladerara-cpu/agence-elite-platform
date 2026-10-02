@@ -35,6 +35,7 @@ export async function semerDemo(db) {
   const ids = [];
   for (const compte of COMPTES_DEMO) ids.push(await creerCompte(compte));
   const admin = (await db.query("insert into auth.users(email) values ('editeur@demo.local') returning id")).rows[0].id;
+  await db.query("update public.profils set nom_complet = 'Agence Elite (éditeur)' where id = $1", [admin]);
   await db.query("insert into public.plateforme_admins(user_id, role) values ($1, 'super_admin')", [admin]);
 
   let courant = admin;
@@ -108,6 +109,14 @@ export async function semerDemo(db) {
     });
   });
 
+  // La démo représente des magasins déjà clients : licence annuelle et mise en service.
+  for (const etab of [etabA, etabB]) {
+    await api.rpc('attribuer_licence', {
+      p_etablissement_id: etab, p_offre_id: 'commerce-complet', p_formule: 'annuel', p_montant: 0, p_note: 'Licence de démonstration',
+    });
+    await api.rpc('mettre_en_service', { p_etablissement_id: etab });
+  }
+
   return { etablissements: [etabA, etabB], utilisateurs: ids, client };
 }
 
@@ -115,7 +124,7 @@ export async function listerComptesDemo(db) {
   return (await db.query(
     `select u.id, u.email, p.nom_complet as nom
      from auth.users u left join public.profils p on p.id = u.id
-     where u.email like '%@demo.local' and u.email <> 'editeur@demo.local'
-     order by u.email = 'gerant@demo.local' desc, u.email = 'caisse@demo.local' desc, u.email`
+     where u.email like '%@demo.local'
+     order by u.email = 'gerant@demo.local' desc, u.email = 'caisse@demo.local' desc, u.email = 'editeur@demo.local', u.email`
   )).rows;
 }

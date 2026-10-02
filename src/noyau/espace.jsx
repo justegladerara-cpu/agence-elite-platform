@@ -43,6 +43,8 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
     const devise = etablissement?.devise ?? 'XAF';
     return {
       api,
+      contexte,
+      editeur: contexte.editeur === 'super_admin',
       utilisateur: contexte.utilisateur,
       etablissements,
       etablissement,

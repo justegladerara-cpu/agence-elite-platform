@@ -30,6 +30,9 @@ describe('moteur de données local', () => {
     expect(() => construireLecture('ventes; delete', {})).toThrow(/refusé/);
     expect(() => construireLecture('ventes', { eq: { 'id or 1=1': 1 } })).toThrow(/refusé/);
     expect(construireAppel('f', { p_a: 1, p_b: { x: 1 } }).sql).toBe('select public.f(p_a => $1, p_b => $2::jsonb) as resultat');
+    const tableau = construireAppel('f', { p_m: ['a', 'b"c'], p_l: [] }, { p_m: 'text[]', p_l: 'jsonb' });
+    expect(tableau.sql).toBe('select public.f(p_m => $1::text[], p_l => $2::jsonb) as resultat');
+    expect(tableau.parametres).toEqual(['{"a","b\\"c"}', '[]']);
   });
 
   test('sans connexion, rien n\'est lisible', async () => {

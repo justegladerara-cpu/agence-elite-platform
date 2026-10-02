@@ -1742,3 +1742,289 @@ fieldset {
     flex-wrap: wrap;
   }
 }
+
+/* Espace Agence Elite, équipe, licences, mise en service ------------------ */
+
+.badge.attention {
+  background: var(--orange-doux);
+  border-color: transparent;
+  color: var(--orange);
+}
+
+.badge.alerte {
+  background: var(--rouge-doux);
+  border-color: transparent;
+  color: var(--rouge);
+}
+
+.bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.bandeau.info {
+  background: var(--accent-doux);
+  color: var(--accent-fort);
+}
+
+.bandeau.attention {
+  background: #fff8e1;
+  color: #8a5a00;
+}
+
+.bandeau-invitations {
+  display: grid;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--accent-doux);
+}
+
+.info {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--vert-doux);
+  color: var(--vert);
+  font-weight: 500;
+}
+
+.actions-gauche {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.message-copie {
+  display: grid;
+  gap: 8px;
+}
+
+.message-copie textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  background: var(--surface-douce);
+  resize: vertical;
+}
+
+.grille-droits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.droits-module {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.droits-module legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.droits-module .case {
+  font-size: 13px;
+}
+
+.etapes {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.etapes li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.etapes li:last-child {
+  border-bottom: 0;
+}
+
+.etape-puce {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--bordure-forte);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.etapes li.faite .etape-puce {
+  border-color: var(--vert);
+  background: var(--vert);
+  color: #fff;
+}
+
+.etapes li.faite .etape-libelle {
+  color: var(--texte-doux);
+}
+
+.etape-libelle {
+  flex: 1;
+  min-width: 0;
+}
+
+.barre-progression {
+  height: 8px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: var(--surface-douce);
+  overflow: hidden;
+}
+
+.barre-progression span {
+  display: block;
+  height: 100%;
+  background: var(--vert);
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 8px 0 12px;
+}
+
+.details dt {
+  color: var(--texte-doux);
+}
+
+.details dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nav-editeur {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--menu-actif);
+}
+
+.maitre-detail {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.liste-maitre {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+}
+
+.liste-maitre > button {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--texte);
+  cursor: pointer;
+}
+
+.liste-maitre > button small {
+  color: var(--texte-doux);
+}
+
+.liste-maitre > button:hover,
+.liste-maitre > button.actif {
+  background: var(--accent-doux);
+}
+
+.cartes-etablissements {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.carte-etablissement {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  text-align: left;
+  font: inherit;
+  color: var(--texte);
+  cursor: pointer;
+}
+
+.carte-etablissement:hover {
+  border-color: var(--accent);
+}
+
+.carte-etablissement small {
+  overflow-wrap: anywhere;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.connexion-email {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bordure);
+}
+
+.apercu-import {
+  max-height: 260px;
+  overflow: auto;
+}
+
+tr.cliquable {
+  cursor: pointer;
+}
+
+tr.cliquable:hover td {
+  background: var(--surface-douce);
+}
+
+.maitre-detail > *,
+.pile > *,
+.ligne-formulaire > input,
+.contenu,
+.page {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .maitre-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bandeau,
+  .bandeau-invitations {
+    padding-inline: 16px;
+  }
+}
