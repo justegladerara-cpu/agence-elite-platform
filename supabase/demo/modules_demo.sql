@@ -389,3 +389,70 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Projets : ouverture d'un point de vente (interne), installation chez un client (temps facturable), terminé
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  patron uuid;
+  hotel uuid;
+  pr uuid;
+  t1 uuid;
+  t2 uuid;
+  t3 uuid;
+  jour date;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.projets where etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
+  select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage';
+  jour := public.date_locale(etab);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'projets', true);
+  perform public.definir_module_etablissement(etab, 'projets', true);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_parametres_module(etab, 'projets', '{"taux_horaire": 10000, "saisie_temps_jours": 31}'::jsonb);
+
+  -- Projet client : mini-boutique dans le hall de l'hôtel, temps facturable.
+  pr := public.enregistrer_projet(etab, jsonb_build_object('nom', 'Mini-boutique du hall de l''hôtel', 'contact_id', hotel,
+    'date_debut', jour - 10, 'date_fin_prevue', jour + 12, 'budget', 350000, 'heures_prevues', 30,
+    'description', 'Installation d''un présentoir, mise en place du stock de dépannage et formation du réceptionniste.'));
+  t1 := public.enregistrer_tache_projet(etab, jsonb_build_object('projet_id', pr, 'titre', 'Relevé des besoins avec l''économe', 'estimation_heures', 2));
+  perform public.enregistrer_tache_projet(etab, jsonb_build_object('id', t1, 'statut', 'terminee'));
+  t2 := public.enregistrer_tache_projet(etab, jsonb_build_object('projet_id', pr, 'titre', 'Installer le présentoir', 'priorite', 'haute',
+    'echeance', jour + 3, 'estimation_heures', 6));
+  perform public.enregistrer_tache_projet(etab, jsonb_build_object('id', t2, 'statut', 'en_cours'));
+  t3 := public.enregistrer_tache_projet(etab, jsonb_build_object('projet_id', pr, 'titre', 'Former le réceptionniste à la caisse', 'echeance', jour + 10,
+    'assigne_a', patron));
+  perform public.saisir_temps_projet(etab, jsonb_build_object('projet_id', pr, 'tache_id', t1, 'minutes', 120, 'date_travail', jour - 9,
+    'description', 'Visite et liste des produits'));
+  perform public.saisir_temps_projet(etab, jsonb_build_object('projet_id', pr, 'tache_id', t2, 'minutes', 210, 'date_travail', jour - 2,
+    'description', 'Montage et étiquetage'));
+  perform public.saisir_temps_projet(etab, jsonb_build_object('projet_id', pr, 'minutes', 45, 'date_travail', jour - 2, 'facturable', false,
+    'description', 'Trajet'));
+
+  -- Projet interne en retard : réaménagement du dépôt.
+  pr := public.enregistrer_projet(etab, jsonb_build_object('nom', 'Réaménagement du dépôt', 'date_debut', jour - 30, 'date_fin_prevue', jour - 3,
+    'heures_prevues', 16));
+  t1 := public.enregistrer_tache_projet(etab, jsonb_build_object('projet_id', pr, 'titre', 'Étiqueter les allées', 'echeance', jour - 5));
+  perform public.enregistrer_tache_projet(etab, jsonb_build_object('projet_id', pr, 'titre', 'Commander les étagères', 'echeance', jour - 12));
+  perform public.saisir_temps_projet(etab, jsonb_build_object('projet_id', pr, 'tache_id', t1, 'minutes', 90, 'date_travail', jour - 6, 'facturable', false));
+
+  -- Projet terminé.
+  pr := public.enregistrer_projet(etab, jsonb_build_object('nom', 'Ouverture de la Boutique Marché Total', 'date_debut', jour - 60, 'date_fin_prevue', jour - 20));
+  t1 := public.enregistrer_tache_projet(etab, jsonb_build_object('projet_id', pr, 'titre', 'Installer la caisse', 'statut', 'terminee'));
+  perform public.changer_statut_projet(pr, 'termine');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

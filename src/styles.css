@@ -2598,3 +2598,4 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .etapes-pipeline button.passe { background: var(--accent-doux); color: var(--accent-fort); }
 .etapes-pipeline button.actif { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 @media (max-width: 700px) { .kanban-colonne { flex-basis: 78vw; } }
+.page.page-large { max-width: 1600px; }

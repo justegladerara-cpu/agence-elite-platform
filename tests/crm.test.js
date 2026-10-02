@@ -94,6 +94,8 @@ describe('opportunités', () => {
     await expect(comme(commercial2, 'select deplacer_opportunite($1, $2)', [opp, etape('Contacté')])).rejects.toThrow(/autre commercial/);
     await expect(comme(commercial, 'select enregistrer_opportunite($1, $2::jsonb)', [etab, json({ id: opp, titre: 'Logiciel de caisse', contact_id: prospect, responsable_id: commercial2 })]))
       .rejects.toThrow(/Permission refusée/);
+    await expect(comme(gerant, 'select enregistrer_opportunite($1, $2::jsonb)', [etab, json({ id: opp, titre: 'Logiciel de caisse', contact_id: prospect, responsable_id: caissier })]))
+      .rejects.toThrow(/gère le CRM/);
     await comme(gerant, 'select enregistrer_opportunite($1, $2::jsonb)', [etab, json({ id: opp, titre: 'Logiciel de caisse', contact_id: prospect, montant: 450000, responsable_id: commercial2 })]);
     expect((await opportunite(opp)).responsable_id).toBe(commercial2);
     expect((await valeur(commercial2, 'select mes_notifications()')).liste[0]).toMatchObject({ titre: 'Opportunité attribuée', lien: `crm/${opp}` });

@@ -331,8 +331,8 @@ begin
   if v_responsable <> coalesce(existante.responsable_id, auth.uid()) then
     perform public.exiger_permission(p_etablissement_id, 'crm_pipeline.administrer');
   end if;
-  if not exists (select 1 from public.etablissement_membres where etablissement_id = p_etablissement_id and user_id = v_responsable and actif) then
-    raise exception 'Le responsable doit être un membre actif de l''établissement';
+  if v_responsable not in (select public.membres_avec_permission(p_etablissement_id, 'crm_pipeline.gerer')) then
+    raise exception 'Le responsable doit être un membre actif qui gère le CRM';
   end if;
   select * into v_etape from public.crm_etapes
   where id = coalesce(nullif(p ->> 'etape_id', '')::uuid, existante.etape_id) and etablissement_id = p_etablissement_id;
@@ -446,9 +446,8 @@ begin
     raise exception 'Rattachez l''activité à une opportunité ou à un contact de l''établissement';
   end if;
   v_assigne := coalesce(v_assigne, existante.assigne_a, auth.uid());
-  if not exists (
-    select 1 from public.etablissement_membres em where em.etablissement_id = p_etablissement_id and em.user_id = v_assigne and em.actif) then
-    raise exception 'La personne assignée doit être un membre actif de l''établissement';
+  if v_assigne not in (select public.membres_avec_permission(p_etablissement_id, 'crm_pipeline.gerer')) then
+    raise exception 'La personne assignée doit être un membre actif qui gère le CRM';
   end if;
   if v_assigne <> auth.uid() and not public.a_permission(p_etablissement_id, 'crm_pipeline.administrer') then
     raise exception 'Seul un administrateur du CRM assigne une activité à quelqu''un d''autre' using errcode = '42501';

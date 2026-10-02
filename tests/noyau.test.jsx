@@ -182,6 +182,16 @@ describe('application sur la base locale', () => {
     expect(await screen.findByText('Étapes du pipeline', {}, { timeout: 10000 })).toBeTruthy();
   });
 
+  test('Projets : liste, fiche avec tâches en colonnes, saisie de temps', async () => {
+    window.location.hash = '#/projets';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    fireEvent.click(await screen.findByText('Mini-boutique du hall de l’hôtel'.replace('’', "'"), {}, { timeout: 10000 }));
+    expect(await screen.findByText('Installer le présentoir', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Tâches' })).toBeTruthy();
+    fireEvent.click(screen.getByText('Saisir du temps'));
+    expect(await screen.findByText('Ce qui a été fait')).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

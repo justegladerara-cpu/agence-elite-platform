@@ -151,6 +151,15 @@ describe('moteur de données local', () => {
     utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
     expect(await api.lire('commandes_achat')).toEqual([]);
   });
+  test('la démo projets : client avec temps facturable, interne en retard, terminé', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const tdb = await api.rpc('tableau_de_bord_projets', { p_etablissement_id: etab });
+    expect(tdb).toMatchObject({ en_cours: 2, en_retard: 1 });
+    expect(Number(tdb.heures_a_facturer)).toBe(5.5);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    expect(await api.lire('projets')).toEqual([]);
+  });
   test('la démo CRM : pipeline, devis lié, relance en retard, gagnée et perdue', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
