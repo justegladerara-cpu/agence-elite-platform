@@ -2472,3 +2472,62 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .grille-cases .case { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
 .liste-ligne > .rang { flex: none; }
+
+/* Socle transversal : notifications, pièces jointes, documents */
+.cloche { position: relative; }
+.cloche-compteur { position: absolute; top: 2px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--rouge); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 17px; text-align: center; }
+.cloche-liste { width: min(360px, calc(100vw - 24px)); max-height: 70vh; overflow-y: auto; padding: 0; }
+.cloche-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--bordure); position: sticky; top: 0; background: var(--surface); }
+.cloche-element { display: grid; gap: 2px; width: 100%; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--bordure); background: none; text-align: left; font: inherit; color: var(--texte); cursor: pointer; }
+.cloche-element:hover, .cloche-element:focus-visible { background: var(--surface-douce); }
+.cloche-element span { color: var(--texte-doux); font-size: 13px; }
+.cloche-element.non-lue { background: var(--accent-doux); }
+.cloche-element.non-lue strong::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.pieces-jointes { display: grid; gap: 8px; }
+.pieces-jointes h3 { margin: 0; font-size: 14px; }
+.apercu-pdf { width: 100%; height: 70vh; border: 1px solid var(--bordure); border-radius: 8px; }
+.explorateur { display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.arbre { list-style: none; margin: 0; padding: 0; }
+.arbre .arbre { padding-left: 16px; }
+.arbre button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px; background: none; color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.arbre button:hover { background: var(--surface-douce); }
+.arbre button.actif { background: var(--accent-doux); color: var(--accent-fort); font-weight: 600; }
+
+/* RH */
+.fiche-identite { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.fiche-identite strong { font-size: 17px; }
+.chiffres-cles { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--texte-doux); }
+.chiffres-cles strong { color: var(--texte); font-size: 20px; font-variant-numeric: tabular-nums; }
+.organigramme-conteneur { overflow-x: auto; }
+.organigramme, .organigramme ul { list-style: none; margin: 0; padding: 0; }
+.organigramme ul { margin-left: 22px; padding-left: 16px; border-left: 2px solid var(--bordure); }
+.organigramme li { padding-top: 8px; }
+.organigramme-carte { display: inline-flex; align-items: center; gap: 10px; min-width: 220px; padding: 8px 12px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.organigramme-carte:hover, .organigramme-carte:focus-visible { border-color: var(--accent); box-shadow: var(--ombre); }
+.barre-outils { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 14px; }
+.barre-outils .champ { min-width: 160px; margin: 0; }
+.groupe-boutons { display: inline-flex; gap: 6px; }
+.ligne-cases { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.carte-pointage { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); box-shadow: var(--ombre); }
+.carte-pointage strong { font-size: 17px; }
+.planning { border-collapse: separate; border-spacing: 2px; font-size: 12.5px; min-width: 100%; }
+.planning th { padding: 4px 6px; font-weight: 600; color: var(--texte-doux); text-align: center; white-space: nowrap; }
+.planning tbody th { text-align: left; color: var(--texte); position: sticky; left: 0; background: var(--surface); }
+.planning td { min-width: 28px; height: 28px; padding: 0; border-radius: 4px; background: var(--surface-douce); text-align: center; font-weight: 700; }
+.planning td.ferie, .planning th.ferie { background: var(--bordure); }
+.planning td.absence.approuvee { background: var(--accent); color: #fff; }
+.planning td.absence.demandee { background: var(--orange-doux); color: var(--orange); outline: 1px dashed var(--orange); }
+.planning-large td { min-width: 96px; height: 36px; font-weight: 500; }
+.planning td.creneau { background: var(--accent-doux); color: var(--accent-fort); font-weight: 600; }
+.planning td.creneau-type { color: var(--texte-faible); }
+.cellule-planning { width: 100%; height: 100%; min-height: 36px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; }
+.cellule-planning:hover, .cellule-planning:focus-visible { outline: 2px solid var(--accent); }
+.legende { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 10px 0 0; color: var(--texte-doux); font-size: 12.5px; }
+.legende .pastille { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; }
+.legende .pastille.absence.approuvee { background: var(--accent); }
+.legende .pastille.absence.demandee { background: var(--orange-doux); outline: 1px dashed var(--orange); }
+.legende .pastille.ferie { background: var(--bordure); }
+@media (max-width: 860px) {
+  .explorateur { grid-template-columns: 1fr; }
+  .organigramme-carte { min-width: 0; }
+}

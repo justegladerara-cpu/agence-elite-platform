@@ -72,6 +72,8 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
         setHubChoisi(id);
       },
       utilisateur: contexte.utilisateur,
+      // Fiche employé liée au compte dans cet établissement (module RH), sinon null.
+      employeId: etablissement?.employe_id ?? null,
       etablissements,
       etablissement,
       devise,

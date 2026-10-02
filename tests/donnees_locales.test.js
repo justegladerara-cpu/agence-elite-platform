@@ -97,4 +97,32 @@ describe('moteur de données local', () => {
     expect(marche.chiffre_affaires).toBe(37700);
     expect(tdb.transferts).toBe(2);
   });
+  test('la démo RH : employés, contrats, demandes, espace employé et notifications', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const employes = await api.lire('rh_employes', { eq: { etablissement_id: etab } });
+    expect(employes).toHaveLength(7);
+    const tdb = await api.rpc('tableau_de_bord_rh', { p_etablissement_id: etab });
+    expect(tdb.effectif).toBe(7);
+    expect(tdb.demandes_en_attente).toBe(1);
+    expect(tdb.sans_contrat).toBe(0);
+    expect(tdb.contrats_a_echeance.length).toBeGreaterThan(0);
+    const espace = await api.rpc('rh_mon_espace', { p_etablissement_id: etab });
+    expect(espace.lie).toBe(true);
+    expect(espace.a_valider).toHaveLength(1);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    await api.rpc('rh_demander_absence', { p_etablissement_id: etab, p_absence: { type: 'conge_paye', debut: '2099-03-02', fin: '2099-03-03' } });
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const notes = await api.rpc('mes_notifications', { p_limite: 10 });
+    expect(notes.non_lues).toBeGreaterThan(0);
+    expect(notes.liste[0].lien).toBe('mon-espace');
+    await api.rpc('marquer_notifications_lues', { p_ids: [notes.liste[0].id] });
+    expect((await api.rpc('mes_notifications', { p_limite: 10 })).non_lues).toBe(notes.non_lues - 1);
+    expect((await api.lire('documents_dossiers', { eq: { etablissement_id: etab } })).length).toBe(4);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    const monEspace = await api.rpc('rh_mon_espace', { p_etablissement_id: etab });
+    expect(monEspace.employe.prenom).toBe('Junior');
+    // Un caissier ne lit que ses propres données personnelles.
+    expect((await api.lire('rh_employes_prives')).map((p) => p.employe_id)).toEqual([monEspace.employe.id]);
+  });
 });

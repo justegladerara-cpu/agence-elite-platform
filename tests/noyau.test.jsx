@@ -101,6 +101,44 @@ describe('application sur la base locale', () => {
     expect(screen.queryByText('Transferts')).toBeNull();
   });
 
+  test('RH : le caissier pointe son arrivée depuis son espace', async () => {
+    window.location.hash = '#/mon-espace';
+    render(<App demarrer={demarrer('caisse-marche@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Bonjour Junior', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.queryByText('Employés')).toBeNull();
+    fireEvent.click(screen.getByText('Pointer mon arrivée'));
+    expect(await screen.findByText(/^Arrivé à/)).toBeTruthy();
+    expect(screen.getByText('Pointer mon départ')).toBeTruthy();
+  });
+
+  test('RH : la gérante parcourt employés, fiche, congés, présences et documents', async () => {
+    window.location.hash = '#/employes';
+    const { unmount } = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect((await screen.findAllByText('Sandra Tchibinda', {}, { timeout: 10000 })).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByText('Sandra Tchibinda')[0]);
+    expect(await screen.findByText('Contrat en cours')).toBeTruthy();
+    expect(screen.getAllByText('Chef de boutique').length).toBeGreaterThan(0);
+    unmount();
+    window.location.hash = '#/conges';
+    const conges = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Grâce Loubaki', {}, { timeout: 10000 })).toBeTruthy();
+    conges.unmount();
+    window.location.hash = '#/presences';
+    const presences = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Non pointés', {}, { timeout: 10000 })).toBeTruthy();
+    presences.unmount();
+    window.location.hash = '#/documents';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Procédures', {}, { timeout: 10000 })).toBeTruthy();
+  });
+
+  test('RH : le tableau de bord de la gérante affiche la synthèse RH', async () => {
+    window.location.hash = '#/tableau-de-bord';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Ressources humaines', { selector: 'h2' }, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText('Effectif actif')).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

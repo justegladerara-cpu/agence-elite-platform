@@ -3,6 +3,7 @@ import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
 import { appliquerMarque } from './noyau/marque.js';
 import { Marque } from './ui/Marque.jsx';
+import { Cloche } from './ui/communs.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
@@ -513,7 +514,7 @@ function ProfilUtilisateur({ libelleRole, onCompte }) {
   );
 }
 
-function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte }) {
+function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, naviguer }) {
   const { etablissement, etablissements, choisirEtablissement, hubs, hub, multiHub, choisirHub } = useEspace();
   const contexteFil = useFilAriane();
   const fil = contexteFil?.fil ?? filDefaut;
@@ -539,6 +540,7 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte }) {
             </select>
           </label>
         )}
+        <Cloche naviguer={naviguer} />
         <ProfilUtilisateur libelleRole={libelleRole} onCompte={onCompte} />
       </div>
     </header>
@@ -561,7 +563,9 @@ function Coquille() {
     ?? pages.find((p) => p.id === contexte.utilisateur?.preferences?.page_accueil)
     ?? pages[0];
   const page = surEditeur ? null : pages.find((p) => p.id === premier) ?? pageParDefaut;
-  const routeAttendue = surEditeur ? (route.startsWith('editeur') ? route : 'editeur') : page?.id;
+  // Sous-pages : #/<page>/<suite> (ex. #/employes/<id>) ; la suite est transmise à la page.
+  const sousRoute = page && premier === page.id ? route.slice(page.id.length + 1) : '';
+  const routeAttendue = surEditeur ? (route.startsWith('editeur') ? route : 'editeur') : page && (sousRoute ? `${page.id}/${sousRoute}` : page.id);
 
   useEffect(() => {
     if (routeAttendue && route !== routeAttendue) window.history.replaceState(null, '', `#/${routeAttendue}`);
@@ -634,7 +638,7 @@ function Coquille() {
         </aside>
         {menuOuvert && <div className="voile-menu" onClick={() => setMenuOuvert(false)} />}
         <div className="colonne">
-          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={libelleRole} onCompte={() => setCompte(true)} />
+          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={libelleRole} onCompte={() => setCompte(true)} naviguer={aller} />
           <main className="contenu">
             {!surEditeur && <Bandeaux naviguer={aller} />}
             {contexte.invitations.length > 0 && (
@@ -649,7 +653,7 @@ function Coquille() {
               </GardeErreur>
             )}
             {!surEditeur && (Page
-              ? <GardeErreur key={`${etablissement.id}-${page.id}`}><Page naviguer={aller} /></GardeErreur>
+              ? <GardeErreur key={`${etablissement.id}-${page.id}`}><Page naviguer={aller} sousRoute={sousRoute} /></GardeErreur>
               : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
           </main>
         </div>

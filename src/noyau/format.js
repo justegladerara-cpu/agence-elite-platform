@@ -47,9 +47,11 @@ export const ROLES = {
   gerant: 'Responsable d’établissement',
   responsable: 'Responsable',
   responsable_hub: 'Responsable Hub',
+  responsable_rh: 'Responsable RH',
   gestionnaire_depot: 'Gestionnaire dépôt',
   employe: 'Caissier',
   comptable: 'Comptable',
+  collaborateur: 'Collaborateur',
   lecteur: 'Lecteur',
 };
 

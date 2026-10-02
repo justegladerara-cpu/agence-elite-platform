@@ -275,21 +275,23 @@ function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles
 }
 
 // Gestion d'équipe, utilisée par le gérant et par l'espace éditeur.
-export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs, peutGerer, rolesProposes, hubs = [] }) {
+export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs, peutGerer, roleActuel, hubs = [] }) {
   const { api, notifier } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [equipe, permissions, rolePermissions, modules, restrictions] = await Promise.all([
+    const [equipe, permissions, rolePermissions, modules, restrictions, catalogueRoles] = await Promise.all([
       api.rpc('equipe_etablissement', { p_etablissement_id: etablissementId }),
       api.lire('permissions', { ordre: ['id'] }),
       api.lire('role_permissions'),
       api.lire('modules', { ordre: ['nom'] }),
       api.lire('membre_hubs', { eq: { etablissement_id: etablissementId } }).catch(() => []),
+      api.lire('roles', { ordre: ['ordre'] }),
     ]);
     const hubsParMembre = {};
     for (const r of restrictions) (hubsParMembre[r.user_id] ??= []).push(r.hub_id);
     return {
       equipe,
       hubsParMembre,
+      roles: catalogueRoles,
       catalogue: { permissions, modules, rolePermissions: new Set(rolePermissions.map((r) => `${r.role_id}|${r.permission_id}`)) },
     };
   }, [etablissementId]);
@@ -298,7 +300,15 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
   const [membre, setMembre] = useState(null);
   const [partage, setPartage] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
-  const roles = rolesProposes ?? Object.keys(ROLES);
+  // Rôles proposés : lus en base, limités à ceux dont les modules requis sont actifs
+  // et, pour un membre, à son rang ou en dessous (la base le vérifie aussi).
+  const rangActuel = donnees?.roles.find((r) => r.id === roleActuel)?.ordre;
+  const roles = donnees
+    ? donnees.roles
+      .filter((r) => (r.modules_requis ?? []).every((m) => modulesActifs?.includes(m)))
+      .filter((r) => rangActuel == null || r.ordre >= rangActuel)
+      .map((r) => r.id)
+    : [];
 
   if (chargement && !donnees) return <Chargement />;
   return (
@@ -427,8 +437,6 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
 
 export default function Equipe() {
   const { etablissement, peut } = useEspace();
-  const rang = ['gerant', 'responsable', 'responsable_hub', 'gestionnaire_depot', 'employe', 'comptable', 'lecteur'];
-  const monRang = rang.indexOf(etablissement.role);
   return (
     <div className="page">
       <EnTete titre="Équipe" sousTitre="Qui a accès à l’établissement, avec quels droits" />
@@ -437,7 +445,7 @@ export default function Equipe() {
         nomEtablissement={etablissement.identite?.nom_commercial ?? etablissement.nom}
         modulesActifs={etablissement.modules}
         peutGerer={peut('membres.gerer')}
-        rolesProposes={monRang >= 0 ? rang.slice(monRang) : rang}
+        roleActuel={etablissement.role}
         hubs={(etablissement.hubs ?? []).filter((h) => h.actif)}
       />
     </div>

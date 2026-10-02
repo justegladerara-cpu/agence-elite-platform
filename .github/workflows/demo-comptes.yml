@@ -37,6 +37,7 @@ jobs:
           begin;
           select set_config('app.demo_mot_de_passe', :'mdp', true), set_config('app.demo_super_admin_email', :'sa', true);
           \i supabase/demo/commerce_demo.sql
+          \i supabase/demo/modules_demo.sql
           update public.clients set statut = 'archive' where nom like 'Pilote fictif %' and statut <> 'archive';
           update public.etablissements set statut = 'archive'
           where statut <> 'archive' and client_id in (select id from public.clients where nom like 'Pilote fictif %');
