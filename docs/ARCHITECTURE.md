@@ -8,11 +8,15 @@ Agence Elite (éditeur : plateforme_admins)
 └── Clients (clients) : ne portent aucune donnée métier
       └── Établissements (etablissements) : 1 client, 1 solution, unité d'isolement
             ├── Modules accordés / activés (etablissement_modules), choisis parmi ceux de la solution
-            ├── Identité, paramètres, points de vente, numérotations
+            ├── Identité, paramètres, numérotations
+            ├── Hubs (hubs) : lieux physiques (point de vente, dépôt, mixte), 1 principal
+            │     └── Caisses (points_de_vente), stock par Hub (vue stock_hubs)
             ├── Membres (etablissement_membres) : rôle + permissions ajustées
+            │     └── Accès Hub (membre_hubs) : aucune ligne = tous les Hubs
             └── Données métier : toujours avec etablissement_id (à partir du Lot 2)
 Dirigeants (client_membres) : lecture sur tous les établissements d'un client
-Licences / abonnements : couche future, séparée, hors Lot 1
+Licences (licences, licence_evenements) : couche séparée, figée par historique
+Comptes de connexion (comptes_connexion) : identifiant → compte Supabase Auth
 ```
 
 ## Trois notions à ne jamais confondre
@@ -47,3 +51,10 @@ src/modules/<id>/      un dossier par module : manifest (dépendances, permissio
 
 ## Hors périmètre
 Le CRM Agence Elite (outil interne), le Kangourou en production (référence fonctionnelle en lecture seule), Elite Hôtel (archivé). Aucune donnée réelle n'est migrée.
+
+## Interface (2026-10-02)
+- Coquille unique : barre latérale groupée (Pilotage, Vente, Catalogue et stock, Relations, Organisation),
+  barre du haut avec fil d'Ariane, sélecteur d'établissement, sélecteur de Hub (seulement en multi-Hub), profil.
+- Espace Agence Elite routé par chemin (`#/editeur/clients/<id>`, `src/noyau/routes.js`) :
+  tableau de bord, clients, établissements, Hubs, modules, comptes, offres.
+- Composants partagés : `src/ui/composants.jsx` ; règles : `docs/DESIGN_SYSTEM.md` ; procédures : `docs/SOP/`.

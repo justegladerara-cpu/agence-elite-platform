@@ -25,6 +25,17 @@ Pour avoir la permission P (`module.action`) dans l'établissement E, il faut :
 - Aucun secret dans le dépôt. Les tests tournent sur une base locale (PGlite), jamais sur une base distante.
 - Équipe : rôle attribué ≤ rôle de celui qui l'attribue ; pas de modification de son propre accès ; au moins un gérant actif ; `membres.gerer` donné à un non-gérant par Agence Elite seulement.
 - Licences, offres et historique : écriture réservée aux super administrateurs, historique en ajout seul.
-- Droits retirés à tous : `TRUNCATE`, `TRIGGER`, `REFERENCES`, séquences ; `anon` n'exécute aucune fonction.
+- Droits retirés à tous : `TRUNCATE`, `TRIGGER`, `REFERENCES`, séquences ; `anon` n'exécute aucune fonction, sauf `resoudre_connexion` (traduit un identifiant en adresse de connexion, réponse identique si l'identifiant est inconnu ou le mot de passe faux, blocage après 5 échecs).
 - Images (logo, photo, justificatif) : `data:image/…` ou `https://` uniquement.
 - En ligne : connexion à un Supabase hébergé seulement si `VITE_AUTORISER_SUPABASE_DISTANT=oui` ; en-têtes de sécurité dans `public/_headers` ; secrets dans l'environnement GitHub `production`, jamais dans le dépôt.
+
+## Hubs (2026-10-02)
+- Un membre limité à certains Hubs (`membre_hubs`) ne lit que les caisses, ventes, dépenses, clôtures, mouvements et stock de ces Hubs : filtré par RLS.
+- Toute RPC qui touche un Hub vérifie l'accès au Hub (un transfert : accès aux deux Hubs).
+- Hubs, transferts et inventaires ne se suppriment jamais ; un transfert s'annule avec motif.
+
+## Comptes (2026-10-02)
+- Supabase Auth reste le seul gardien des mots de passe ; aucune table applicative n'en contient.
+- Mot de passe temporaire : expiré après la date fixée, et tant qu'il n'est pas remplacé la base refuse toute donnée métier (`doit_changer_mot_de_passe`).
+- Mots de passe faibles (dont `1234`) refusés comme mot de passe définitif par la base ; 8 caractères minimum, une lettre et un chiffre contrôlés à l'écran.
+- Rôles plateforme : Super Admin (tout : tarifs, catalogue des modules, administrateurs) ; Admin (clients, établissements, licences, Hubs, comptes, support, mais pas les tarifs, le catalogue ni les administrateurs) ; Support (rôle réservé, sans droit d'administration pour l'instant).

@@ -34,18 +34,18 @@ page.on('console', (m) => { if (m.type() === 'error') erreurs.push(m.text()); })
 
 await etape('écran de connexion en mode production', async () => {
   await page.goto(url);
-  await page.getByText('Créer mon compte').waitFor({ timeout: 30000 });
-  return 'onglets Connexion / Créer mon compte';
+  await page.getByText('J’ai reçu une invitation').waitFor({ timeout: 30000 });
+  return 'onglets Connexion / J’ai reçu une invitation';
 });
 await etape('mauvais mot de passe refusé', async () => {
-  await page.getByLabel('E-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill('mauvais-mot-de-passe');
+  await page.getByLabel('Identifiant ou e-mail').fill(email);
+  await page.getByLabel(/^Mot de passe/).fill('mauvais-mot-de-passe');
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await page.locator('.erreur, [role="alert"]').first().waitFor({ timeout: 20000 });
   return (await page.locator('.erreur, [role="alert"]').first().innerText()).trim();
 });
 await etape('connexion du gérant fictif', async () => {
-  await page.getByLabel('Mot de passe').fill(motDePasse);
+  await page.getByLabel(/^Mot de passe/).fill(motDePasse);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await page.getByText('Chiffre d’affaires').first().waitFor({ timeout: 30000 });
   return 'tableau de bord affiché';
@@ -54,6 +54,11 @@ await etape('données de l’établissement visibles', async () => {
   await page.goto(url + '#/articles');
   await page.getByText('Savon fictif 400 g').first().waitFor({ timeout: 20000 });
   return 'articles chargés depuis la base';
+});
+await etape('stock lu par Hub', async () => {
+  await page.goto(url + '#/stock');
+  await page.getByText('Savon fictif 400 g').first().waitFor({ timeout: 20000 });
+  return 'page Stock chargée (vue stock_hubs)';
 });
 await etape('aucune erreur dans la console', async () => {
   const graves = erreurs.filter((e) => !/400|Invalid login|identifiants/i.test(e));

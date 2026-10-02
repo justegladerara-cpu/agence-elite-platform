@@ -40,13 +40,23 @@ mot de passe aléatoire jamais affiché), déroule tout le parcours Commerce sur
 les comptes (accès retiré, mot de passe détruit, compte bloqué). Les données fictives
 restent rattachées au client « Pilote fictif <date> », facile à archiver.
 
+## 3 bis. Démo et comptes
+
+GitHub → **Actions → Démo et comptes → Run workflow** (mot de passe temporaire, masqué ; adresse du
+super administrateur). Le script `supabase/demo/commerce_demo.sql` installe ou complète le client fictif
+« Commerce Démo » (3 Hubs) et les comptes par identifiant (`Admin`, `Patrondemo`, `Userdemo`, et
+l'identifiant `Justegladerara` sur le super administrateur existant), sans rien effacer ; il archive
+aussi les clients « Pilote fictif ». Les comptes reçoivent un mot de passe **temporaire** que la base
+oblige à remplacer à la première connexion.
+
 ## 4. Premier compte Agence Elite (super administrateur)
 
 1. Ouvrir l'application en ligne, onglet **Créer mon compte**, avec l'adresse
    Agence Elite.
 2. Dans Supabase → **SQL Editor**, coller `supabase/scripts/creer_super_admin.sql`,
    remplacer l'adresse, exécuter.
-3. Se reconnecter : le menu **Agence Elite** apparaît (clients, licences, offres).
+3. Se reconnecter (identifiant ou e-mail) : l'espace **Agence Elite** apparaît (tableau de bord,
+   clients, Hubs, modules, comptes, offres). Les autres comptes se créent ensuite depuis **Comptes**.
 4. Les tarifs sont déjà saisis (450 000 / 50 000 / 25 000 par mois / 150 000 par an
    XAF, support séparé) et se modifient dans **Offres et prix**.
 

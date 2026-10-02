@@ -32,4 +32,15 @@ Format : date · décision · raison · impact.
 - 2026-10-02 · Production : projet Supabase dédié `agence-elite-platform` (réf. `xrlfedosaqtffraadmgk`, eu-west-3) · Juste a supprimé lui-même le projet `kangourou-gestion` pour libérer la place (offre gratuite limitée à 2 projets).
 - 2026-10-02 · `.env.production` versionné : il ne contient que l'URL et la clé *publishable*, publiques par nature · aucun secret dans le dépôt ; secrets GitHub `SUPABASE_DB_URL` et `SAUVEGARDE_PHRASE` seulement.
 - 2026-10-02 · Workflows de production via le Session pooler (IPv4) · les runners GitHub n'ont pas d'IPv6.
+- 2026-10-02 · **Hubs** : un établissement = un ou plusieurs lieux (point de vente, dépôt, mixte) · chaque établissement a un Hub principal créé automatiquement (et rétro-créé pour l'existant) ; caisses, sessions, ventes, dépenses et mouvements portent un `hub_id` ; stock calculé par Hub (vue `stock_hubs`) · un seul Hub actif = aucune notion de Hub à l'écran.
+- 2026-10-02 · Accès par Hub via `membre_hubs` · aucune ligne = tous les Hubs ; filtrage appliqué par la RLS, pas par l'écran.
+- 2026-10-02 · Transferts et inventaires = mouvements tracés (`transfert_sortie` / `transfert_entree`, ajustements d'inventaire) · annulation par mouvement inverse avec motif, jamais d'effacement.
+- 2026-10-02 · Connexion par **identifiant** (en plus de l'e-mail) sans système d'authentification parallèle · `comptes_connexion` relie un identifiant à un compte Supabase Auth ; e-mail technique `identifiant@identifiants.agence-elite.fr` si la personne n'en a pas ; Auth reste seul gardien du mot de passe.
+- 2026-10-02 · Mot de passe temporaire obligatoirement remplacé à la 1re connexion, avec date d'expiration · tant qu'il n'est pas changé, la base refuse tout accès métier ; `1234` et les mots de passe faibles refusés comme mot de passe définitif ; blocage après 5 échecs ; message identique pour identifiant inconnu et mauvais mot de passe.
+- 2026-10-02 · Rôles plateforme Super Admin / Admin / Support · l’Admin gère clients, établissements, licences, Hubs, comptes et support ; seul le Super Admin modifie tarifs, catalogue des modules et administrateurs ; Support sans droit d’administration pour l’instant.
+- 2026-10-02 · Centre des modules (statuts actif / en préparation / futur / retiré, proposé ou non) · accorder ou retirer un module à un établissement est tracé avec motif.
+- 2026-10-02 · Tableau Agence Elite = **activité contractuelle** (montants inscrits sur les licences), jamais présentée comme argent encaissé.
+- 2026-10-02 · Démo « Commerce Démo » : licence à montant 0 · pour ne pas gonfler les chiffres contractuels réels ; script idempotent, rejouable sans rien effacer.
+- 2026-10-02 · Clients « Pilote fictif » archivés automatiquement après chaque pilote · ils disparaissent des listes sans suppression.
+- 2026-10-02 · Procédures écrites dans `docs/SOP/` (32 SOP + modèles) · même référence pour humains et IA.
 - À décider · Nom commercial de la plateforme · ne pas en inventer.

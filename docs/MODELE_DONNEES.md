@@ -69,3 +69,20 @@ Conventions :
 | `licence_evenements` | `id`, `licence_id`, `etablissement_id`, `type`, `ancienne_echeance`, `nouvelle_echeance`, `montant`, `reference`, `motif`, `acteur`, `cree_le` | ajout seul (attribution, renouvellement, suspension, réactivation, fin) |
 
 `etablissements.mis_en_service_le` : date de mise en service déclarée (une seule fois).
+
+## Hubs, transferts, inventaires (migrations 11-12, 2026-10-02)
+| Table | Colonnes | Contraintes |
+|---|---|---|
+| `hubs` | `id`, `etablissement_id`, `nom`, `code`, `type`, `capacite_vente/stock/caisse/transfert`, `principal`, `actif`, `adresse`, `telephone`, dates | type ∈ `point_de_vente, depot, mixte` ; un seul principal par établissement (créé automatiquement) ; le principal reste actif ; jamais supprimé |
+| `membre_hubs` | `etablissement_id`, `user_id`, `hub_id` | aucune ligne pour un membre = accès à tous les Hubs |
+| `transferts` / `lignes_transfert` | numéro, Hub source ≠ destination, statut `valide`/`annule`, motif d'annulation obligatoire | écriture par `transferer_stock` / `annuler_transfert` |
+| `inventaires` / `lignes_inventaire` | Hub, numéro, quantités attendue / comptée | écriture par `enregistrer_inventaire` ; les écarts deviennent des mouvements |
+| `hub_id` ajouté à | `points_de_vente`, `sessions_caisse`, `ventes`, `depenses`, `mouvements_stock`, `clotures` | rétro-rempli avec le Hub principal pour l'existant |
+| Vue `stock_hubs` | `etablissement_id`, `hub_id`, `article_id`, `quantite` | `security_invoker` : respecte la RLS et l'accès Hub |
+
+## Comptes et administration (migrations 10 et 13)
+| Table | Colonnes | Contraintes |
+|---|---|---|
+| `comptes_connexion` | `user_id` → auth.users, `identifiant`, `doit_changer_mot_de_passe`, `temporaire_expire_le`, `mot_de_passe_change_le`, `cree_par`, dates | identifiant unique sans casse, 3-40 caractères `A-Z a-z 0-9 . _ -` ; **aucun mot de passe stocké** (Supabase Auth seul) |
+| `plateforme_admins.role` | | ∈ `super_admin, admin, support` |
+| `modules` / `solution_modules` | statut du module ; proposition par solution (`definir_proposition_module`) | modifiables dans le centre des modules |
