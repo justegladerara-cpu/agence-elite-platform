@@ -3,11 +3,15 @@
 # export de la base source, démarrage d'une base Supabase vierge (Docker),
 # restauration, puis comparaison du nombre de lignes de chaque table.
 # Usage : scripts/verifier_restauration.sh "<url de la base source>"
+# SUPABASE_CLI choisit la CLI qui démarre la base vierge (par défaut celle du
+# dépôt). Pour la production, prendre la plus récente : la base vierge doit
+# avoir le même schéma « auth » que le projet hébergé, tenu à jour par Supabase.
 set -euo pipefail
 source_url="$1"
 racine="$(cd "$(dirname "$0")/.." && pwd)"
 travail="$(mktemp -d)"
-trap 'npx supabase stop --workdir "$travail/cible" --no-backup >/dev/null 2>&1 || true; rm -rf "$travail"' EXIT
+cli=${SUPABASE_CLI:-npx supabase}
+trap '$cli stop --workdir "$travail/cible" --no-backup >/dev/null 2>&1 || true; rm -rf "$travail"' EXIT
 
 "$racine/scripts/sauvegarder.sh" "$source_url" "$travail/sauvegarde"
 
@@ -15,7 +19,7 @@ mkdir -p "$travail/cible/supabase"
 sed -e 's/^project_id = .*/project_id = "verification-restauration"/' \
     -e 's/= 5432\([0-9]\)/= 5532\1/' \
     "$racine/supabase/config.toml" > "$travail/cible/supabase/config.toml"
-npx supabase db start --workdir "$travail/cible"
+$cli db start --workdir "$travail/cible"
 cible_url="postgresql://postgres:postgres@127.0.0.1:55322/postgres"
 
 "$racine/scripts/restaurer.sh" "$travail/sauvegarde" "$cible_url"

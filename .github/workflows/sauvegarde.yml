@@ -51,4 +51,6 @@ jobs:
           retention-days: 30
       - name: Vérifier la restauration (lancement manuel uniquement)
         if: steps.config.outputs.pret == 'oui' && github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_CLI: npx -y supabase@latest
         run: scripts/verifier_restauration.sh "$BASE_URL"
