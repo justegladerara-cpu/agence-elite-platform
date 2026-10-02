@@ -149,3 +149,91 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Facturation : devis, factures (payée en partie, en retard, brouillon), avoir
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  compta uuid;
+  hub_dep uuid;
+  hotel uuid;
+  ecole uuid;
+  restaurant uuid;
+  riz uuid;
+  huile uuid;
+  eau uuid;
+  livraison uuid;
+  d uuid;
+  f uuid;
+  aujourdhui date;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.documents_vente where etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into compta from auth.users where email = 'compta@demo.agence-elite.fr';
+  select id into hub_dep from public.hubs where etablissement_id = etab and code = 'DEP';
+  select id into restaurant from public.contacts where etablissement_id = etab and nom = 'Restaurant Démo (compte)';
+  select id into riz from public.articles where etablissement_id = etab and reference = 'RIZ-25';
+  select id into huile from public.articles where etablissement_id = etab and reference = 'HUI-05';
+  select id into eau from public.articles where etablissement_id = etab and reference = 'EAU-15';
+  select id into livraison from public.articles where etablissement_id = etab and reference = 'LIV-01';
+  aujourdhui := public.date_locale(etab);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'facturation', true);
+  perform public.definir_module_etablissement(etab, 'facturation', true);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_parametres_module(etab, 'facturation', jsonb_build_object('delai_paiement_jours', 30, 'validite_devis_jours', 15,
+    'tva_par_defaut', 0, 'conditions_paiement', 'Paiement à 30 jours par virement ou Mobile Money.',
+    'mentions_factures', 'Données de démonstration : documents fictifs.'));
+  hotel := public.enregistrer_contact(etab, jsonb_build_object('nom', 'M. Ibara (économat)', 'societe', 'Hôtel Démo Côte Sauvage', 'type', 'client',
+    'identifiant_fiscal', 'M0000HOTEL01X', 'telephone', '+242 05 000 00 20', 'adresse', 'Côte Sauvage, Pointe-Noire'));
+  ecole := public.enregistrer_contact(etab, jsonb_build_object('nom', 'Mme Bouanga', 'societe', 'École Démo Les Palmiers', 'type', 'client',
+    'telephone', '+242 05 000 00 21', 'adresse', 'Quartier Loandjili, Pointe-Noire'));
+
+  -- Devis envoyé (en attente) à l'école.
+  d := public.enregistrer_document_vente(etab, jsonb_build_object('type', 'devis', 'contact_id', ecole, 'objet', 'Cantine : riz et huile du trimestre',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', riz, 'quantite', 10), jsonb_build_object('article_id', huile, 'quantite', 6),
+      jsonb_build_object('article_id', livraison, 'quantite', 3))));
+  perform public.changer_statut_devis(d, 'envoye');
+
+  -- Devis accepté par l'hôtel, facturé, payé en partie (livraison depuis le dépôt).
+  d := public.enregistrer_document_vente(etab, jsonb_build_object('type', 'devis', 'contact_id', hotel, 'hub_id', hub_dep, 'objet', 'Eau minérale pour les chambres',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', eau, 'quantite', 20, 'remise', 4000),
+      jsonb_build_object('libelle', 'Livraison et mise en place', 'quantite', 1, 'prix_unitaire', 5000))));
+  perform public.changer_statut_devis(d, 'envoye');
+  perform public.changer_statut_devis(d, 'accepte');
+  f := public.convertir_devis(d);
+  perform public.emettre_facture(f);
+  perform set_config('request.jwt.claims', json_build_object('sub', compta, 'role', 'authenticated')::text, true);
+  perform public.encaisser_facture(f, 25000, 'virement', 'VIR-DEMO-001');
+
+  -- Facture ancienne, en retard, au restaurant.
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  f := public.enregistrer_document_vente(etab, jsonb_build_object('type', 'facture', 'contact_id', restaurant, 'hub_id', hub_dep,
+    'date_document', aujourdhui - 45, 'echeance', aujourdhui - 15, 'objet', 'Approvisionnement du mois dernier',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', riz, 'quantite', 2), jsonb_build_object('article_id', huile, 'quantite', 2))));
+  perform public.emettre_facture(f);
+
+  -- Facture en brouillon.
+  perform public.enregistrer_document_vente(etab, jsonb_build_object('type', 'facture', 'contact_id', ecole,
+    'objet', 'Fournitures diverses', 'lignes', jsonb_build_array(jsonb_build_object('libelle', 'Kit d''entretien', 'quantite', 4, 'prix_unitaire', 3500))));
+
+  -- Facture émise par erreur puis annulée par un avoir.
+  f := public.enregistrer_document_vente(etab, jsonb_build_object('type', 'facture', 'contact_id', hotel,
+    'lignes', jsonb_build_array(jsonb_build_object('libelle', 'Prestation saisie en double', 'quantite', 1, 'prix_unitaire', 12000))));
+  perform public.emettre_facture(f);
+  perform set_config('request.jwt.claims', json_build_object('sub', compta, 'role', 'authenticated')::text, true);
+  perform public.annuler_document_vente(f, 'Facture saisie en double');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

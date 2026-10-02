@@ -139,6 +139,20 @@ describe('application sur la base locale', () => {
     expect(screen.getByText('Effectif actif')).toBeTruthy();
   });
 
+  test('Facturation : liste, document A4 et éditeur', async () => {
+    window.location.hash = '#/factures';
+    const liste = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('En retard', { selector: 'span, div, p' }, { timeout: 10000 }).catch(() => screen.findAllByText('En retard'))).toBeTruthy();
+    fireEvent.click((await screen.findAllByText('FA-00001'))[0]);
+    expect(await screen.findByText('Paiements', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getAllByText('Hôtel Démo Côte Sauvage').length).toBeGreaterThan(0);
+    liste.unmount();
+    window.location.hash = '#/factures/nouvelle-facture';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Ajouter une ligne', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText('Enregistrer le brouillon')).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

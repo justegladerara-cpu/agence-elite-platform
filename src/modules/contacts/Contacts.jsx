@@ -9,7 +9,7 @@ const TYPES = { client: 'Client', fournisseur: 'Fournisseur', les_deux: 'Client 
 function FormulaireContact({ contact, onFermer, onEnregistre }) {
   const { api, etablissement } = useEspace();
   const [valeurs, setValeurs] = useState({
-    type: 'client', nom: '', telephone: '', email: '', adresse: '', notes: '', actif: true,
+    type: 'client', nom: '', societe: '', identifiant_fiscal: '', telephone: '', email: '', adresse: '', notes: '', actif: true,
     ...(contact ? Object.fromEntries(Object.entries(contact).map(([k, v]) => [k, v ?? ''])) : {}),
   });
   const [erreur, setErreur] = useState('');
@@ -41,6 +41,10 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
           <Champ libelle="E-mail"><input type="email" value={valeurs.email} onChange={changer('email')} /></Champ>
         </div>
         <Champ libelle="Adresse"><input value={valeurs.adresse} onChange={changer('adresse')} /></Champ>
+        <div className="grille-champs">
+          <Champ libelle="Société (facturation)"><input value={valeurs.societe} onChange={changer('societe')} maxLength={120} /></Champ>
+          <Champ libelle="NIU / identifiant fiscal"><input value={valeurs.identifiant_fiscal} onChange={changer('identifiant_fiscal')} maxLength={40} /></Champ>
+        </div>
         <Champ libelle="Notes"><textarea rows={2} value={valeurs.notes} onChange={changer('notes')} /></Champ>
         {contact && (
           <label className="case"><input type="checkbox" checked={valeurs.actif} onChange={changer('actif')} /> Contact actif</label>

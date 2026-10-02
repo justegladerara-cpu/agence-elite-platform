@@ -4,7 +4,7 @@ import { creerBase } from './helpers/db.js';
 let db;
 const MODULES_ATTENDUS = {
   achats: 'futur', articles: 'actif', caisse: 'actif', cloture: 'actif', contacts: 'actif', crm_pipeline: 'futur', depenses: 'actif',
-  documents: 'actif', ecommerce_boutique: 'futur', etablissement: 'actif', facturation: 'futur', hotel_chambres: 'futur',
+  documents: 'actif', ecommerce_boutique: 'futur', etablissement: 'actif', facturation: 'actif', hotel_chambres: 'futur',
   hotel_reservations: 'futur', membres: 'actif', paiements: 'actif', projets: 'futur', recus: 'actif', restaurant_cuisine: 'futur',
   restaurant_salle: 'futur', rh_conges: 'actif', rh_employes: 'actif', rh_presences: 'actif', site_web: 'futur', stock: 'actif',
   tableau_de_bord: 'actif', ventes: 'actif',

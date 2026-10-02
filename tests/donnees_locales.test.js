@@ -87,10 +87,11 @@ describe('moteur de données local', () => {
     const etab = (await api.rpc('mon_contexte')).etablissements[0];
     const aujourdHui = new Date().toISOString().slice(0, 10);
     const tdb = await api.rpc('tableau_de_bord_hub', { p_etablissement_id: etab.id, p_hub_id: null, p_du: '2000-01-01', p_au: aujourdHui });
-    expect(tdb.nombre_ventes).toBe(8);
-    expect(tdb.creances).toBe(8000);
+    // 8 ventes en caisse + 2 factures émises au dépôt (la 3e est annulée par un avoir).
+    expect(tdb.nombre_ventes).toBe(10);
+    expect(tdb.creances).toBe(8000 + 24000 + 52000);
     const parHub = Object.fromEntries(tdb.par_hub.map((h) => [h.nom, h.nombre_ventes]));
-    expect(parHub).toEqual({ 'Magasin principal': 5, 'Boutique Marché Total': 3, 'Dépôt principal': 0 });
+    expect(parHub).toEqual({ 'Magasin principal': 5, 'Boutique Marché Total': 3, 'Dépôt principal': 2 });
     const marche = await api.rpc('tableau_de_bord_hub', {
       p_etablissement_id: etab.id, p_hub_id: etab.hubs.find((h) => h.nom === 'Boutique Marché Total').id, p_du: '2000-01-01', p_au: aujourdHui,
     });
@@ -124,5 +125,17 @@ describe('moteur de données local', () => {
     expect(monEspace.employe.prenom).toBe('Junior');
     // Un caissier ne lit que ses propres données personnelles.
     expect((await api.lire('rh_employes_prives')).map((p) => p.employe_id)).toEqual([monEspace.employe.id]);
+  });
+  test('la démo facturation : devis, factures, retard, avoir', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const docs = await api.lire('documents_vente', { eq: { etablissement_id: etab } });
+    expect(docs.filter((d) => d.type === 'devis')).toHaveLength(2);
+    expect(docs.filter((d) => d.type === 'avoir')).toHaveLength(1);
+    const tdb = await api.rpc('tableau_de_bord_facturation', { p_etablissement_id: etab });
+    expect(tdb.nb_en_retard).toBe(1);
+    expect(Number(tdb.a_encaisser)).toBeGreaterThan(0);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    expect(await api.lire('documents_vente')).toEqual([]);
   });
 });

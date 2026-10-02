@@ -56,6 +56,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Développer, tester, déployer un module (statuts) | [42](42_CYCLE_DE_VIE_D_UN_MODULE.md) | Dev, Agence Elite |
 | Joindre des fichiers, bibliothèque Documents | [43](43_PIECES_JOINTES_ET_DOCUMENTS.md) | Dev |
 | Envoyer une notification (cloche) | [44](44_ENVOYER_UNE_NOTIFICATION.md) | Dev |
+| Devis, facture, paiement, avoir | [45](45_FACTURER_UN_CLIENT.md) | Client, Agence Elite |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

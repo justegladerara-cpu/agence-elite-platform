@@ -2531,3 +2531,43 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .explorateur { grid-template-columns: 1fr; }
   .organigramme-carte { min-width: 0; }
 }
+
+/* Facturation : éditeur de lignes, feuille A4 (écran et impression) */
+.lignes-document td { vertical-align: top; }
+.lignes-document td:first-child { min-width: 240px; display: grid; gap: 4px; }
+.lignes-document input, .lignes-document select { width: 100%; min-width: 0; }
+.lignes-document td.nombre input { width: 96px; text-align: right; }
+.lignes-document input.discret { font-size: 12.5px; color: var(--texte-doux); }
+.totaux-document { display: grid; gap: 4px; justify-content: end; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.totaux-document div { display: flex; justify-content: space-between; gap: 32px; }
+.totaux-document .total { font-size: 18px; border-top: 1px solid var(--bordure); padding-top: 6px; }
+.document-disposition { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 16px; align-items: start; }
+.feuille-conteneur { overflow-x: auto; }
+.feuille-a4 { width: 210mm; max-width: 100%; min-height: 260mm; margin: 0 auto; padding: 14mm 14mm 10mm; background: #fff; color: #111827; box-shadow: var(--ombre); border-radius: 4px; font-size: 12.5px; display: flex; flex-direction: column; gap: 14px; }
+.feuille-tete { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.feuille-logo { max-height: 56px; max-width: 180px; display: block; margin-bottom: 6px; }
+.feuille-emetteur { font-size: 16px; display: block; }
+.feuille-titre { text-align: right; }
+.feuille-titre h1 { margin: 0; font-size: 24px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--accent-fort); }
+.feuille-numero { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.feuille-petit { font-size: 11px; color: #4b5563; }
+.feuille-client { align-self: flex-end; min-width: 45%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 6px; display: grid; gap: 2px; }
+.feuille-objet { margin: 0; }
+.feuille-annule { margin: 0; padding: 8px 10px; border: 2px solid #b91c1c; color: #b91c1c; font-weight: 700; text-align: center; }
+.feuille-lignes { width: 100%; border-collapse: collapse; }
+.feuille-lignes th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #4b5563; border-bottom: 2px solid #111827; padding: 6px 4px; }
+.feuille-lignes td { padding: 7px 4px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+.feuille-lignes .nombre { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.feuille-totaux { align-self: flex-end; min-width: 260px; display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+.feuille-totaux div { display: flex; justify-content: space-between; gap: 24px; }
+.feuille-total { font-weight: 700; font-size: 14px; border-top: 1px solid #111827; padding-top: 4px; }
+.feuille-notes { margin: 0; white-space: pre-wrap; }
+.feuille-pied { margin-top: auto; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 10.5px; color: #4b5563; text-align: center; display: grid; gap: 2px; }
+@media (max-width: 1100px) { .document-disposition { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .feuille-a4 { padding: 16px; min-height: 0; } .feuille-titre { text-align: left; } }
+@media print {
+  body.impression-a4 > *:not(.zone-impression) { display: none !important; }
+  body.impression-a4 .zone-impression { display: block; }
+  body.impression-a4 .feuille-a4 { box-shadow: none; width: auto; min-height: 0; padding: 0; border-radius: 0; }
+  @page { size: A4; margin: 12mm; }
+}
