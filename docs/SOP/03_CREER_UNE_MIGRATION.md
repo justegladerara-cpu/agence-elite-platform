@@ -1,6 +1,6 @@
 # SOP 03 · Créer une migration
 
-1. Nouveau fichier `supabase/migrations/AAAAMMJJHHMMSS_sujet.sql` (horodatage **après** la dernière).
+1. Nouveau fichier `supabase/migrations/AAAAMMJJNNNNNN_sujet.sql` : date du jour + numéro à 6 chiffres qui repart à `000001` chaque jour (voir PROJECT_STATE « Numérotation des migrations »). Toujours **après** la dernière.
 2. **Jamais** modifier une migration déjà appliquée en production (voir `supabase_migrations` en base
    ou la simulation du workflow « Déploiement de la base »).
 3. Écrire de façon **idempotente et non destructive** : `create … if not exists`, `add column if not exists`,
