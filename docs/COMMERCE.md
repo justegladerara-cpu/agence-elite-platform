@@ -48,7 +48,13 @@ Avec `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` (Supabase local uniquement 
 - `npm test` : migrations, sécurité, isolation entre établissements, parcours commerce complet, moteur local, interface.
 - `npm run build` puis `npx vite preview --port 4173` et `node scripts/parcours_navigateur.cjs` (Playwright) : parcours complet dans Chromium avec captures dans `captures-parcours/`.
 
+## Exploitation par Agence Elite
+- Espace éditeur (clients, établissements, licences, modules, équipe, mise en service, support) : `docs/PROCESSUS_CLIENT.md`.
+- Prise en main par rôle : `docs/GUIDE_UTILISATEUR.md` ; modèle d'import : `docs/modele_import_articles.csv`.
+- Mise en ligne, sauvegardes, retour arrière : `docs/PRODUCTION.md`.
+
 ## Pas encore fait
-- Mise en ligne d'un aperçu (hébergement statique à créer) et base Supabase hébergée pour un usage réel.
-- Invitations et gestion des membres depuis l'application (le socle sait le faire en base).
+- Mise en ligne réelle : projet Supabase dédié et projet Cloudflare Pages à créer par Agence Elite (voir `docs/PRODUCTION.md`).
+- Envoi automatique des invitations par e-mail : pour l'instant, message à copier (WhatsApp, SMS, e-mail).
+- Facturation automatique des licences : les paiements sont notés à la main (montant, référence).
 - Fonctionne hors connexion uniquement en mode local ; pas de synchronisation.

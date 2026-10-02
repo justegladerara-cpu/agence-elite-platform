@@ -20,4 +20,12 @@ Format : date · décision · raison · impact.
 - 2026-10-02 · Aucune suppression sur les tables commerce ; annulation avec motif obligatoire · exigence de Juste : « les annulations doivent laisser une trace ».
 - 2026-10-02 · Annulation d'une vente seulement tant que sa caisse est ouverte · un ticket Z déjà édité ne change jamais.
 - 2026-10-02 · Mode local dans le navigateur (PGlite + mêmes migrations) · permet d'utiliser et montrer l'application sans base distante, conformément à « aucune base Supabase distante tant que nous travaillons localement ».
+- 2026-10-02 · Licences séparées des modules et des permissions · une offre liste des modules ; un module n'est activable que s'il est couvert par la licence (offre + modules vendus en plus) · formules essai, acquisition, mensuel, annuel ; une seule licence en cours par établissement, historique figé.
+- 2026-10-02 · Essai automatique de 30 jours (offre complète) à la création d'un établissement · permet de configurer avant l'achat.
+- 2026-10-02 · Sans licence valide, lecture seule (aucune perte) ; 7 jours de grâce après l'échéance, sauf pour l'essai.
+- 2026-10-02 · Invitations par message à copier (WhatsApp, SMS, e-mail) · pas de service d'envoi payant ; la personne rejoint avec l'adresse invitée.
+- 2026-10-02 · Garde-fous d'équipe : personne n'attribue un rôle supérieur au sien ni ne modifie son propre accès ; il reste toujours un gérant actif ; seul Agence Elite donne la gestion d'équipe à un non-gérant.
+- 2026-10-02 · Session support : motif obligatoire, 8 heures, lecture seule, tracée.
+- 2026-10-02 · Supabase hébergé seulement si `VITE_AUTORISER_SUPABASE_DISTANT=oui` et une adresse `*.supabase.co` · projet dédié, jamais celui du CRM ou de Kangourou ; création soumise à l'accord de Juste (coût).
+- 2026-10-02 · Déploiement de la base par workflow manuel (simulation puis « JE CONFIRME ») ; sauvegarde quotidienne chiffrée.
 - À décider · Nom commercial de la plateforme · ne pas en inventer.

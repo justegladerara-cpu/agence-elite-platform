@@ -1,5 +1,14 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-02 — Mission 7 phases (audit, éditeur, équipe, licences, production, pilote, processus)
+- 5a21247 : audit offensif, 9 défauts corrigés (TRUNCATE, triggers, séquences, NaN, annulation après clôture, etc.), 30 tests.
+- 399f1c2, 619d8c0 : licences (essai 30 jours, mensuel, annuel, acquisition, suspension, grâce 7 jours), invitations et équipe avec garde-fous, mode support compatible Supabase, espace Agence Elite, import d'articles, mise en service, durcissements.
+- e5fd86a : préparation production (garde Supabase hébergé, workflows de déploiement et de sauvegarde, `docs/PRODUCTION.md`).
+- Pilote fictif à deux établissements et documents de processus client.
+- Vérifié : tests complets, build, parcours navigateur éditeur → client → licence → responsable → caissier → mise en service → support.
+- Reste à Juste : créer le projet Supabase dédié (coût ou place gratuite), le projet Cloudflare Pages et les secrets ; saisir les prix des offres.
+- Notés, non bloquants : `ouvrir_caisse` sans point de vente actif choisit la caisse principale même désactivée ; le rôle client `lecteur` a la même lecture que `dirigeant`.
+
 ## 2026-10-02 — Solution Commerce développée directement (Codex en pause)
 - b454990 : correctifs de sécurité du socle (invitation sans email, client suspendu, portée `clients_lecture`, sessions support, membres).
 - 3133b71 : base Commerce (9 modules, 21 permissions, 10 tables, 19 RPC, immuabilité, audit, tableau de bord) et 21 tests de parcours et d'isolation.

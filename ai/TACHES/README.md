@@ -20,5 +20,10 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 | 006 | Interfaces du socle | fait |
 | 007 | Reconstruction et clôture | fait |
 | C1 | Solution Commerce (base, RPC, écrans, mode local) | fait le 2026-10-02 par Claude, voir docs/COMMERCE.md |
+| M1 | Audit offensif final | fait le 2026-10-02 (9 défauts corrigés) |
+| M2-4 | Espace Agence Elite, équipe et invitations, licences, mise en service | fait le 2026-10-02 |
+| M5 | Préparation production (docs/PRODUCTION.md, workflows) | fait ; mise en ligne en attente de Juste |
+| M6 | Pilote fictif à deux établissements (tests/pilote.test.js) | fait |
+| M7 | Processus client et guide (docs/PROCESSUS_CLIENT.md) | fait |
 
 Depuis le 2026-10-02, Codex est en pause : Claude développe directement.

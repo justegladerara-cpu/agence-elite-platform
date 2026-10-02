@@ -6,14 +6,14 @@ Un **socle unique** : Agence Elite (éditeur) → Clients → Établissements �
 
 - Ce dépôt est **séparé** du CRM interne d'Agence Elite (`agence-elite-crm`).
 - Il ne contient aucun code du Kangourou ni d'Elite Hôtel (archivé).
-- État : socle terminé ; **Solution Commerce** utilisable (voir `docs/COMMERCE.md`).
+- État : socle terminé ; **Solution Commerce** utilisable ; espace Agence Elite (clients, licences, équipe, mise en service) prêt ; mise en ligne préparée (voir `docs/PRODUCTION.md`).
 
 ## Essayer
 ```
 npm install
 npm run dev
 ```
-L'application démarre en mode local avec une démo fictive ; choisissez un profil (gérante, caissier, comptable).
+L'application démarre en mode local avec une démo fictive ; choisissez un profil (Agence Elite, gérante, caissier, comptable) ou entrez une adresse e-mail.
 
 ## À lire en premier
 1. `docs/ARCHITECTURE.md` : le socle validé
@@ -22,7 +22,9 @@ L'application démarre en mode local avec une démo fictive ; choisissez un prof
 4. `docs/SECURITE.md` : règles d'accès
 5. `docs/LOT1_PLAN.md` : le plan d'exécution
 6. `docs/COMMERCE.md` : la Solution Commerce
-7. `AGENTS.md` : règles de travail des agents (Codex)
+7. `docs/PROCESSUS_CLIENT.md` : de l'offre à la mise en service d'un client
+8. `docs/PRODUCTION.md` : mise en ligne, sauvegardes, retour arrière
+9. `AGENTS.md` : règles de travail des agents (Codex)
 
 ## Organisation du travail
 Depuis le 2026-10-02, Claude développe directement sur `main` (Codex en pause). Journal : `ai/CLAUDE/JOURNAL.md`.
