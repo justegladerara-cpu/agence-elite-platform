@@ -2,7 +2,7 @@
 # Pilote complet sur une base Supabase réelle, sans clé « service » :
 # 1. crée des comptes fictifs confirmés (mot de passe aléatoire, jamais affiché) ;
 # 2. donne le rôle super administrateur au compte « Agence Elite » de test ;
-# 3. lance scripts/pilote_en_ligne.mjs ;
+# 3. lance scripts/pilote_en_ligne.mjs, puis scripts/verifier_site.mjs si SITE_URL est fourni ;
 # 4. neutralise toujours les comptes ensuite (accès retiré, mot de passe détruit, compte bloqué).
 # Les données fictives restent, rattachées au client « Pilote fictif <lot> ».
 # Usage : SUPABASE_DB_URL=… SUPABASE_URL=… SUPABASE_ANON_KEY=… scripts/pilote_production.sh
@@ -51,3 +51,10 @@ SQL
 echo "Comptes fictifs du lot $PILOTE_LOT prêts."
 
 node "$racine/scripts/pilote_en_ligne.mjs"
+
+# Si SITE_URL est fourni : vérification du site publié dans un navigateur,
+# avec le gérant fictif de l'établissement A (avant neutralisation des comptes).
+if [ -n "${SITE_URL:-}" ]; then
+  SITE_URL="$SITE_URL" VERIF_EMAIL="gerant-a-$PILOTE_LOT@$domaine" VERIF_MOT_DE_PASSE="$PILOTE_MOT_DE_PASSE" \
+    node "$racine/scripts/verifier_site.mjs"
+fi

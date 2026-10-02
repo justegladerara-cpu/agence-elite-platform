@@ -4,6 +4,11 @@
 name: Pilote en production
 on:
   workflow_dispatch:
+    inputs:
+      site:
+        description: "Adresse du site publié à vérifier dans un navigateur (vide : pas de vérification du site)"
+        required: false
+        default: "https://agence-elite-platform.pages.dev"
 concurrency:
   group: pilote-production
   cancel-in-progress: false
@@ -24,5 +29,12 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: scripts/url_base.sh
+      - name: Navigateur pour la vérification du site
+        if: inputs.site != ''
+        run: |
+          npm install --no-save playwright@1
+          npx playwright install --with-deps chromium
       - name: Pilote
+        env:
+          SITE_URL: ${{ inputs.site }}
         run: SUPABASE_DB_URL="$BASE_URL" scripts/pilote_production.sh
