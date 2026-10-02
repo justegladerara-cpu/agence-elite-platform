@@ -95,7 +95,7 @@ production sans accord) :
    ```bash
    scripts/restaurer.sh restauration "postgresql://…connexion de la base cible…"
    ```
-   Tout se fait en une seule transaction (en cas d'erreur, rien n'est appliqué) ;
+   Schéma et données sont rechargés en une seule transaction (en cas d'erreur, rien n'est appliqué) ;
    les déclencheurs de protection sont suspendus le temps du rechargement
    (`session_replication_role = replica`).
 4. Vérifier, puis pointer `.env.production` vers le nouveau projet si c'est lui
