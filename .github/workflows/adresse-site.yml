@@ -1,0 +1,27 @@
+# Affiche ce que Cloudflare a publié pour le dernier commit (contrôles, statuts,
+# déploiements) afin de retrouver l'adresse du site. Lancement manuel.
+name: Adresse du site
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  checks: read
+  statuses: read
+  deployments: read
+jobs:
+  adresse:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/$1"; }
+          echo "== Contrôles du commit ${{ github.sha }}"
+          api "commits/${{ github.sha }}/check-runs" | jq -r '.check_runs[] | "\(.name) | \(.status) \(.conclusion) | \(.details_url) | \(.output.title) | \(.output.summary)"'
+          echo "== Statuts"
+          api "commits/${{ github.sha }}/statuses" | jq -r '.[] | "\(.context) | \(.state) | \(.target_url) | \(.description)"'
+          echo "== Déploiements"
+          for id in $(api "deployments?per_page=5" | jq -r '.[].id'); do
+            api "deployments/$id" | jq -r '"\(.environment) | \(.sha[0:7]) | \(.created_at)"'
+            api "deployments/$id/statuses" | jq -r '.[] | "   \(.state) | \(.environment_url) | \(.target_url)"'
+          done
