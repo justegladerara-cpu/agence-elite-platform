@@ -13,6 +13,10 @@ export async function chargerMigrations() {
 
 export async function creerBaseLocale() {
   const db = new PGlite(optionsPGlite);
-  await preparerBase(db, { shim: await readFile(resolve(racine, 'tests/sql/supabase_shim.sql'), 'utf8'), migrations: await chargerMigrations() });
+  await preparerBase(db, {
+    shim: await readFile(resolve(racine, 'tests/sql/supabase_shim.sql'), 'utf8'),
+    complement: await readFile(resolve(racine, 'tests/sql/supabase_shim_auth.sql'), 'utf8'),
+    migrations: await chargerMigrations(),
+  });
   return db;
 }

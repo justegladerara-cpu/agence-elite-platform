@@ -1,6 +1,7 @@
 // Mode local du navigateur : PGlite persisté dans IndexedDB, migrations du dépôt.
 import { PGlite } from '@electric-sql/pglite';
 import shim from '../../../tests/sql/supabase_shim.sql?raw';
+import complement from '../../../tests/sql/supabase_shim_auth.sql?raw';
 import { baseVide, listerComptesDemo, semerDemo } from './demo.js';
 import { creerApiLocale, optionsPGlite, preparerBase } from './moteurLocal.js';
 
@@ -29,7 +30,7 @@ function ecrireStockage(cle, valeur) {
 export async function demarrerLocal() {
   const db = new PGlite(NOM_BASE, optionsPGlite);
   await db.waitReady;
-  await preparerBase(db, { shim, migrations });
+  await preparerBase(db, { shim, complement, migrations });
   if (await baseVide(db)) await semerDemo(db);
   let utilisateur = lireStockage(CLE_UTILISATEUR);
   const api = creerApiLocale(db, () => utilisateur);

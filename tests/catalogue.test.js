@@ -16,9 +16,9 @@ describe('catalogue de départ', () => {
     expect((await db.query("select count(*)::int n from solution_modules sm join modules m on m.id = sm.module_id where m.nature = 'metier' and sm.solution_id <> 'commerce'")).rows[0].n).toBe(0);
   });
   test('contient les rôles, permissions et leurs droits exacts (socle et Commerce)', async () => {
-    expect((await db.query('select id from roles order by ordre')).rows.map((r) => r.id)).toEqual(['gerant','responsable','employe','comptable','lecteur']);
-    expect((await db.query('select count(*)::int n from permissions')).rows[0].n).toBe(21);
-    expect((await db.query('select count(*)::int n from role_permissions')).rows[0].n).toBe(73);
+    expect((await db.query('select id from roles order by ordre')).rows.map((r) => r.id)).toEqual(['gerant','responsable','responsable_hub','gestionnaire_depot','employe','comptable','lecteur']);
+    expect((await db.query('select count(*)::int n from permissions')).rows[0].n).toBe(23);
+    expect((await db.query('select count(*)::int n from role_permissions')).rows[0].n).toBe(101);
   });
   test('la migration est idempotente', async () => {
     await db.exec(await readFile('supabase/migrations/20261001000005_donnees_catalogue.sql', 'utf8'));
