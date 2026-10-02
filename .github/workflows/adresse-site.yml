@@ -16,8 +16,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           api() { curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/$1"; }
+          for i in $(seq 1 40); do
+            enCours=$(api "commits/${{ github.sha }}/check-runs" | jq '[.check_runs[] | select(.name | test("Cloudflare|Workers|Pages")) | select(.status != "completed")] | length')
+            [ "$enCours" = "0" ] && break
+            sleep 15
+          done
           echo "== Contrôles du commit ${{ github.sha }}"
-          api "commits/${{ github.sha }}/check-runs" | jq -r '.check_runs[] | "\(.name) | \(.status) \(.conclusion) | \(.details_url) | \(.output.title) | \(.output.summary)"'
+          api "commits/${{ github.sha }}/check-runs" | jq -r '.check_runs[] | "\(.name) | \(.status) \(.conclusion) | \(.details_url) | \(.output.title)\n\(.output.summary)\n\(.output.text)"'
           echo "== Statuts"
           api "commits/${{ github.sha }}/statuses" | jq -r '.[] | "\(.context) | \(.state) | \(.target_url) | \(.description)"'
           echo "== Déploiements"
