@@ -24,7 +24,8 @@ describe('administration éditeur', () => {
       client = (await tx.query("select creer_client('Client RPC') as id")).rows[0].id;
       etablissement = (await tx.query("select creer_etablissement($1,'commerce','Établissement RPC') as id", [client])).rows[0].id;
     });
-    expect((await db.query('select module_id from etablissement_modules where etablissement_id=$1 order by module_id', [etablissement])).rows).toHaveLength(3);
+    expect((await db.query('select module_id from etablissement_modules where etablissement_id=$1 order by module_id', [etablissement])).rows).toHaveLength(12);
+    expect((await db.query('select count(*)::int n from points_de_vente where etablissement_id=$1', [etablissement])).rows[0].n).toBe(1);
   });
   test('le gérant invité accepte avec son propre compte', async () => {
     let invitation;
