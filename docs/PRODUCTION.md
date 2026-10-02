@@ -13,7 +13,7 @@ le navigateur, données de démonstration fictives. Rien ne part sur Internet.
 | Projet Supabase | `agence-elite-platform` (réf. `xrlfedosaqtffraadmgk`, région Paris `eu-west-3`, offre gratuite, organisation Agence Elite) |
 | Configuration publique | `.env.production` (URL + clé *publishable* : faites pour le navigateur, aucun secret) |
 | Secrets GitHub | `SUPABASE_DB_URL` (chaîne de connexion de la base ; si c'est la connexion directe, les workflows passent automatiquement par le « Session pooler », GitHub n'ayant pas d'IPv6), `SAUVEGARDE_PHRASE` (chiffrement des sauvegardes, gardée aussi hors de GitHub) |
-| Site | Cloudflare Pages, construit depuis `main` (voir §5) |
+| Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare Workers, fichiers statiques, construit depuis `main`, voir §5) |
 
 La clé `service_role` n'est utilisée nulle part. Aucun secret n'est écrit dans le
 code, les commits ou les journaux.
@@ -50,18 +50,26 @@ restent rattachées au client « Pilote fictif <date> », facile à archiver.
 4. Les tarifs sont déjà saisis (450 000 / 50 000 / 25 000 par mois / 150 000 par an
    XAF, support séparé) et se modifient dans **Offres et prix**.
 
-## 5. Site (Cloudflare Pages)
+## 5. Site (Cloudflare)
 
-Workers & Pages → **Create → Pages → Connect to Git** → dépôt
-`agence-elite-platform`, branche `main`, preset **Vite** (build `npm run build`,
-sortie `dist`). Aucune variable à saisir : la configuration publique est dans
-`.env.production`. Chaque push sur `main` redéploie le site. Les en-têtes de
-sécurité (CSP, HSTS, anti-iframe) sont dans `public/_headers`.
+Le dépôt est relié à Cloudflare (Workers & Pages → projet `agence-elite-platform`,
+mode « Worker » avec fichiers statiques). Chaque push sur `main` reconstruit le site
+(`npm run build`) puis le publie selon `wrangler.jsonc` (dossier `dist`, application
+monopage). Aucune variable à saisir : la configuration publique est dans
+`.env.production`. Les en-têtes de sécurité (CSP, HSTS, anti-iframe) sont dans
+`public/_headers`. Node 22 est fixé par `.node-version`.
+
+Vérification : GitHub → Actions → **Pilote en production**, champ « site » = adresse
+du site. Après le pilote, un navigateur ouvre le site, contrôle les en-têtes, refuse
+un mauvais mot de passe, connecte un gérant fictif et affiche ses articles.
+**Adresse du site** (workflow « Adresse du site ») : affiche le résultat de la
+dernière construction Cloudflare.
 
 La démo locale sans base se construit avec `npm run build:demo`.
 
-Domaine personnalisé (facultatif) : Pages → **Custom domains** →
-`app.agence-elite.fr`, puis chez LWS un enregistrement `CNAME app → <projet>.pages.dev`.
+Domaine personnalisé (facultatif) : projet Cloudflare → **Settings → Domains & Routes**
+→ `app.agence-elite.fr` (le domaine doit alors être géré par Cloudflare, ou passer
+par un CNAME chez LWS selon l'offre).
 
 ## 6. Comptes et e-mails
 
@@ -116,14 +124,14 @@ fait la même vérification sur la vraie base.
 - **Actions des utilisateurs** : table `journal_audit` (qui, quand, quoi, avant/après),
   non modifiable, lisible par Agence Elite (super administrateur).
 - **Historique des licences** : table `licence_evenements`, non modifiable.
-- **Technique** : Supabase → *Logs* (API, Auth, Postgres) ; Cloudflare Pages →
-  *Deployments* (journaux de build) ; GitHub → *Actions* (CI, déploiements, sauvegardes).
+- **Technique** : Supabase → *Logs* (API, Auth, Postgres) ; Cloudflare →
+  *Deployments* et *Builds* (journaux de construction) ; GitHub → *Actions* (CI, déploiements, sauvegardes).
 
 ## 9. Retour arrière
 
 | Problème | Action |
 |---|---|
-| Mauvaise version du site | Cloudflare Pages → Deployments → ancienne version → **Rollback** |
+| Mauvaise version du site | Cloudflare → projet → Deployments → ancienne version → **Rollback** |
 | Mauvaise migration | Écrire une **nouvelle** migration correctrice (jamais d'édition ni de suppression d'une migration appliquée), la tester en local puis la déployer |
 | Données abîmées | Restaurer la dernière sauvegarde sur un projet neuf, comparer, puis rapatrier ce qui manque après accord |
 
@@ -133,6 +141,6 @@ fait la même vérification sur la vraie base.
 2. Déploiement de la base : simulation puis application (§2).
 3. Sauvegarde manuelle avec vérification de restauration (§7).
 4. Pilote en production (§3).
-5. Cloudflare Pages (§5), Site URL et SMTP (§6).
+5. Site Cloudflare (§5), Site URL et SMTP (§6).
 6. Compte Agence Elite super administrateur (§4), puis `docs/PROCESSUS_CLIENT.md`
    pour le premier client.

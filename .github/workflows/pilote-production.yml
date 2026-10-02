@@ -8,7 +8,7 @@ on:
       site:
         description: "Adresse du site publié à vérifier dans un navigateur (vide : pas de vérification du site)"
         required: false
-        default: "https://agence-elite-platform.pages.dev"
+        default: "https://agence-elite-platform.justegladerara.workers.dev"
 concurrency:
   group: pilote-production
   cancel-in-progress: false
