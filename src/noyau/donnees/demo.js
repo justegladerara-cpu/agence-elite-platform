@@ -50,7 +50,7 @@ export async function semerDemo(db) {
 
   const client = await api.rpc('creer_client', { p_nom: 'Société Démo SARL', p_pays: 'Congo' });
   const etabA = await api.rpc('creer_etablissement', { p_client_id: client, p_solution_id: 'commerce', p_nom: 'Quincaillerie Démo — Pointe-Noire' });
-  const etabB = await api.rpc('creer_etablissement', { p_client_id: client, p_solution_id: 'commerce', p_nom: 'Boutique Démo — Brazzaville' });
+  const etabB = await api.rpc('creer_etablissement', { p_client_id: client, p_solution_id: 'commerce', p_nom: 'Second magasin — Brazzaville' });
   await db.query("update public.etablissements set ville = 'Pointe-Noire', pays = 'Congo' where id = $1", [etabA]);
   await db.query("update public.etablissements set ville = 'Brazzaville', pays = 'Congo' where id = $1", [etabB]);
   await db.query(
