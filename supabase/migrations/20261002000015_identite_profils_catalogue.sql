@@ -975,6 +975,60 @@ as $$
   )
 $$;
 
+-- ---------------------------------------------------------------------------
+-- 6. Reçu : informations héritées du client (les mentions obligatoires restent fixes dans le ticket)
+-- ---------------------------------------------------------------------------
+create or replace function public.recu_vente(p_vente_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  vente public.ventes%rowtype;
+begin
+  select * into vente from public.ventes where id = p_vente_id;
+  if vente.id is null or not (
+    public.lecture_autorisee(vente.etablissement_id, 'recus.lire')
+    or public.lecture_autorisee(vente.etablissement_id, 'ventes.lire')
+  ) or not public.lecture_hub(vente.etablissement_id, vente.hub_id) then
+    raise exception 'Reçu introuvable';
+  end if;
+  return jsonb_build_object(
+    'vente', to_jsonb(vente),
+    'etablissement', (
+      select jsonb_build_object('nom', e.nom, 'ville', e.ville, 'devise', e.devise, 'fuseau', e.fuseau)
+      from public.etablissements e where e.id = vente.etablissement_id
+    ),
+    'identite', (select to_jsonb(i) - 'etablissement_id' - 'logo_url' from public.etablissement_identite i where i.etablissement_id = vente.etablissement_id),
+    'logo', (select logo_url from public.etablissement_identite i where i.etablissement_id = vente.etablissement_id),
+    -- Informations effectives (établissement, sinon client) : NIU, RCCM, adresse, logo, mentions, pied.
+    'documents', public.identite_effective(vente.etablissement_id) -> 'documents',
+    'point_de_vente', (select nom from public.points_de_vente where id = vente.point_de_vente_id),
+    'hub', (select jsonb_build_object('nom', h.nom, 'adresse', h.adresse, 'telephone', h.telephone, 'principal', h.principal)
+            from public.hubs h where h.id = vente.hub_id),
+    'vendeur', coalesce(
+      (select nom_complet from public.profils where id = vente.vendeur),
+      (select split_part(email, '@', 1) from auth.users where id = vente.vendeur)
+    ),
+    'contact', (select jsonb_build_object('nom', c.nom, 'telephone', c.telephone) from public.contacts c where c.id = vente.contact_id),
+    'lignes', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'libelle', l.libelle, 'quantite', l.quantite, 'prix_unitaire', l.prix_unitaire, 'remise', l.remise, 'total', l.total
+      ) order by l.libelle)
+      from public.lignes_vente l where l.vente_id = vente.id
+    ), '[]'::jsonb),
+    'paiements', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'mode', p.mode, 'montant', p.montant, 'reference', p.reference, 'statut', p.statut, 'cree_le', p.cree_le
+      ) order by p.cree_le)
+      from public.paiements p where p.vente_id = vente.id
+    ), '[]'::jsonb)
+  );
+end
+$$;
+
 -- Droits d'exécution
 do $$
 declare signature text;
