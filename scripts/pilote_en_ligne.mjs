@@ -4,24 +4,27 @@
 // → articles → stock → caisse → ventes → paiements → reçus → contacts → dépenses
 // → ticket Z → tableau de bord, puis contrôles d'isolation et de sécurité.
 //
-// Variables : SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-// (la clé service ne sert qu'à créer les comptes fictifs déjà confirmés et le
-// compte Agence Elite de test ; elle n'est jamais affichée).
+// Variables : SUPABASE_URL, SUPABASE_ANON_KEY, et soit SUPABASE_SERVICE_ROLE_KEY
+// (crée les comptes fictifs confirmés et promeut le compte Agence Elite de test),
+// soit PILOTE_LOT + PILOTE_MOT_DE_PASSE pour des comptes fictifs déjà créés
+// (production : comptes préparés puis neutralisés après le pilote).
+// Aucune clé ni aucun mot de passe n'est affiché.
 import { createClient } from '@supabase/supabase-js';
 
 const URL = process.env.SUPABASE_URL;
 const ANON = process.env.SUPABASE_ANON_KEY;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!URL || !ANON || !SERVICE) {
-  console.error('SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont requis.');
+const COMPTES_PREPARES = !SERVICE && process.env.PILOTE_MOT_DE_PASSE && process.env.PILOTE_LOT;
+if (!URL || !ANON || (!SERVICE && !COMPTES_PREPARES)) {
+  console.error('SUPABASE_URL, SUPABASE_ANON_KEY et (SUPABASE_SERVICE_ROLE_KEY ou PILOTE_LOT + PILOTE_MOT_DE_PASSE) sont requis.');
   process.exit(2);
 }
 
 const lot = process.env.PILOTE_LOT ?? new Date().toISOString().replace(/\D/g, '').slice(0, 12);
 const domaine = 'pilote.agence-elite.fr';
-const motDePasse = `Pilote-${lot}-${Math.random().toString(36).slice(2, 10)}!`;
+const motDePasse = process.env.PILOTE_MOT_DE_PASSE ?? `Pilote-${lot}-${Math.random().toString(36).slice(2, 10)}!`;
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
-const service = createClient(URL, SERVICE, options);
+const service = SERVICE ? createClient(URL, SERVICE, options) : null;
 
 let echecs = 0;
 const resultats = [];
@@ -55,11 +58,14 @@ function verifier(condition, message) {
 
 async function compte(cle, nom) {
   const email = `${cle}-${lot}@${domaine}`;
-  const { data, error } = await service.auth.admin.createUser({ email, password: motDePasse, email_confirm: true, user_metadata: { nom } });
-  if (error) throw new Error(`création de ${cle} : ${error.message}`);
+  if (service) {
+    const { error } = await service.auth.admin.createUser({ email, password: motDePasse, email_confirm: true, user_metadata: { nom } });
+    if (error) throw new Error(`création de ${cle} : ${error.message}`);
+  }
   const client = createClient(URL, ANON, options);
   const connexion = await client.auth.signInWithPassword({ email, password: motDePasse });
   if (connexion.error) throw new Error(`connexion de ${cle} : ${connexion.error.message}`);
+  const data = connexion.data;
   const rpc = async (fonction, args = {}) => {
     const r = await client.rpc(fonction, args);
     if (r.error) throw new Error(r.error.message);
@@ -169,9 +175,14 @@ async function principal() {
   console.log(`Pilote ${lot} sur ${new globalThis.URL(URL).host}`);
   const anonyme = createClient(URL, ANON, options);
   const admin = await compte('agence', 'Agence Elite (pilote)');
-  await etape('compte Agence Elite de test promu super administrateur', async () => {
-    const r = await service.from('plateforme_admins').insert({ user_id: admin.id, role: 'super_admin' });
-    if (r.error) throw new Error(r.error.message);
+  if (service) {
+    await etape('compte Agence Elite de test promu super administrateur', async () => {
+      const r = await service.from('plateforme_admins').insert({ user_id: admin.id, role: 'super_admin' });
+      if (r.error) throw new Error(r.error.message);
+    });
+  }
+  await etape('compte Agence Elite de test reconnu comme éditeur', async () => {
+    verifier((await admin.rpc('mon_contexte')).editeur === 'super_admin', 'pas super administrateur');
   });
   const offres = await admin.lire('offres');
   noter(offres.length >= 2, 'offres commerciales lues', offres.map((o) => `${o.nom} ${o.prix_mensuel}/mois`).join(' · '));

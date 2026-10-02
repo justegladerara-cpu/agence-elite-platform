@@ -38,10 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           jour=$(date -u +%Y-%m-%d)
-          mkdir -p sauvegarde
-          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f "sauvegarde/roles.sql" --role-only
-          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f "sauvegarde/schema.sql"
-          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f "sauvegarde/donnees.sql" --data-only --use-copy
+          scripts/sauvegarder.sh "$SUPABASE_DB_URL" sauvegarde
           tar -czf "base-$jour.tar.gz" -C sauvegarde .
           gpg --batch --yes --pinentry-mode loopback --passphrase "$SAUVEGARDE_PHRASE" --symmetric --cipher-algo AES256 -o "base-$jour.tar.gz.gpg" "base-$jour.tar.gz"
           rm -rf sauvegarde "base-$jour.tar.gz"
@@ -52,3 +49,8 @@ jobs:
           name: sauvegarde-${{ github.run_id }}
           path: ${{ env.FICHIER }}
           retention-days: 30
+      - name: Vérifier la restauration (lancement manuel uniquement)
+        if: steps.config.outputs.pret == 'oui' && github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/verifier_restauration.sh "$SUPABASE_DB_URL"

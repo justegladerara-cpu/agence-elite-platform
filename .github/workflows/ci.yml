@@ -29,6 +29,8 @@ jobs:
         run: |
           eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
           SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/pilote_en_ligne.mjs
+      - name: Sauvegarde puis restauration dans une base vierge, comparaison
+        run: scripts/verifier_restauration.sh "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       - name: Arrêter Supabase local
         if: always()
         run: npx supabase stop --no-backup
