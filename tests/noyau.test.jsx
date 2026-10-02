@@ -30,7 +30,11 @@ describe('registre des écrans', () => {
 
 describe('configuration Supabase locale', () => {
   test('reste désactivée sans variables', () => expect(creerClientSupabase({})).toBeNull());
-  test('refuse toute URL distante', () => expect(() => creerClientSupabase({ VITE_SUPABASE_URL: 'https://projet.supabase.co', VITE_SUPABASE_ANON_KEY: 'fictive' })).toThrow(/locale/));
+  test('refuse toute URL distante sans accord explicite', () => expect(() => creerClientSupabase({ VITE_SUPABASE_URL: 'https://projet.supabase.co', VITE_SUPABASE_ANON_KEY: 'fictive' })).toThrow(/locale/));
+  test('accepte une instance hébergée seulement avec l’accord du déploiement', () => {
+    expect(creerClientSupabase({ VITE_SUPABASE_URL: 'https://projet.supabase.co', VITE_SUPABASE_ANON_KEY: 'fictive', VITE_AUTORISER_SUPABASE_DISTANT: 'oui' })).toBeTruthy();
+    expect(() => creerClientSupabase({ VITE_SUPABASE_URL: 'https://pirate.example.com', VITE_SUPABASE_ANON_KEY: 'fictive', VITE_AUTORISER_SUPABASE_DISTANT: 'oui' })).toThrow();
+  });
 });
 
 describe('application sur la base locale', () => {

@@ -6,3 +6,6 @@ coverage/
 dist/
 captures-parcours/
 .claude/worktrees/
+.env
+.env.local
+.env.*.local

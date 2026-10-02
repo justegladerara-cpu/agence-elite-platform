@@ -1,0 +1,54 @@
+# Sauvegarde quotidienne chiffrée de la base de production (schéma, rôles, données).
+# Secrets requis : SUPABASE_DB_URL et SAUVEGARDE_PHRASE (phrase secrète de chiffrement,
+# conservée aussi hors de GitHub : sans elle, une sauvegarde est illisible).
+# Les fichiers sont gardés 30 jours dans les artefacts du workflow.
+name: Sauvegarde de la base
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+jobs:
+  sauvegarder:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Vérifier la configuration
+        id: config
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SAUVEGARDE_PHRASE: ${{ secrets.SAUVEGARDE_PHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$SAUVEGARDE_PHRASE" ]; then
+            echo "Production pas encore configurée : aucune sauvegarde."
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Exporter et chiffrer
+        if: steps.config.outputs.pret == 'oui'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SAUVEGARDE_PHRASE: ${{ secrets.SAUVEGARDE_PHRASE }}
+        run: |
+          set -euo pipefail
+          jour=$(date -u +%Y-%m-%d)
+          mkdir -p sauvegarde
+          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f "sauvegarde/roles.sql" --role-only
+          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f "sauvegarde/schema.sql"
+          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f "sauvegarde/donnees.sql" --data-only --use-copy
+          tar -czf "base-$jour.tar.gz" -C sauvegarde .
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$SAUVEGARDE_PHRASE" --symmetric --cipher-algo AES256 -o "base-$jour.tar.gz.gpg" "base-$jour.tar.gz"
+          rm -rf sauvegarde "base-$jour.tar.gz"
+          echo "FICHIER=base-$jour.tar.gz.gpg" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: steps.config.outputs.pret == 'oui'
+        with:
+          name: sauvegarde-${{ github.run_id }}
+          path: ${{ env.FICHIER }}
+          retention-days: 30

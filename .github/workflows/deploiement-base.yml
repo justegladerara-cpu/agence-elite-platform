@@ -1,0 +1,56 @@
+# Applique les migrations sur la base Supabase de production.
+# Lancement manuel uniquement (onglet Actions > « Déploiement de la base » > Run workflow).
+# Secret requis : SUPABASE_DB_URL (chaîne de connexion « Session pooler » du projet).
+name: Déploiement de la base
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "simulation (affiche les migrations à appliquer) ou appliquer"
+        required: true
+        default: simulation
+        type: choice
+        options: [simulation, appliquer]
+      confirmation:
+        description: "Pour appliquer, écrire exactement : JE CONFIRME"
+        required: false
+        default: ""
+concurrency:
+  group: deploiement-base
+  cancel-in-progress: false
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Tests avant déploiement
+        run: npm test
+      - name: Vérifier le secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Le secret SUPABASE_DB_URL n'est pas configuré (voir docs/PRODUCTION.md)."
+            exit 1
+          fi
+      - name: Migrations en attente (simulation)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: npx supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+      - name: Appliquer les migrations
+        if: inputs.mode == 'appliquer'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "JE CONFIRME" ]; then
+            echo "::error::Confirmation absente : rien n'a été appliqué."
+            exit 1
+          fi
+          npx supabase db push --db-url "$SUPABASE_DB_URL"
