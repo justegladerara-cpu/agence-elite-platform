@@ -6,6 +6,9 @@ import { CopierTexte, GestionEquipe, messageInvitation } from '../etablissement/
 import { ListeMiseEnService } from '../etablissement/MiseEnService.jsx';
 
 const FORMULES = { essai: 'Essai', acquisition: 'Acquisition', mensuel: 'Mensuel', annuel: 'Annuel' };
+const EVENEMENTS = {
+  attribution: 'Attribution', renouvellement: 'Renouvellement', suspension: 'Suspension', reactivation: 'Réactivation', fin: 'Fin', support: 'Support',
+};
 const STATUTS = { actif: 'Actif', suspendu: 'Suspendu', archive: 'Archivé' };
 
 // Petite aide : exécuter une action, afficher l'erreur, notifier et recharger.
@@ -136,13 +139,16 @@ function FormulaireEtablissement({ client, solutions, onFermer, onEnregistre }) 
   );
 }
 
-function ModaleLicence({ etablissement, offres, modules, onFermer, onEnregistre }) {
+function ModaleLicence({ etablissement, offres, modules, premiere, onFermer, onEnregistre }) {
   const { api } = useEspace();
   const proposees = offres.filter((o) => o.solution_id === etablissement.solution_id && o.actif);
   const [offreId, setOffreId] = useState(proposees.find((o) => !o.offre_essai)?.id ?? proposees[0]?.id);
   const [formule, setFormule] = useState('mensuel');
   const offre = proposees.find((o) => o.id === offreId);
-  const prixPour = (o, f) => (o ? Number({ acquisition: o.prix_acquisition, mensuel: o.prix_mensuel, annuel: o.prix_annuel }[f] ?? 0) : 0);
+  const [miseEnService, setMiseEnService] = useState(Boolean(premiere));
+  const prixPour = (o, f, frais = miseEnService) => (o
+    ? Number({ acquisition: o.prix_acquisition, mensuel: o.prix_mensuel, annuel: o.prix_annuel }[f] ?? 0) + (frais ? Number(o.prix_mise_en_service ?? 0) : 0)
+    : 0);
   const [valeurs, setValeurs] = useState({ debut: dateLocale(), echeance: '', montant: String(prixPour(offre, 'mensuel')), reference: '', note: '' });
   const [supplementaires, setSupplementaires] = useState([]);
   const { erreur, enCours, agir } = useAction();
@@ -182,7 +188,17 @@ function ModaleLicence({ etablissement, offres, modules, onFermer, onEnregistre 
           <Champ libelle={`Montant encaissé (${offre?.devise === 'EUR' ? '€' : 'FCFA'})`}><input type="number" min="0" step="any" value={valeurs.montant} onChange={changer('montant')} /></Champ>
           <Champ libelle="Référence du paiement"><input value={valeurs.reference} onChange={changer('reference')} placeholder="Ex. : MoMo 0612…" /></Champ>
         </div>
-        {offre && <p className="texte-doux">Comprend : {offre.modules.join(', ')}.</p>}
+        {offre && Number(offre.prix_mise_en_service) > 0 && (
+          <label className="case">
+            <input
+              type="checkbox"
+              checked={miseEnService}
+              onChange={(e) => { setMiseEnService(e.target.checked); setValeurs((v) => ({ ...v, montant: String(prixPour(offre, formule, e.target.checked)) })); }}
+            />
+            Ajouter les frais de mise en service et de configuration ({formatMontant(offre.prix_mise_en_service, offre.devise)})
+          </label>
+        )}
+        {offre && <p className="texte-doux">Comprend : {offre.modules.join(', ')}. Support non inclus (à ajouter séparément).</p>}
         {horsOffre.length > 0 && (
           <fieldset className="droits-module">
             <legend>Modules vendus en plus</legend>
@@ -247,6 +263,44 @@ function ModaleRenouvellement({ licence, onFermer, onEnregistre }) {
   );
 }
 
+function ModaleSupport({ licence, offre, onFermer, onEnregistre }) {
+  const { api } = useEspace();
+  const ajout = !licence.support;
+  const [valeurs, setValeurs] = useState({ montant: String(ajout ? Number(offre?.prix_support_mensuel ?? 0) : 0), reference: '', note: '' });
+  const { erreur, enCours, agir } = useAction();
+  const changer = (c) => (e) => setValeurs((v) => ({ ...v, [c]: e.target.value }));
+  return (
+    <Modale titre={ajout ? 'Ajouter le support' : 'Retirer le support'} onFermer={onFermer}>
+      <form
+        className="formulaire"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            await agir(() => api.rpc('definir_support_licence', {
+              p_licence_id: licence.id, p_support: ajout, p_montant: Number(valeurs.montant || 0), p_reference: valeurs.reference || null, p_note: valeurs.note || null,
+            }));
+            onEnregistre();
+          } catch {
+            // erreur affichée
+          }
+        }}
+      >
+        <p className="texte-doux">Le support est un contrat séparé de la licence. Le changement est inscrit dans l’historique.</p>
+        <div className="grille-champs">
+          {ajout && <Champ libelle="Montant encaissé"><input type="number" min="0" step="any" value={valeurs.montant} onChange={changer('montant')} /></Champ>}
+          {ajout && <Champ libelle="Référence du paiement"><input value={valeurs.reference} onChange={changer('reference')} /></Champ>}
+          <Champ libelle="Note (facultatif)"><input value={valeurs.note} onChange={changer('note')} /></Champ>
+        </div>
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal" chargement={enCours}>{ajout ? 'Ajouter' : 'Retirer'}</Bouton>
+        </div>
+      </form>
+    </Modale>
+  );
+}
+
 function OngletLicence({ detail, offres, recharger }) {
   const { api } = useEspace();
   const [modale, setModale] = useState(null);
@@ -266,12 +320,14 @@ function OngletLicence({ detail, offres, recharger }) {
             <dt>Période</dt><dd>du {formatDate(licence.debut)} {licence.echeance ? `au ${formatDate(licence.echeance)}` : '(sans échéance)'}</dd>
             <dt>Montant</dt><dd>{formatMontant(licence.montant, licence.devise)}</dd>
             <dt>Modules</dt><dd>{licence.modules.join(', ')}</dd>
+            <dt>Support</dt><dd>{licence.support ? 'inclus (contrat séparé)' : 'non inclus'}</dd>
             <dt>Écriture</dt><dd>{detail.ecriture ? 'autorisée' : 'bloquée (consultation seule)'}</dd>
           </dl>
         ) : <p className="texte-doux">Aucune licence en cours : l’établissement est en consultation seule.</p>}
         <div className="actions-gauche">
           <Bouton variante="principal" onClick={() => setModale({ type: 'attribuer' })}>Attribuer une licence</Bouton>
           {licence && licence.formule !== 'acquisition' && <Bouton onClick={() => setModale({ type: 'renouveler' })}>Renouveler</Bouton>}
+          {licence && <Bouton onClick={() => setModale({ type: 'support' })}>{licence.support ? 'Retirer le support' : 'Ajouter le support'}</Bouton>}
           {licence?.statut === 'active' && <Bouton variante="danger" onClick={() => statut('suspendue', 'Suspendre la licence', 'L’établissement passe en consultation seule.', 'Suspendre')}>Suspendre</Bouton>}
           {licence?.statut === 'suspendue' && <Bouton onClick={() => statut('active', 'Réactiver la licence', 'L’établissement retrouve l’écriture.', 'Réactiver')}>Réactiver</Bouton>}
           {licence && <Bouton variante="danger" onClick={() => statut('terminee', 'Mettre fin à la licence', 'Fin définitive : il faudra attribuer une nouvelle licence.', 'Mettre fin')}>Mettre fin</Bouton>}
@@ -287,7 +343,7 @@ function OngletLicence({ detail, offres, recharger }) {
               {detail.historique_licences.map((h, i) => (
                 <tr key={i}>
                   <td>{formatDateHeure(h.cree_le)}</td>
-                  <td>{h.type}</td>
+                  <td>{EVENEMENTS[h.type] ?? h.type}</td>
                   <td>{h.offre} · {FORMULES[h.formule]}</td>
                   <td>{h.nouvelle_echeance ? formatDate(h.nouvelle_echeance) : '—'}</td>
                   <td className="nombre">{formatMontant(h.montant)}</td>
@@ -299,7 +355,15 @@ function OngletLicence({ detail, offres, recharger }) {
         </div>
       </section>
       {modale?.type === 'attribuer' && (
-        <ModaleLicence etablissement={detail.etablissement} offres={offres} modules={detail.modules} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
+        <ModaleLicence
+          etablissement={detail.etablissement}
+          offres={offres}
+          modules={detail.modules}
+          premiere={!detail.historique_licences.some((h) => h.formule !== 'essai')}
+          onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
+      )}
+      {modale?.type === 'support' && (
+        <ModaleSupport licence={licence} offre={offres.find((o) => o.id === licence.offre_id)} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
       )}
       {modale?.type === 'renouveler' && (
         <ModaleRenouvellement licence={licence} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
@@ -607,7 +671,8 @@ function FormulaireOffre({ offre, modules, onFermer, onEnregistre }) {
   const { api } = useEspace();
   const [valeurs, setValeurs] = useState({
     id: offre?.id ?? '', nom: offre?.nom ?? '', description: offre?.description ?? '', modules: offre?.modules ?? [],
-    prix_acquisition: String(offre?.prix_acquisition ?? 0), prix_mensuel: String(offre?.prix_mensuel ?? 0), prix_annuel: String(offre?.prix_annuel ?? 0),
+    prix_acquisition: String(offre?.prix_acquisition ?? 0), prix_mise_en_service: String(offre?.prix_mise_en_service ?? 0),
+    prix_mensuel: String(offre?.prix_mensuel ?? 0), prix_annuel: String(offre?.prix_annuel ?? 0), prix_support_mensuel: String(offre?.prix_support_mensuel ?? 0),
     actif: offre?.actif ?? true, ordre: offre?.ordre ?? 10, solution_id: offre?.solution_id ?? 'commerce',
   });
   const { erreur, enCours, agir } = useAction();
@@ -622,7 +687,9 @@ function FormulaireOffre({ offre, modules, onFermer, onEnregistre }) {
             await agir(() => api.rpc('enregistrer_offre', {
               p_offre: {
                 ...valeurs,
-                prix_acquisition: Number(valeurs.prix_acquisition || 0), prix_mensuel: Number(valeurs.prix_mensuel || 0), prix_annuel: Number(valeurs.prix_annuel || 0),
+                prix_acquisition: Number(valeurs.prix_acquisition || 0), prix_mise_en_service: Number(valeurs.prix_mise_en_service || 0),
+                prix_mensuel: Number(valeurs.prix_mensuel || 0), prix_annuel: Number(valeurs.prix_annuel || 0),
+                prix_support_mensuel: Number(valeurs.prix_support_mensuel || 0),
               },
             }), 'Offre enregistrée');
             onEnregistre();
@@ -637,6 +704,8 @@ function FormulaireOffre({ offre, modules, onFermer, onEnregistre }) {
           <Champ libelle="Prix d’acquisition"><input type="number" min="0" step="any" value={valeurs.prix_acquisition} onChange={changer('prix_acquisition')} /></Champ>
           <Champ libelle="Prix mensuel"><input type="number" min="0" step="any" value={valeurs.prix_mensuel} onChange={changer('prix_mensuel')} /></Champ>
           <Champ libelle="Prix annuel"><input type="number" min="0" step="any" value={valeurs.prix_annuel} onChange={changer('prix_annuel')} /></Champ>
+          <Champ libelle="Mise en service / configuration"><input type="number" min="0" step="any" value={valeurs.prix_mise_en_service} onChange={changer('prix_mise_en_service')} /></Champ>
+          <Champ libelle="Support (par mois, séparé)"><input type="number" min="0" step="any" value={valeurs.prix_support_mensuel} onChange={changer('prix_support_mensuel')} /></Champ>
         </div>
         <Champ libelle="Description"><textarea rows={2} value={valeurs.description} onChange={changer('description')} /></Champ>
         <fieldset className="droits-module">
@@ -753,7 +822,7 @@ export default function Editeur({ naviguer }) {
               <div className="actions-gauche"><Bouton icone="plus" onClick={() => setOffre({})}>Nouvelle offre</Bouton></div>
               <div className="tableau-conteneur">
                 <table className="tableau">
-                  <thead><tr><th>Offre</th><th>Modules</th><th className="nombre">Acquisition</th><th className="nombre">Mensuel</th><th className="nombre">Annuel</th><th /></tr></thead>
+                  <thead><tr><th>Offre</th><th>Modules</th><th className="nombre">Acquisition</th><th className="nombre">Mensuel</th><th className="nombre">Annuel</th><th className="nombre">Mise en service</th><th className="nombre">Support / mois</th><th /></tr></thead>
                   <tbody>
                     {vue.offres.map((o) => (
                       <tr key={o.id} className={o.actif ? '' : 'barre'}>
@@ -762,13 +831,15 @@ export default function Editeur({ naviguer }) {
                         <td className="nombre">{formatMontant(o.prix_acquisition, o.devise)}</td>
                         <td className="nombre">{formatMontant(o.prix_mensuel, o.devise)}</td>
                         <td className="nombre">{formatMontant(o.prix_annuel, o.devise)}</td>
+                        <td className="nombre">{formatMontant(o.prix_mise_en_service, o.devise)}</td>
+                        <td className="nombre">{Number(o.prix_support_mensuel) > 0 ? formatMontant(o.prix_support_mensuel, o.devise) : 'à définir'}</td>
                         <td className="actions-ligne"><button className="lien" onClick={() => setOffre(o)}>Modifier</button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <p className="texte-doux">Les prix servent à préremplir le montant lors de l’attribution d’une licence. Rôles disponibles : {vue.roles.map((r) => ROLES[r.id] ?? r.nom).join(', ')}.</p>
+              <p className="texte-doux">Les prix servent à préremplir le montant lors de l’attribution d’une licence ; ils se modifient ici à tout moment. Le support est vendu à part. Rôles disponibles : {vue.roles.map((r) => ROLES[r.id] ?? r.nom).join(', ')}.</p>
             </div>
           )}
         </>
