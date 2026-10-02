@@ -31,7 +31,7 @@ jobs:
       - run: npm ci
       - name: Tests avant déploiement
         run: npm test
-      - name: Vérifier le secret
+      - name: Vérifier le secret et joindre la base
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -39,18 +39,16 @@ jobs:
             echo "::error::Le secret SUPABASE_DB_URL n'est pas configuré (voir docs/PRODUCTION.md)."
             exit 1
           fi
+          scripts/url_base.sh
       - name: Migrations en attente (simulation)
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: npx supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+        run: npx supabase db push --db-url "$BASE_URL" --dry-run
       - name: Appliquer les migrations
         if: inputs.mode == 'appliquer'
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           if [ "$CONFIRMATION" != "JE CONFIRME" ]; then
             echo "::error::Confirmation absente : rien n'a été appliqué."
             exit 1
           fi
-          npx supabase db push --db-url "$SUPABASE_DB_URL"
+          npx supabase db push --db-url "$BASE_URL"

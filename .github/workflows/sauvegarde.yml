@@ -28,17 +28,17 @@ jobs:
             echo "Production pas encore configurée : aucune sauvegarde."
             echo "pret=non" >> "$GITHUB_OUTPUT"
           else
+            scripts/url_base.sh
             echo "pret=oui" >> "$GITHUB_OUTPUT"
           fi
       - name: Exporter et chiffrer
         if: steps.config.outputs.pret == 'oui'
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SAUVEGARDE_PHRASE: ${{ secrets.SAUVEGARDE_PHRASE }}
         run: |
           set -euo pipefail
           jour=$(date -u +%Y-%m-%d)
-          scripts/sauvegarder.sh "$SUPABASE_DB_URL" sauvegarde
+          scripts/sauvegarder.sh "$BASE_URL" sauvegarde
           tar -czf "base-$jour.tar.gz" -C sauvegarde .
           gpg --batch --yes --pinentry-mode loopback --passphrase "$SAUVEGARDE_PHRASE" --symmetric --cipher-algo AES256 -o "base-$jour.tar.gz.gpg" "base-$jour.tar.gz"
           rm -rf sauvegarde "base-$jour.tar.gz"
@@ -51,6 +51,4 @@ jobs:
           retention-days: 30
       - name: Vérifier la restauration (lancement manuel uniquement)
         if: steps.config.outputs.pret == 'oui' && github.event_name == 'workflow_dispatch'
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: scripts/verifier_restauration.sh "$SUPABASE_DB_URL"
+        run: scripts/verifier_restauration.sh "$BASE_URL"

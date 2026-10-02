@@ -20,7 +20,9 @@ jobs:
       - run: npm ci
       - name: Lire la configuration publique
         run: grep -E '^VITE_SUPABASE_(URL|ANON_KEY)=' .env.production | sed 's/^VITE_//' >> "$GITHUB_ENV"
-      - name: Pilote
+      - name: Joindre la base
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: scripts/pilote_production.sh
+        run: scripts/url_base.sh
+      - name: Pilote
+        run: SUPABASE_DB_URL="$BASE_URL" scripts/pilote_production.sh

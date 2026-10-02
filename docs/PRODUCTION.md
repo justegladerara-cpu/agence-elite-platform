@@ -6,50 +6,19 @@ Supabase. Elle ne partage rien avec le CRM Agence Elite ni avec Kangourou.
 Tant que rien n'est configuré, l'application tourne en **mode local** : base dans
 le navigateur, données de démonstration fictives. Rien ne part sur Internet.
 
-## 1. Ce qui demande l'accord d'Agence Elite
+## 1. État de la production
 
-| Élément | Coût | Qui le fait |
-|---|---|---|
-| Projet Supabase dédié `agence-elite-platform` | Gratuit si une organisation gratuite a une place libre, sinon offre payante Supabase | Juste |
-| Projet Cloudflare Pages | Gratuit | Juste (ou Claude avec un accès Cloudflare) |
-| Envoi d'e-mails (SMTP) pour confirmer les comptes | Gratuit jusqu'à un volume (ex. Brevo, Resend) | Facultatif |
-| Sous-domaine (ex. `app.agence-elite.fr`) | Inclus chez LWS | Juste (DNS LWS) |
-
-L'organisation Supabase gratuite d'Agence Elite est déjà pleine (CRM + Kangourou).
-Il faut donc soit libérer une place, soit créer une autre organisation gratuite,
-soit passer à une offre payante. **C'est une décision d'Agence Elite.**
-
-## 2. Créer le projet Supabase
-
-1. supabase.com → **New project**, nom `agence-elite-platform`, région la plus proche
-   des clients (ex. `eu-west-3` Paris). Noter le mot de passe de la base dans un
-   gestionnaire de mots de passe (jamais dans Git).
-2. **Authentication → URL Configuration** : *Site URL* = l'adresse publique de
-   l'application (ex. `https://app.agence-elite.fr`), ajouter aussi l'adresse
-   `*.pages.dev` dans *Redirect URLs*.
-3. **Authentication → Providers → Email** : laisser l'inscription par e-mail activée.
-   Garder « Confirm email » activé dès qu'un SMTP est configuré (sinon la limite
-   d'envoi gratuite de Supabase est très basse).
-4. **Project Settings → API** : relever l'URL du projet et la clé publique
-   (*anon* / *publishable*). La clé `service_role` ne sert **jamais** dans
-   l'application ni dans GitHub.
-5. **Project Settings → Database → Connection string → Session pooler** : copier la
-   chaîne `postgresql://…` avec le mot de passe. C'est le secret `SUPABASE_DB_URL`.
-
-## 3. Secrets GitHub
-
-Dans le dépôt : **Settings → Environments → New environment** `production`
-(ajouter Juste comme *Required reviewer* pour qu'aucun déploiement ne parte sans
-son clic). Dans cet environnement, ajouter :
-
-| Secret | Valeur |
+| Élément | Valeur |
 |---|---|
-| `SUPABASE_DB_URL` | chaîne « Session pooler » du projet |
-| `SAUVEGARDE_PHRASE` | longue phrase secrète, conservée aussi **hors de GitHub** |
+| Projet Supabase | `agence-elite-platform` (réf. `xrlfedosaqtffraadmgk`, région Paris `eu-west-3`, offre gratuite, organisation Agence Elite) |
+| Configuration publique | `.env.production` (URL + clé *publishable* : faites pour le navigateur, aucun secret) |
+| Secrets GitHub | `SUPABASE_DB_URL` (chaîne de connexion de la base ; si c'est la connexion directe, les workflows passent automatiquement par le « Session pooler », GitHub n'ayant pas d'IPv6), `SAUVEGARDE_PHRASE` (chiffrement des sauvegardes, gardée aussi hors de GitHub) |
+| Site | Cloudflare Pages, construit depuis `main` (voir §5) |
 
-Aucun secret n'est écrit dans le code, les commits ou les journaux.
+La clé `service_role` n'est utilisée nulle part. Aucun secret n'est écrit dans le
+code, les commits ou les journaux.
 
-## 4. Installer la base (migrations)
+## 2. Installer ou faire évoluer la base
 
 Les migrations de `supabase/migrations/` sont la seule source du schéma. Elles ne
 sont jamais modifiées après coup : chaque changement est une nouvelle migration.
@@ -57,45 +26,50 @@ sont jamais modifiées après coup : chaque changement est une nouvelle migratio
 1. GitHub → **Actions → Déploiement de la base → Run workflow**, mode `simulation` :
    les tests tournent puis la liste des migrations à appliquer s'affiche.
 2. Relancer en mode `appliquer` avec la confirmation `JE CONFIRME`.
-3. Le même workflow sert pour chaque nouvelle version du schéma.
 
-Chaque push est déjà vérifié par la CI (`ci.yml`) : tests, build, et
-reconstruction complète de la base sur un Supabase neuf.
+Chaque push est déjà vérifié par la CI (`ci.yml`) : tests, build, reconstruction
+complète sur un Supabase neuf, pilote complet par l'API (74 vérifications), puis
+sauvegarde et restauration dans une base vierge avec comparaison table par table.
 
-## 5. Premier compte Agence Elite (super administrateur)
+## 3. Pilote en production
+
+GitHub → **Actions → Pilote en production → Run workflow**. Le script
+`scripts/pilote_production.sh` crée des comptes fictifs (`…@pilote.agence-elite.fr`,
+mot de passe aléatoire jamais affiché), déroule tout le parcours Commerce sur deux
+établissements fictifs, vérifie l'isolation et les refus de sécurité, puis neutralise
+les comptes (accès retiré, mot de passe détruit, compte bloqué). Les données fictives
+restent rattachées au client « Pilote fictif <date> », facile à archiver.
+
+## 4. Premier compte Agence Elite (super administrateur)
 
 1. Ouvrir l'application en ligne, onglet **Créer mon compte**, avec l'adresse
    Agence Elite.
 2. Dans Supabase → **SQL Editor**, coller `supabase/scripts/creer_super_admin.sql`,
    remplacer l'adresse, exécuter.
 3. Se reconnecter : le menu **Agence Elite** apparaît (clients, licences, offres).
-4. Dans **Offres et prix**, saisir les vrais prix (ils sont à 0 au départ).
+4. Les tarifs sont déjà saisis (450 000 / 50 000 / 25 000 par mois / 150 000 par an
+   XAF, support séparé) et se modifient dans **Offres et prix**.
 
-## 6. Héberger l'application (Cloudflare Pages)
+## 5. Site (Cloudflare Pages)
 
 Workers & Pages → **Create → Pages → Connect to Git** → dépôt
-`agence-elite-platform`, branche `main`.
+`agence-elite-platform`, branche `main`, preset **Vite** (build `npm run build`,
+sortie `dist`). Aucune variable à saisir : la configuration publique est dans
+`.env.production`. Chaque push sur `main` redéploie le site. Les en-têtes de
+sécurité (CSP, HSTS, anti-iframe) sont dans `public/_headers`.
 
-| Réglage | Valeur |
-|---|---|
-| Framework preset | Vite |
-| Build command | `npm run build` |
-| Build output directory | `dist` |
-| Variable `NODE_VERSION` | `20` |
-| Variable `VITE_SUPABASE_URL` | URL du projet Supabase |
-| Variable `VITE_SUPABASE_ANON_KEY` | clé publique du projet |
-| Variable `VITE_AUTORISER_SUPABASE_DISTANT` | `oui` |
+La démo locale sans base se construit avec `npm run build:demo`.
 
-Sans ces trois variables, le site publié est la **démo locale** (utile pour
-montrer le produit sans base). L'application refuse toute autre adresse que
-`https://<projet>.supabase.co` et ne se connecte à un Supabase hébergé que si
-`VITE_AUTORISER_SUPABASE_DISTANT=oui`.
+Domaine personnalisé (facultatif) : Pages → **Custom domains** →
+`app.agence-elite.fr`, puis chez LWS un enregistrement `CNAME app → <projet>.pages.dev`.
 
-Chaque push sur `main` redéploie le site. Les en-têtes de sécurité sont dans
-`public/_headers`.
+## 6. Comptes et e-mails
 
-Domaine personnalisé : Pages → **Custom domains** → `app.agence-elite.fr`, puis
-chez LWS un enregistrement `CNAME app → <projet>.pages.dev`.
+Supabase → **Authentication → URL Configuration** : *Site URL* = adresse publique du
+site. Pour que les clients reçoivent les e-mails (confirmation, mot de passe oublié),
+renseigner un SMTP dans **Authentication → Emails → SMTP Settings** (par exemple une
+boîte LWS d'Agence Elite) : sans SMTP, Supabase n'envoie des e-mails qu'aux membres
+de l'organisation.
 
 ## 7. Sauvegarde et restauration
 
@@ -110,18 +84,27 @@ Recommandé : télécharger une sauvegarde par mois et la ranger hors de GitHub.
 **Restaurer** (sur un projet Supabase neuf de préférence, jamais par-dessus la
 production sans accord) :
 
-```bash
-gpg --decrypt base-AAAA-MM-JJ.tar.gz.gpg > base.tar.gz   # demande la phrase secrète
-mkdir restauration && tar -xzf base.tar.gz -C restauration
-psql "$URL_BASE_CIBLE" -f restauration/roles.sql
-psql "$URL_BASE_CIBLE" -f restauration/schema.sql
-psql "$URL_BASE_CIBLE" -c "set session_replication_role = replica" -f restauration/donnees.sql
-```
+1. GitHub → Actions → **Sauvegarde de la base** → la dernière exécution → artefact
+   `sauvegarde-…` → télécharger `base-AAAA-MM-JJ.tar.gz.gpg`.
+2. Déchiffrer et ouvrir :
+   ```bash
+   gpg --decrypt base-AAAA-MM-JJ.tar.gz.gpg > base.tar.gz   # demande SAUVEGARDE_PHRASE
+   mkdir restauration && tar -xzf base.tar.gz -C restauration
+   ```
+3. Créer un projet Supabase neuf (ou utiliser une base vierge), puis :
+   ```bash
+   scripts/restaurer.sh restauration "postgresql://…connexion de la base cible…"
+   ```
+   Tout se fait en une seule transaction (en cas d'erreur, rien n'est appliqué) ;
+   les déclencheurs de protection sont suspendus le temps du rechargement
+   (`session_replication_role = replica`).
+4. Vérifier, puis pointer `.env.production` vers le nouveau projet si c'est lui
+   qui devient la production.
 
-`session_replication_role = replica` évite que les déclencheurs de protection
-(journal d'audit, ventes non modifiables) ne bloquent le rechargement des données.
-
-Tester une restauration au moins une fois avant le premier vrai client.
+**Vérification automatique** : à chaque push, la CI sauvegarde la base du pilote,
+la restaure dans une base Supabase vierge et compare chaque table
+(`scripts/verifier_restauration.sh`). Lancée à la main, la sauvegarde de production
+fait la même vérification sur la vraie base.
 
 ## 8. Journaux
 
@@ -141,11 +124,10 @@ Tester une restauration au moins une fois avant le premier vrai client.
 
 ## 10. Procédure de mise en ligne (résumé)
 
-1. Accord sur le coût Supabase → créer le projet (§2).
-2. Environnement GitHub `production` + secrets (§3).
-3. Déploiement de la base : simulation puis application (§4).
-4. Cloudflare Pages avec les variables (§6).
-5. Créer le compte Agence Elite et le passer super administrateur (§5).
-6. Saisir les prix des offres, puis dérouler `docs/PROCESSUS_CLIENT.md` pour le
-   premier client.
-7. Lancer une sauvegarde manuelle et vérifier qu'elle se restaure (§7).
+1. Projet Supabase dédié et secrets GitHub (§1).
+2. Déploiement de la base : simulation puis application (§2).
+3. Sauvegarde manuelle avec vérification de restauration (§7).
+4. Pilote en production (§3).
+5. Cloudflare Pages (§5), Site URL et SMTP (§6).
+6. Compte Agence Elite super administrateur (§4), puis `docs/PROCESSUS_CLIENT.md`
+   pour le premier client.
