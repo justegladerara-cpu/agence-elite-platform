@@ -29,10 +29,10 @@ describe('centre des modules', () => {
   test('les six niveaux sont visibles pour chaque module', async () => {
     const modules = await valeur(admin, 'select editeur_modules()');
     const caisse = modules.find((m) => m.id === 'caisse');
-    expect(caisse.solutions.map((s) => s.id)).toEqual(['commerce']);
+    expect(caisse.solutions.map((s) => s.id)).toEqual(['commerce', 'restaurant', 'hotel']);
     expect(caisse.offres.length).toBeGreaterThan(0);
     expect(caisse.depend_de).toEqual(['paiements', 'stock', 'ventes']);
-    expect(caisse.requis_par).toEqual(['cloture']);
+    expect(caisse.requis_par).toEqual(['cloture', 'restaurant_salle']);
     expect(caisse.etablissements_actifs).toBe(1);
     expect(caisse.permissions.map((p) => p.id)).toEqual(['caisse.utiliser']);
     expect(caisse.utilisateurs).toBe(1);
@@ -40,8 +40,8 @@ describe('centre des modules', () => {
 
   test('seul le super admin modifie les métadonnées ; aucun module ne se crée par écran', async () => {
     await expect(comme(admin, 'select enregistrer_module($1, $2::jsonb)', ['caisse', '{"nom":"X"}'])).rejects.toThrow(/super administrateurs/);
-    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['hotel_chambres', '{"nom":"Chambres"}'])).rejects.toThrow(/se crée dans le code/);
-    await comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['caisse', JSON.stringify({ nom: 'Caisse', description: 'Encaisser au comptoir', categorie: 'Vente', version: '2.0' })]);
+    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['fournisseurs', '{"nom":"Fournisseurs"}'])).rejects.toThrow(/se crée dans le code/);
+    await comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['caisse', JSON.stringify({ nom: 'Caisse', description: 'Encaisser au comptoir', categorie: 'pos', version: '2.0' })]);
     expect((await db.query("select version, description from modules where id = 'caisse'")).rows[0]).toEqual({ version: '2.0', description: 'Encaisser au comptoir' });
     await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['caisse', '{"nom":"Caisse","statut":"retire"}'])).rejects.toThrow(/encore actif/);
     const audit = (await db.query("select count(*)::int n from journal_audit where table_nom = 'modules'")).rows[0].n;

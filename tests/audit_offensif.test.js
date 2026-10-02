@@ -136,8 +136,9 @@ describe("contexte d'appel", () => {
     const executables = (await db.query(
       "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')",
     )).rows;
-    // Seule exception volontaire : la connexion par identifiant (réponse générique, verrou anti force brute).
-    expect(executables).toEqual([{ proname: 'resoudre_connexion' }]);
+    // Exceptions volontaires : la connexion par identifiant (réponse générique, verrou anti force brute)
+    // et la marque d'un écran de connexion personnalisé (nom, logo, couleur : rien d'autre).
+    expect(executables.map((e) => e.proname).sort()).toEqual(['marque_connexion', 'resoudre_connexion']);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select recu_vente($1)', [venteB]))).rejects.toThrow(/permission denied/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query("select creer_client('Anonyme')"))).rejects.toThrow(/permission denied/);
