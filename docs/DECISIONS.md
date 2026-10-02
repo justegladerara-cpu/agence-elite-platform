@@ -28,4 +28,8 @@ Format : date · décision · raison · impact.
 - 2026-10-02 · Session support : motif obligatoire, 8 heures, lecture seule, tracée.
 - 2026-10-02 · Supabase hébergé seulement si `VITE_AUTORISER_SUPABASE_DISTANT=oui` et une adresse `*.supabase.co` · projet dédié, jamais celui du CRM ou de Kangourou ; création soumise à l'accord de Juste (coût).
 - 2026-10-02 · Déploiement de la base par workflow manuel (simulation puis « JE CONFIRME ») ; sauvegarde quotidienne chiffrée.
+- 2026-10-02 · Tarifs Commerce : acquisition 450 000 XAF, mise en service 50 000 XAF, mensuel 25 000 XAF, annuel 150 000 XAF ; support séparé, non inclus par défaut · décision de Juste (05:35) · stockés dans `offres`, modifiables dans **Offres et prix**, jamais codés en dur.
+- 2026-10-02 · Production : projet Supabase dédié `agence-elite-platform` (réf. `xrlfedosaqtffraadmgk`, eu-west-3) · Juste a supprimé lui-même le projet `kangourou-gestion` pour libérer la place (offre gratuite limitée à 2 projets).
+- 2026-10-02 · `.env.production` versionné : il ne contient que l'URL et la clé *publishable*, publiques par nature · aucun secret dans le dépôt ; secrets GitHub `SUPABASE_DB_URL` et `SAUVEGARDE_PHRASE` seulement.
+- 2026-10-02 · Workflows de production via le Session pooler (IPv4) · les runners GitHub n'ont pas d'IPv6.
 - À décider · Nom commercial de la plateforme · ne pas en inventer.

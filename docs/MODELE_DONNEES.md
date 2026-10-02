@@ -64,8 +64,8 @@ Conventions :
 ## Offres et licences (couche commerciale)
 | Table | Colonnes | Contraintes |
 |---|---|---|
-| `offres` | `id` slug PK, `solution_id`, `nom`, `description`, `modules` text[], `prix_acquisition`, `prix_mensuel`, `prix_annuel`, `devise`, `offre_essai`, `actif`, `ordre` | modules proposés par la solution, dépendances incluses ; une seule offre d'essai par solution |
-| `licences` | `id`, `etablissement_id`, `offre_id`, `formule`, `statut`, `debut`, `echeance`, `montant`, `devise`, `modules_supplementaires` text[], `note`, `motif_statut`, dates | formule ∈ `essai, acquisition, mensuel, annuel` ; statut ∈ `active, suspendue, terminee` ; une seule licence non terminée par établissement ; écriture par fonctions éditeur uniquement |
+| `offres` | `id` slug PK, `solution_id`, `nom`, `description`, `modules` text[], `prix_acquisition`, `prix_mise_en_service`, `prix_mensuel`, `prix_annuel`, `prix_support_mensuel`, `devise`, `offre_essai`, `actif`, `ordre` | modules proposés par la solution, dépendances incluses ; une seule offre d'essai par solution |
+| `licences` | `id`, `etablissement_id`, `offre_id`, `formule`, `statut`, `debut`, `echeance`, `montant`, `devise`, `modules_supplementaires` text[], `support` bool (support séparé, ajouté ou retiré par `definir_support_licence`, tracé dans `licence_evenements`), `note`, `motif_statut`, dates | formule ∈ `essai, acquisition, mensuel, annuel` ; statut ∈ `active, suspendue, terminee` ; une seule licence non terminée par établissement ; écriture par fonctions éditeur uniquement |
 | `licence_evenements` | `id`, `licence_id`, `etablissement_id`, `type`, `ancienne_echeance`, `nouvelle_echeance`, `montant`, `reference`, `motif`, `acteur`, `cree_le` | ajout seul (attribution, renouvellement, suspension, réactivation, fin) |
 
 `etablissements.mis_en_service_le` : date de mise en service déclarée (une seule fois).

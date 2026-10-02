@@ -9,14 +9,14 @@ Tout se fait dans l'application, sans développement. Deux personnes intervienne
 | 1 | Offre | Agence Elite | Agence Elite → **Offres et prix** | Offre choisie (Commerce Caisse ou Commerce Complet), prix à jour |
 | 2 | Client | Agence Elite | Agence Elite → **Clients → Nouveau client** | Fiche client (nom, pays, devise, contact) |
 | 3 | Établissement | Agence Elite | Fiche client → **Nouvel établissement** | Établissement Commerce créé, essai de 30 jours ouvert automatiquement |
-| 4 | Licence | Agence Elite | Fiche établissement → **Licence → Attribuer une licence** | Formule (acquisition, mensuel, annuel), échéance, montant, référence de paiement |
+| 4 | Licence | Agence Elite | Fiche établissement → **Licence → Attribuer une licence** | Formule (acquisition, mensuel, annuel), échéance, montant (case « inclure la mise en service » pour la première licence), référence de paiement |
 | 5 | Responsable | Agence Elite | Fiche établissement → **Équipe → Inviter une personne** (rôle Gérant) | Message d'invitation à copier dans WhatsApp, SMS ou e-mail |
 | 6 | Configuration | Responsable | **Paramètres** : nom commercial, adresse, téléphone, logo, caisses | Reçus au nom du client |
 | 7 | Équipe | Responsable | **Équipe → Inviter une personne** ; droits ajustables par personne | Caissiers, comptable, etc. |
 | 8 | Import articles | Responsable ou Agence Elite (en support) | **Articles → Importer** ; modèle : `docs/modele_import_articles.csv` | Catalogue et stock de départ, tout ou rien, ligne fautive indiquée |
 | 9 | Formation | Agence Elite | Voir `docs/GUIDE_UTILISATEUR.md` (1 h sur place ou en visio) | Chaque rôle sait faire ses gestes |
 | 10 | Mise en service | Responsable | **Mise en service** : liste de 9 étapes, puis **Déclarer la mise en service** | Date de mise en service visible dans l'espace Agence Elite |
-| 11 | Support | Agence Elite | Fiche établissement → **Support → Ouvrir une session support** (motif obligatoire, 8 h, lecture seule, tracée) | Aide sans toucher aux données du client |
+| 11 | Support | Agence Elite | Fiche établissement → **Support → Ouvrir une session support** (motif obligatoire, 8 h, lecture seule, tracée) | Aide sans toucher aux données du client. Le **contrat de support** est séparé : Fiche établissement → **Licence → Ajouter le support** (montant et référence tracés) |
 
 ## Règles à connaître
 
