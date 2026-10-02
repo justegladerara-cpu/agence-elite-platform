@@ -30,6 +30,33 @@ jobs:
           eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
           SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" \
           SUPABASE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" scripts/pilote_production.sh
+      - name: Démo Commerce et comptes sur la vraie base, puis parcours mot de passe obligatoire (Auth réel)
+        run: |
+          base="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          psql "$base" -q -v ON_ERROR_STOP=1 <<'SQL'
+          with u as (
+            insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+              raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+            values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'sa-ci@exemple.test',
+              extensions.crypt(md5(random()::text), extensions.gen_salt('bf')), now(), '{"provider": "email", "providers": ["email"]}', '{}', now(), now(), '', '', '', '')
+            returning id)
+          insert into public.plateforme_admins(user_id, role) select id, 'super_admin' from u;
+          SQL
+          psql "$base" -q -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          select set_config('app.demo_mot_de_passe', '1234', true), set_config('app.demo_super_admin_email', 'sa-ci@exemple.test', true);
+          \i supabase/demo/commerce_demo.sql
+          commit;
+          SQL
+          psql "$base" -q -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          select set_config('app.demo_mot_de_passe', '1234', true), set_config('app.demo_super_admin_email', 'sa-ci@exemple.test', true);
+          \i supabase/demo/commerce_demo.sql
+          commit;
+          SQL
+          psql "$base" -tA -c "select count(*) from public.hubs h join public.etablissements e on e.id = h.etablissement_id where e.nom = 'Commerce Démo'" | grep -qx 3
+          eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" COMPTE_IDENTIFIANT=Userdemo COMPTE_MOT_DE_PASSE=1234 node scripts/verifier_comptes.mjs
       - name: Sauvegarde puis restauration dans une base vierge, comparaison
         run: scripts/verifier_restauration.sh "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       - name: Arrêter Supabase local

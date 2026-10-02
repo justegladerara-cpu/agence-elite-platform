@@ -1,0 +1,49 @@
+# Installe la démonstration « Commerce Démo » et les comptes Admin, Patrondemo, Userdemo.
+# Lancement manuel uniquement. Idempotent : sans effet si la démo existe déjà.
+# Les comptes reçoivent le mot de passe temporaire saisi (changement obligatoire à la première connexion).
+# Archive aussi les clients « Pilote fictif » (masqués des listes, jamais supprimés).
+name: Démo et comptes
+on:
+  workflow_dispatch:
+    inputs:
+      mot_de_passe_temporaire:
+        description: "Mot de passe temporaire des comptes créés (changement obligatoire)"
+        required: true
+        default: "1234"
+      super_admin_email:
+        description: "Adresse du super administrateur existant (reçoit l'identifiant Justegladerara)"
+        required: true
+        default: "contact@agence-elite.fr"
+concurrency:
+  group: deploiement-base
+  cancel-in-progress: false
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Joindre la base
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/url_base.sh
+      - name: Installer la démo et les comptes
+        env:
+          MDP: ${{ inputs.mot_de_passe_temporaire }}
+          SA: ${{ inputs.super_admin_email }}
+        run: |
+          echo "::add-mask::$MDP"
+          psql "$BASE_URL" -q -v ON_ERROR_STOP=1 -v mdp="$MDP" -v sa="$SA" <<'SQL'
+          begin;
+          select set_config('app.demo_mot_de_passe', :'mdp', true), set_config('app.demo_super_admin_email', :'sa', true);
+          \i supabase/demo/commerce_demo.sql
+          update public.clients set statut = 'archive' where nom like 'Pilote fictif %' and statut <> 'archive';
+          commit;
+          SQL
+      - name: Vérifier
+        run: |
+          psql "$BASE_URL" -qtA -v ON_ERROR_STOP=1 <<'SQL'
+          select 'identifiants : ' || string_agg(identifiant || case when doit_changer_mot_de_passe then ' (changement obligatoire)' else '' end, ', ' order by identifiant) from public.comptes_connexion;
+          select 'Hubs Commerce Démo : ' || count(*) from public.hubs h join public.etablissements e on e.id = h.etablissement_id where e.nom = 'Commerce Démo';
+          select 'clients visibles : ' || count(*) from public.clients where statut <> 'archive';
+          SQL

@@ -4,7 +4,7 @@
 # 2. donne le rôle super administrateur au compte « Agence Elite » de test ;
 # 3. lance scripts/pilote_en_ligne.mjs, puis scripts/verifier_site.mjs si SITE_URL est fourni ;
 # 4. neutralise toujours les comptes ensuite (accès retiré, mot de passe détruit, compte bloqué).
-# Les données fictives restent, rattachées au client « Pilote fictif <lot> ».
+# Les données fictives restent, rattachées au client « Pilote fictif <lot> », archivé à la fin.
 # Usage : SUPABASE_DB_URL=… SUPABASE_URL=… SUPABASE_ANON_KEY=… scripts/pilote_production.sh
 set -euo pipefail
 : "${SUPABASE_DB_URL:?}" "${SUPABASE_URL:?}" "${SUPABASE_ANON_KEY:?}"
@@ -23,6 +23,8 @@ update auth.users
 set encrypted_password = extensions.crypt(encode(extensions.gen_random_bytes(32), 'hex'), extensions.gen_salt('bf')),
     banned_until = 'infinity'
 where email like '%-' || :'lot' || '@' || :'domaine';
+-- Le client fictif est archivé (masqué des listes), jamais supprimé.
+update public.clients set statut = 'archive' where nom = 'Pilote fictif ' || :'lot';
 SQL
   echo "Comptes fictifs du lot $PILOTE_LOT neutralisés."
 }
