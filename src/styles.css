@@ -2754,3 +2754,67 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .jour-agenda.vide:not(.aujourdhui) { min-height: 0; }
   .jour-agenda.vide:not(.aujourdhui) > p { display: none; }
 }
+
+/* Pages d'authentification administrables ---------------------------------- */
+/* Disposition et fond choisis dans une liste fermée ; la carte du formulaire reste toujours claire. */
+.connexion.auth { display: flex; flex-direction: column; padding: 0; container-type: inline-size; }
+.auth.auth-fond-degrade {
+  background: radial-gradient(1200px 600px at 10% -10%, var(--accent-doux) 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, var(--accent-doux) 0%, transparent 55%), var(--fond);
+}
+.auth.auth-fond-image { background-color: #0f172a; background-size: cover; background-position: center; }
+.auth-grille { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); }
+.auth-zone { display: grid; place-items: center; padding: 24px 16px; min-width: 0; }
+.auth .connexion-carte { min-width: 0; overflow-wrap: anywhere; }
+.auth .connexion-carte h1 { margin: 0; font-size: 22px; line-height: 1.25; }
+.auth .connexion-carte h2 { margin: 0; font-size: 17px; }
+.texte-multiligne { white-space: pre-line; overflow-wrap: anywhere; }
+.auth-avis { display: grid; gap: 2px; }
+.auth-pied { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--bordure); font-size: 12.5px; color: var(--texte-doux); }
+.auth-pied p { margin: 0; }
+.auth-liens { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.auth-liens a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.auth-liens a:hover { text-decoration: underline; }
+.auth-texte-centre .connexion-carte > h1,
+.auth-texte-centre .connexion-carte > p,
+.auth-texte-centre .connexion-carte > .vide,
+.auth-texte-centre .auth-pied { text-align: center; }
+.auth-texte-centre .connexion-carte > .marque,
+.auth-texte-centre .auth-liens { justify-content: center; }
+.auth-laterale .auth-zone { justify-items: start; padding-left: clamp(16px, 8cqw, 96px); }
+.auth-partagee .auth-grille { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.auth-partagee .auth-zone { background: var(--surface); }
+.auth-partagee .connexion-carte { box-shadow: none; }
+.auth-partagee .connexion-carte > .marque { display: none; }
+.auth-panneau { position: relative; display: flex; align-items: flex-start; padding: 56px 40px; color: #fff; background: var(--accent) center / cover no-repeat; }
+.auth-panneau::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.05)); }
+.auth-panneau-contenu { position: sticky; top: 56px; display: grid; gap: 14px; max-width: 440px; }
+.auth-panneau .marque { color: #fff; }
+.auth-panneau .marque-texte small { color: rgba(255, 255, 255, 0.82); }
+.auth-panneau p { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; }
+@container (max-width: 760px) {
+  .auth-partagee .auth-grille { grid-template-columns: minmax(0, 1fr); }
+  .auth-panneau { display: none; }
+  .auth-partagee .connexion-carte > .marque { display: flex; }
+  .auth-laterale .auth-zone { justify-items: center; padding-left: 16px; }
+}
+
+/* Éditeur des pages d'authentification */
+.editeur-auth { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) { .editeur-auth { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; } .editeur-auth-apercu { position: sticky; top: 12px; } }
+.editeur-auth-apercu { display: grid; gap: 10px; min-width: 0; }
+.apercu-auth-cadre { height: 620px; width: 100%; overflow: auto; border: 1px solid var(--bordure); border-radius: 12px; background: var(--fond); margin-inline: auto; }
+.apercu-auth-cadre.mobile { width: 390px; max-width: 100%; height: 720px; }
+.apercu-auth-cadre .connexion { min-height: 100%; }
+.apercu-auth-cadre.ordinateur { overflow: hidden; }
+.apercu-echelle { width: 1180px; overflow: auto; transform-origin: top left; }
+.apercu-echelle > .connexion { min-height: 100%; }
+.champ-herite { font-size: 12px; color: var(--texte-faible); overflow-wrap: anywhere; }
+.choix-fond { display: flex; flex-wrap: wrap; gap: 6px; }
+.choix-fond button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--bordure); cursor: pointer; }
+.choix-fond button[aria-pressed='true'] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.journal-auth { display: grid; gap: 8px; }
+.journal-auth details summary { cursor: pointer; }
+.journal-auth ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--texte-doux); overflow-wrap: anywhere; }
+.sans-bordure { border: 0; padding: 0; margin: 0; min-width: 0; }
+.auth-panneau .marque-logo { background: rgba(255, 255, 255, 0.18); }

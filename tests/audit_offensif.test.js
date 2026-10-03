@@ -141,7 +141,7 @@ describe("contexte d'appel", () => {
     // la boutique en ligne publique (catalogue publié, code promo, commande, suivi par lien aléatoire)
     // et le site web publié (pages publiées, formulaire de contact).
     expect(executables.map((e) => e.proname).sort()).toEqual([
-      'boutique_publique', 'commander_boutique', 'envoyer_message_site', 'marque_connexion', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
+      'boutique_publique', 'commander_boutique', 'envoyer_message_site', 'marque_connexion', 'pages_connexion', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
       'verifier_coupon_boutique',
     ]);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);

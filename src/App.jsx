@@ -2,8 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
 import { appliquerMarque } from './noyau/marque.js';
+import { configAuth, marqueAuth, texteAuth } from './noyau/pagesAuth.js';
 import { Marque } from './ui/Marque.jsx';
+import {
+  ContexteAuth, EcranAuth, FormulaireNouveauMotDePasse, ParcoursConnexion, useConfigAuth, VueAccueil, VueNouveauMotDePasse, VueReinitialisation,
+} from './auth/EcransAuth.jsx';
 import { Cloche } from './ui/communs.jsx';
+
+export { verifierNouveauMotDePasse } from './auth/EcransAuth.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
@@ -14,87 +20,59 @@ import {
   Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, lireImageReduite, Modale, Onglets, useFilAriane, Vide,
 } from './ui/composants.jsx';
 
-const LIBELLES_ROLES = { ...ROLES, dirigeant: 'Dirigeant', support: 'Support Agence Elite' };
+const LIBELLES_ROLES = { ...ROLES, dirigeant: 'Dirigeant' };
+// Le nom de l'éditeur (« Support Agence Elite ») se règle dans les pages d'authentification.
+const libelleRole = (role, editeur) => (role === 'support' ? `Support ${editeur}` : LIBELLES_ROLES[role] ?? role ?? '');
 
 const CLE_ADRESSE_CONNEXION = 'ae-adresse-connexion';
+const CLE_SESSION = 'ae-session-ouverte';
 
-// Écran de connexion à l'image d'un client : #/connexion/<adresse> (seuls nom, logo et couleur sont publics).
-function useMarqueConnexion(donnees) {
-  const [marque, setMarque] = useState(null);
+function lireStockage(cle) {
+  try {
+    return localStorage.getItem(cle);
+  } catch {
+    return null;
+  }
+}
+
+function ecrireStockage(cle, valeur) {
+  try {
+    if (valeur == null) localStorage.removeItem(cle);
+    else localStorage.setItem(cle, valeur);
+  } catch {
+    // Préférence non mémorisée.
+  }
+}
+
+// Pages d'authentification publiées pour l'adresse de connexion (#/connexion/<adresse>, mémorisée) :
+// client ou établissement, sinon plateforme. Seul le contenu publié est lisible sans connexion.
+function useConfigConnexion(donnees) {
+  const [config, setConfig] = useState(null);
   useEffect(() => {
+    if (!donnees) return undefined;
     const [section, adresseRoute] = lireRoute().split('/');
-    let adresse = section === 'connexion' ? adresseRoute : null;
-    try {
-      if (adresse) localStorage.setItem(CLE_ADRESSE_CONNEXION, adresse);
-      else adresse = localStorage.getItem(CLE_ADRESSE_CONNEXION);
-    } catch {
-      // Préférence non mémorisée.
-    }
+    let adresse = section === 'connexion' && adresseRoute ? adresseRoute.toLowerCase() : null;
+    if (adresse) ecrireStockage(CLE_ADRESSE_CONNEXION, adresse);
+    else adresse = lireStockage(CLE_ADRESSE_CONNEXION);
     let actif = true;
-    donnees.rpc('marque_connexion', { p_adresse: adresse ?? null })
-      .then((m) => {
-        if (!actif) return;
-        setMarque(m);
-        appliquerMarque(m, 'Connexion');
-      })
-      .catch(() => appliquerMarque(null, 'Connexion'));
+    donnees.rpc('pages_connexion', { p_adresse: adresse ?? null })
+      .then((r) => actif && setConfig(configAuth({ marque: r?.marque, contenu: r?.contenu })))
+      .catch(() => actif && setConfig(configAuth()));
     return () => {
       actif = false;
     };
   }, [donnees]);
-  return marque;
+  return config;
 }
 
-function ChampMotDePasse({ libelle, valeur, onChange, aide, autoComplete = 'current-password', autoFocus, minLength }) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <Champ libelle={libelle} aide={aide}>
-      <span className="champ-mot-de-passe">
-        <input type={visible ? 'text' : 'password'} value={valeur} onChange={onChange} required autoComplete={autoComplete} autoFocus={autoFocus} minLength={minLength} />
-        <button type="button" className="icone-bouton" onClick={() => setVisible((v) => !v)} aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={visible}>
-          <Icone nom="oeil" taille={16} />
-        </button>
-      </span>
-    </Champ>
-  );
+function useTitreAuth(config, titre) {
+  useEffect(() => appliquerMarque(marqueAuth(config), titre), [config, titre]);
 }
 
-// Formulaire commun : identifiant (ou e-mail) + mot de passe. Supabase Auth reste l'autorité.
-function FormulaireConnexion({ donnees, onConnecte }) {
-  const [identifiant, setIdentifiant] = useState('');
-  const [motDePasse, setMotDePasse] = useState('');
-  const [erreur, setErreur] = useState('');
-  const [chargement, setChargement] = useState(false);
-  return (
-    <form
-      className="formulaire"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setChargement(true);
-        setErreur('');
-        try {
-          await donnees.connecterParMotDePasse(identifiant, motDePasse);
-          onConnecte();
-        } catch (err) {
-          setErreur(err.message);
-          setChargement(false);
-        }
-      }}
-    >
-      <Champ libelle="Identifiant ou e-mail">
-        <input value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} required autoFocus autoComplete="username" autoCapitalize="none" spellCheck={false} />
-      </Champ>
-      <ChampMotDePasse libelle="Mot de passe" valeur={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} />
-      <Erreur message={erreur} />
-      <Bouton type="submit" variante="principal" chargement={chargement}>Se connecter</Bouton>
-    </form>
-  );
-}
-
-function ConnexionLocale({ donnees, onConnecte }) {
-  const marque = useMarqueConnexion(donnees);
+function ConnexionLocale({ config, donnees, onConnecte, avis }) {
   const [comptes, setComptes] = useState(null);
   const [erreur, setErreur] = useState('');
+  useTitreAuth(config, texteAuth(config, 'connexion_titre'));
   useEffect(() => {
     donnees.comptes().then(setComptes).catch((e) => setErreur(e.message));
   }, [donnees]);
@@ -108,163 +86,85 @@ function ConnexionLocale({ donnees, onConnecte }) {
     }
   };
   return (
-    <div className="connexion">
-      <div className="connexion-carte large">
-        <Marque marque={marque} />
-        <h1>Démonstration locale</h1>
-        <p className="texte-doux">La base tourne dans ce navigateur, avec des données fictives. Rien n’est envoyé sur Internet.</p>
-        <FormulaireConnexion donnees={donnees} onConnecte={onConnecte} />
-        <p className="separateur"><span>ou choisissez un profil</span></p>
-        {!comptes && !erreur && <Chargement />}
-        <div className="profils">
-          {comptes?.map((c) => (
-            <button key={c.id} className="profil" onClick={() => connecter(() => donnees.connecter(c.id))}>
-              <Avatar nom={c.nom ?? c.email} />
-              <span>
-                <strong>{c.nom ?? c.email}</strong>
-                <small>{c.identifiant ? `Identifiant ${c.identifiant}` : c.email}</small>
-              </span>
-            </button>
-          ))}
-        </div>
-        <Erreur message={erreur} />
-        <button
-          className="lien"
-          onClick={async () => {
-            await donnees.reinitialiser();
-            window.location.reload();
-          }}
-        >
-          Réinitialiser la démo
-        </button>
+    <EcranAuth config={config} large>
+      <h2>Démonstration locale</h2>
+      <p className="texte-doux">La base tourne dans ce navigateur, avec des données fictives. Rien n’est envoyé sur Internet.</p>
+      <ParcoursConnexion config={config} donnees={donnees} onConnecte={onConnecte} avis={avis} />
+      <p className="separateur"><span>ou choisissez un profil</span></p>
+      {!comptes && !erreur && <Chargement />}
+      <div className="profils">
+        {comptes?.map((c) => (
+          <button key={c.id} className="profil" onClick={() => connecter(() => donnees.connecter(c.id))}>
+            <Avatar nom={c.nom ?? c.email} />
+            <span>
+              <strong>{c.nom ?? c.email}</strong>
+              <small>{c.identifiant ? `Identifiant ${c.identifiant}` : c.email}</small>
+            </span>
+          </button>
+        ))}
       </div>
-    </div>
-  );
-}
-
-function ConnexionSupabase({ donnees, onConnecte }) {
-  const marque = useMarqueConnexion(donnees);
-  // Lien d'invitation : #/invitation?email=… ouvre directement la création du compte, adresse remplie.
-  const [mode, setMode] = useState(() => (lireRoute() === 'invitation' ? 'inscription' : 'connexion'));
-  const [valeurs, setValeurs] = useState(() => ({ email: lireRoute() === 'invitation' ? lireParametres().get('email') ?? '' : '', motDePasse: '', nom: '' }));
-  const [erreur, setErreur] = useState('');
-  const [info, setInfo] = useState('');
-  const [chargement, setChargement] = useState(false);
-  const changer = (c) => (e) => setValeurs((v) => ({ ...v, [c]: e.target.value }));
-  return (
-    <div className="connexion">
-      <div className="connexion-carte">
-        <Marque marque={marque} />
-        <Onglets onglets={[['connexion', 'Connexion'], ['inscription', 'J’ai reçu une invitation']]} actif={mode} onChange={setMode} />
-        {info && <p className="info">{info}</p>}
-        {mode === 'connexion' ? <FormulaireConnexion donnees={donnees} onConnecte={onConnecte} /> : (
-          <form
-            className="formulaire"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setChargement(true);
-              setErreur('');
-              try {
-                if (await donnees.creerCompte(valeurs.email, valeurs.motDePasse, valeurs.nom)) onConnecte();
-                else {
-                  setInfo('Compte créé. Ouvrez le lien de confirmation reçu par e-mail, puis connectez-vous.');
-                  setMode('connexion');
-                }
-              } catch (err) {
-                setErreur(err.message);
-              } finally {
-                setChargement(false);
-              }
-            }}
-          >
-            <p className="texte-doux">Utilisez l’adresse e-mail à laquelle vous avez été invité(e).</p>
-            <Champ libelle="Votre nom"><input value={valeurs.nom} onChange={changer('nom')} required /></Champ>
-            <Champ libelle="E-mail"><input type="email" value={valeurs.email} onChange={changer('email')} required autoComplete="email" /></Champ>
-            <ChampMotDePasse libelle="Mot de passe" valeur={valeurs.motDePasse} onChange={changer('motDePasse')} autoComplete="new-password" minLength={8} aide="8 caractères au moins." />
-            <Erreur message={erreur} />
-            <Bouton type="submit" variante="principal" chargement={chargement}>Créer mon compte</Bouton>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const TROP_SIMPLES = ['1234', '12345', '123456', '1234567', '12345678', '123456789', '0000', '000000', '00000000', 'azerty', 'azerty123', 'motdepasse', 'password', 'password1', 'qwerty', 'admin', 'admin123'];
-
-export function verifierNouveauMotDePasse(nouveau, confirmation) {
-  if (nouveau.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères';
-  if (TROP_SIMPLES.includes(nouveau.toLowerCase())) return 'Ce mot de passe est trop simple';
-  if (!/[A-Za-z]/.test(nouveau) || !/\d/.test(nouveau)) return 'Utilisez au moins une lettre et un chiffre';
-  if (nouveau !== confirmation) return 'Les deux mots de passe ne sont pas identiques';
-  return '';
-}
-
-function FormulaireNouveauMotDePasse({ donnees, onFait, libelleAction = 'Enregistrer mon mot de passe' }) {
-  const [nouveau, setNouveau] = useState('');
-  const [confirmation, setConfirmation] = useState('');
-  const [erreur, setErreur] = useState('');
-  const [chargement, setChargement] = useState(false);
-  return (
-    <form
-      className="formulaire"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const probleme = verifierNouveauMotDePasse(nouveau, confirmation);
-        if (probleme) {
-          setErreur(probleme);
-          return;
-        }
-        setChargement(true);
-        setErreur('');
-        try {
-          await donnees.changerMotDePasse(nouveau);
-          await onFait();
-        } catch (err) {
-          setErreur(err.message);
-          setChargement(false);
-        }
-      }}
-    >
-      <ChampMotDePasse libelle="Nouveau mot de passe" valeur={nouveau} onChange={(e) => setNouveau(e.target.value)} autoComplete="new-password" autoFocus aide="8 caractères au moins, avec une lettre et un chiffre." />
-      <ChampMotDePasse libelle="Confirmer le mot de passe" valeur={confirmation} onChange={(e) => setConfirmation(e.target.value)} autoComplete="new-password" />
       <Erreur message={erreur} />
-      <Bouton type="submit" variante="principal" chargement={chargement}>{libelleAction}</Bouton>
-    </form>
+      <button
+        className="lien"
+        onClick={async () => {
+          await donnees.reinitialiser();
+          window.location.reload();
+        }}
+      >
+        Réinitialiser la démo
+      </button>
+    </EcranAuth>
+  );
+}
+
+function ConnexionSupabase({ config, donnees, onConnecte, avis }) {
+  useTitreAuth(config, texteAuth(config, 'connexion_titre'));
+  // Lien d'invitation : #/invitation?email=… ouvre directement la création du compte, adresse remplie.
+  const invitation = lireRoute() === 'invitation';
+  return (
+    <EcranAuth config={config}>
+      <ParcoursConnexion
+        config={config}
+        donnees={donnees}
+        onConnecte={onConnecte}
+        avis={avis}
+        invitationPossible
+        vueInitiale={invitation ? 'inscription' : avis === 'lien' ? 'oubli' : 'connexion'}
+        emailInvitation={invitation ? lireParametres().get('email') ?? '' : ''}
+      />
+    </EcranAuth>
   );
 }
 
 // Premier accès avec un mot de passe temporaire : rien d'autre n'est accessible (la base le garantit aussi).
-function NouveauMotDePasse({ donnees, contexte, onFait, onDeconnexion }) {
-  const expire = contexte.compte?.temporaire_expire;
-  useEffect(() => appliquerMarque(contexte.plateforme, 'Nouveau mot de passe'), [contexte.plateforme]);
+function NouveauMotDePasse({ config, donnees, contexte, onFait, onDeconnexion }) {
+  useTitreAuth(config, texteAuth(config, contexte.compte?.temporaire_expire ? 'expire_titre' : 'premiere_titre'));
   return (
-    <div className="connexion">
-      <div className="connexion-carte">
-        <Marque marque={contexte.plateforme} />
-        {expire ? (
-          <>
-            <h1>Mot de passe temporaire expiré</h1>
-            <p className="texte-doux">Le mot de passe temporaire de ce compte n’est plus valable. Demandez-en un nouveau à Agence Elite ou à votre responsable.</p>
-          </>
-        ) : (
-          <>
-            <h1>Créer votre nouveau mot de passe</h1>
-            <p className="texte-doux">
-              Bonjour {nomUtilisateur(contexte.utilisateur, contexte.compte?.identifiant ?? '')}. Vous vous êtes connecté(e) avec un mot de passe temporaire.
-              Choisissez votre mot de passe personnel pour continuer ; l’ancien ne fonctionnera plus.
-            </p>
-            <FormulaireNouveauMotDePasse donnees={donnees} onFait={onFait} />
-          </>
-        )}
-        <button className="lien" onClick={onDeconnexion}><Icone nom="sortie" taille={16} /> Se déconnecter</button>
-      </div>
-    </div>
+    <EcranAuth config={config}>
+      <VueNouveauMotDePasse
+        config={config}
+        nom={nomUtilisateur(contexte.utilisateur, contexte.compte?.identifiant ?? '')}
+        expire={contexte.compte?.temporaire_expire}
+        donnees={donnees}
+        onFait={onFait}
+        onDeconnexion={onDeconnexion}
+      />
+    </EcranAuth>
+  );
+}
+
+function Reinitialisation({ config, donnees, onFait, onDeconnexion }) {
+  useTitreAuth(config, texteAuth(config, 'reinit_titre'));
+  return (
+    <EcranAuth config={config}>
+      <VueReinitialisation config={config} donnees={donnees} onFait={onFait} onDeconnexion={onDeconnexion} />
+    </EcranAuth>
   );
 }
 
 // Invitations en attente : le compte connecté rejoint l'établissement.
 function Invitations({ api, contexte, onAccepte, compact }) {
+  const { nom_editeur: editeur } = useConfigAuth();
   const [nom, setNom] = useState(contexte.utilisateur.nom ?? '');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(null);
@@ -293,7 +193,7 @@ function Invitations({ api, contexte, onAccepte, compact }) {
           <div key={i.id} className="liste-ligne">
             <span>
               <strong>{i.etablissement ?? i.client}</strong>
-              <small className="texte-doux bloc">{i.client} · {LIBELLES_ROLES[i.role] ?? i.role} · jusqu’au {formatDate(i.expire_le)}</small>
+              <small className="texte-doux bloc">{i.client} · {libelleRole(i.role, editeur)} · jusqu’au {formatDate(i.expire_le)}</small>
             </span>
             <Bouton variante="principal" chargement={enCours === i.id} disabled={!contexte.utilisateur.nom && !nom.trim()} onClick={() => accepter(i.id)}>
               Rejoindre
@@ -306,32 +206,25 @@ function Invitations({ api, contexte, onAccepte, compact }) {
   );
 }
 
-function Accueil({ api, contexte, onRecharger, onDeconnexion }) {
-  useEffect(() => appliquerMarque(contexte.plateforme, 'Bienvenue'), [contexte.plateforme]);
+function Accueil({ config, api, contexte, onRecharger, onDeconnexion }) {
+  useTitreAuth(config, texteAuth(config, contexte.invitations.length ? 'bienvenue_titre' : 'refuse_titre', { nom: nomUtilisateur(contexte.utilisateur, '') }));
   return (
-    <div className="connexion">
-      <div className="connexion-carte">
-        <Marque marque={contexte.plateforme} />
-        {contexte.invitations.length ? (
-          <>
-            <h1>Bienvenue {nomUtilisateur(contexte.utilisateur, '')}</h1>
-            <p className="texte-doux">Vous êtes invité(e) à rejoindre :</p>
-            <Invitations api={api} contexte={contexte} onAccepte={onRecharger} />
-          </>
-        ) : (
-          <Vide
-            titre="Aucun établissement pour ce compte"
-            texte={`Connecté avec ${contexte.compte?.identifiant ?? contexte.utilisateur.email}. Demandez à votre responsable ou à Agence Elite de vous donner un accès.`}
-          />
-        )}
-        <button className="lien" onClick={onDeconnexion}><Icone nom="sortie" taille={16} /> Changer de compte</button>
-      </div>
-    </div>
+    <EcranAuth config={config}>
+      <VueAccueil
+        config={config}
+        nom={nomUtilisateur(contexte.utilisateur, '')}
+        compte={contexte.compte?.identifiant ?? contexte.utilisateur.email}
+        invitations={contexte.invitations.length ? <Invitations api={api} contexte={contexte} onAccepte={onRecharger} /> : null}
+        onDeconnexion={onDeconnexion}
+      />
+    </EcranAuth>
   );
 }
 
 function Bandeaux({ naviguer }) {
   const { etablissement, editeur } = useEspace();
+  const { nom_editeur: nomEditeur, contact_support: contactSupport } = useConfigAuth();
+  const contactez = `Contactez ${nomEditeur}${contactSupport ? ` (${contactSupport})` : ''}`;
   if (!etablissement) return null;
   const l = etablissement.licence;
   const bandeaux = [];
@@ -339,17 +232,17 @@ function Bandeaux({ naviguer }) {
     bandeaux.push(
       <div key="support" className="bandeau info">
         Mode support : consultation seule de {etablissement.nom}.
-        {editeur && <button className="lien" onClick={() => naviguer('editeur')}>Retour à l’espace Agence Elite</button>}
+        {editeur && <button className="lien" onClick={() => naviguer('editeur')}>Retour à l’espace {nomEditeur}</button>}
       </div>
     );
   } else if (etablissement.role === 'dirigeant') {
     bandeaux.push(<div key="dirigeant" className="bandeau info">Vous consultez {etablissement.nom} en tant que dirigeant.</div>);
   } else if (etablissement.statut !== 'actif' || etablissement.client_statut !== 'actif') {
-    bandeaux.push(<div key="statut" className="bandeau">Cet établissement est suspendu : consultation seule. Contactez Agence Elite.</div>);
+    bandeaux.push(<div key="statut" className="bandeau">Cet établissement est suspendu : consultation seule. {contactez}.</div>);
   } else if (!l || !l.valide) {
     bandeaux.push(
       <div key="licence" className="bandeau">
-        {l?.statut === 'suspendue' ? 'Licence suspendue' : 'Licence expirée'} : consultation seule. Vos données restent intactes. Contactez Agence Elite pour la renouveler.
+        {l?.statut === 'suspendue' ? 'Licence suspendue' : 'Licence expirée'} : consultation seule. Vos données restent intactes. {contactez} pour la renouveler.
       </div>
     );
   } else if (l.jours_restants != null && l.jours_restants <= 7) {
@@ -383,7 +276,8 @@ function MonCompte({ onFermer }) {
   const [chargement, setChargement] = useState(false);
   const changer = (c) => (e) => setValeurs((v) => ({ ...v, [c]: e.target.value }));
   const pages = etablissement ? pagesAccessibles(espace) : [];
-  const role = roleEditeur ? ROLES_PLATEFORME[roleEditeur] : LIBELLES_ROLES[etablissement?.role] ?? '';
+  const { nom_editeur: nomEditeur } = useConfigAuth();
+  const role = roleEditeur ? ROLES_PLATEFORME[roleEditeur] : libelleRole(etablissement?.role, nomEditeur);
   const enregistrer = async (e) => {
     e.preventDefault();
     setChargement(true);
@@ -447,7 +341,7 @@ function MonCompte({ onFermer }) {
                 <dl className="details">
                   <dt>Identifiant</dt><dd>{compte?.identifiant ?? '—'}</dd>
                   <dt>E-mail</dt><dd>{utilisateur.email}</dd>
-                  <dt>Rôle</dt><dd>{role || '—'} <small className="texte-doux bloc">Attribué par votre responsable ou Agence Elite : il ne se modifie pas depuis le profil.</small></dd>
+                  <dt>Rôle</dt><dd>{role || '—'} <small className="texte-doux bloc">Attribué par votre responsable ou {nomEditeur} : il ne se modifie pas depuis le profil.</small></dd>
                 </dl>
               </>
             )}
@@ -579,14 +473,15 @@ function Coquille() {
   };
   const Page = page?.composant;
   const actifEditeur = surEditeur ? routeEditeurActive(route) : null;
-  const libelleRole = surEditeur || !etablissement ? ROLES_PLATEFORME[roleEditeur] ?? '' : LIBELLES_ROLES[etablissement.role] ?? '';
+  const { nom_editeur: nomEditeur } = useConfigAuth();
+  const roleAffiche = surEditeur || !etablissement ? ROLES_PLATEFORME[roleEditeur] ?? '' : libelleRole(etablissement.role, nomEditeur);
   const nomEtablissement = etablissement?.identite?.nom_commercial ?? etablissement?.nom;
   // Identité affichée : celle de la plateforme dans l'espace Agence Elite, celle de l'établissement ailleurs.
   const marque = surEditeur ? contexte.plateforme : etablissement?.marque ?? contexte.plateforme;
-  const titrePage = surEditeur ? 'Agence Elite' : page?.libelle;
+  const titrePage = surEditeur ? nomEditeur : page?.libelle;
   useEffect(() => appliquerMarque(marque, titrePage), [marque, titrePage]);
   const filDefaut = surEditeur
-    ? [{ libelle: 'Agence Elite' }]
+    ? [{ libelle: nomEditeur }]
     : [{ libelle: nomEtablissement ?? '' }, ...(espace.hub && espace.multiHub ? [{ libelle: espace.hub.nom }] : []), { libelle: page?.libelle ?? '' }];
 
   return (
@@ -597,7 +492,7 @@ function Coquille() {
           <nav>
             {editeur && (
               <div className="menu-groupe">
-                <span className="menu-groupe-titre">Agence Elite</span>
+                <span className="menu-groupe-titre">{nomEditeur}</span>
                 {MENU_EDITEUR.map((m) => (
                   <button key={m.id} className={actifEditeur === m.id ? 'actif' : ''} aria-current={actifEditeur === m.id ? 'page' : undefined} onClick={() => aller(m.id)}>
                     <Icone nom={m.icone} />
@@ -640,7 +535,7 @@ function Coquille() {
         </aside>
         {menuOuvert && <div className="voile-menu" onClick={() => setMenuOuvert(false)} />}
         <div className="colonne">
-          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={libelleRole} onCompte={() => setCompte(true)} naviguer={aller} />
+          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} />
           <main className="contenu">
             {!surEditeur && <Bandeaux naviguer={aller} />}
             {contexte.invitations.length > 0 && (
@@ -691,16 +586,24 @@ export default function App({ demarrer = demarrerDonnees }) {
   const [contexte, setContexte] = useState(null);
   const [erreur, setErreur] = useState('');
   const [etape, setEtape] = useState('demarrage');
+  // Message affiché sur l'écran de connexion : 'expiree' (session terminée) ou 'lien' (lien reçu expiré).
+  const [avis, setAvis] = useState(null);
   const [route] = useRoute();
+  const config = useConfigConnexion(donnees);
 
   const chargerContexte = useCallback(async (source) => {
     if (!source.utilisateur()) {
+      // Une session était ouverte et n'existe plus : elle a expiré entre-temps.
+      if (lireStockage(CLE_SESSION)) setAvis((a) => a ?? 'expiree');
+      ecrireStockage(CLE_SESSION, null);
       setEtape('connexion');
       return;
     }
     try {
       const resultat = await source.rpc('mon_contexte');
       setContexte(resultat);
+      setAvis(null);
+      ecrireStockage(CLE_SESSION, '1');
       setEtape('espace');
     } catch (err) {
       setErreur(err.message);
@@ -709,46 +612,65 @@ export default function App({ demarrer = demarrerDonnees }) {
   }, []);
 
   useEffect(() => {
+    let arret;
     demarrer()
       .then(async (source) => {
         if (!source) throw new Error('Aucune source de données configurée.');
         setDonnees(source);
+        arret = source.surFinDeSession?.(() => {
+          ecrireStockage(CLE_SESSION, null);
+          setContexte(null);
+          setAvis('expiree');
+          setEtape('connexion');
+        });
+        if (source.lienInvalide) setAvis('lien');
+        if (source.recuperation) {
+          ecrireStockage(CLE_SESSION, '1');
+          setEtape('reinitialisation');
+          return;
+        }
         await chargerContexte(source);
       })
       .catch((err) => {
         setErreur(err.message);
         setEtape('erreur');
       });
+    return () => arret?.();
   }, [demarrer, chargerContexte]);
 
   const recharger = useCallback(() => chargerContexte(donnees), [chargerContexte, donnees]);
   const deconnecter = useCallback(async () => {
+    ecrireStockage(CLE_SESSION, null);
     await donnees.deconnecter();
     setContexte(null);
+    setAvis(null);
     setEtape('connexion');
   }, [donnees]);
 
-  if (etape === 'demarrage') return <div className="ecran-centre"><Chargement texte="Préparation de la base…" /></div>;
+  if (etape === 'demarrage' || (etape !== 'erreur' && !config)) return <div className="ecran-centre"><Chargement texte="Préparation de la base…" /></div>;
   if (etape === 'erreur') return <div className="ecran-centre"><Erreur message={erreur} /></div>;
   // Pages publiques (sans compte) : site web, boutique en ligne et suivi de commande.
   const [publique, cle, sousPage] = route.split('/');
   if (publique === 'site' && cle) return <SitePublic donnees={donnees} adresse={cle.toLowerCase()} slug={sousPage} />;
   if (publique === 'commander' && cle) return <BoutiquePublique key={cle} donnees={donnees} adresse={cle.toLowerCase()} />;
   if (publique === 'suivi' && cle) return <SuiviCommande key={cle} donnees={donnees} suivi={cle} />;
-  if (etape === 'connexion') {
-    return donnees.mode === 'local'
-      ? <ConnexionLocale donnees={donnees} onConnecte={() => chargerContexte(donnees)} />
-      : <ConnexionSupabase donnees={donnees} onConnecte={() => chargerContexte(donnees)} />;
+  let ecran;
+  if (etape === 'reinitialisation') {
+    ecran = <Reinitialisation config={config} donnees={donnees} onFait={recharger} onDeconnexion={deconnecter} />;
+  } else if (etape === 'connexion') {
+    ecran = donnees.mode === 'local'
+      ? <ConnexionLocale config={config} donnees={donnees} avis={avis} onConnecte={() => chargerContexte(donnees)} />
+      : <ConnexionSupabase config={config} donnees={donnees} avis={avis} onConnecte={() => chargerContexte(donnees)} />;
+  } else if (contexte.compte?.doit_changer_mot_de_passe) {
+    ecran = <NouveauMotDePasse config={config} donnees={donnees} contexte={contexte} onFait={recharger} onDeconnexion={deconnecter} />;
+  } else if (!contexte.etablissements.length && !contexte.editeur) {
+    ecran = <Accueil config={config} api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />;
+  } else {
+    ecran = (
+      <FournisseurEspace api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter}>
+        <Coquille />
+      </FournisseurEspace>
+    );
   }
-  if (contexte.compte?.doit_changer_mot_de_passe) {
-    return <NouveauMotDePasse donnees={donnees} contexte={contexte} onFait={recharger} onDeconnexion={deconnecter} />;
-  }
-  if (!contexte.etablissements.length && !contexte.editeur) {
-    return <Accueil api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />;
-  }
-  return (
-    <FournisseurEspace api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter}>
-      <Coquille />
-    </FournisseurEspace>
-  );
+  return <ContexteAuth.Provider value={config}>{ecran}</ContexteAuth.Provider>;
 }

@@ -28,14 +28,44 @@ export function creerApiSupabase(supabase) {
 }
 
 export async function demarrerSupabase(env = import.meta.env) {
+  // Retour d'un lien « mot de passe oublié » (#…type=recovery) ou lien expiré (#error=…) : lu avant que
+  // Supabase n'ouvre la session de récupération, puis retiré de l'adresse.
+  const ancre = typeof window === 'undefined' ? '' : window.location.hash;
+  const recuperation = /(^|[#&])type=recovery(&|$)/.test(ancre);
+  const lienInvalide = /(^|[#&])error(_code)?=/.test(ancre);
   const supabase = creerClientSupabase(env);
   if (!supabase) return null;
   const api = creerApiSupabase(supabase);
   let utilisateur = (await supabase.auth.getSession()).data.session?.user?.id ?? null;
+  if ((recuperation || lienInvalide) && typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  let deconnexionVolontaire = false;
+  const finsDeSession = new Set();
+  // Session terminée sans action de l'utilisateur (jeton expiré ou révoqué) : l'écran « Session expirée » s'affiche.
+  supabase.auth.onAuthStateChange((evenement, session) => {
+    if (evenement === 'SIGNED_OUT' && utilisateur && !deconnexionVolontaire) {
+      utilisateur = null;
+      finsDeSession.forEach((f) => f());
+    }
+    if (session?.user?.id) utilisateur = session.user.id;
+  });
   return {
     ...api,
     comptes: null,
+    recuperation: recuperation && Boolean(utilisateur),
+    lienInvalide,
     utilisateur: () => utilisateur,
+    surFinDeSession(f) {
+      finsDeSession.add(f);
+      return () => finsDeSession.delete(f);
+    },
+    // Lien envoyé par Supabase Auth. L'adresse de retour est toujours celle de l'application (jamais réglable)
+    // et Supabase la vérifie avec sa liste d'adresses autorisées. Même réponse que le compte existe ou non.
+    async demanderReinitialisation(email) {
+      const adresse = String(email ?? '').trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adresse)) throw new Error('Adresse e-mail invalide');
+      const { error } = await supabase.auth.resetPasswordForEmail(adresse, { redirectTo: `${window.location.origin}${window.location.pathname}` });
+      if (error) throw new Error(/rate|limit|seconds/i.test(error.message) ? 'Trop de demandes : réessayez dans quelques minutes' : 'Envoi impossible pour le moment : réessayez plus tard');
+    },
     // « identifiant » : un identifiant de connexion ou une adresse e-mail.
     // Supabase Auth reste l'autorité : l'identifiant est seulement traduit en adresse, côté base,
     // après vérification du mot de passe (réponse identique si l'identifiant n'existe pas).
@@ -67,8 +97,13 @@ export async function demarrerSupabase(env = import.meta.env) {
       return Boolean(data.session);
     },
     async deconnecter() {
-      await supabase.auth.signOut();
-      utilisateur = null;
+      deconnexionVolontaire = true;
+      try {
+        await supabase.auth.signOut();
+      } finally {
+        deconnexionVolontaire = false;
+        utilisateur = null;
+      }
     },
   };
 }

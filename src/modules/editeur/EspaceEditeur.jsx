@@ -8,6 +8,7 @@ import { PageEtablissementEditeur } from './EtablissementEditeur.jsx';
 import HubsEditeur from './HubsEditeur.jsx';
 import ModulesEditeur from './ModulesEditeur.jsx';
 import OffresEditeur from './OffresEditeur.jsx';
+import IdentiteEditeur from './PagesAuthEditeur.jsx';
 import TableauEditeur from './TableauEditeur.jsx';
 
 // Menu de l'espace Agence Elite (le rôle Admin n'a ni tarifs ni administrateurs : la base le refuse aussi).
@@ -18,6 +19,7 @@ export const MENU_EDITEUR = [
   { id: 'editeur/modules', libelle: 'Catalogue', icone: 'modules' },
   { id: 'editeur/comptes', libelle: 'Comptes', icone: 'comptes' },
   { id: 'editeur/offres', libelle: 'Offres et prix', icone: 'offres' },
+  { id: 'editeur/identite', libelle: 'Identité et apparence', icone: 'cle' },
 ];
 
 export function routeEditeurActive(route) {
@@ -46,6 +48,8 @@ export default function EspaceEditeur({ route, naviguer }) {
       return <ComptesEditeur />;
     case 'offres':
       return <OffresEditeur />;
+    case 'identite':
+      return <IdentiteEditeur route={route} naviguer={naviguer} />;
     default:
       return <EmptyState titre="Page introuvable" texte="Revenez au tableau de bord Agence Elite." />;
   }

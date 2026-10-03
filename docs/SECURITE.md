@@ -61,3 +61,9 @@ Pour avoir la permission P (`module.action`) dans l'établissement E, il faut :
 - Données financières (ventes, paiements, factures, périodes d'abonnement, mouvements de fidélité, pointages) :
   jamais supprimées ; annulation avec motif. Suspension ou expiration de licence : rien n'est effacé, tout revient à la réactivation.
 - Données RH sensibles dans `rh_employes_prives` (lecture réservée à `rh_employes.confidentiel` et à l'employé lui-même).
+
+## Pages d'authentification (2026-10-03)
+- Tables `pages_auth` et `pages_auth_journal` : RLS active, aucun accès direct (lecture et écriture par fonctions seulement) ; journal en ajout seul.
+- Écriture : Super Admin pour la plateforme, équipe Agence Elite pour client et établissement. Lecture publique : `pages_connexion` renvoie le contenu **publié** (jamais le brouillon), l'identité affichée et rien d'autre.
+- Validation par liste blanche (`champs_pages_auth`) : pas de `<` `>`, images data:image (png/jpeg/gif/webp) ou https sans guillemets ni parenthèses, liens https/mailto/tel, couleurs de palette, choix fermés. Rendu React en texte ; l'image de fond est revérifiée côté écran.
+- Rien n'y règle l'authentification : politique des mots de passe, changement obligatoire, RLS, redirections. L'adresse de retour du lien « mot de passe oublié » = adresse de l'application, vérifiée par Supabase.

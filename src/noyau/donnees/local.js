@@ -76,6 +76,10 @@ export async function demarrerLocal() {
         throw new Error(messageErreur(erreur));
       }
     },
+    // Démonstration : aucun e-mail n'est envoyé (même réponse que le compte existe ou non).
+    async demanderReinitialisation(email) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email ?? '').trim())) throw new Error('Adresse e-mail invalide');
+    },
     async deconnecter() {
       utilisateur = null;
       ecrireStockage(CLE_UTILISATEUR, null);
