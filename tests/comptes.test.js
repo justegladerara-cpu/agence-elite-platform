@@ -44,7 +44,10 @@ describe('création de comptes et mot de passe temporaire', () => {
     const tables = (await db.query("select table_name, column_name from information_schema.columns where table_schema = 'public' and (column_name ilike '%passe%' or column_name ilike '%password%')")).rows;
     expect(tables.map((t) => t.column_name).sort()).toEqual(['doit_changer_mot_de_passe', 'mot_de_passe_change_le']);
     const dump = JSON.stringify((await db.query('select * from comptes_connexion')).rows) + JSON.stringify((await db.query('select * from journal_audit')).rows);
-    expect(dump).not.toContain('1234');
+    // Identifiants et horodatages aléatoires retirés : ils peuvent contenir « 1234 » par hasard.
+    const sansAleatoire = dump.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, '')
+      .replace(/\d{4}-\d{2}-\d{2}[T ][\d:.]+(Z|[+-]\d{2}(:?\d{2})?)?/g, '').replace(/"id":\d+/g, '');
+    expect(sansAleatoire).not.toContain('1234');
   });
 
   test('identifiant et adresse uniques ; seuls Agence Elite créent des comptes', async () => {
