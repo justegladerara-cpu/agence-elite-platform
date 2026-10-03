@@ -58,3 +58,9 @@ Avec `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` (Supabase local uniquement 
 - Envoi automatique des invitations par e-mail : pour l'instant, message à copier (WhatsApp, SMS, e-mail).
 - Facturation automatique des licences : les paiements sont notés à la main (montant, référence).
 - Fonctionne hors connexion uniquement en mode local ; pas de synchronisation.
+## Retours partiels et remboursements
+
+Une vente validée reste définitive. Depuis sa fiche, un responsable utilise **Retour / échange**, choisit les lignes et
+quantités réellement rapportées, puis le mode de remboursement. La base applique les remises du ticket, empêche de retourner
+plus que vendu, remet le stock dans le Hub d'origine et conserve un document `RET-…`. Un remboursement en espèces exige la
+caisse ouverte du Hub et est déduit du ticket Z. **Avoir / échange** trace la valeur rendue sans prétendre à une sortie bancaire.

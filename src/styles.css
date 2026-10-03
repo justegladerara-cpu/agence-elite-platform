@@ -2444,6 +2444,22 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .selecteur select { max-width: 110px; }
 }
 
+/* Les tableaux partagés deviennent des fiches lisibles sur un téléphone. Les
+   tableaux métier spécialisés gardent leur défilement horizontal. */
+@media (max-width: 640px) {
+  .data-table .tableau-conteneur { border: 0; box-shadow: none; overflow: visible; background: transparent; }
+  .data-table .tableau, .data-table .tableau tbody { display: grid; gap: 10px; width: 100%; }
+  .data-table .tableau thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .data-table .tableau tr { display: grid; gap: 0; padding: 8px 12px; border: 1px solid var(--bordure); border-radius: var(--rayon-grand); background: var(--surface); box-shadow: var(--ombre-carte); }
+  .data-table .tableau td { display: grid; grid-template-columns: minmax(92px, 38%) 1fr; gap: 10px; align-items: start; padding: 7px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
+  .data-table .tableau td::before { content: attr(data-label); color: var(--texte-doux); font-size: 12px; font-weight: 600; text-align: left; }
+  .data-table .tableau td.nombre { text-align: right; }
+  .data-table .tableau td.cellule-actions { display: flex; justify-content: flex-end; width: auto; }
+  .data-table .tableau td.cellule-actions::before { content: none; }
+  .data-table-outils > * { flex: 1 1 100%; }
+  .data-table-outils .data-table-compte { flex: 1 1 auto; }
+}
+
 .tableau .cellule-actions { width: 1%; text-align: right; white-space: nowrap; }
 .entete-actions .menu-actions > .icone-bouton { width: 40px; height: 40px; border: 1px solid var(--bordure-forte); border-radius: 8px; background: var(--surface); color: var(--texte); }
 

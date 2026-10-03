@@ -4,7 +4,7 @@
 | Élément | État |
 |---|---|
 | Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare, publié à chaque push sur `main`) |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **39 migrations**, toutes dans `supabase/migrations/` (dernière `20261003000009_pages_authentification`) |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **44 migrations** dans `supabase/migrations/` (dernière `20261003000014_recompenses_fidelite`) |
 | Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
 | Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` (client ou établissement) |
@@ -26,7 +26,7 @@
 Pages publiques sans connexion : `#/commander/<adresse>` (boutique), `#/suivi/<id>` (suivi de commande), `#/site/<adresse>[/<page>]` (site web).
 
 ## Numérotation des migrations
-Nom = date + numéro **du jour** (`AAAAMMJJ` + `0000NN`). 1er octobre : 8 ; 2 octobre : 22 ; 3 octobre : 9. La liste
+Nom = date + numéro **du jour** (`AAAAMMJJ` + `0000NN`). 1er octobre : 8 ; 2 octobre : 22 ; 3 octobre : 14. La liste
 appliquée se vérifie avec le workflow « Déploiement de la base » en mode simulation (« aucune migration en attente »).
 
 ## Comptes Agence Elite
@@ -34,7 +34,7 @@ appliquée se vérifie avec le workflow « Déploiement de la base » en mode si
 Comptes démo : voir [SOP 30](SOP/30_DEMO_COMMERCIALE.md) (`gerante@`, `resto@`, `reception@`, `boutique@demo.agence-elite.fr`…).
 
 ## Qualité
-- 400+ tests (PGlite) dont tests offensifs (droits, isolation entre établissements, appels anonymes) ; tests d'écrans.
+- 400+ tests (PGlite) dont tests offensifs (droits, isolation entre établissements, appels anonymes) ; tests d'écrans ; parcours navigateur bloquant de tous les domaines en CI.
 - CI : base Supabase neuve, démo rejouée 2 fois, pilote API, parcours mot de passe sur Auth réel ; pilote en production
   (`pilote-production.yml`) après chaque mise en production.
 

@@ -599,6 +599,22 @@ begin
 end
 $$;
 
+-- Enrichissement commercial : réservations de tables réalistes sur Restaurant Démo.
+do $$
+declare etab uuid; serveur uuid; hub uuid; t1 uuid; jour date;
+begin
+  select id into etab from public.etablissements where nom='Restaurant Démo' order by cree_le limit 1;
+  if etab is null or exists(select 1 from public.rest_reservations where etablissement_id=etab) then return; end if;
+  select id into serveur from auth.users where email='serveur@demo.agence-elite.fr';
+  select id into hub from public.hubs where etablissement_id=etab and principal;
+  select id into t1 from public.rest_tables where etablissement_id=etab and nom='T2';
+  jour:=public.date_locale(etab);
+  perform set_config('request.jwt.claims',json_build_object('sub',serveur,'role','authenticated')::text,true);
+  perform public.enregistrer_reservation_restaurant(etab,jsonb_build_object('hub_id',hub,'table_id',t1,'nom_client','Famille Bissila','telephone','+242 06 700 10 10','debut',(jour+1+time '19:30')::timestamptz,'duree_minutes',120,'couverts',4,'note','Anniversaire, prévoir une chaise enfant'));
+  perform public.enregistrer_reservation_restaurant(etab,jsonb_build_object('hub_id',hub,'nom_client','Entreprise Les Palmiers','telephone','+242 05 800 20 20','debut',(jour+2+time '12:30')::timestamptz,'duree_minutes',90,'couverts',8,'note','Table à affecter en terrasse'));
+  perform set_config('request.jwt.claims','',true);
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Hôtel : établissement « Hôtel Démo » (même client), 7 chambres, séjours en cours, arrivées, réservations à venir,
 -- un départ facturé et payé, une absence, une chambre à nettoyer et une hors service.
@@ -1024,3 +1040,15 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+do $$
+declare etab uuid; gerante uuid;
+begin
+  select id into etab from public.etablissements where nom='Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists(select 1 from public.fidelite_recompenses where etablissement_id=etab) then return; end if;
+  select id into gerante from auth.users where email='gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims',json_build_object('sub',gerante,'role','authenticated')::text,true);
+  perform public.enregistrer_recompense_fidelite(etab,jsonb_build_object('nom','Livraison offerte','description','Livraison offerte sur la prochaine commande locale','points',120,'valeur',1500));
+  perform public.enregistrer_recompense_fidelite(etab,jsonb_build_object('nom','Produit découverte','description','Un produit offert en caisse','points',80,'valeur',1000));
+  perform set_config('request.jwt.claims','',true);
+end $$;

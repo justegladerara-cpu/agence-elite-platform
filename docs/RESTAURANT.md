@@ -55,3 +55,9 @@ Interne : `commande_restaurant_ouverte`, trigger `proteger_ligne_restaurant` (un
 - Pas d'options / suppléments payants par plat (la note est libre) ni de menus composés.
 - Pas de réservations de table ni d'impression automatique des bons (l'écran cuisine les remplace).
 - Pas de plan de salle dessiné (grille par zone).
+## Réservations de tables
+
+La Salle affiche les prochaines réservations. Une réservation contient client, téléphone, horaire, durée, couverts, Hub,
+table facultative et note. La base refuse une capacité excessive et deux réservations qui se chevauchent sur la même table.
+À l'arrivée, le serveur marque le client arrivé puis ouvre normalement la table : commandes, stock, ventes et paiements
+restent les briques communes.

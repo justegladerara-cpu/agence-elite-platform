@@ -127,14 +127,32 @@ export function Erreur({ message }) {
 }
 
 export function Modale({ titre, onFermer, children, pied, large }) {
+  const dialogue = useRef(null);
+  const elementPrecedent = useRef(null);
   useEffect(() => {
-    const touche = (e) => e.key === 'Escape' && onFermer?.();
+    elementPrecedent.current = document.activeElement;
+    const premier = dialogue.current?.querySelector('input, select, textarea, button, [tabindex]:not([tabindex="-1"])');
+    premier?.focus();
+    const touche = (e) => {
+      if (e.key === 'Escape') onFermer?.();
+      if (e.key !== 'Tab') return;
+      const elements = [...(dialogue.current?.querySelectorAll('input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])') ?? [])]
+        .filter((element) => !element.disabled && element.offsetParent !== null);
+      if (!elements.length) return;
+      const premierElement = elements[0];
+      const dernierElement = elements[elements.length - 1];
+      if (e.shiftKey && document.activeElement === premierElement) { e.preventDefault(); dernierElement.focus(); }
+      else if (!e.shiftKey && document.activeElement === dernierElement) { e.preventDefault(); premierElement.focus(); }
+    };
     window.addEventListener('keydown', touche);
-    return () => window.removeEventListener('keydown', touche);
+    return () => {
+      window.removeEventListener('keydown', touche);
+      elementPrecedent.current?.focus?.();
+    };
   }, [onFermer]);
   return createPortal(
     <div className="voile" onMouseDown={(e) => e.target === e.currentTarget && onFermer?.()}>
-      <div className={`modale ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-label={titre}>
+      <div ref={dialogue} className={`modale ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-label={titre}>
         <header>
           <h2>{titre}</h2>
           {onFermer && <button className="icone-bouton" onClick={onFermer} aria-label="Fermer"><Icone nom="fermer" /></button>}
@@ -457,6 +475,7 @@ export function DataTable({
     return liste;
   }, [lignes, texte, valeursFiltres, tri, colonnes, filtres, rechercher]);
   const pages = Math.max(1, Math.ceil(resultat.length / parPage));
+  const filtresActifs = Boolean(texte.trim()) || Object.values(valeursFiltres).some(Boolean);
   const pageCourante = Math.min(page, pages - 1);
   const visibles = resultat.slice(pageCourante * parPage, (pageCourante + 1) * parPage);
   const trier = (c) => {
@@ -475,6 +494,7 @@ export function DataTable({
             </select>
           ))}
           <span className="data-table-compte">{resultat.length} résultat{resultat.length > 1 ? 's' : ''}</span>
+          {filtresActifs && <Bouton icone="fermer" onClick={() => { setTexte(''); setValeursFiltres({}); setPage(0); }}>Effacer les filtres</Bouton>}
           {actions}
         </div>
       )}
@@ -510,7 +530,7 @@ export function DataTable({
                   onKeyDown={onLigne ? (e) => { if (e.key === 'Enter') onLigne(l); } : undefined}
                   tabIndex={onLigne ? 0 : undefined}
                 >
-                  {colonnes.map((c) => <td key={c.id} className={c.classe ?? ''}>{c.rendu ? c.rendu(l) : l[c.id]}</td>)}
+                  {colonnes.map((c) => <td key={c.id} data-label={c.libelle} className={c.classe ?? ''}>{c.rendu ? c.rendu(l) : l[c.id]}</td>)}
                 </tr>
               ))}
             </tbody>

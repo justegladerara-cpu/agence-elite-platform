@@ -53,3 +53,8 @@ Interne : `verifier_disponibilite_hotel`, trigger `proteger_prestation_hotel`.
 - Pas de report des notes du restaurant sur la chambre (le restaurant encaisse à part).
 - Pas de connexion aux plateformes de réservation en ligne (channel manager) ni de taxe de séjour automatique
   (règle locale non définie).
+## Séjours en cours
+
+Depuis la fiche d'un séjour, la réception peut **prolonger** la date de départ après contrôle de disponibilité ou **changer
+de chambre** vers une chambre propre et libre du même type, avec motif obligatoire. L'ancienne chambre passe automatiquement
+à nettoyer et l'historique du changement est conservé dans la note auditée du séjour.

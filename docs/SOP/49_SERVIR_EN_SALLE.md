@@ -1,5 +1,8 @@
 # SOP 49 — Restaurant : préparer la salle, servir, encaisser
 
+0. **Réserver** : Salle › Réserver : client, téléphone, date/heure, durée, couverts et table facultative. La base refuse une
+   table trop petite ou déjà réservée. À l'arrivée, marquer **Arrivée**, puis ouvrir la table.
+
 1. **Préparer** (gérant) : Articles › créer plats et boissons (catégories) ; Salle › Tables et postes :
    créer les tables par zone, choisir le poste de chaque article (Cuisine, Bar, Servi directement).
 2. **Ouvrir la caisse** du Hub du restaurant (SOP 29 pour la clôture du soir).

@@ -27,9 +27,10 @@ sont jamais modifiées après coup : chaque changement est une nouvelle migratio
    les tests tournent puis la liste des migrations à appliquer s'affiche.
 2. Relancer en mode `appliquer` avec la confirmation `JE CONFIRME`.
 
-Chaque push est déjà vérifié par la CI (`ci.yml`) : tests, build, reconstruction
-complète sur un Supabase neuf, pilote complet par l'API (74 vérifications), puis
-sauvegarde et restauration dans une base vierge avec comparaison table par table.
+Chaque push est vérifié par la CI (`ci.yml`) : tests, build, parcours navigateur
+bloquant de tous les domaines, reconstruction complète sur un Supabase neuf, pilote
+par l'API avec test de concurrence sur le stock, puis sauvegarde et restauration
+dans une base vierge avec comparaison table par table.
 
 ## 3. Pilote en production
 

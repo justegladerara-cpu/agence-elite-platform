@@ -146,6 +146,17 @@ describe('séjour', () => {
     await expect(db.query('update hotel_prestations set prix_unitaire = 0 where id = $1', [p1])).rejects.toThrow(/ne se modifie pas/);
   });
 
+  test('séjour en cours : prolongation contrôlée et changement de chambre tracé', async () => {
+    await expect(comme(reception, 'select prolonger_sejour_hotel($1,$2::date)', [resa, await jour(2)])).rejects.toThrow(/prolonger/);
+    await comme(reception, 'select prolonger_sejour_hotel($1,$2::date)', [resa, await jour(4)]);
+    expect((await db.query('select depart::text d from hotel_reservations where id=$1', [resa])).rows[0].d).toBe(await jour(4));
+    await expect(comme(reception, "select changer_chambre_sejour_hotel($1,$2,' ')", [resa, ch102])).rejects.toThrow(/motif/);
+    await comme(reception, "select changer_chambre_sejour_hotel($1,$2,'Climatisation bruyante')", [resa, ch102]);
+    expect((await resaDe(resa)).chambre_id).toBe(ch102);
+    expect((await db.query('select menage from hotel_chambres where id=$1', [ch101])).rows[0].menage).toBe('sale');
+    await expect(comme(autreGerant, 'select prolonger_sejour_hotel($1,$2::date)', [resa, await jour(5)])).rejects.toThrow(/Permission refusée/);
+  });
+
   test('départ : facture émise (1 nuit + prestations), chambre à nettoyer, agent prévenu', async () => {
     const r = await valeur(reception, 'select check_out_hotel($1)', [resa]);
     expect(r.nuits).toBe(1);
@@ -155,7 +166,7 @@ describe('séjour', () => {
     expect(Number(doc.total_ttc)).toBe(25000 + 3000 + 3000);
     expect(doc.contact_id).toBe(client);
     expect((await resaDe(resa)).statut).toBe('terminee');
-    expect((await db.query('select menage from hotel_chambres where id = $1', [ch101])).rows[0].menage).toBe('sale');
+    expect((await db.query('select menage from hotel_chambres where id = $1', [ch102])).rows[0].menage).toBe('sale');
     expect((await db.query("select count(*)::int n from notifications where user_id = $1 and type = 'hotel.menage'", [menage])).rows[0].n).toBe(1);
     await valeur(reception, "select encaisser_facture($1, 31000, 'mobile_money', 'MM-1')", [r.document_id]);
     expect((await db.query('select statut_paiement from ventes where id = $1', [doc.vente_id])).rows[0].statut_paiement).toBe('payee');

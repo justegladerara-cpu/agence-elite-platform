@@ -29,3 +29,8 @@ lire et utiliser. Lecteur, comptable : lecture.
 ## Hors périmètre
 Remise appliquée automatiquement dans le ticket de caisse, carte ou QR code client, envoi de SMS de solde
 (fournisseur SMS non choisi), expiration des points (règle commerciale non définie).
+## Catalogue de récompenses
+
+Le responsable définit des récompenses structurées (nom, description, coût en points, valeur indicative). Leur attribution
+crée le mouvement définitif de points et une ligne d'attribution qui relie client, récompense, auteur et éventuellement vente.
+L'utilisation libre motivée reste disponible pour les cas exceptionnels.

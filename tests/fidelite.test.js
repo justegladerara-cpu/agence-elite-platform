@@ -98,9 +98,20 @@ describe('fidélité', () => {
     await expect(comme(gerant, "insert into fidelite_mouvements(etablissement_id, contact_id, type, points, motif) values ($1, $2, 'ajustement', 999, 'Fraude')", [etab, client])).rejects.toThrow(/row-level security|permission denied/);
   });
 
+  test('catalogue de récompenses : attribution structurée et liée au mouvement', async () => {
+    const recompense = await valeur(gerant, 'select enregistrer_recompense_fidelite($1,$2::jsonb)', [etab, json({ nom: 'Livraison offerte', description: 'Sur la prochaine commande', points: 15, valeur: 1500 })]);
+    await expect(comme(caissier, 'select enregistrer_recompense_fidelite($1,$2::jsonb)', [etab, json({ nom: 'Fraude', points: 1 })])).rejects.toThrow(/Permission refusée/);
+    const solde = await valeur(caissier, 'select attribuer_recompense_fidelite($1,$2,null,$3)', [recompense, client, 'Commande téléphone']);
+    expect(solde).toBe(13);
+    const attribution = (await db.query('select a.*,m.points from fidelite_attributions a join fidelite_mouvements m on m.id=a.mouvement_id where a.recompense_id=$1', [recompense])).rows[0];
+    expect(attribution.points).toBe(-15);
+    await expect(comme(autreGerant, 'select attribuer_recompense_fidelite($1,$2)', [recompense, client])).rejects.toThrow(/Permission refusée/);
+    await expect(db.query('delete from fidelite_attributions')).rejects.toThrow(/Suppression interdite/);
+  });
+
   test('module désactivé : les points acquis restent, plus aucun gain', async () => {
     await comme(sa, "select definir_module_etablissement($1, 'fidelite', false)", [etab]);
     await vendre(client);
-    expect(await solde(client)).toBe(28);
+    expect(await solde(client)).toBe(13);
   });
 });

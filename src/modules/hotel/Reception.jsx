@@ -212,6 +212,8 @@ function Reservation({ reservationId, naviguer }) {
             {r.document_vente_id && peut('facturation.lire') && <Bouton icone="facture" onClick={() => naviguer(`factures/${r.document_vente_id}`)}>Facture</Bouton>}
             <MenuActions actions={[
               r.statut === 'confirmee' && peut('hotel_reservations.gerer') && { libelle: 'Modifier', icone: 'parametres', onClick: () => setAction('modifier') },
+              r.statut === 'en_cours' && peut('hotel_reservations.sejour') && { libelle: 'Prolonger le séjour', icone: 'calendrier', onClick: () => setAction('prolonger') },
+              r.statut === 'en_cours' && peut('hotel_reservations.sejour') && { libelle: 'Changer de chambre', icone: 'lit', onClick: () => setAction('changer-chambre') },
               r.statut === 'confirmee' && peut('hotel_reservations.gerer') && r.arrivee <= aujourdhui() && { libelle: 'Client absent (no-show)', onClick: () => setAction('absent') },
               r.statut === 'confirmee' && peut('hotel_reservations.gerer') && { libelle: 'Annuler la réservation', danger: true, onClick: () => setAction('annuler') },
             ]} />
@@ -278,6 +280,11 @@ function Reservation({ reservationId, naviguer }) {
         <ModalePrestation articles={d.articles} onFermer={() => setAction(null)}
           onValider={async (v) => { await api.rpc('ajouter_prestation_hotel', { p_reservation_id: r.id, p: v }); setAction(null); notifier('Prestation ajoutée'); prestations.recharger(); }} />
       )}
+      {action === 'prolonger' && <ModaleProlongation reservation={r} onFermer={() => setAction(null)} onValider={(depart) => {
+        setAction(null); executer('prolonger_sejour_hotel', { p_reservation_id: r.id, p_nouveau_depart: depart }, 'Séjour prolongé');
+      }} />}
+      {action === 'changer-chambre' && <ModaleChangementChambre reservation={r} chambres={libresDuType.filter((c) => c.id !== r.chambre_id)}
+        onFermer={() => setAction(null)} onValider={(chambre, motif) => { setAction(null); executer('changer_chambre_sejour_hotel', { p_reservation_id: r.id, p_chambre_id: chambre, p_motif: motif }, 'Chambre changée'); }} />}
       {action === 'depart' && (
         <Modale titre="Départ et facture" onFermer={() => setAction(null)}
           pied={(
@@ -306,6 +313,25 @@ function Reservation({ reservationId, naviguer }) {
       )}
     </div>
   );
+}
+
+function ModaleProlongation({ reservation, onFermer, onValider }) {
+  const [depart, setDepart] = useState(ajouterJours(reservation.depart, 1));
+  return <Modale titre="Prolonger le séjour" onFermer={onFermer}><form className="formulaire" onSubmit={(e) => { e.preventDefault(); onValider(depart); }}>
+    <p className="texte-doux">Départ actuel : {formatDate(reservation.depart)}. La disponibilité de la chambre sera vérifiée avant confirmation.</p>
+    <label className="champ"><span className="champ-libelle">Nouveau départ</span><input type="date" min={ajouterJours(reservation.depart, 1)} value={depart} onChange={(e) => setDepart(e.target.value)} required autoFocus /></label>
+    <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal">Prolonger</Bouton></div>
+  </form></Modale>;
+}
+
+function ModaleChangementChambre({ reservation, chambres, onFermer, onValider }) {
+  const [chambre, setChambre] = useState(chambres[0]?.id ?? ''); const [motif, setMotif] = useState('');
+  return <Modale titre="Changer de chambre" onFermer={onFermer}><form className="formulaire" onSubmit={(e) => { e.preventDefault(); onValider(chambre, motif); }}>
+    {!chambres.length ? <Erreur message="Aucune autre chambre propre et libre de ce type." /> : <Champ libelle="Nouvelle chambre"><select value={chambre} onChange={(e) => setChambre(e.target.value)}>{chambres.map((c) => <option key={c.id} value={c.id}>Chambre {c.numero}{c.etage ? ` · étage ${c.etage}` : ''}</option>)}</select></Champ>}
+    <Champ libelle="Motif"><textarea required minLength={3} maxLength={500} rows={3} value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Ex. climatisation en panne" /></Champ>
+    <p className="texte-doux">L’ancienne chambre passera automatiquement « à nettoyer ».</p>
+    <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal" disabled={!chambre || !motif.trim()}>Changer</Bouton></div>
+  </form></Modale>;
 }
 
 export default function Reception({ naviguer, sousRoute }) {

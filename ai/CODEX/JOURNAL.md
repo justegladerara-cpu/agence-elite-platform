@@ -1,5 +1,26 @@
 # Journal de Codex (développeur)
 
+## 2026-10-03 — Profondeur métier Commerce, Restaurant, Hôtel et Fidélité
+- Commerce : retours partiels `RET-…`, calcul des remises, quantités cumulées, restitution du stock, remboursements/avoirs, historique et intégration au ticket Z.
+- Restaurant : réservations avec capacité, chevauchement, affectation facultative, arrivée et planning en Salle.
+- Hôtel : prolongation après contrôle de disponibilité et changement motivé vers une chambre propre ; ancienne chambre envoyée au ménage.
+- Fidélité : catalogue de récompenses et attributions structurées liées au ledger de points et éventuellement à une vente.
+- Démo Patrondemo enrichie avec réservations Restaurant et catalogue de récompenses ; documentation et SOP mises à jour.
+- Migrations incrémentales : `20261003000010_retours_commerce.sql` à `20261003000013_recompenses_fidelite.sql`.
+- Commandes : `npm ci` (0 vulnérabilité), tests ciblés Commerce/Restaurant/Hôtel/Fidélité/migrations (45 réussis), `npm test` (38 fichiers, 382 tests réussis), `npm run build` et `npm run build:demo` (succès).
+- Limitation environnement : l'installation de Chromium et donc `npm run test:e2e` échouent sur le CDN Playwright interdit en HTTP 403 ; le parcours reste bloquant dans la CI équipée du navigateur. Aucune capture locale n'a pu être produite.
+- Production : migrations préparées seulement ; appliquer par le workflow protégé après sauvegarde et simulation.
+- Question pour Claude : aucune.
+
+## 2026-10-03 — Professionnalisation après audit indépendant
+- P0 : correction du délai de préparation de la base locale ; les 19 tests auparavant ignorés s'exécutent. Le parcours Playwright est désormais bloquant et visite tous les domaines dans la CI.
+- P1 : pilote Supabase enrichi d'une vente concurrente sur le dernier article ; audit des configurations sensibles ; dépendances de développement mises à jour sans vulnérabilité connue ; tableaux partagés adaptés au mobile, filtres réinitialisables et modales accessibles au clavier.
+- Documentation : SOP de test et Definition of Done renforcées, état de projet/production/décisions mis à jour, rapport final module par module ajouté.
+- Fichiers principaux : `vitest.config.js`, `scripts/parcours_navigateur.cjs`, `scripts/pilote_en_ligne.mjs`, `.github/workflows/ci.yml`, `src/ui/composants.jsx`, `src/styles.css`, migration `20261003000009_audit_configuration.sql`, tests et documentation.
+- Commandes : `npm test` (36 fichiers, 374 tests réussis), `npm run build` (succès avec avertissement de taille du bundle PGlite), `npm audit --audit-level=moderate` (0 vulnérabilité), test ciblé de l'audit (succès).
+- Limitation environnement : `npx playwright install chromium` échoue avec HTTP 403 du CDN Playwright ; le vrai E2E reste configuré comme étape bloquante de la CI, où Chromium est installé. Aucun secret de production n'est disponible localement : la migration n'a pas été appliquée à distance.
+- Question pour Claude : aucune ; appliquer la migration par simulation puis confirmation selon SOP 12 après revue et CI verte.
+
 ## 2026-10-01 — Tâche 007 : reconstruction et clôture du Lot 1
 - Ajout de la configuration Supabase strictement locale, de la CLI épinglée, du contrôle de clôture et d’un job CI qui reconstruit la base depuis zéro.
 - Commandes : `npm test`, `npm run build` et `npx supabase --version` ; la reconstruction Docker complète est confiée à la CI, Docker étant absent de l’environnement Codex.

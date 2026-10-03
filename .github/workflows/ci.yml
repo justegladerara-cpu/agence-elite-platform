@@ -12,6 +12,19 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Installer Chromium pour les parcours de démonstration
+        run: npx playwright install --with-deps chromium
+      - name: Parcours navigateur bloquant de tous les domaines
+        run: |
+          npm run build:demo
+          npx vite preview --port 4173 > /tmp/agence-elite-vite.log 2>&1 &
+          serveur=$!
+          trap 'kill "$serveur" 2>/dev/null || true' EXIT
+          for tentative in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && break
+            sleep 1
+          done
+          npm run test:e2e
   reconstruction-supabase:
     runs-on: ubuntu-latest
     steps:
