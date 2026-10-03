@@ -992,3 +992,35 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Fidélité sur « Commerce Démo » (module accordé comme supplément) : les ventes passées ne sont pas reprises ; la
+-- cliente fidèle reprend sa carte papier (ajustement), puis utilise une partie de ses points.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  fidele uuid;
+  hotel uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.fidelite_mouvements where etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into fidele from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
+  select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage';
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'fidelite', true, 'Démo : programme de points');
+  perform public.definir_module_etablissement(etab, 'fidelite', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.ajuster_points_fidelite(etab, fidele, 240, 'Reprise de la carte de fidélité papier');
+  perform public.utiliser_points_fidelite(etab, fidele, 100, 'Remise de 1 000 FCFA accordée en caisse');
+  perform public.ajuster_points_fidelite(etab, hotel, 50, 'Geste commercial : retard de livraison');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

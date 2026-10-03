@@ -261,4 +261,15 @@ describe('moteur de données local', () => {
     utilisateur = null;
     await expect(rapport('hub')).rejects.toThrow(/permission denied/);
   });
+  test('la démo fidélité : soldes, utilisation, caissier en lecture', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const soldes = await api.rpc('soldes_fidelite', { p_etablissement_id: etab });
+    const fidele = soldes.find((s) => s.nom === 'Client fidèle Démo');
+    expect(fidele).toMatchObject({ utilises: 100 });
+    expect(fidele.solde).toBe(140 + (fidele.gagnes ?? 0)); // les ventes faites depuis l'activation ajoutent des points
+    expect((await api.rpc('tableau_de_bord_fidelite', { p_etablissement_id: etab })).clients).toBeGreaterThanOrEqual(2);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    expect((await api.lire('fidelite_mouvements')).length).toBeGreaterThan(0);
+  });
 });

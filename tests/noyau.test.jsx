@@ -298,6 +298,17 @@ describe('application sur la base locale', () => {
     expect(await screen.findByRole('cell', { name: 'Dépôt principal' }, { timeout: 10000 })).toBeTruthy();
   });
 
+  test('Fidélité : soldes, fiche client avec historique, utilisation de points', async () => {
+    window.location.hash = '#/fidelite';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    fireEvent.click(await screen.findByText('Client fidèle Démo', {}, { timeout: 10000 }));
+    expect(await screen.findByText('Reprise de la carte de fidélité papier', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Points à utiliser/), { target: { value: '100' } });
+    fireEvent.change(screen.getByLabelText(/Récompense accordée/), { target: { value: 'Savon offert' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Utiliser les points' }));
+    expect(await screen.findByText('100 points utilisés', {}, { timeout: 10000 })).toBeTruthy();
+  });
+
   test('Paramètres › Réglages des modules : chaque application active expose ses réglages', async () => {
     window.location.hash = '#/parametres?onglet=reglages';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);

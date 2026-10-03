@@ -68,6 +68,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Support : tickets clients, échanges, résolution | [54](54_TRAITER_UN_TICKET.md) | Client |
 | Abonnements : formules, abonnés, factures périodiques | [55](55_GERER_LES_ABONNEMENTS.md) | Client |
 | Rapports : ventes par période, article, vendeur, Hub, export | [56](56_LIRE_LES_RAPPORTS.md) | Client |
+| Fidélité : points sur achats, récompenses, ajustements | [57](57_FIDELISER_LES_CLIENTS.md) | Client |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).
