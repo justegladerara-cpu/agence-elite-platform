@@ -55,6 +55,10 @@ Interne : `commande_restaurant_ouverte`, trigger `proteger_ligne_restaurant` (un
 - Pas d'options / suppléments payants par plat (la note est libre) ni de menus composés.
 - Pas de réservations de table ni d'impression automatique des bons (l'écran cuisine les remplace).
 - Pas de plan de salle dessiné (grille par zone).
+
+## Import de carte
+
+Articles → Importer accepte un CSV avec catégorie, nom, description, prix, variante neutre, état, ordre et poste de préparation. Un dry-run obligatoire annonce créations, modifications, lignes inchangées et lignes en attente avant toute écriture. Les références rendent l'opération idempotente ; les articles sans prix sont signalés mais ne deviennent jamais vendables. L'import ne crée ni recette, ni mouvement, ni stock initial.
 ## Réservations de tables
 
 La Salle affiche les prochaines réservations. Une réservation contient client, téléphone, horaire, durée, couverts, Hub,

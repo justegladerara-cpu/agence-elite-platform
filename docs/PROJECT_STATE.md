@@ -1,5 +1,11 @@
 # État du projet (mis à jour le 2026-10-03)
 
+## Mission active
+
+La tâche active est `ai/TACHES/008-onboarding-the-dream.md` : préparation et onboarding contrôlé de « The Dream Lounge Bar Restaurant ». La tâche 001 reste l'archive des fondations du Lot 1 et ne décrit plus le périmètre courant. L'état de production de l'import The Dream doit rester indiqué comme non appliqué tant que le workflow protégé et les smoke tests n'ont pas réellement abouti.
+
+Préparation actuelle : migration d'import avec dry-run, écran Articles et catalogue de 221 lignes vendables prêts localement. La production The Dream et le contexte `patrondream` ne sont pas encore vérifiés, faute de session ou de secret disponible dans l'environnement de développement.
+
 ## En production
 | Élément | État |
 |---|---|

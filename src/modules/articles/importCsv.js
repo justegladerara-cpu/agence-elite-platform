@@ -10,8 +10,16 @@ const COLONNES = {
   unite: ['unite'],
   stock_initial: ['stock_initial', 'stock', 'quantite'],
   stock_minimum: ['stock_minimum', 'alerte', 'seuil'],
+  description: ['description'],
+  variante: ['variante', 'format'],
+  prix_variante: ['prix_variante'],
+  actif: ['actif', 'active'],
+  ordre_affichage: ['ordre_affichage', 'ordre'],
+  poste_preparation: ['poste_preparation', 'poste'],
+  suivi_stock: ['suivi_stock'],
+  motif_attente: ['motif_attente'],
 };
-const NUMERIQUES = ['prix_vente', 'cout_achat', 'stock_initial', 'stock_minimum'];
+const NUMERIQUES = ['prix_vente', 'prix', 'prix_variante', 'cout_achat', 'stock_initial', 'stock_minimum', 'ordre_affichage'];
 
 export const MODELE_CSV = 'nom;prix_vente;cout_achat;categorie;reference;code_barres;unite;stock_initial;stock_minimum\n'
   + 'Gants de protection;3500;2000;EPI;EPI-001;;unité;40;10\n'

@@ -124,6 +124,7 @@ function ImportArticles({ onFermer, onImporte }) {
   const [nomFichier, setNomFichier] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
+  const [simulation, setSimulation] = useState(null);
   const modele = `data:text/csv;charset=utf-8,${encodeURIComponent(MODELE_CSV)}`;
   const avecStock = lignes?.some((l) => l.stock_initial > 0);
   return (
@@ -145,10 +146,19 @@ function ImportArticles({ onFermer, onImporte }) {
               setErreur('');
               setNomFichier(fichier.name);
               try {
-                setLignes(lireCsvArticles(await fichier.text()));
+                const prochaines = lireCsvArticles(await fichier.text());
+                setLignes(prochaines);
+                setChargement(true);
+                const rapport = await api.rpc('importer_catalogue', {
+                  p_etablissement_id: etablissement.id, p_lignes: prochaines, p_simulation: true,
+                });
+                setSimulation(rapport);
+                setChargement(false);
               } catch (err) {
                 setLignes(null);
+                setSimulation(null);
                 setErreur(err.message);
+                setChargement(false);
               }
             }}
           />
@@ -159,6 +169,12 @@ function ImportArticles({ onFermer, onImporte }) {
             <strong>{lignes.length}</strong> article(s) lus dans {nomFichier}.
             {avecStock && !peut('stock.ajuster') && ' Vous n’avez pas le droit de saisir du stock : retirez la colonne stock_initial.'}
           </p>
+        )}
+        {simulation && (
+          <div className="alerte info" role="status">
+            <strong>Aperçu sans écriture :</strong> {simulation.crees} création(s), {simulation.modifies} modification(s),{' '}
+            {simulation.inchanges} inchangée(s), {simulation.attente} en attente. Aucun stock initial ne sera créé.
+          </div>
         )}
         {lignes && (
           <div className="tableau-conteneur apercu-import">
@@ -177,14 +193,16 @@ function ImportArticles({ onFermer, onImporte }) {
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
           <Bouton
             variante="principal"
-            disabled={!lignes?.length}
+            disabled={!lignes?.length || !simulation}
             chargement={chargement}
             onClick={async () => {
               setChargement(true);
               setErreur('');
               try {
-                const resultat = await api.rpc('importer_articles', { p_etablissement_id: etablissement.id, p_lignes: lignes });
-                onImporte(`${resultat.crees} article(s) créé(s), ${resultat.mis_a_jour} mis à jour`);
+                const resultat = await api.rpc('importer_catalogue', {
+                  p_etablissement_id: etablissement.id, p_lignes: lignes, p_simulation: false,
+                });
+                onImporte(`${resultat.crees} article(s) créé(s), ${resultat.modifies} modifié(s), ${resultat.attente} en attente`);
               } catch (err) {
                 setErreur(`${err.message}. Rien n’a été importé : corrigez le fichier puis réessayez.`);
                 setChargement(false);
