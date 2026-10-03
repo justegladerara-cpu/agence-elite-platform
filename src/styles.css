@@ -2723,3 +2723,28 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .champ-image-site { display: grid; gap: 6px; }
 .champ-image-site img { max-width: 220px; max-height: 140px; object-fit: cover; border-radius: var(--rayon); }
 .texte-multiligne { white-space: pre-line; }
+
+/* Agenda : semaine */
+.barre-filtres { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.semaine-agenda { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 8px; overflow-x: auto; }
+.jour-agenda { border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); padding: 8px; display: grid; gap: 6px; align-content: start; min-height: 120px; }
+.jour-agenda.aujourdhui { border-color: var(--accent); }
+.jour-agenda header { display: flex; justify-content: space-between; align-items: center; gap: 6px; text-transform: capitalize; font-size: .85rem; }
+.rdv-agenda { display: grid; gap: 2px; text-align: left; border: 0; border-left: 3px solid var(--accent); background: var(--accent-doux); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--texte); }
+.rdv-agenda span { font-variant-numeric: tabular-nums; color: var(--texte-doux); }
+.rdv-agenda small { color: var(--texte-doux); }
+.rdv-agenda.honore { border-left-color: var(--vert); background: var(--vert-doux); }
+.rdv-agenda.annule { opacity: .55; text-decoration: line-through; background: var(--surface-douce); border-left-color: var(--bordure); }
+.rdv-agenda.absent { border-left-color: var(--rouge); background: var(--rouge-doux); }
+@media (max-width: 900px) { .semaine-agenda { grid-template-columns: 1fr; } }
+
+/* Support : fil d'échanges */
+.ticket-grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .ticket-grille { grid-template-columns: 1fr; } }
+.message-ticket { border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 10px 14px; margin-bottom: 10px; background: var(--surface); }
+.message-ticket small { color: var(--texte-doux); }
+.message-ticket p { margin: 6px 0 0; }
+.message-ticket.client { background: var(--surface-douce); }
+.message-ticket.interne { background: var(--orange-doux); border-color: transparent; }
+.message-ticket.evenement { border-style: dashed; background: transparent; font-size: .88rem; }
+.texte-erreur { color: var(--rouge); }

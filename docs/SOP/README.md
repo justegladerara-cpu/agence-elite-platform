@@ -64,6 +64,9 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Hôtel : chambres, réservations, arrivées, départs facturés, entretien | [50](50_GERER_UN_HOTEL.md) | Client |
 | E-commerce : boutique en ligne, commandes, livraison, retours | [51](51_VENDRE_EN_LIGNE.md) | Client |
 | Site web : pages par blocs, publication, messages | [52](52_CREER_UN_SITE_WEB.md) | Client et Agence Elite |
+| Agenda : rendez-vous, planning, facturation | [53](53_PRENDRE_UN_RENDEZ_VOUS.md) | Client |
+| Support : tickets clients, échanges, résolution | [54](54_TRAITER_UN_TICKET.md) | Client |
+| Abonnements : formules, abonnés, factures périodiques | [55](55_GERER_LES_ABONNEMENTS.md) | Client |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

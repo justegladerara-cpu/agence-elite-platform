@@ -1,6 +1,6 @@
 import React from 'react';
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import App from '../src/App.jsx';
 import { pagesAccessibles, PAGES } from '../src/modules/index.js';
@@ -263,6 +263,40 @@ describe('application sur la base locale', () => {
     fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Bonjour' } });
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer' }));
     expect(await screen.findByText(/votre message est envoyé/, {}, { timeout: 10000 })).toBeTruthy();
+  });
+
+  test('Agenda, Support et Abonnements : semaine, liste, ticket avec échanges, abonnés et périodes', async () => {
+    window.location.hash = '#/agenda';
+    let vue = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByRole('tab', { name: /Liste/ }, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /Liste/ }));
+    expect(await screen.findByText('Mme Ngoma (démo)', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByText('Mme Ngoma (démo)'));
+    expect(await screen.findByText(/Présentation des nouveautés/, {}, { timeout: 10000 })).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/support';
+    vue = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    fireEvent.click(await screen.findByText("Commande de l'hôtel incomplète", {}, { timeout: 10000 }));
+    expect(await screen.findByText('Échanges', {}, { timeout: 10000 })).toBeTruthy();
+    expect(await screen.findByText(/Vérifier le bon de livraison/, {}, { timeout: 10000 })).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/abonnements';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Réassort mensuel hôtel', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /Périodes facturées/ }));
+    expect((await screen.findAllByText(/AB-/, {}, { timeout: 10000 })).length).toBe(3);
+  });
+
+  test('Paramètres › Réglages des modules : chaque application active expose ses réglages', async () => {
+    window.location.hash = '#/parametres?onglet=reglages';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    const formulaire = await screen.findByRole('form', { name: 'Réglages Support et demandes' }, { timeout: 10000 });
+    const champ = within(formulaire).getByLabelText(/priorité urgente/);
+    expect(champ.value).toBe('2');
+    fireEvent.change(champ, { target: { value: '1' } });
+    fireEvent.click(within(formulaire).getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText('Réglages Support et demandes enregistrés', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('form', { name: 'Réglages Devis et factures' })).toBeTruthy();
   });
 
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {

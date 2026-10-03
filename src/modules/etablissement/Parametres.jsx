@@ -234,6 +234,88 @@ function ReglagesCaisse() {
   );
 }
 
+// Réglages déclarés par chaque module actif (modules.parametres_schema) ; la base valide les clés et les types.
+function ReglagesModules() {
+  const { api, etablissement, peut, notifier, moduleActif } = useEspace();
+  const etab = etablissement.id;
+  const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
+    const [modules, parametres] = await Promise.all([
+      api.lire('modules', { ordre: ['ordre'] }),
+      api.lire('etablissement_parametres', { eq: { etablissement_id: etab } }),
+    ]);
+    return {
+      modules: modules.filter((m) => m.id !== 'caisse' && moduleActif(m.id) && (m.parametres_schema ?? []).length),
+      valeurs: Object.fromEntries(parametres.map((p) => [p.module_id, p.data ?? {}])),
+    };
+  }, [etab]);
+  const modifiable = peut('etablissement.modifier');
+  if (chargement && !donnees) return <Chargement />;
+  if (erreur) return <Erreur message={erreur} />;
+  if (!donnees.modules.length) return <div className="carte"><p className="texte-doux">Aucun réglage pour les applications actives.</p></div>;
+  return (
+    <div className="pile">
+      {donnees.modules.map((m) => (
+        <FormulaireReglages key={m.id} module={m} valeurs={donnees.valeurs[m.id] ?? {}} modifiable={modifiable}
+          enregistrer={async (data) => {
+            await api.rpc('enregistrer_parametres_module', { p_etablissement_id: etab, p_module_id: m.id, p_data: data });
+            notifier(`Réglages ${m.nom} enregistrés`);
+            recharger();
+          }} />
+      ))}
+    </div>
+  );
+}
+
+function FormulaireReglages({ module, valeurs, modifiable, enregistrer }) {
+  const schema = module.parametres_schema;
+  const initial = () => Object.fromEntries(schema.map((c) => [c.cle, valeurs[c.cle] ?? c.defaut ?? (c.type === 'booleen' ? false : '')]));
+  const [v, setV] = useState(initial);
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const valider = async (e) => {
+    e.preventDefault();
+    setErreur('');
+    const data = { ...valeurs };
+    for (const c of schema) {
+      if (c.type === 'nombre') {
+        if (v[c.cle] === '' || Number.isNaN(Number(v[c.cle]))) {
+          setErreur(`Indiquez un nombre : ${c.libelle}`);
+          return;
+        }
+        data[c.cle] = Number(v[c.cle]);
+      } else if (c.type === 'booleen') data[c.cle] = Boolean(v[c.cle]);
+      else data[c.cle] = String(v[c.cle] ?? '');
+    }
+    setEnvoi(true);
+    try {
+      await enregistrer(data);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  return (
+    <form className="carte" onSubmit={valider} aria-label={`Réglages ${module.nom}`}>
+      <h2>{module.nom}</h2>
+      <Erreur message={erreur} />
+      {schema.map((c) => (c.type === 'booleen' ? (
+        <label key={c.cle} className="case">
+          <input type="checkbox" disabled={!modifiable} checked={Boolean(v[c.cle])} onChange={(e) => setV({ ...v, [c.cle]: e.target.checked })} />
+          {c.libelle}
+        </label>
+      ) : (
+        <Champ key={c.cle} libelle={c.libelle}>
+          {c.type === 'nombre'
+            ? <input type="number" min="0" step="any" disabled={!modifiable} value={v[c.cle]} onChange={(e) => setV({ ...v, [c.cle]: e.target.value })} />
+            : <textarea rows={2} maxLength={2000} disabled={!modifiable} value={v[c.cle]} onChange={(e) => setV({ ...v, [c.cle]: e.target.value })} />}
+        </Champ>
+      )))}
+      {modifiable ? <Bouton type="submit" variante="principal" disabled={envoi}>Enregistrer</Bouton> : <p className="texte-faible">Réservé aux responsables.</p>}
+    </form>
+  );
+}
+
 function CarteLicence() {
   const { etablissement, montant } = useEspace();
   const l = etablissement.licence;
@@ -273,7 +355,7 @@ function Securite() {
 }
 
 const ONGLETS = [
-  ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'],
+  ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'], ['reglages', 'Réglages des modules'],
   ['applications', 'Applications'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Licence'],
 ];
 
@@ -291,6 +373,7 @@ export default function Parametres({ naviguer }) {
       {onglet === 'documents' && <Identite key={`d-${etablissement.id}`} partie="documents" />}
       {onglet === 'apparence' && <Apparence key={etablissement.id} />}
       {onglet === 'caisses' && <ReglagesCaisse />}
+      {onglet === 'reglages' && <ReglagesModules />}
       {onglet === 'applications' && <ListeApplications />}
       {onglet === 'equipe' && (
         <div className="deux-colonnes">

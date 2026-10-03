@@ -212,4 +212,21 @@ describe('moteur de données local', () => {
     const opps = await api.lire('crm_opportunites', { eq: { etablissement_id: etab } });
     expect(opps.filter((o) => o.document_vente_id)).toHaveLength(1);
   });
+  test('la démo agenda, support et abonnements : rendez-vous, tickets, contrats facturés', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const agenda = await api.rpc('tableau_de_bord_agenda', { p_etablissement_id: etab });
+    expect(agenda).toMatchObject({ semaine: 3, a_confirmer: 2 });
+    const rdv = await api.lire('agenda_rendez_vous', { eq: { etablissement_id: etab } });
+    expect(rdv.filter((r) => r.statut === 'honore' && r.document_id)).toHaveLength(1);
+    const support = await api.rpc('tableau_de_bord_support', { p_etablissement_id: etab });
+    expect(support).toMatchObject({ ouverts: 2, non_assignes: 1, mes_tickets: 1, resolus_mois: 1 });
+    const abo = await api.rpc('tableau_de_bord_abonnements', { p_etablissement_id: etab });
+    expect(abo).toMatchObject({ actifs: 2 });
+    expect(Number(abo.revenu_mensuel)).toBe(65000);
+    expect((await api.lire('abonnement_periodes')).length).toBe(3);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    expect(await api.lire('support_tickets')).toHaveLength(3); // le personnel de comptoir suit les tickets
+    expect(await api.lire('abonnements')).toEqual([]);
+  });
 });

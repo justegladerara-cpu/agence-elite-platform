@@ -896,3 +896,78 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Agenda, support et abonnements sur « Commerce Démo » (modules accordés comme suppléments) : rendez-vous à venir,
+-- un rendez-vous honoré et facturé, trois tickets (ouvert, en cours, résolu), deux formules et un abonnement facturé.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  hotel uuid;
+  fidele uuid;
+  jour date;
+  rv uuid;
+  tk uuid;
+  f1 uuid;
+  f2 uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.agenda_rendez_vous where etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage';
+  select id into fidele from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
+  jour := public.date_locale(etab);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'agenda', true, 'Démo : rendez-vous');
+  perform public.definir_module_etablissement(etab, 'agenda', true);
+  perform public.accorder_module(etab, 'support_tickets', true, 'Démo : service client');
+  perform public.definir_module_etablissement(etab, 'support_tickets', true);
+  perform public.accorder_module(etab, 'abonnements', true, 'Démo : contrats récurrents');
+  perform public.definir_module_etablissement(etab, 'abonnements', true);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  -- Agenda : un rendez-vous de ce matin honoré puis facturé, trois à venir.
+  rv := public.enregistrer_rendez_vous(etab, jsonb_build_object('titre', 'Conseil aménagement vitrine', 'contact_id', hotel,
+    'responsable', gerante, 'debut', now() - interval '3 hours', 'duree_minutes', 60, 'prix', 25000, 'lieu', 'Hôtel Démo Côte Sauvage'));
+  perform public.cloturer_rendez_vous(rv, 'honore');
+  perform public.facturer_rendez_vous(rv);
+  perform public.enregistrer_rendez_vous(etab, jsonb_build_object('titre', 'Livraison et installation du présentoir', 'contact_id', hotel,
+    'responsable', gerante, 'debut', (jour + 1 + time '09:00')::timestamptz, 'duree_minutes', 90, 'statut', 'confirme'));
+  perform public.enregistrer_rendez_vous(etab, jsonb_build_object('titre', 'Présentation des nouveautés', 'nom_client', 'Mme Ngoma (démo)',
+    'telephone', '+242 06 300 00 01', 'responsable', gerante, 'debut', (jour + 2 + time '14:00')::timestamptz, 'duree_minutes', 45));
+  perform public.enregistrer_rendez_vous(etab, jsonb_build_object('titre', 'Point fournisseur', 'nom_client', 'Grossiste Démo',
+    'responsable', gerante, 'debut', (jour + 4 + time '10:30')::timestamptz, 'duree_minutes', 30));
+
+  -- Support : un ticket résolu, un en cours, un nouveau.
+  tk := public.ouvrir_ticket_support(etab, jsonb_build_object('sujet', 'Ticket de caisse illisible', 'contact_id', fidele, 'canal', 'sur_place',
+    'description', 'Le client signale un ticket de caisse pâle, il souhaite un duplicata.'));
+  perform public.ecrire_ticket_support(tk, 'Duplicata imprimé et remis au client.', false);
+  perform public.changer_statut_ticket(tk, 'resolu', 'Duplicata remis ; rouleau d''impression remplacé.');
+  tk := public.ouvrir_ticket_support(etab, jsonb_build_object('sujet', 'Commande de l''hôtel incomplète', 'contact_id', hotel, 'canal', 'telephone',
+    'priorite', 'haute', 'description', 'Il manque 2 cartons d''eau sur la dernière livraison.'));
+  perform public.assigner_ticket_support(tk, gerante, 'haute');
+  perform public.ecrire_ticket_support(tk, 'Vérifier le bon de livraison avec le dépôt avant de rappeler.', true);
+  perform public.changer_statut_ticket(tk, 'en_cours');
+  perform public.ouvrir_ticket_support(etab, jsonb_build_object('sujet', 'Demande de facture au nom de la société', 'nom_client', 'M. Okemba (démo)',
+    'telephone', '+242 06 300 00 02', 'canal', 'whatsapp'));
+
+  -- Abonnements : deux formules, l'hôtel abonné depuis deux mois au réassort mensuel (trois factures en brouillon).
+  f1 := public.enregistrer_formule_abonnement(etab, jsonb_build_object('nom', 'Réassort mensuel hôtel', 'montant', 45000, 'periodicite', 'mensuel',
+    'description', 'Livraison mensuelle du stock de dépannage (eau, savon, snacks).'));
+  f2 := public.enregistrer_formule_abonnement(etab, jsonb_build_object('nom', 'Maintenance présentoir', 'montant', 60000, 'periodicite', 'trimestriel'));
+  perform public.souscrire_abonnement(etab, jsonb_build_object('formule_id', f1, 'contact_id', hotel, 'debut', (jour - interval '2 months')::date));
+  perform public.souscrire_abonnement(etab, jsonb_build_object('formule_id', f2, 'contact_id', fidele, 'debut', jour + 5,
+    'note', 'Démarre la semaine prochaine.'));
+  -- Factures préparées en brouillon : la gérante les vérifie puis les émet (les chiffres de caisse de la démo restent inchangés).
+  perform public.facturer_abonnements(etab, jour, false);
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
