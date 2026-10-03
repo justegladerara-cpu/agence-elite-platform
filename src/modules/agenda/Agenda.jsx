@@ -78,7 +78,7 @@ export default function Agenda({ naviguer, sousRoute }) {
               const cle = jourIso(j);
               const du = visibles.filter((r) => jourIso(new Date(r.debut)) === cle);
               return (
-                <div key={cle} className={`jour-agenda${cle === jourIso(new Date()) ? ' aujourdhui' : ''}`}>
+                <div key={cle} className={`jour-agenda${cle === jourIso(new Date()) ? ' aujourdhui' : ''}${du.length ? '' : ' vide'}`}>
                   <header>
                     <strong>{j.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}</strong>
                     {gerer && <button type="button" className="icone-bouton" aria-label={`Rendez-vous le ${cle}`} onClick={() => setEdition({ jour: cle })}>+</button>}

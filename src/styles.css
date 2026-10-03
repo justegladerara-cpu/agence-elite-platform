@@ -2748,3 +2748,9 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .message-ticket.interne { background: var(--orange-doux); border-color: transparent; }
 .message-ticket.evenement { border-style: dashed; background: transparent; font-size: .88rem; }
 .texte-erreur { color: var(--rouge); }
+
+/* Agenda sur téléphone : les jours sans rendez-vous (sauf aujourd'hui) sont repliés. */
+@media (max-width: 640px) {
+  .jour-agenda.vide:not(.aujourdhui) { min-height: 0; }
+  .jour-agenda.vide:not(.aujourdhui) > p { display: none; }
+}

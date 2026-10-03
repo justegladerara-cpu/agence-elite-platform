@@ -7,6 +7,8 @@ import { ModaleRecu } from '../recus/Recu.jsx';
 const PERIODES = [['jour', 'Aujourd’hui'], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout']];
 const DEBUTS = { jour: 0, semaine: -6, mois: -29 };
 
+const ORIGINES = { caisse: 'Caisse', facture: 'Facture', boutique: 'Boutique en ligne', restaurant: 'Restaurant', hotel: 'Hôtel', abonnement: 'Abonnement' };
+
 export function BadgePaiement({ vente }) {
   if (vente.statut === 'annulee') return <Badge ton="rouge">Annulée</Badge>;
   if (vente.statut_paiement === 'payee') return <Badge ton="vert">Payée</Badge>;
@@ -236,7 +238,7 @@ export default function Ventes() {
             <tbody>
               {ventes.map((v) => (
                 <tr key={v.id} onClick={() => setOuverte(v.id)}>
-                  <td><strong>{v.numero}</strong></td>
+                  <td><strong>{v.numero}</strong>{v.origine && v.origine !== 'caisse' && <><br /><small className="texte-doux">{ORIGINES[v.origine] ?? v.origine}</small></>}</td>
                   <td>{formatDateHeure(v.cree_le)}</td>
                   {multiHub && <td>{nomHub(v.hub_id)}</td>}
                   <td>{donnees.contacts[v.contact_id] ?? '—'}</td>
