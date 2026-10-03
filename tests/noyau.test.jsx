@@ -205,6 +205,23 @@ describe('application sur la base locale', () => {
     expect(screen.getAllByText('Commencer').length).toBeGreaterThan(0);
   });
 
+  test('Hôtel : réception, planning, fiche de séjour, entretien', async () => {
+    window.location.hash = '#/hotel';
+    const vue = render(<App demarrer={demarrer('reception@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Famille Massamba', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /Planning/ }));
+    expect(screen.getByRole('table', { name: 'Planning des chambres' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /Aujourd/ }));
+    fireEvent.click(screen.getByText('Mme Loemba'));
+    expect(await screen.findByText('Départ et facture', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText(/Minibar : eau 50 cl/)).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/chambres';
+    render(<App demarrer={demarrer('menage@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Climatisation en réparation', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getAllByText('Commencer').length).toBe(1);
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

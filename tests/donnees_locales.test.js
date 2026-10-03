@@ -172,6 +172,16 @@ describe('moteur de données local', () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     expect(await api.lire('rest_commandes')).toEqual([]);
   });
+  test('la démo hôtel : séjours, arrivées, départ facturé et payé, entretien', async () => {
+    utilisateur = comptes['reception@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Hôtel Démo'")).rows[0].id;
+    const tdb = await api.rpc('tableau_de_bord_hotel', { p_etablissement_id: etab });
+    expect(tdb).toMatchObject({ chambres: 6, occupees: 2, arrivees_jour: 1, a_nettoyer: 1, hors_service: 1, reservations_a_venir: 2 });
+    expect(Number(tdb.chiffre_mois)).toBe(29000);
+    utilisateur = comptes['menage@demo.agence-elite.fr'];
+    expect(await api.lire('hotel_reservations')).toEqual([]);
+    expect((await api.lire('hotel_chambres')).length).toBe(7);
+  });
   test('la démo CRM : pipeline, devis lié, relance en retard, gagnée et perdue', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;

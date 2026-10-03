@@ -61,6 +61,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Prospect, opportunité, relance, devis lié, gagné / perdu | [47](47_SUIVRE_UN_PROSPECT.md) | Client, Agence Elite |
 | Projet, tâches, temps passé, facturation du temps | [48](48_PILOTER_UN_PROJET.md) | Client, Agence Elite |
 | Restaurant : tables, commandes, cuisine, addition séparée | [49](49_SERVIR_EN_SALLE.md) | Client |
+| Hôtel : chambres, réservations, arrivées, départs facturés, entretien | [50](50_GERER_UN_HOTEL.md) | Client |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

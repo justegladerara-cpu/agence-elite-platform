@@ -53,8 +53,10 @@ export const ROLES = {
   comptable: 'Comptable',
   commercial: 'Commercial',
   collaborateur: 'Collaborateur',
+  receptionniste: 'Réceptionniste',
   serveur: 'Serveur',
   cuisinier: 'Cuisinier',
+  agent_entretien: 'Agent d’entretien',
   lecteur: 'Lecteur',
 };
 

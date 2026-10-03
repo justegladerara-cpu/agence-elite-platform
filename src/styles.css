@@ -2629,3 +2629,20 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .commande-resto { grid-template-columns: 1fr; }
   .commande-resto .commande-lignes { position: static; }
 }
+
+/* Hôtel : planning des chambres, cartes d'entretien */
+.planning-hotel { overflow-x: auto; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
+.planning-ligne { display: grid; grid-template-columns: 140px repeat(14, minmax(44px, 1fr)); min-width: 780px; border-bottom: 1px solid var(--bordure); }
+.planning-ligne:last-child { border-bottom: 0; }
+.planning-ligne > span { padding: 8px; font-size: .82rem; }
+.planning-ligne.entete > span { color: var(--texte-doux); text-align: center; text-transform: capitalize; }
+.planning-ligne.entete > span:first-child { text-align: left; }
+.planning-ligne .jour-courant { color: var(--accent); font-weight: 600; }
+.planning-case { border: 0; border-left: 1px solid var(--bordure); background: transparent; font: inherit; font-size: .78rem; padding: 4px 6px;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; color: var(--texte); min-height: 36px; }
+.planning-case.libre:hover, .planning-case.libre:focus-visible { background: var(--surface-douce); }
+.planning-case.confirmee { background: var(--accent-doux); color: var(--accent-fort); }
+.planning-case.en_cours { background: var(--vert-doux); color: var(--vert); font-weight: 600; }
+.carte-chambre { cursor: default; }
+.carte-chambre.sale { border-color: var(--orange); }
+.carte-chambre.hors_service { border-color: var(--rouge); background: var(--rouge-doux); }

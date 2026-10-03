@@ -598,3 +598,115 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Hôtel : établissement « Hôtel Démo » (même client), 7 chambres, séjours en cours, arrivées, réservations à venir,
+-- un départ facturé et payé, une absence, une chambre à nettoyer et une hors service.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  client uuid;
+  etab uuid;
+  sa uuid;
+  patron uuid;
+  gerant uuid;
+  reception uuid;
+  menage uuid;
+  ligne record;
+  id_tmp uuid;
+  ty jsonb := '{}'::jsonb;
+  ch jsonb := '{}'::jsonb;
+  r uuid;
+  res jsonb;
+  jour date;
+  eau uuid;
+  repas uuid;
+  domaine constant text := 'demo.agence-elite.fr';
+begin
+  select id into client from public.clients where nom = 'Commerce Démo' order by cree_le limit 1;
+  if client is null or exists (select 1 from public.etablissements where client_id = client and nom = 'Hôtel Démo') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
+
+  for ligne in select * from (values ('hotel', 'Serge B. (directeur de l''hôtel)'), ('reception', 'Nadège L. (réception)'),
+    ('menage', 'Bienvenu K. (entretien)')) as v(cle, nom) loop
+    select id into id_tmp from auth.users where email = ligne.cle || '@' || domaine;
+    if id_tmp is null then
+      insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+        raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+      values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', ligne.cle || '@' || domaine,
+        extensions.crypt(md5(random()::text || clock_timestamp()::text), extensions.gen_salt('bf')), now(),
+        '{"provider": "email", "providers": ["email"]}'::jsonb, jsonb_build_object('nom', ligne.nom), now(), now(), '', '', '', '')
+      returning id into id_tmp;
+      insert into public.profils (id, nom_complet) values (id_tmp, ligne.nom)
+      on conflict (id) do update set nom_complet = excluded.nom_complet;
+    end if;
+    case ligne.cle when 'hotel' then gerant := id_tmp; when 'reception' then reception := id_tmp; else menage := id_tmp; end case;
+  end loop;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  etab := public.creer_etablissement(client, 'hotel', 'Hôtel Démo');
+  insert into public.etablissement_membres (etablissement_id, user_id, role_id) values
+    (etab, gerant, 'gerant'), (etab, reception, 'receptionniste'), (etab, menage, 'agent_entretien')
+  on conflict (etablissement_id, user_id) do nothing;
+  if patron is not null then
+    insert into public.etablissement_membres (etablissement_id, user_id, role_id) values (etab, patron, 'gerant')
+    on conflict (etablissement_id, user_id) do nothing;
+  end if;
+  jour := public.date_locale(etab);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  for ligne in select * from (values ('Standard', 25000, 2, 1, 'Lit double, climatisation, TV'), ('Supérieure', 35000, 3, 2, 'Lit double et canapé, vue jardin'),
+    ('Suite', 60000, 4, 3, 'Chambre et salon, vue mer')) as v(nom, tarif, capacite, ordre, descr) loop
+    ty := ty || jsonb_build_object(ligne.nom, public.enregistrer_type_chambre(etab, jsonb_build_object('nom', ligne.nom, 'tarif_nuit', ligne.tarif,
+      'capacite', ligne.capacite, 'ordre', ligne.ordre, 'description', ligne.descr)));
+  end loop;
+  for ligne in select * from (values ('101', 'Standard', '1'), ('102', 'Standard', '1'), ('103', 'Standard', '1'), ('104', 'Standard', '1'),
+    ('201', 'Supérieure', '2'), ('202', 'Supérieure', '2'), ('301', 'Suite', '3')) as v(numero, type, etage) loop
+    ch := ch || jsonb_build_object(ligne.numero, public.enregistrer_chambre(etab, jsonb_build_object('numero', ligne.numero,
+      'type_id', ty ->> ligne.type, 'etage', ligne.etage)));
+  end loop;
+  eau := public.enregistrer_article(etab, jsonb_build_object('nom', 'Minibar : eau 50 cl', 'prix_vente', 500, 'suivi_stock', false));
+  repas := public.enregistrer_article(etab, jsonb_build_object('nom', 'Petit-déjeuner', 'prix_vente', 4000, 'suivi_stock', false));
+  perform public.enregistrer_contact(etab, jsonb_build_object('nom', 'M. Itoua', 'societe', 'Société Pétrolière Démo', 'type', 'client', 'telephone', '+242 06 222 33 44'));
+
+  perform set_config('request.jwt.claims', json_build_object('sub', reception, 'role', 'authenticated')::text, true);
+  -- Séjour en cours en suite, avec prestations.
+  r := public.enregistrer_reservation_hotel(etab, jsonb_build_object('contact_id',
+    (select id from public.contacts where etablissement_id = etab and nom = 'M. Itoua'), 'type_id', ty ->> 'Suite', 'chambre_id', ch ->> '301',
+    'arrivee', jour, 'depart', jour + 4, 'adultes', 2, 'source', 'telephone', 'note', 'Facture au nom de la société'));
+  perform public.check_in_hotel(r, null);
+  perform public.ajouter_prestation_hotel(r, jsonb_build_object('article_id', repas, 'quantite', 2));
+  perform public.ajouter_prestation_hotel(r, jsonb_build_object('libelle', 'Transfert aéroport', 'quantite', 1, 'prix_unitaire', 10000));
+  -- Séjour en cours en Standard.
+  r := public.enregistrer_reservation_hotel(etab, jsonb_build_object('nom_client', 'Mme Loemba', 'telephone', '+242 05 444 55 66',
+    'type_id', ty ->> 'Standard', 'arrivee', jour, 'depart', jour + 2, 'source', 'whatsapp'));
+  perform public.check_in_hotel(r, (ch ->> '102')::uuid);
+  perform public.ajouter_prestation_hotel(r, jsonb_build_object('article_id', eau, 'quantite', 3));
+  -- Client de passage : arrivé et reparti (facture émise et payée) ; la 101 est à nettoyer.
+  r := public.enregistrer_reservation_hotel(etab, jsonb_build_object('nom_client', 'M. Ngoma (de passage)', 'type_id', ty ->> 'Standard',
+    'arrivee', jour, 'depart', jour + 1, 'source', 'direct'));
+  perform public.check_in_hotel(r, (ch ->> '101')::uuid);
+  perform public.ajouter_prestation_hotel(r, jsonb_build_object('article_id', repas, 'quantite', 1));
+  res := public.check_out_hotel(r);
+  perform public.encaisser_facture((res ->> 'document_id')::uuid, 29000, 'mobile_money', 'MM-DEMO-HOTEL-1');
+  -- Arrivées attendues aujourd'hui.
+  perform public.enregistrer_reservation_hotel(etab, jsonb_build_object('nom_client', 'Famille Massamba', 'type_id', ty ->> 'Supérieure',
+    'arrivee', jour, 'depart', jour + 3, 'adultes', 2, 'enfants', 1, 'source', 'site_web', 'note', 'Arrivée vers 18 h'));
+  r := public.enregistrer_reservation_hotel(etab, jsonb_build_object('nom_client', 'M. Kimbembe', 'type_id', ty ->> 'Standard',
+    'arrivee', jour, 'depart', jour + 1, 'source', 'telephone'));
+  perform public.annuler_reservation_hotel(r, 'Pas venu, téléphone injoignable', true);
+  -- Réservations à venir.
+  perform public.enregistrer_reservation_hotel(etab, jsonb_build_object('nom_client', 'Délégation ministère (démo)', 'type_id', ty ->> 'Supérieure',
+    'arrivee', jour + 5, 'depart', jour + 8, 'adultes', 2, 'source', 'agence'));
+  perform public.enregistrer_reservation_hotel(etab, jsonb_build_object('nom_client', 'Mlle Bouanga', 'type_id', ty ->> 'Standard',
+    'chambre_id', ch ->> '103', 'arrivee', jour + 2, 'depart', jour + 6, 'source', 'plateforme', 'tarif_nuit', 22000));
+
+  perform set_config('request.jwt.claims', json_build_object('sub', menage, 'role', 'authenticated')::text, true);
+  perform public.changer_menage_chambre((ch ->> '202')::uuid, 'hors_service', 'Climatisation en réparation');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

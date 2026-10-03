@@ -2,6 +2,8 @@
 // PGlite. Il sert à la démo sans serveur et aux tests ; aucune donnée ne quitte l'appareil.
 
 const IDENTIFIANT = /^[a-z_][a-z0-9_]*$/;
+// Comme Supabase (PostgREST) : une colonne « date » arrive en texte AAAA-MM-JJ, jamais en objet Date.
+const COMME_SUPABASE = { parsers: { 1082: (valeur) => valeur } };
 
 function verifierIdentifiant(nom) {
   if (!IDENTIFIANT.test(nom)) throw new Error(`Identifiant refusé : ${nom}`);
@@ -128,11 +130,11 @@ export function creerApiLocale(db, lireUtilisateur) {
     mode: 'local',
     async rpc(nom, args) {
       const { sql, parametres } = construireAppel(nom, args, await typesDe(verifierIdentifiant(nom)));
-      return executerComme(db, lireUtilisateur(), async (tx) => (await tx.query(sql, parametres)).rows[0]?.resultat ?? null);
+      return executerComme(db, lireUtilisateur(), async (tx) => (await tx.query(sql, parametres, COMME_SUPABASE)).rows[0]?.resultat ?? null);
     },
     async lire(table, options) {
       const { sql, parametres } = construireLecture(table, options);
-      return executerComme(db, lireUtilisateur(), async (tx) => (await tx.query(sql, parametres)).rows);
+      return executerComme(db, lireUtilisateur(), async (tx) => (await tx.query(sql, parametres, COMME_SUPABASE)).rows);
     },
   };
 }

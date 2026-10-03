@@ -4,13 +4,13 @@ import { creerBase } from './helpers/db.js';
 let db;
 const MODULES_ATTENDUS = {
   achats: 'actif', articles: 'actif', caisse: 'actif', cloture: 'actif', contacts: 'actif', crm_pipeline: 'actif', depenses: 'actif',
-  documents: 'actif', ecommerce_boutique: 'futur', etablissement: 'actif', facturation: 'actif', hotel_chambres: 'futur',
-  hotel_reservations: 'futur', membres: 'actif', paiements: 'actif', projets: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
+  documents: 'actif', ecommerce_boutique: 'futur', etablissement: 'actif', facturation: 'actif', hotel_chambres: 'actif',
+  hotel_reservations: 'actif', membres: 'actif', paiements: 'actif', projets: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
   restaurant_salle: 'actif', rh_conges: 'actif', rh_employes: 'actif', rh_presences: 'actif', site_web: 'futur', stock: 'actif',
   tableau_de_bord: 'actif', ventes: 'actif',
 };
-const SOLUTIONS_ATTENDUES = { commerce: 'active', ecommerce: 'future', hotel: 'future', restaurant: 'active', rh: 'active', services: 'active' };
-const ROLES_ATTENDUS = ['gerant', 'responsable', 'responsable_hub', 'responsable_rh', 'gestionnaire_depot', 'commercial', 'employe', 'serveur', 'cuisinier', 'comptable', 'collaborateur', 'lecteur'];
+const SOLUTIONS_ATTENDUES = { commerce: 'active', ecommerce: 'future', hotel: 'active', restaurant: 'active', rh: 'active', services: 'active' };
+const ROLES_ATTENDUS = ['gerant', 'responsable', 'responsable_hub', 'responsable_rh', 'gestionnaire_depot', 'commercial', 'employe', 'receptionniste', 'serveur', 'cuisinier', 'agent_entretien', 'comptable', 'collaborateur', 'lecteur'];
 beforeAll(async () => { db = await creerBase(); }); afterAll(async () => db.close());
 
 describe('catalogue de départ', () => {
