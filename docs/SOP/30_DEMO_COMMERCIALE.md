@@ -21,4 +21,12 @@ Le script remet la démo à jour sans rien effacer (idempotent) et archive les c
 4. Clôture : ticket Z.
 5. Côté Agence Elite : client, licence, modules.
 
+**Démo par module** (avec `Patrondemo`, gérant de tous les établissements fictifs ; choisir l'établissement en haut) :
+| Établissement | À montrer |
+|---|---|
+| Commerce Démo | Facturation (devis, facture en retard, avoir), Achats, CRM (pipeline), Projets, RH (employés, présences, congés), Documents, Agenda (rendez-vous à venir, un facturé), Support (3 tickets), Abonnements (factures en brouillon à émettre), Rapports (par article, par Hub), Fidélité (soldes, utiliser des points), Paramètres › Réglages des modules |
+| Restaurant Démo | Plan de salle, commande de table, écran cuisine, addition séparée |
+| Hôtel Démo | Réception, planning, séjour, entretien des chambres |
+| Boutique en ligne Démo | Commandes à chaque étape ; boutique publique `#/commander/demo-boutique` ; site `#/site/demo-site` |
+
 **Après :** relancer le workflow pour remettre la démo propre.
