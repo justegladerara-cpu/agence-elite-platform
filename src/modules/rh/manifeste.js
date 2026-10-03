@@ -4,7 +4,6 @@ import Conges from './Conges.jsx';
 import Employes from './Employes.jsx';
 import MonEspace from './MonEspace.jsx';
 import Presences from './Presences.jsx';
-import { SyntheseRh } from './widgets.jsx';
 
 export default {
   module: 'rh_employes',
@@ -15,7 +14,5 @@ export default {
     { id: 'presences', module: 'rh_presences', libelle: 'Présences', icone: 'horloge', groupe: 'Ressources humaines', ordre: 20, permission: 'rh_presences.lire', composant: Presences },
     { id: 'conges', module: 'rh_conges', libelle: 'Congés', icone: 'valise', groupe: 'Ressources humaines', ordre: 30, permission: 'rh_conges.lire', composant: Conges },
   ],
-  widgets: [
-    { id: 'rh.synthese', zone: 'section', ordre: 60, permission: 'rh_employes.lire', composant: SyntheseRh },
-  ],
+  widgets: [],
 };

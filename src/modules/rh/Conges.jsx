@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate, formatDateHeure } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import {
   Badge, Bouton, Champ, DataTable, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette, Tabs,
 } from '../../ui/composants.jsx';
@@ -226,7 +227,8 @@ function ModaleFerie({ ferie, onFermer, onFait }) {
 export default function Conges({ naviguer }) {
   const { api, etablissement, peut, notifier } = useEspace();
   const valideur = peut('rh_conges.valider');
-  const [onglet, setOnglet] = useState(valideur ? 'a_traiter' : 'toutes');
+  // #/conges?statut=… (tableau de bord) : la liste filtrée « Toutes les absences ».
+  const [onglet, setOnglet] = useState(() => (lireParametres().get('statut') || !valideur ? 'toutes' : 'a_traiter'));
   const [annee, setAnnee] = useState(new Date().getFullYear());
   const [action, setAction] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {

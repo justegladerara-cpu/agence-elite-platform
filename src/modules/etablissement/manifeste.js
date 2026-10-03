@@ -1,6 +1,5 @@
 // Socle « Établissement » : Hubs, mise en service, applications, paramètres.
 import Hubs from '../hubs/Hubs.jsx';
-import { ParHub } from '../hubs/widgets.jsx';
 import Applications from './Applications.jsx';
 import MiseEnService from './MiseEnService.jsx';
 import Parametres from './Parametres.jsx';
@@ -14,7 +13,5 @@ export default {
     { id: 'applications', libelle: 'Applications', icone: 'modules', groupe: 'Organisation', ordre: 40, permission: 'etablissement.lire', composant: Applications },
     { id: 'parametres', libelle: 'Paramètres', icone: 'parametres', groupe: 'Organisation', ordre: 50, permission: 'etablissement.lire', composant: Parametres },
   ],
-  widgets: [
-    { id: 'etablissement.par_hub', zone: 'section', ordre: 10, visible: ({ espace, tdb }) => espace.multiHub && !espace.hub && tdb.par_hub?.length > 1, composant: ParHub },
-  ],
+  widgets: [],
 };

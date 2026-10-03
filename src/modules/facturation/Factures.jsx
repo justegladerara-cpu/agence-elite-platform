@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDate } from '../../noyau/format.js';
-import { Badge, Bouton, DataTable, EmptyState, Erreur, PageHeader, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
+import { Badge, Bouton, DataTable, EmptyState, Erreur, Icone, PageHeader, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
 import { etatDocument, TYPES_DOCUMENT } from './commun.js';
 import DocumentVente from './Document.jsx';
@@ -11,7 +12,19 @@ const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs'
 
 function Liste({ naviguer }) {
   const { api, etablissement, peut, montant } = useEspace();
-  const [onglet, setOnglet] = useState('facture');
+  // Liens profonds : ?onglet=facture|devis|avoir, ?du=…&au=… (dates ISO, bornes incluses).
+  const [onglet, setOnglet] = useState(() => {
+    const p = lireParametres();
+    const o = p.get('onglet');
+    if (ONGLETS.some(([k]) => k === o)) return o;
+    return ['Envoyé', 'Accepté', 'Expiré', 'Refusé', 'Facturé'].includes(p.get('etat')) ? 'devis' : 'facture';
+  });
+  const [periode, setPeriode] = useState(() => {
+    const p = lireParametres();
+    const du = p.get('du') || null;
+    const au = p.get('au') || null;
+    return du || au ? { du, au } : null;
+  });
   const aujourdhui = dateLocale();
   const { donnees, chargement, erreur } = useDonnees(async () => {
     const [documents, contacts, ventes, tdb] = await Promise.all([
@@ -26,7 +39,8 @@ function Liste({ naviguer }) {
       vente: Object.fromEntries(ventes.map((v) => [v.id, v])),
     };
   }, [etablissement.id]);
-  const lignes = useMemo(() => (donnees?.documents ?? []).filter((d) => d.type === onglet), [donnees, onglet]);
+  const lignes = useMemo(() => (donnees?.documents ?? []).filter((d) => d.type === onglet
+    && (!periode || ((!periode.du || d.date_document >= periode.du) && (!periode.au || d.date_document <= periode.au)))), [donnees, onglet, periode]);
   const nomClient = (d) => donnees.contact[d.contact_id]?.societe || donnees.contact[d.contact_id]?.nom || '—';
   const etat = (d) => etatDocument(d, donnees.vente[d.vente_id], aujourdhui);
   const reste = (d) => {
@@ -56,6 +70,14 @@ function Liste({ naviguer }) {
             <StatCard icone="document" libelle="Devis en cours" valeur={donnees.tdb.devis_ouverts} detail={donnees.tdb.taux_conversion != null ? `${donnees.tdb.taux_conversion} % acceptés` : undefined} />
           </div>
           <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, donnees.documents.filter((d) => d.type === k).length])} actif={onglet} onChange={setOnglet} />
+          {periode && (
+            <div>
+              <button type="button" className="puce-filtre" onClick={() => setPeriode(null)} aria-label="Retirer le filtre de période">
+                {periode.du && periode.au ? `Du ${formatDate(periode.du)} au ${formatDate(periode.au)}` : periode.du ? `Depuis le ${formatDate(periode.du)}` : `Jusqu’au ${formatDate(periode.au)}`}
+                <Icone nom="fermer" taille={14} />
+              </button>
+            </div>
+          )}
           <DataTable
             key={onglet}
             colonnes={[

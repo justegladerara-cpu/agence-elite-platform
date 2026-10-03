@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, ModaleMotif, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
 import { DetailVente } from '../ventes/Ventes.jsx';
@@ -21,7 +22,11 @@ export default function Boutique({ naviguer, sousRoute }) {
     ]);
     return { boutique: boutiques[0] ?? null, commandes, coupons, articles, publie: Object.fromEntries(publies.map((p) => [p.article_id, p])) };
   }, [etab]);
-  const [onglet, setOnglet] = useState('commandes');
+  // Lien ?vue=produits|coupons|reglages ; sinon les commandes (filtrables par ?statut=…).
+  const [onglet, setOnglet] = useState(() => {
+    const vue = lireParametres().get('vue');
+    return ['produits', 'coupons', 'reglages'].includes(vue) ? vue : 'commandes';
+  });
   const [edition, setEdition] = useState(null);
   const [commandeId] = (sousRoute ?? '').split('/');
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;

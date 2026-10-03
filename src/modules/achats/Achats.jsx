@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDate, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, DataTable, EmptyState, Erreur, PageHeader, Section, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
@@ -8,6 +9,16 @@ import EditeurCommande from './Editeur.jsx';
 import { etatCommande, resteAPayer } from './commun.js';
 
 const ONGLETS = [['en_cours', 'En cours'], ['demandes', 'Demandes'], ['a_payer', 'À payer'], ['toutes', 'Toutes'], ['reappro', 'Réapprovisionnement']];
+// Onglet ouvert par un lien profond : ?onglet=…, ?vue=paiements (dettes fournisseurs) ou l'onglet qui contient ?etat=….
+function ongletInitial(p) {
+  const o = p.get('onglet');
+  if (ONGLETS.some(([k]) => k === o)) return o;
+  if (p.get('vue') === 'paiements') return 'a_payer';
+  const etat = p.get('etat');
+  if (etat === 'Demande') return 'demandes';
+  if (etat && !['Brouillon', 'Envoyée', 'Livraison en retard', 'Reçue en partie'].includes(etat)) return 'toutes';
+  return 'en_cours';
+}
 const FILTRES = {
   en_cours: (c) => ['brouillon', 'envoyee', 'partielle'].includes(c.statut),
   demandes: (c) => c.statut === 'demande',
@@ -47,7 +58,7 @@ function Reapprovisionnement({ suggestions, naviguer }) {
 
 function Liste({ naviguer }) {
   const { api, etablissement, peut, montant, hubs, multiHub } = useEspace();
-  const [onglet, setOnglet] = useState('en_cours');
+  const [onglet, setOnglet] = useState(() => ongletInitial(lireParametres()));
   const aujourdhui = dateLocale();
   const { donnees, chargement, erreur } = useDonnees(async () => {
     const [commandes, contacts, tdb, suggestions] = await Promise.all([
@@ -133,7 +144,15 @@ function Liste({ naviguer }) {
 let preRemplissage = null;
 
 export default function Achats({ naviguer, sousRoute }) {
-  const [premier, second] = (sousRoute ?? '').split('/');
+  const { peut } = useEspace();
+  // ?nouveau=1 : nouvelle commande (ou demande sans droit de gestion) ; ?nouveau=demande : demande d'achat.
+  const [nouveau] = useState(() => {
+    const n = lireParametres().get('nouveau');
+    if (n === 'demande') return peut('achats.demander') ? 'nouvelle-demande' : null;
+    if (n === '1') return peut('achats.gerer') ? 'nouveau' : peut('achats.demander') ? 'nouvelle-demande' : null;
+    return null;
+  });
+  const [premier, second] = (sousRoute || nouveau || '').split('/');
   const aller = (route, prefill) => {
     preRemplissage = prefill ?? null;
     naviguer(route);

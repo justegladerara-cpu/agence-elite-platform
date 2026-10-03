@@ -113,7 +113,7 @@ function Aujourdhui({ organisation, gerer }) {
           cle="employe_id"
           lignes={lignes}
           rechercher={(l) => l.nom}
-          filtres={[{ id: 'etat', libelle: 'État', options: [['manquant', 'Non pointés'], ['retard', 'En retard'], ['absent', 'Absents']],
+          filtres={[{ id: 'etat', libelle: 'État', options: [['manquant', 'Non pointés'], ['retard', 'En retard'], ['absence', 'Absents']],
             appliquer: (l, v) => (v === 'manquant' ? l.jour_travaille && !l.absence && !l.ferie && !l.pointage : v === 'retard' ? l.pointage?.retard_minutes > 0 : Boolean(l.absence)) }]}
           triInitial={{ id: 'nom', sens: 'asc' }}
           vide={<EmptyState titre="Aucun employé actif" icone="utilisateur" />}

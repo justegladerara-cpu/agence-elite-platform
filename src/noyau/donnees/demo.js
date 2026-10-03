@@ -1,7 +1,9 @@
 // Données de démonstration fictives pour le mode local. Aucune donnée réelle.
-// Le contenu vient de supabase/demo/commerce_demo.sql puis modules_demo.sql, les mêmes scripts qu'en production.
+// Le contenu vient de supabase/demo/commerce_demo.sql, modules_demo.sql puis historique_demo.sql
+// (plusieurs mois d'activité fictive pour les tableaux de bord), les mêmes scripts qu'en production.
 import scriptDemo from '../../../supabase/demo/commerce_demo.sql?raw';
 import scriptModules from '../../../supabase/demo/modules_demo.sql?raw';
+import scriptHistorique from '../../../supabase/demo/historique_demo.sql?raw';
 
 // Mot de passe temporaire des comptes de démonstration locaux (changement obligatoire à la connexion).
 export const MOT_DE_PASSE_DEMO_LOCAL = '1234';
@@ -10,7 +12,8 @@ export async function baseVide(db) {
   return (await db.query('select count(*)::int n from public.clients')).rows[0].n === 0;
 }
 
-export async function semerDemo(db, script = scriptDemo, modules = scriptModules) {
+// historique : ajoute les mois d'activité fictive (mode local de l'application ; les tests l'activent au besoin).
+export async function semerDemo(db, script = scriptDemo, modules = scriptModules, { historique = false } = {}) {
   // Super administrateur local (en ligne, c'est le compte existant d'Agence Elite).
   const sa = (await db.query("insert into auth.users(email) values ('editeur@demo.local') returning id")).rows[0].id;
   await db.query("update public.profils set nom_complet = 'Juste Glade' where id = $1", [sa]);
@@ -19,6 +22,7 @@ export async function semerDemo(db, script = scriptDemo, modules = scriptModules
     await tx.query("select set_config('app.demo_mot_de_passe', $1, true), set_config('app.demo_super_admin_email', 'editeur@demo.local', true)", [MOT_DE_PASSE_DEMO_LOCAL]);
     await tx.exec(script);
     if (modules) await tx.exec(modules);
+    if (historique) await tx.exec(scriptHistorique);
   });
   const etablissement = (await db.query("select id from public.etablissements where nom = 'Commerce Démo'")).rows[0].id;
   return { etablissements: [etablissement], superAdmin: sa };

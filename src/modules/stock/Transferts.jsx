@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Icone, Modale, ModaleMotif, PageHeader, StatusBadge } from '../../ui/composants.jsx';
 import { quantiteHub, useStockHubs } from './Stock.jsx';
@@ -94,12 +95,13 @@ export default function Transferts() {
       .filter((t) => !hub || t.hub_source_id === hub.id || t.hub_destination_id === hub.id)
       .map((t) => ({ ...t, lignes: lignes.filter((l) => l.transfert_id === t.id) }));
   }, [etab, hub?.id]);
-  const [nouveau, setNouveau] = useState(false);
-  const [detail, setDetail] = useState(null);
-  const [annulation, setAnnulation] = useState(null);
   const nomHub = (id) => hubs.find((h) => h.id === id)?.nom ?? 'Hub non accessible';
   const transferables = hubs.filter((h) => h.capacite_stock && h.capacite_transfert);
   const peutTransferer = peut('stock.transferer') && etablissement.ecriture && transferables.length > 1;
+  // ?nouveau=1 : ouvre directement la saisie (si l'utilisateur peut transférer).
+  const [nouveau, setNouveau] = useState(() => peutTransferer && lireParametres().get('nouveau') === '1');
+  const [detail, setDetail] = useState(null);
+  const [annulation, setAnnulation] = useState(null);
 
   return (
     <div className="page">

@@ -2834,3 +2834,112 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .journal-auth ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--texte-doux); overflow-wrap: anywhere; }
 .sans-bordure { border: 0; padding: 0; margin: 0; min-width: 0; }
 .auth-panneau .marque-logo { background: rgba(255, 255, 255, 0.18); }
+
+/* ---------------------------------------------------------------------------
+   Tableaux de bord (cockpit) : période, indicateurs, « À surveiller », graphiques.
+   --------------------------------------------------------------------------- */
+.cockpit { gap: 16px; }
+.cockpit-onglets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.cockpit-onglets button {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--bordure); background: var(--surface); color: var(--texte-doux); font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.cockpit-onglets button:hover { border-color: var(--bordure-forte); color: var(--texte); }
+.cockpit-onglets button.actif { background: var(--texte); border-color: var(--texte); color: #fff; }
+
+.cockpit-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.cockpit-periodes { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface); border: 1px solid var(--bordure); }
+.cockpit-periodes button { border: 0; background: transparent; padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--texte-doux); cursor: pointer; }
+.cockpit-periodes button:hover { color: var(--texte); background: var(--surface-douce); }
+.cockpit-periodes button.actif { background: var(--accent); color: #fff; }
+.cockpit-filtres, .cockpit-filtres-avances, .cockpit-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cockpit-filtres-avances { flex-basis: 100%; }
+.cockpit-filtres select, .cockpit-filtres-avances select, .cockpit-dates input { min-height: 34px; padding: 5px 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--surface); max-width: 100%; }
+.cockpit-dates label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--texte-doux); }
+.cockpit-plage { font-size: 13px; font-variant-numeric: tabular-nums; }
+.cockpit-note { margin: -6px 0 0; font-size: 12.5px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.kpis-hero { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.kpi {
+  display: grid; gap: 4px; align-content: start; text-align: left; padding: 14px 16px; border-radius: var(--rayon);
+  border: 1px solid var(--bordure); background: var(--surface); box-shadow: var(--ombre); color: inherit; min-width: 0;
+}
+.kpi.cliquable { cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
+.kpi.cliquable:hover { border-color: color-mix(in srgb, var(--accent) 35%, #ffffff); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
+.kpi.cliquable:focus-visible { outline: 3px solid var(--accent-doux); outline-offset: 1px; border-color: var(--accent); }
+.kpi-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; }
+.kpi-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi-detail { color: var(--texte-doux); font-size: 12px; }
+.kpi-variation { font-size: 12px; font-weight: 700; color: var(--texte-doux); font-variant-numeric: tabular-nums; }
+.kpi-variation small { font-weight: 500; color: var(--texte-faible); }
+.kpi-variation.bon { color: var(--vert); }
+.kpi-variation.mauvais { color: var(--rouge); }
+.kpi.alerte .kpi-valeur { color: var(--rouge); }
+.kpi.attention .kpi-valeur { color: var(--orange); }
+.kpi.fort { background: linear-gradient(160deg, var(--accent-fort), var(--accent)); border-color: transparent; color: #fff; }
+.kpi.fort .kpi-libelle, .kpi.fort .kpi-detail, .kpi.fort .kpi-variation, .kpi.fort .kpi-variation small { color: rgba(255, 255, 255, 0.86); }
+
+.cockpit-grille { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.cockpit-colonnes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.cockpit-domaines { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.cockpit-domaine h2 { display: inline-flex; align-items: center; gap: 8px; }
+.cockpit-domaine .kpis { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.cockpit-domaine .kpi { box-shadow: none; background: var(--surface-douce); padding: 10px 12px; }
+.cockpit-domaine .kpi-valeur { font-size: 18px; }
+.cockpit-domaine > .bouton { justify-self: start; }
+
+.cockpit-rien { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--vert); font-weight: 600; }
+.attention-liste, .cockpit-liste, .cockpit-repartition { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.attention {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--bordure); background: var(--surface); cursor: pointer; color: inherit;
+}
+.attention:hover:not(:disabled) { border-color: var(--bordure-forte); background: var(--surface-douce); }
+.attention:disabled { cursor: default; }
+.attention-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; }
+.attention-texte { display: grid; gap: 1px; min-width: 0; }
+.attention-texte small { color: var(--texte-doux); font-size: 12px; }
+.attention-nombre { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.niveau-critique { border-left: 3px solid var(--rouge); }
+.niveau-critique .attention-icone { background: var(--rouge-doux); color: var(--rouge); }
+.niveau-alerte { border-left: 3px solid var(--orange); }
+.niveau-alerte .attention-icone { background: var(--orange-doux); color: var(--orange); }
+.niveau-info { border-left: 3px solid var(--accent); }
+.niveau-info .attention-icone { background: var(--accent-doux); color: var(--accent); }
+
+.cockpit-liste button {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left;
+  padding: 8px 4px; border: 0; border-bottom: 1px solid var(--bordure); background: transparent; color: inherit; cursor: pointer;
+}
+.cockpit-liste li:last-child button { border-bottom: 0; }
+.cockpit-liste button:disabled { cursor: default; }
+.cockpit-liste button:hover:not(:disabled) strong { color: var(--accent); }
+.cockpit-liste span { display: grid; gap: 1px; min-width: 0; }
+.cockpit-liste small { color: var(--texte-doux); font-size: 12px; }
+.cockpit-liste-valeur { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.repartition-ligne {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; width: 100%; text-align: left;
+  padding: 4px 0; border: 0; background: transparent; color: inherit; cursor: pointer;
+}
+.repartition-ligne:disabled { cursor: default; }
+.repartition-libelle { font-weight: 600; overflow-wrap: anywhere; }
+.repartition-valeur { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.repartition-valeur small { color: var(--texte-doux); font-weight: 500; }
+.repartition-barre { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--surface-douce); overflow: hidden; }
+.repartition-barre span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+
+.actions-rapides { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 860px) {
+  .cockpit-grille { grid-template-columns: minmax(0, 1fr); }
+  .kpis, .kpis-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .kpi { padding: 12px; }
+  .kpi-valeur { font-size: 18px; }
+  .kpi-variation small { display: none; }
+  .cockpit-periodes { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+  .cockpit-periodes button { flex: 0 0 auto; }
+  .cockpit-domaines, .cockpit-colonnes { grid-template-columns: minmax(0, 1fr); }
+  .page-header .actions-rapides { width: 100%; }
+}

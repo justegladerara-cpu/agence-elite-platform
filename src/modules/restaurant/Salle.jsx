@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, MenuActions, Modale, ModaleMotif, PageHeader, Recherche, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { ModalePaiement, VignetteArticle } from '../caisse/Caisse.jsx';
@@ -38,7 +39,12 @@ function PlanDeSalle({ naviguer }) {
   const { api, etablissement, peut, notifier, montant, hubs, multiHub, moduleActif } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useSalle();
   const [ouvrir, setOuvrir] = useState(null);
-  const [reservation, setReservation] = useState(null);
+  // Lien ?vue=reservations : défile jusqu’aux réservations ; avec ?nouveau=1, ouvre une nouvelle réservation.
+  const [vueReservations] = useState(() => lireParametres().get('vue') === 'reservations');
+  const [reservation, setReservation] = useState(() => (vueReservations && lireParametres().get('nouveau') === '1' && peut('restaurant_salle.servir') ? {} : null));
+  const blocReservations = useRef(null);
+  const charge = Boolean(d);
+  useEffect(() => { if (vueReservations && charge) blocReservations.current?.scrollIntoView({ block: 'start' }); }, [vueReservations, charge]);
   const tableau = useDonnees(() => api.rpc('tableau_de_bord_restaurant', { p_etablissement_id: etablissement.id }), [etablissement.id]);
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
@@ -114,7 +120,7 @@ function PlanDeSalle({ naviguer }) {
           </div>
         </Section>
       )}
-      <Section titre="Réservations" sousTitre="Les prochaines arrivées, avec ou sans table déjà affectée.">
+      <div ref={blocReservations}><Section titre="Réservations" sousTitre="Les prochaines arrivées, avec ou sans table déjà affectée.">
         {!d.reservations.filter((r) => ['confirmee', 'arrivee'].includes(r.statut)).length && <p className="texte-doux">Aucune réservation à venir.</p>}
         <div className="liste-simple">{d.reservations.filter((r) => ['confirmee', 'arrivee'].includes(r.statut)).slice(0, 12).map((r) => {
           const table = d.tables.find((t) => t.id === r.table_id);
@@ -123,7 +129,7 @@ function PlanDeSalle({ naviguer }) {
             <span className="groupe-boutons">{r.statut === 'confirmee' && <Bouton onClick={() => api.rpc('statut_reservation_restaurant', { p_id: r.id, p_statut: 'arrivee', p_motif: null }).then(() => { notifier('Arrivée enregistrée'); recharger(); })}>Arrivée</Bouton>}
               <button type="button" className="lien" onClick={() => setReservation(r)}>Modifier</button></span></div>;
         })}</div>
-      </Section>
+      </Section></div>
       {ouvrir && (
         <ModaleOuverture
           table={ouvrir.table}

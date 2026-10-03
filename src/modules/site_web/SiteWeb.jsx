@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { COULEURS_MARQUE } from '../../noyau/marque.js';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, lireImageReduite, Modale, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
@@ -35,7 +36,12 @@ export default function SiteWeb({ naviguer, sousRoute }) {
     return { site: sites[0] ?? null, pages, messages };
   }, [etab]);
   const [premier, second] = (sousRoute ?? '').split('/');
-  const [onglet, setOnglet] = useState(premier === 'messages' ? 'messages' : 'pages');
+  // Lien ?vue=messages|reglages (?statut=… filtre les messages) ou #/siteweb/messages.
+  const [onglet, setOnglet] = useState(() => {
+    const p = lireParametres();
+    if (premier === 'messages' || p.get('vue') === 'messages' || p.get('statut')) return 'messages';
+    return p.get('vue') === 'reglages' ? 'reglages' : 'pages';
+  });
   const [nouvellePage, setNouvellePage] = useState(null);
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;

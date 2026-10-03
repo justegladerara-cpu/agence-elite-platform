@@ -446,7 +446,7 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
 function Coquille() {
   const espace = useEspace();
   const { api, contexte, etablissement, editeur, roleEditeur, recharger } = espace;
-  const [route, naviguer] = useRoute();
+  const [route, naviguer, requete] = useRoute();
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [compte, setCompte] = useState(false);
   const pages = etablissement ? pagesAccessibles(espace) : [];
@@ -550,7 +550,7 @@ function Coquille() {
               </GardeErreur>
             )}
             {!surEditeur && (Page
-              ? <GardeErreur key={`${etablissement.id}-${page.id}`}><Page naviguer={aller} sousRoute={sousRoute} /></GardeErreur>
+              ? <GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Page naviguer={aller} sousRoute={sousRoute} /></GardeErreur>
               : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
           </main>
         </div>

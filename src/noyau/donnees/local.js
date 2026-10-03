@@ -31,7 +31,7 @@ export async function demarrerLocal() {
   const db = new PGlite(NOM_BASE, optionsPGlite);
   await db.waitReady;
   await preparerBase(db, { shim, complement, migrations });
-  if (await baseVide(db)) await semerDemo(db);
+  if (await baseVide(db)) await semerDemo(db, undefined, undefined, { historique: true });
   let utilisateur = lireStockage(CLE_UTILISATEUR);
   const api = creerApiLocale(db, () => utilisateur);
   return {

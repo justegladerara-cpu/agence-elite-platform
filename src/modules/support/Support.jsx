@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, ModaleMotif, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
 
@@ -24,7 +25,8 @@ export default function Support({ naviguer, sousRoute }) {
     ]);
     return { tickets, equipe, contacts: contacts.filter((c) => c.type !== 'fournisseur'), membre: Object.fromEntries(equipe.map((m) => [m.user_id, m])) };
   }, [etab]);
-  const [nouveau, setNouveau] = useState(false);
+  // #/support?etat=…&priorite=…&nouveau=1 (tableau de bord).
+  const [nouveau, setNouveau] = useState(() => lireParametres().get('nouveau') === '1' && peut('support_tickets.traiter'));
   const [ticketId] = (sousRoute ?? '').split('/');
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
@@ -38,8 +40,8 @@ export default function Support({ naviguer, sousRoute }) {
         <DataTable lignes={d.tickets} onLigne={(t) => naviguer(`support/${t.id}`)}
           rechercher={(t) => `${t.numero} ${t.sujet} ${t.nom_client} ${t.telephone ?? ''}`} placeholder="Numéro, sujet, client…"
           filtres={[
-            { id: 'etat', libelle: 'État', options: [['actifs', 'À traiter'], ['retard', 'En retard'], ['moi', 'Mes tickets'], ...Object.entries(STATUTS_TICKET).map(([id, [l]]) => [id, l])],
-              appliquer: (t, v) => (v === 'actifs' ? actif(t) : v === 'retard' ? enRetard(t) : v === 'moi' ? t.assigne_a === utilisateur?.id && actif(t) : t.statut === v) },
+            { id: 'etat', libelle: 'État', options: [['actifs', 'À traiter'], ['retard', 'En retard'], ['moi', 'Mes tickets'], ['non_assignes', 'Non assignés'], ...Object.entries(STATUTS_TICKET).map(([id, [l]]) => [id, l])],
+              appliquer: (t, v) => (v === 'actifs' ? actif(t) : v === 'retard' ? enRetard(t) : v === 'moi' ? t.assigne_a === utilisateur?.id && actif(t) : v === 'non_assignes' ? !t.assigne_a && actif(t) : t.statut === v) },
             { id: 'priorite', libelle: 'Priorité', options: Object.entries(PRIORITES).map(([id, [l]]) => [id, l]), appliquer: (t, v) => t.priorite === v },
           ]}
           vide={<p className="texte-doux">Aucun ticket.</p>}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, DataTable, EmptyState, Erreur, MenuActions, ModaleMotif, PageHeader, Section, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
 import { exporterCsv, PiecesJointes } from '../../ui/communs.jsx';
 import { COLONNES_TACHES, heures, PRIORITES, STATUTS_PROJET } from './commun.js';
@@ -137,7 +138,7 @@ function FicheProjet({ projetId, naviguer }) {
   const { api, peut, notifier, montant, moduleActif } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useProjets([projetId]);
   const { donnees: s, recharger: rechargerSynthese } = useDonnees(() => api.rpc('synthese_projet', { p_projet_id: projetId }), [projetId]);
-  const [onglet, setOnglet] = useState('taches');
+  const [onglet, setOnglet] = useState(() => (['temps', 'infos'].includes(lireParametres().get('vue')) ? lireParametres().get('vue') : 'taches'));
   const [action, setAction] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
   const toutRecharger = () => { recharger(); rechargerSynthese(); };
@@ -227,8 +228,9 @@ function FicheProjet({ projetId, naviguer }) {
 function Accueil({ naviguer }) {
   const { peut, montant, utilisateur, notifier } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useProjets();
-  const [onglet, setOnglet] = useState('projets');
-  const [action, setAction] = useState(null);
+  // #/projets?vue=taches|temps&statut=…&nouveau=1 (tableau de bord).
+  const [onglet, setOnglet] = useState(() => ({ taches: 'mes_taches', mes_taches: 'mes_taches', temps: 'temps' })[lireParametres().get('vue')] ?? 'projets');
+  const [action, setAction] = useState(() => (lireParametres().get('nouveau') === '1' && peut('projets.gerer') ? 'projet' : null));
   return (
     <div className="page page-large">
       <PageHeader

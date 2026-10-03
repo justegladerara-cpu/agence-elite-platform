@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
 
@@ -238,8 +239,14 @@ function Inventaires({ hubsParId }) {
 export default function Stock({ naviguer }) {
   const { api, etablissement, peut, notifier, hubs, hub, multiHub, montant } = useEspace();
   const etab = etablissement.id;
-  const [vue, setVue] = useState('niveaux');
-  const [action, setAction] = useState(null);
+  // Liens profonds : ?vue=mouvements|inventaires|inventaire (ouvre la saisie d'inventaire).
+  const [vue, setVue] = useState(() => {
+    const v = lireParametres().get('vue');
+    return v === 'inventaire' ? 'inventaires' : ['mouvements', 'inventaires'].includes(v) ? v : 'niveaux';
+  });
+  const [action, setAction] = useState(() => (
+    lireParametres().get('vue') === 'inventaire' && peut('stock.ajuster') && etablissement.ecriture ? { type: 'inventaire' } : null
+  ));
   const [version, setVersion] = useState(0);
   const { donnees, chargement, erreur, recharger } = useStockHubs();
   const { donnees: mouvements } = useDonnees(

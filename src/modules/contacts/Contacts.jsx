@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { SOURCES } from '../crm/commun.js';
@@ -130,7 +131,8 @@ export default function Contacts({ naviguer, sousRoute }) {
   const etab = etablissement.id;
   const [vue, setVue] = useState('tous');
   const [recherche, setRecherche] = useState('');
-  const [edition, setEdition] = useState(null);
+  // ?nouveau=1 : ouvre directement le formulaire de création.
+  const [edition, setEdition] = useState(() => (peut('contacts.gerer') && lireParametres().get('nouveau') === '1' ? {} : null));
   const [fiche, setFiche] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [contacts, ventes] = await Promise.all([

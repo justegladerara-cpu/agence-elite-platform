@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 
@@ -21,6 +22,11 @@ export default function Fidelite() {
   const [ouvert, setOuvert] = useState(null);
   const [ajout, setAjout] = useState(false);
   const [recompense, setRecompense] = useState(false);
+  // Lien ?vue=recompenses : défile jusqu’au catalogue de récompenses.
+  const [vueRecompenses] = useState(() => lireParametres().get('vue') === 'recompenses');
+  const catalogue = useRef(null);
+  const charge = Boolean(d);
+  useEffect(() => { if (vueRecompenses && charge) catalogue.current?.scrollIntoView({ block: 'start' }); }, [vueRecompenses, charge]);
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
   const valeur = Number(d.tdb.valeur_point);
@@ -45,14 +51,14 @@ export default function Fidelite() {
             { id: 'dernier', libelle: 'Dernier mouvement', rendu: (s) => formatDateHeure(s.dernier), tri: (s) => s.dernier },
           ]} />
       </Section>
-      <Section titre="Catalogue de récompenses" sousTitre="Des avantages clairs, avec un coût en points fixe et une attribution traçable.">
+      <div ref={catalogue}><Section titre="Catalogue de récompenses" sousTitre="Des avantages clairs, avec un coût en points fixe et une attribution traçable.">
         <DataTable lignes={d.recompenses} vide={<p className="texte-doux">Créez une première récompense, par exemple « Livraison offerte ».</p>} colonnes={[
           { id: 'nom', libelle: 'Récompense', rendu: (r) => <><strong>{r.nom}</strong><br /><small className="texte-doux">{r.description}</small></> },
           { id: 'points', libelle: 'Coût', classe: 'nombre', rendu: (r) => `${r.points} pts`, tri: (r) => r.points },
           { id: 'valeur', libelle: 'Valeur indicative', classe: 'nombre', rendu: (r) => r.valeur == null ? '—' : montant(r.valeur) },
           { id: 'actif', libelle: 'État', rendu: (r) => <Badge ton={r.actif ? 'vert' : 'neutre'}>{r.actif ? 'Disponible' : 'Retirée'}</Badge> },
         ]} />
-      </Section>
+      </Section></div>
       {ouvert && <FicheClient s={ouvert} tdb={d.tdb} recompenses={d.recompenses.filter((r) => r.actif)} onFermer={() => setOuvert(null)} onChange={() => { setOuvert(null); recharger(); }} />}
       {ajout && <ModaleAjustement contacts={d.contacts} onFermer={() => setAjout(false)} onFait={() => { setAjout(false); recharger(); }} />}
       {recompense && <ModaleRecompense onFermer={() => setRecompense(false)} onFait={() => { setRecompense(false); recharger(); }} />}

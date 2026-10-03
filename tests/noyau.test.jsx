@@ -81,7 +81,7 @@ describe('application sur la base locale', () => {
     expect((await screen.findAllByText('Chiffre d’affaires', {}, { timeout: 10000 })).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Commerce Démo/).length).toBeGreaterThan(0);
     // Plusieurs Hubs : le sélecteur apparaît et le tableau « Par Hub » détaille chaque lieu.
-    expect(screen.getByLabelText('Hub')).toBeTruthy();
+    expect(screen.getAllByLabelText('Hub').length).toBeGreaterThan(0);
     expect((await screen.findAllByText('Boutique Marché Total')).length).toBeGreaterThan(0);
   });
 
@@ -134,10 +134,10 @@ describe('application sur la base locale', () => {
   });
 
   test('RH : le tableau de bord de la gérante affiche la synthèse RH', async () => {
-    window.location.hash = '#/tableau-de-bord';
+    window.location.hash = '#/tableau-de-bord/rh';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
-    expect(await screen.findByText('Ressources humaines', { selector: 'h2' }, { timeout: 10000 })).toBeTruthy();
-    expect(screen.getByText('Effectif actif')).toBeTruthy();
+    expect(await screen.findByText('Tableau RH', {}, { timeout: 10000 })).toBeTruthy();
+    expect((await screen.findAllByText('Effectif', {}, { timeout: 10000 })).length).toBeGreaterThan(0);
   });
 
   test('Facturation : liste, document A4 et éditeur', async () => {

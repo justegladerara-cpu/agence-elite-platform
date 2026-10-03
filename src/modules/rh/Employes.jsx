@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import {
   Avatar, Badge, Bouton, Champ, DataTable, EmptyState, Erreur, lireImageReduite, Modale, PageHeader, Section, Squelette, StatusBadge, Tabs,
 } from '../../ui/composants.jsx';
@@ -253,11 +254,15 @@ function Organigramme({ organisation, naviguer }) {
 export default function Employes({ naviguer, sousRoute }) {
   const { api, etablissement, peut, notifier, hubs, multiHub } = useEspace();
   const etab = etablissement.id;
-  const [onglet, setOnglet] = useState('annuaire');
-  const [edition, setEdition] = useState(null);
+  const confidentiel = peut('rh_employes.confidentiel');
+  // #/employes?vue=…&statut=…&departement=…&filtre=sans_contrat|fin_30j&nouveau=1 (tableau de bord).
+  const [onglet, setOnglet] = useState(() => {
+    const vue = lireParametres().get('vue');
+    return ['organigramme', 'organisation', ...(confidentiel ? ['contrats'] : [])].includes(vue) ? vue : 'annuaire';
+  });
+  const [edition, setEdition] = useState(() => (lireParametres().get('nouveau') === '1' && peut('rh_employes.gerer') ? {} : null));
   const [departement, setDepartement] = useState(null);
   const [poste, setPoste] = useState(null);
-  const confidentiel = peut('rh_employes.confidentiel');
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const organisation = await chargerOrganisation(api, etab);
     const contrats = confidentiel ? await api.lire('rh_contrats', { eq: { etablissement_id: etab, statut: 'actif' } }) : [];
@@ -318,6 +323,7 @@ export default function Employes({ naviguer, sousRoute }) {
           filtres={[
             { id: 'statut', libelle: 'Statut', options: Object.entries(STATUTS_EMPLOYE).map(([k, [l]]) => [k, l]), appliquer: (e, v) => e.statut === v },
             { id: 'departement', libelle: 'Département', options: donnees.departements.map((d) => [d.id, d.nom]), appliquer: (e, v) => e.departement_id === v },
+            ...(confidentiel ? [{ id: 'filtre', libelle: 'Contrat', options: [['sans_contrat', 'Sans contrat en cours']], appliquer: (e, v) => v !== 'sans_contrat' || (e.statut !== 'sorti' && !donnees.contratDe[e.id]) }] : []),
           ]}
           triInitial={{ id: 'nom', sens: 'asc' }}
           onLigne={(e) => naviguer(`employes/${e.id}`)}
@@ -374,6 +380,7 @@ export default function Employes({ naviguer, sousRoute }) {
             { id: 'essai', libelle: 'Fin d’essai', rendu: (c) => (c.fin_periode_essai ? formatDate(c.fin_periode_essai) : '—') },
           ]}
           lignes={donnees.contrats}
+          filtres={[{ id: 'filtre', libelle: 'Échéance', options: [['fin_30j', 'Fin dans les 30 jours']], appliquer: (c, v) => v !== 'fin_30j' || (Boolean(c.fin) && c.fin <= dateLocale(30)) }]}
           triInitial={{ id: 'fin', sens: 'asc' }}
           onLigne={(c) => naviguer(`employes/${c.employe_id}`)}
           vide={<EmptyState titre="Aucun contrat en cours" icone="document" />}

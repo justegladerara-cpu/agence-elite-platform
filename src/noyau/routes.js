@@ -9,17 +9,22 @@ export function lireParametres() {
   return new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 }
 
+export function lireRequete() {
+  return window.location.hash.split('?')[1] ?? '';
+}
+
 export function useRoute() {
   const [route, setRoute] = useState(lireRoute);
+  const [requete, setRequete] = useState(lireRequete);
   useEffect(() => {
-    const ecouter = () => setRoute(lireRoute());
+    const ecouter = () => { setRoute(lireRoute()); setRequete(lireRequete()); };
     window.addEventListener('hashchange', ecouter);
     return () => window.removeEventListener('hashchange', ecouter);
   }, []);
   const naviguer = useCallback((id) => {
     window.location.hash = `/${id}`;
   }, []);
-  return [route, naviguer];
+  return [route, naviguer, requete];
 }
 
 export const lien = (chemin) => `#/${chemin}`;

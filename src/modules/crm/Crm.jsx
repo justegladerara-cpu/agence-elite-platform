@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { formatDate, formatDateHeure } from '../../noyau/format.js';
+import { dateLocale, formatDate, formatDateHeure } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, DataTable, EmptyState, Erreur, Icone, PageHeader, Section, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
 import { SOURCES, STATUTS_OPPORTUNITE, TYPES_ACTIVITE } from './commun.js';
@@ -118,8 +119,15 @@ function Pipeline({ d, recharger, naviguer, filtreMoi }) {
   );
 }
 
-function ListeOpportunites({ d, naviguer }) {
+function ListeOpportunites({ d, naviguer, seuil = 14 }) {
   const { montant } = useEspace();
+  // Alertes du tableau de bord (#/crm?vue=liste&filtre=…), mêmes règles que tableau_de_bord_crm.
+  const limite = Date.now() - seuil * 86400000;
+  const aujourdhui = dateLocale();
+  const ALERTES = {
+    sans_activite: (o) => o.statut === 'ouverte' && new Date(o.derniere_activite).getTime() < limite,
+    cloture_depassee: (o) => o.statut === 'ouverte' && Boolean(o.cloture_prevue) && o.cloture_prevue < aujourdhui,
+  };
   const etat = (o) => (o.statut === 'ouverte' ? [d.etape[o.etape_id]?.nom ?? '—', 'bleu'] : STATUTS_OPPORTUNITE[o.statut]);
   const contact = (o) => nomContact(d.contact[o.contact_id]);
   const responsable = (o) => d.membre[o.responsable_id]?.nom ?? '—';
@@ -142,6 +150,7 @@ function ListeOpportunites({ d, naviguer }) {
         { id: 'statut', libelle: 'Statut', options: Object.entries(STATUTS_OPPORTUNITE).map(([k, [l]]) => [k, l]), appliquer: (o, v) => o.statut === v },
         { id: 'responsable', libelle: 'Suivie par', options: d.equipe.map((m) => [m.user_id, m.nom]), appliquer: (o, v) => o.responsable_id === v },
         { id: 'source', libelle: 'Origine', options: Object.entries(SOURCES), appliquer: (o, v) => o.source === v },
+        { id: 'filtre', libelle: 'Alerte', options: [['sans_activite', `Sans activité depuis ${seuil} j`], ['cloture_depassee', 'Signature dépassée']], appliquer: (o, v) => ALERTES[v]?.(o) ?? true },
       ]}
       triInitial={{ id: 'numero', sens: 'desc' }}
       onLigne={(o) => naviguer(`crm/${o.id}`)}
@@ -186,11 +195,22 @@ function Prospects({ d, naviguer }) {
 const ONGLETS = [['pipeline', 'Pipeline'], ['liste', 'Opportunités'], ['activites', 'Activités'], ['prospects', 'Prospects']];
 
 function Accueil({ naviguer }) {
-  const { montant, peut, utilisateur } = useEspace();
-  const [onglet, setOnglet] = useState('pipeline');
-  const [nouvelle, setNouvelle] = useState(false);
+  const { api, etablissement, montant, peut, utilisateur } = useEspace();
+  // #/crm?vue=liste|activites|prospects&filtre=…&nouveau=1 (indicateurs du tableau de bord).
+  const [onglet, setOnglet] = useState(() => {
+    const vue = lireParametres().get('vue');
+    return ONGLETS.some(([k]) => k === vue) ? vue : 'pipeline';
+  });
+  const [filtreActivites, setFiltreActivites] = useState(() => (lireParametres().get('filtre') === 'retard'
+    ? (a) => a.statut === 'a_faire' && new Date(a.echeance) < new Date() : undefined));
+  const [nouvelle, setNouvelle] = useState(() => lireParametres().get('nouveau') === '1' && peut('crm_pipeline.gerer'));
   const [filtreMoi, setFiltreMoi] = useState(false);
   const { donnees: d, chargement, erreur, recharger } = useCrm();
+  // Seuil « sans activité » du module (même défaut que le serveur).
+  const { donnees: seuil } = useDonnees(async () => {
+    const lignes = await api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id, module_id: 'crm_pipeline' } }).catch(() => []);
+    return Number(lignes[0]?.data?.jours_sans_activite) || 14;
+  }, [etablissement.id]);
   const aFaire = useMemo(() => (d ? d.activites.filter((a) => a.statut === 'a_faire' && a.assigne_a === utilisateur?.id).length : 0), [d, utilisateur]);
   return (
     <div className="page page-large">
@@ -225,8 +245,9 @@ function Accueil({ naviguer }) {
                 : <EmptyState icone="cible" titre="Aucune opportunité en cours" texte="Ajoutez votre premier prospect : il avancera d’étape en étape jusqu’à la signature." action={peut('crm_pipeline.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setNouvelle(true)}>Nouvelle opportunité</Bouton>} />}
             </>
           )}
-          {onglet === 'liste' && <ListeOpportunites d={d} naviguer={naviguer} />}
-          {onglet === 'activites' && <Section><ListeActivites d={d} recharger={recharger} naviguer={naviguer} /></Section>}
+          {onglet === 'liste' && <ListeOpportunites d={d} naviguer={naviguer} seuil={seuil ?? 14} />}
+          {onglet === 'activites' && filtreActivites && <Bouton icone="fermer" onClick={() => setFiltreActivites(undefined)}>En retard uniquement</Bouton>}
+          {onglet === 'activites' && <Section><ListeActivites d={d} recharger={recharger} naviguer={naviguer} filtre={filtreActivites} /></Section>}
           {onglet === 'prospects' && <Prospects d={d} naviguer={naviguer} />}
           {nouvelle && (
             <ModaleOpportunite contacts={d.contacts} etapes={d.etapes} equipe={d.equipe} onFermer={() => setNouvelle(false)} onFait={(id) => naviguer(`crm/${id}`)} />

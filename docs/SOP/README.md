@@ -48,7 +48,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Déclarer les dépendances d'un module | [34](34_DECLARER_DES_DEPENDANCES.md) | Dev |
 | Ajouter un réglage à un module | [35](35_AJOUTER_UN_PARAMETRE.md) | Dev |
 | Ajouter une entrée de menu | [36](36_AJOUTER_UNE_ENTREE_DE_MENU.md) | Dev |
-| Ajouter un widget au tableau de bord | [37](37_AJOUTER_UN_WIDGET.md) | Dev |
+| Ajouter un indicateur / tableau de bord | [37](37_AJOUTER_UN_WIDGET.md) | Dev |
 | Créer une offre pour une Solution | [38](38_CREER_UNE_OFFRE.md) | Agence Elite |
 | Personnaliser le logiciel d'un client (white-label) | [39](39_PERSONNALISER_UN_CLIENT.md) | Agence Elite |
 | Déclarer les capacités Hub d'un module | [40](40_DECLARER_DES_CAPACITES_HUB.md) | Dev |

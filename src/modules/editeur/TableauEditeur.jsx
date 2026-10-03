@@ -19,7 +19,10 @@ const GRAVITES = { 1: ['Urgent', 'alerte'], 2: ['À traiter', 'attention'], 3: [
 
 export default function TableauEditeur({ naviguer }) {
   const { api, utilisateur } = useEspace();
-  const { donnees: tdb, chargement, erreur, recharger } = useDonnees(() => api.rpc('editeur_tableau_de_bord'), []);
+  const { donnees: tdb, chargement, erreur, recharger } = useDonnees(
+    () => Promise.all([api.rpc('editeur_tableau_de_bord'), api.rpc('editeur_pilotage')]).then(([t, pilotage]) => ({ ...t, pilotage })),
+    []
+  );
   const i = tdb?.indicateurs;
   const devise = tdb?.contractuel.devise ?? 'XAF';
   const prenom = (utilisateur.nom ?? '').split(' ')[0];
@@ -33,6 +36,8 @@ export default function TableauEditeur({ naviguer }) {
         actions={(
           <>
             <Bouton icone="activite" onClick={recharger}>Actualiser</Bouton>
+            <Bouton icone="modules" onClick={() => naviguer('editeur/modules')}>Modules</Bouton>
+            <Bouton icone="comptes" onClick={() => naviguer('editeur/comptes')}>Comptes</Bouton>
             <Bouton variante="principal" icone="plus" onClick={() => naviguer('editeur/clients?nouveau=1')}>Nouveau client</Bouton>
           </>
         )}
@@ -138,6 +143,8 @@ export default function TableauEditeur({ naviguer }) {
             </Section>
           </div>
 
+          <Usage p={tdb.pilotage} naviguer={naviguer} />
+
           <Section titre="Activité récente" sousTitre="Dernières modifications enregistrées dans le journal d’audit.">
             {!tdb.activite_recente.length ? <EmptyState titre="Aucune activité" /> : (
               <ul className="fil-activite">
@@ -157,5 +164,61 @@ export default function TableauEditeur({ naviguer }) {
         </>
       )}
     </div>
+  );
+}
+
+// Usage réel de la plateforme : établissements actifs ou endormis, modules, essais.
+// Les montants de licence restent contractuels : aucun paiement client n'est enregistré ici.
+function Usage({ p, naviguer }) {
+  const u = p.usage;
+  const maxModules = Math.max(1, ...p.modules.map((m) => m.etablissements));
+  return (
+    <>
+      <div className="grille-stats">
+        <StatCard icone="activite" libelle="Établissements actifs (7 j)" valeur={u.etablissements_actifs_7j} detail={`${u.operations_7j} opération(s) enregistrée(s)`} />
+        <StatCard icone="alerte" libelle="Inactifs depuis 14 jours" valeur={u.etablissements_inactifs_14j} detail="En service, sans activité" ton={u.etablissements_inactifs_14j ? 'attention' : ''} />
+        <StatCard icone="membres" libelle="Utilisateurs actifs (7 j)" valeur={u.utilisateurs_actifs_7j} detail={`${u.ventes_7j} vente(s) chez les clients`} onClick={() => naviguer('editeur/comptes')} />
+        <StatCard icone="cle" libelle="Établissements sans licence" valeur={p.sans_licence} detail="Actifs sans licence en cours" ton={p.sans_licence ? 'alerte' : ''} onClick={() => naviguer('editeur/clients')} />
+      </div>
+      <p className="texte-doux">Encaissements des licences : non suivis dans la plateforme. Les montants affichés plus haut sont contractuels.</p>
+      <div className="deux-colonnes">
+        <Section titre="Modules les plus activés" sousTitre="Nombre d’établissements qui utilisent chaque application.">
+          {!p.modules.length ? <EmptyState titre="Aucun module activé" /> : (
+            <ul className="cockpit-repartition">
+              {p.modules.slice(0, 10).map((m) => (
+                <li key={m.module_id}>
+                  <button type="button" className="repartition-ligne" onClick={() => naviguer('editeur/modules')}>
+                    <span className="repartition-libelle">{m.nom}</span>
+                    <span className="repartition-valeur">{m.etablissements}</span>
+                    <span className="repartition-barre" aria-hidden="true"><span style={{ width: `${Math.max(3, (100 * m.etablissements) / maxModules)}%` }} /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+        <Section titre="Essais et établissements endormis">
+          {!p.essais.length && !p.inactifs.length && <EmptyState titre="Rien à signaler" />}
+          <ul className="cockpit-liste">
+            {p.essais.map((e) => (
+              <li key={`essai-${e.etablissement_id}`}>
+                <button type="button" onClick={() => naviguer(`editeur/etablissements/${e.etablissement_id}`)}>
+                  <span><strong>{e.etablissement}</strong><small>Essai · {e.client} · fin le {formatDate(e.echeance)}</small></span>
+                  <Badge ton={e.jours_restants < 0 ? 'alerte' : e.jours_restants <= 7 ? 'attention' : 'bleu'}>{e.jours_restants < 0 ? 'Terminé' : `${e.jours_restants} j`}</Badge>
+                </button>
+              </li>
+            ))}
+            {p.inactifs.map((e) => (
+              <li key={`inactif-${e.etablissement_id}`}>
+                <button type="button" onClick={() => naviguer(`editeur/etablissements/${e.etablissement_id}`)}>
+                  <span><strong>{e.etablissement}</strong><small>{e.client} · {e.derniere_activite ? `dernière activité le ${formatDate(e.derniere_activite)}` : 'aucune activité enregistrée'}</small></span>
+                  <Badge ton="attention">Endormi</Badge>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      </div>
+    </>
   );
 }

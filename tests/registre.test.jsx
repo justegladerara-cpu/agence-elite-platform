@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { MANIFESTES, PAGES, WIDGETS, groupesDuMenu, pagesAccessibles, widgetsAccessibles } from '../src/modules/index.js';
 import { creerBase } from './helpers/db.js';
+import { DOMAINES } from '../src/modules/tableau_de_bord/domaines.js';
 
 // Le registre des écrans doit correspondre exactement au catalogue de la base :
 // un écran ou un widget ne peut appartenir qu'à un module programmé, avec une permission réelle de ce module.
@@ -34,9 +35,20 @@ describe('registre des modules (manifestes)', () => {
     const caissier = espace(['tableau_de_bord', 'caisse', 'ventes', 'paiements', 'stock'], ['tableau_de_bord.lire', 'caisse.utiliser', 'ventes.lire']);
     expect(pagesAccessibles(caissier).map((p) => p.id)).toEqual(['tableau-de-bord', 'caisse', 'ventes']);
     expect(groupesDuMenu(pagesAccessibles(caissier))).toEqual(['Pilotage', 'Vente']);
-    const ids = widgetsAccessibles(caissier, 'indicateur', { periode: 'jour', tdb: {} }).map((w) => w.id);
-    expect(ids).toEqual(['ventes.chiffre_affaires', 'paiements.encaisse', 'ventes.credits']);
-    expect(widgetsAccessibles(caissier, 'section', { periode: 'jour', tdb: {} })).toEqual([]);
-    expect(widgetsAccessibles(caissier, 'section', { periode: 'mois', tdb: {} }).map((w) => w.id)).toEqual(['ventes.par_jour']);
+    // Les indicateurs du tableau de bord viennent désormais des fonctions cockpit_* (plus de widget par défaut).
+    expect(widgetsAccessibles(caissier, 'section', {})).toEqual([]);
+  });
+
+  test('actions rapides des tableaux de bord : permission réelle et écran existant', async () => {
+    const permissions = new Set((await db.query('select id from permissions')).rows.map((p) => p.id));
+    const pages = new Set(PAGES.map((p) => p.id));
+    const domaines = (await db.query("select pg_get_functiondef('public.cockpit_domaines(uuid)'::regprocedure) d")).rows[0].d;
+    for (const [id, d] of Object.entries(DOMAINES)) {
+      expect(domaines, id).toContain(`'${id}'`);
+      for (const a of d.actions) {
+        expect(permissions.has(a.permission), `${id} : ${a.permission}`).toBe(true);
+        expect(pages.has(a.route.split(/[/?]/)[0]), `${id} : ${a.route}`).toBe(true);
+      }
+    }
   });
 });

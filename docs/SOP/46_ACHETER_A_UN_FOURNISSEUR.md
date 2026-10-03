@@ -13,5 +13,5 @@
 6. **Payer** (gérant, comptable) : Payer, montant (acompte possible jusqu'au total), mode, référence.
    Erreur = menu ⋯ du paiement › Annuler (motif). Les paiements fournisseur ne sont pas des dépenses.
 7. **Annuler** une commande : seulement sans réception ni paiement (motif obligatoire).
-8. Suivi : cartes « Dû aux fournisseurs / À recevoir / Demandes / Sous le minimum », widget du tableau de bord,
+8. Suivi : cartes « Dû aux fournisseurs / À recevoir / Demandes / Sous le minimum », tableau de bord Achats,
    export CSV, pièces jointes (proforma, BL, facture fournisseur) sur chaque commande.

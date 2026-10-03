@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, ModaleMotif, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
 import { MENAGE } from './commun.js';
 
@@ -19,6 +20,12 @@ export default function Chambres({ naviguer }) {
   const [edition, setEdition] = useState(null);
   const [horsService, setHorsService] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
+  // Filtre venu du lien : ?menage=sale|en_nettoyage|propre|hors_service, ?etat=occupee|libre.
+  const [filtre, setFiltre] = useState(() => {
+    const p = lireParametres();
+    const f = { menage: MENAGE[p.get('menage')] ? p.get('menage') : null, etat: ['occupee', 'libre'].includes(p.get('etat')) ? p.get('etat') : null };
+    return f.menage || f.etat ? f : null;
+  });
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
   const gerer = peut('hotel_chambres.gerer');
@@ -34,6 +41,8 @@ export default function Chambres({ naviguer }) {
   };
   const actives = d.chambres.filter((c) => c.actif);
   const occupee = (c) => d.sejours.some((s) => s.chambre_id === c.id);
+  const visibles = !filtre ? actives : actives.filter((c) => (!filtre.menage || c.menage === filtre.menage)
+    && (filtre.etat !== 'occupee' || occupee(c)) && (filtre.etat !== 'libre' || (c.menage === 'propre' && !occupee(c))));
   return (
     <div className="page page-large">
       <PageHeader titre="Chambres" sousTitre="État d’entretien, chambres et tarifs."
@@ -53,8 +62,14 @@ export default function Chambres({ naviguer }) {
       {onglet === 'entretien' && (
         <Section sousTitre="Au départ d’un client, la chambre passe « à nettoyer ». Une chambre n’accueille un client que propre.">
           {!actives.length && <p className="texte-doux">Aucune chambre.{gerer ? ' Créez d’abord les types puis les chambres.' : ''}</p>}
+          {filtre && (
+            <p className="encart">
+              Filtre : {[filtre.menage && MENAGE[filtre.menage][0], filtre.etat === 'occupee' && 'occupées', filtre.etat === 'libre' && 'libres'].filter(Boolean).join(' · ')} ({visibles.length}){' '}
+              <button type="button" className="lien" onClick={() => setFiltre(null)}>Tout afficher</button>
+            </p>
+          )}
           <div className="plan-salle">
-            {actives.map((c) => {
+            {visibles.map((c) => {
               const [libelle, ton] = MENAGE[c.menage];
               return (
                 <div key={c.id} className={`table-resto carte-chambre ${c.menage}`}>

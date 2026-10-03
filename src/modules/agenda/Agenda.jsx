@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, ModaleMotif, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
 
 export const STATUTS_RDV = {
@@ -35,10 +36,11 @@ export default function Agenda({ naviguer, sousRoute }) {
     ]);
     return { rdv, equipe, articles, contacts: contacts.filter((c) => c.type !== 'fournisseur'), membre: Object.fromEntries(equipe.map((m) => [m.user_id, m])) };
   }, [etab]);
-  const [onglet, setOnglet] = useState('semaine');
+  // #/agenda?vue=liste&statut=…&nouveau=1 (tableau de bord) ; un statut ouvre la liste.
+  const [onglet, setOnglet] = useState(() => (lireParametres().get('vue') === 'liste' || lireParametres().get('statut') ? 'liste' : 'semaine'));
   const [debutSemaine, setDebutSemaine] = useState(() => lundi(new Date()));
   const [filtre, setFiltre] = useState('');
-  const [edition, setEdition] = useState(null);
+  const [edition, setEdition] = useState(() => (lireParametres().get('nouveau') === '1' && peut('agenda.gerer') ? {} : null));
   const [rdvId] = (sousRoute ?? '').split('/');
   const jours = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const x = new Date(debutSemaine);

@@ -20,7 +20,7 @@ Une donnée commune (contacts, articles, ventes, stock, paiements) se **réutili
 5. Tables métier : `etablissement_id` obligatoire, `hub_id` si la donnée dépend d'un lieu, RLS,
    lecture via `a_acces(etablissement_id)` ; écritures par RPC (`exiger_permission` + `exiger_module_actif`).
 6. Réglages éventuels (SOP 35), capacités Hub (SOP 40).
-7. Écran : dossier `src/modules/<module>/`, manifeste (pages SOP 06, widgets SOP 37) copié de
+7. Écran : dossier `src/modules/<module>/`, manifeste (pages SOP 06, tableau de bord SOP 37) copié de
    [`templates/TEMPLATE_MANIFESTE.js`](templates/TEMPLATE_MANIFESTE.js), ajouté à `MANIFESTES` dans `src/modules/index.js`.
 8. Tests : isolation entre deux établissements, refus sans permission, refus sans module accordé.
    `tests/registre.test.jsx` vérifie qu'aucune page ne pointe vers une permission inexistante.

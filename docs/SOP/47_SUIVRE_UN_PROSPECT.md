@@ -10,4 +10,4 @@
 6. **Signature** : bouton Gagnée (le prospect devient client). **Refus** : menu ⋯ › Marquer perdue, motif obligatoire.
    Erreur : menu ⋯ › Rouvrir.
 7. **Responsable** : réattribuer une opportunité (Modifier › Suivie par), assigner une activité, adapter les
-   étapes (bouton Étapes). Suivi : cartes du haut, widget « Commercial », export CSV.
+   étapes (bouton Étapes). Suivi : cartes du haut, tableau de bord CRM, export CSV.

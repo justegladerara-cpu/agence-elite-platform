@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { lireParametres } from '../noyau/routes.js';
 
 const CHEMINS = {
   tableau: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
@@ -449,8 +450,13 @@ export function DataTable({
   colonnes, lignes, cle = 'id', rechercher, placeholder = 'Rechercher…', filtres = [], triInitial, parPage = 20,
   onLigne, vide, actions, chargement,
 }) {
-  const [texte, setTexte] = useState('');
-  const [valeursFiltres, setValeursFiltres] = useState({});
+  // Filtres et recherche initiaux lus dans l'adresse (#/page?statut=…&q=…) : un indicateur du
+  // tableau de bord ouvre l'écran déjà filtré.
+  const [texte, setTexte] = useState(() => (rechercher ? lireParametres().get('q') ?? '' : ''));
+  const [valeursFiltres, setValeursFiltres] = useState(() => {
+    const p = lireParametres();
+    return Object.fromEntries(filtres.filter((f) => p.get(f.id)).map((f) => [f.id, p.get(f.id)]));
+  });
   const [tri, setTri] = useState(triInitial ?? null);
   const [page, setPage] = useState(0);
   const resultat = useMemo(() => {
@@ -490,6 +496,7 @@ export function DataTable({
           {filtres.map((f) => (
             <select key={f.id} aria-label={f.libelle} value={valeursFiltres[f.id] ?? ''} onChange={(e) => { setValeursFiltres((v) => ({ ...v, [f.id]: e.target.value })); setPage(0); }}>
               <option value="">{f.libelle} : tous</option>
+              {valeursFiltres[f.id] && !f.options.some(([v]) => v === valeursFiltres[f.id]) && <option value={valeursFiltres[f.id]}>{valeursFiltres[f.id]}</option>}
               {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           ))}

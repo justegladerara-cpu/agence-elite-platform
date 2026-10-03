@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, Confirmation, DataTable, Erreur, Modale, ModaleMotif, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
 
 const PERIODICITES = { mensuel: 'Mensuel', trimestriel: 'Trimestriel', semestriel: 'Semestriel', annuel: 'Annuel' };
@@ -28,7 +29,8 @@ export default function Abonnements({ naviguer }) {
     };
   }, [etab]);
   const [onglet, setOnglet] = useState('abonnes');
-  const [edition, setEdition] = useState(null);
+  // #/abonnements?statut=…&nouveau=1 (tableau de bord).
+  const [edition, setEdition] = useState(() => (lireParametres().get('nouveau') === '1' && peut('abonnements.gerer') ? { abonnement: {} } : null));
   const [facturer, setFacturer] = useState(false);
   const [erreurAction, setErreurAction] = useState('');
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
@@ -93,7 +95,7 @@ export default function Abonnements({ naviguer }) {
         </Section>
       )}
       {edition?.formule && <ModaleFormule formule={edition.formule} articles={d.articles} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); notifier('Formule enregistrée'); recharger(); }} />}
-      {edition?.abonnement && <ModaleAbonnement d={d} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); notifier('Client abonné'); recharger(); }} />}
+      {edition?.abonnement && d.formules.some((f) => f.actif) && <ModaleAbonnement d={d} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); notifier('Client abonné'); recharger(); }} />}
       {edition?.detail && <DetailAbonnement a={edition.detail} d={d} naviguer={naviguer} onFermer={() => setEdition(null)} onChange={() => { setEdition(null); recharger(); }} />}
       {facturer && (
         <Confirmation titre="Facturer les périodes dues" libelleAction="Facturer"

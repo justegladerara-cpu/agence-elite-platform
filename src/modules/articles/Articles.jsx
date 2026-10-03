@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { VignetteArticle } from '../caisse/Caisse.jsx';
@@ -203,7 +204,8 @@ export default function Articles() {
   const etab = etablissement.id;
   const [recherche, setRecherche] = useState('');
   const [vue, setVue] = useState('actifs');
-  const [edition, setEdition] = useState(null);
+  // ?nouveau=1 : ouvre directement le formulaire de création.
+  const [edition, setEdition] = useState(() => (peut('articles.gerer') && lireParametres().get('nouveau') === '1' ? {} : null));
   const [importer, setImporter] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [articles, categories, stock] = await Promise.all([

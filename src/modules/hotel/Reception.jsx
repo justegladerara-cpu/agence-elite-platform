@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { formatDate, formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, DataTable, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
@@ -79,8 +80,13 @@ function Accueil({ naviguer }) {
   const { api, etablissement, peut, notifier, montant } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useHotel();
   const tdb = useDonnees(() => api.rpc('tableau_de_bord_hotel', { p_etablissement_id: etablissement.id }), [etablissement.id]);
-  const [onglet, setOnglet] = useState('jour');
-  const [nouvelle, setNouvelle] = useState(null);
+  // Paramètres du lien : ?vue=arrivees|departs|planning|liste, ?statut=… (liste filtrée), ?nouveau=1.
+  const [onglet, setOnglet] = useState(() => {
+    const p = lireParametres();
+    if (p.get('statut') || p.get('vue') === 'liste') return 'liste';
+    return p.get('vue') === 'planning' ? 'planning' : 'jour';
+  });
+  const [nouvelle, setNouvelle] = useState(() => (lireParametres().get('nouveau') === '1' && peut('hotel_reservations.gerer') ? {} : null));
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
   const jour = aujourdhui();
@@ -160,7 +166,7 @@ function Accueil({ naviguer }) {
           )}
         </>
       )}
-      {nouvelle && (
+      {nouvelle && d.types.length > 0 && (
         <ModaleReservation types={d.types.filter((x) => x.actif)} chambres={d.chambres} contacts={d.contacts} initial={nouvelle}
           onFermer={() => setNouvelle(null)} onFait={(id) => { setNouvelle(null); notifier('Réservation enregistrée'); recharger(); naviguer(`hotel/${id}`); }} />
       )}

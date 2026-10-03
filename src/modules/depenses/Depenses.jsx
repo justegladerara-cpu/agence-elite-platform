@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDate, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, ModaleMotif, Onglets, Vide } from '../../ui/composants.jsx';
 
@@ -112,7 +113,8 @@ export default function Depenses() {
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [periode, setPeriode] = useState('mois');
-  const [nouvelle, setNouvelle] = useState(false);
+  // ?nouveau=1 : ouvre directement la saisie.
+  const [nouvelle, setNouvelle] = useState(() => peut('depenses.gerer') && lireParametres().get('nouveau') === '1');
   const [annulation, setAnnulation] = useState(null);
   const [justificatif, setJustificatif] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {

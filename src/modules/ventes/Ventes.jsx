@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { dateLocale, formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
+import { dateLocale, formatDate, formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, ModaleMotif, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
 
@@ -262,23 +263,44 @@ export function DetailVente({ venteId, onFermer, onChange }) {
   );
 }
 
-export default function Ventes() {
+// Paramètres reconnus dans l'adresse (ouverts depuis le tableau de bord) :
+// du, au, paiement=impaye, statut=annulee, origine, vendeur, q, vue=retours ; #/ventes/<id> ouvre une vente.
+export default function Ventes({ sousRoute }) {
   const { api, etablissement, montant, hubs, hub, multiHub } = useEspace();
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const nomHub = (id) => hubs.find((h) => h.id === id)?.nom ?? '—';
-  const [periode, setPeriode] = useState('jour');
-  const [filtre, setFiltre] = useState('toutes');
-  const [recherche, setRecherche] = useState('');
-  const [ouverte, setOuverte] = useState(null);
-  const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
+  const p = lireParametres();
+  const plage = p.get('du') && p.get('au') ? { du: p.get('du'), au: p.get('au') } : null;
+  const [vue, setVue] = useState(p.get('vue') === 'retours' ? 'retours' : 'ventes');
+  const [periode, setPeriode] = useState(plage ? 'plage' : (p.get('paiement') ? 'tout' : 'jour'));
+  const [filtre, setFiltre] = useState(p.get('paiement') ? 'credit' : p.get('statut') === 'annulee' ? 'annulees' : 'toutes');
+  const [recherche, setRecherche] = useState(p.get('q') ?? '');
+  const [origine, setOrigine] = useState(p.get('origine') ?? '');
+  const [vendeur, setVendeur] = useState(p.get('vendeur') ?? '');
+  const [ouverte, setOuverte] = useState((sousRoute ?? '').split('/')[0] || null);
+  const bornes = () => {
+    if (periode === 'plage') return { gte: new Date(`${plage.du}T00:00:00`).toISOString(), lte: new Date(`${plage.au}T23:59:59.999`).toISOString() };
     const debut = debutPeriode(periode);
-    const [ventes, contacts] = await Promise.all([
-      api.lire('ventes', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, gte: debut ? { cree_le: debut } : {}, ordre: ['cree_le', 'desc'], limite: 500 }),
-      api.lire('contacts', { eq: { etablissement_id: etab } }).catch(() => []),
+    return { gte: debut, lte: null };
+  };
+  const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
+    const { gte, lte } = bornes();
+    const [ventes, contacts, retours] = await Promise.all([
+      api.lire('ventes', {
+        eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}), ...(origine ? { origine } : {}), ...(vendeur ? { vendeur } : {}) },
+        gte: gte ? { cree_le: gte } : {}, lte: lte ? { cree_le: lte } : {}, ordre: ['cree_le', 'desc'], limite: 1000,
+      }),
+      api.lire('contacts', { eq: { etablissement_id: etab }, colonnes: ['id', 'nom'] }).catch(() => []),
+      vue === 'retours'
+        ? Promise.all([
+          api.lire('retours_vente', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, gte: gte ? { cree_le: gte } : {}, lte: lte ? { cree_le: lte } : {}, ordre: ['cree_le', 'desc'], limite: 500 }),
+          api.lire('remboursements_vente', { eq: { etablissement_id: etab } }).catch(() => []),
+        ]).then(([r, remb]) => r.map((x) => ({ ...x, remboursement: remb.find((m) => m.retour_id === x.id) ?? null })))
+        : Promise.resolve([]),
     ]);
-    return { ventes, contacts: Object.fromEntries(contacts.map((c) => [c.id, c.nom])) };
-  }, [etab, periode, hubFiltre]);
+    return { ventes, retours, contacts: Object.fromEntries(contacts.map((c) => [c.id, c.nom])) };
+  }, [etab, periode, hubFiltre, origine, vendeur, vue]);
 
   const texte = recherche.trim().toLowerCase();
   const ventes = (donnees?.ventes ?? []).filter((v) => {
@@ -289,19 +311,52 @@ export default function Ventes() {
   });
   const validees = ventes.filter((v) => v.statut === 'validee');
   const total = validees.reduce((s, v) => s + v.total, 0);
+  const numeroVente = Object.fromEntries((donnees?.ventes ?? []).map((v) => [v.id, v.numero]));
+  const retours = (donnees?.retours ?? []).filter((r) => !texte || `${r.numero} ${r.motif} ${numeroVente[r.vente_id] ?? ''}`.toLowerCase().includes(texte));
+  const ongletsPeriode = plage ? [...PERIODES, ['plage', `${formatDate(plage.du)} → ${formatDate(plage.au)}`]] : PERIODES;
+  const filtresActifs = [origine && `Origine : ${ORIGINES[origine] ?? origine}`, vendeur && 'Un vendeur'].filter(Boolean);
 
   return (
     <div className="page">
-      <EnTete titre="Ventes" sousTitre={`${multiHub ? `${hub ? hub.nom : 'Tous les Hubs'} · ` : ''}${validees.length} vente(s) validée(s) · ${montant(total)}`} />
+      <EnTete
+        titre="Ventes"
+        sousTitre={vue === 'retours'
+          ? `${retours.length} retour(s) · ${montant(retours.reduce((s, r) => s + Number(r.montant), 0))}`
+          : `${multiHub ? `${hub ? hub.nom : 'Tous les Hubs'} · ` : ''}${validees.length} vente(s) validée(s) · ${montant(total)}`}
+      />
+      <Onglets onglets={[['ventes', 'Ventes'], ['retours', 'Retours et remboursements']]} actif={vue} onChange={setVue} />
       <div className="filtres">
-        <Onglets onglets={PERIODES} actif={periode} onChange={setPeriode} />
-        <Onglets onglets={[['toutes', 'Toutes'], ['credit', 'À encaisser'], ['annulees', 'Annulées']]} actif={filtre} onChange={setFiltre} />
-        <Recherche valeur={recherche} onChange={setRecherche} placeholder="Numéro ou contact" />
+        <Onglets onglets={ongletsPeriode} actif={periode} onChange={setPeriode} />
+        {vue === 'ventes' && <Onglets onglets={[['toutes', 'Toutes'], ['credit', 'À encaisser'], ['annulees', 'Annulées']]} actif={filtre} onChange={setFiltre} />}
+        <Recherche valeur={recherche} onChange={setRecherche} placeholder={vue === 'retours' ? 'Numéro ou motif' : 'Numéro ou contact'} />
+        {filtresActifs.length > 0 && (
+          <Bouton icone="fermer" onClick={() => { setOrigine(''); setVendeur(''); }}>{filtresActifs.join(' · ')}</Bouton>
+        )}
       </div>
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
-      {donnees && !ventes.length && <Vide titre="Aucune vente" texte="Aucune vente ne correspond à ces filtres." />}
-      {ventes.length > 0 && (
+      {vue === 'retours' && donnees && !retours.length && <Vide titre="Aucun retour" texte="Aucun retour sur cette période." />}
+      {vue === 'retours' && retours.length > 0 && (
+        <div className="tableau-conteneur">
+          <table className="tableau cliquable">
+            <thead><tr><th>N°</th><th>Date</th><th>Vente</th><th>Motif</th><th className="nombre">Montant</th><th>Remboursement</th></tr></thead>
+            <tbody>
+              {retours.map((r) => (
+                <tr key={r.id} onClick={() => setOuverte(r.vente_id)}>
+                  <td><strong>{r.numero}</strong></td>
+                  <td>{formatDateHeure(r.cree_le)}</td>
+                  <td>{numeroVente[r.vente_id] ?? '—'}</td>
+                  <td>{r.motif}</td>
+                  <td className="nombre">{montant(r.montant)}</td>
+                  <td>{r.remboursement ? (r.remboursement.mode === 'avoir' ? <Badge ton="bleu">Avoir / échange</Badge> : <Badge ton="orange">{MODES_PAIEMENT[r.remboursement.mode] ?? r.remboursement.mode}</Badge>) : <Badge>Non encaissé</Badge>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {vue === 'ventes' && donnees && !ventes.length && <Vide titre="Aucune vente" texte="Aucune vente ne correspond à ces filtres." />}
+      {vue === 'ventes' && ventes.length > 0 && (
         <div className="tableau-conteneur">
           <table className="tableau cliquable">
             <thead>
