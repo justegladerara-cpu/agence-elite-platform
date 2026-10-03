@@ -2859,8 +2859,8 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .cockpit-plage { font-size: 13px; font-variant-numeric: tabular-nums; }
 .cockpit-note { margin: -6px 0 0; font-size: 12.5px; }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
-.kpis-hero { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px; }
+.kpis-hero { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 .kpi {
   display: grid; gap: 4px; align-content: start; text-align: left; padding: 14px 16px; border-radius: var(--rayon);
   border: 1px solid var(--bordure); background: var(--surface); box-shadow: var(--ombre); color: inherit; min-width: 0;
@@ -2869,14 +2869,14 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .kpi.cliquable:hover { border-color: color-mix(in srgb, var(--accent) 35%, #ffffff); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
 .kpi.cliquable:focus-visible { outline: 3px solid var(--accent-doux); outline-offset: 1px; border-color: var(--accent); }
 .kpi-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; }
-.kpi-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
 .kpi-detail { color: var(--texte-doux); font-size: 12px; }
 .kpi-variation { font-size: 12px; font-weight: 700; color: var(--texte-doux); font-variant-numeric: tabular-nums; }
 .kpi-variation small { font-weight: 500; color: var(--texte-faible); }
 .kpi-variation.bon { color: var(--vert); }
 .kpi-variation.mauvais { color: var(--rouge); }
-.kpi.alerte .kpi-valeur { color: var(--rouge); }
-.kpi.attention .kpi-valeur { color: var(--orange); }
+.kpi.kpi-alerte .kpi-valeur { color: var(--rouge); }
+.kpi.kpi-attention .kpi-valeur { color: var(--orange); }
 .kpi.fort { background: linear-gradient(160deg, var(--accent-fort), var(--accent)); border-color: transparent; color: #fff; }
 .kpi.fort .kpi-libelle, .kpi.fort .kpi-detail, .kpi.fort .kpi-variation, .kpi.fort .kpi-variation small { color: rgba(255, 255, 255, 0.86); }
 

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useEspace } from '../../noyau/espace.jsx';
+import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, EmptyState, Erreur, MenuActions, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
 import { SOURCES, STATUTS_OPPORTUNITE } from './commun.js';
 import { ListeActivites, ModalePerte, nomContact, useCrm } from './partage.jsx';
 import { ModaleActivite, ModaleOpportunite } from './Formulaires.jsx';
+import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
 
 // Fiche d'une opportunité, ou vue CRM d'un contact (« contact/<id> »).
 export default function Opportunite({ opportuniteId, contactId, naviguer }) {
@@ -47,6 +48,7 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
           </div>
         </Section>
         <Section titre="Activités"><ListeActivites d={d} recharger={recharger} naviguer={naviguer} filtre={(a) => a.contact_id === c.id} /></Section>
+        <RendezVousLies contactId={c.id} naviguer={naviguer} />
         {action === 'activite' && <ModaleActivite contactId={c.id} equipe={d.equipe} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Activité enregistrée'); recharger(); }} />}
         {action === 'opportunite' && (
           <ModaleOpportunite contacts={[c]} etapes={d.etapes} equipe={d.equipe} onFermer={() => setAction(null)} onFait={(id) => naviguer(`crm/${id}`)} />
@@ -130,11 +132,8 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
             </dl>
             {o.notes && <p className="texte-doux">{o.notes}</p>}
           </Section>
-          {o.document_vente_id && peut('facturation.lire') && (
-            <Section titre="Devis">
-              <Bouton icone="facture" onClick={() => naviguer(`factures/${o.document_vente_id}`)}>Ouvrir le devis</Bouton>
-            </Section>
-          )}
+          {o.document_vente_id && peut('facturation.lire') && <DevisEtFacture devisId={o.document_vente_id} naviguer={naviguer} />}
+          <RendezVousLies contactId={o.contact_id} opportuniteId={o.id} naviguer={naviguer} />
           <PiecesJointes objetType="crm_opportunite" objetId={o.id} titre="Documents" peutAjouter={gerer} peutArchiver={gerer} />
         </div>
       </div>
@@ -149,3 +148,25 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
   );
 }
 
+
+// Devis lié et, une fois converti, la facture qui en est issue (retrouvée par son origine).
+function DevisEtFacture({ devisId, naviguer }) {
+  const { api, etablissement } = useEspace();
+  const { donnees: factures } = useDonnees(
+    () => api.lire('documents_vente', { eq: { etablissement_id: etablissement.id, origine_id: devisId, type: 'facture' }, ordre: ['cree_le', 'desc'] }).catch(() => []),
+    [etablissement.id, devisId],
+  );
+  const facture = (factures ?? []).find((f) => f.statut !== 'annule') ?? (factures ?? [])[0];
+  return (
+    <Section titre={facture ? 'Devis et facture' : 'Devis'}>
+      <div className="groupe-boutons">
+        <Bouton icone="facture" onClick={() => naviguer(`factures/${devisId}`)}>Ouvrir le devis</Bouton>
+        {facture && (
+          <Bouton icone="facture" onClick={() => naviguer(`factures/${facture.id}`)}>
+            Ouvrir la facture{facture.numero ? ` ${facture.numero}` : ''}{facture.statut === 'annule' ? ' (annulée)' : ''}
+          </Bouton>
+        )}
+      </div>
+    </Section>
+  );
+}

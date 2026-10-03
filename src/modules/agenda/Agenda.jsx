@@ -25,22 +25,34 @@ function lundi(date) {
 
 // Agenda : semaine de l'équipe, liste, rendez-vous (prise, confirmation, clôture, facture).
 export default function Agenda({ naviguer, sousRoute }) {
-  const { api, etablissement, peut, utilisateur } = useEspace();
+  const { api, etablissement, peut, utilisateur, moduleActif } = useEspace();
   const etab = etablissement.id;
+  // Opportunités proposées seulement si le CRM est actif et lisible.
+  const crm = moduleActif('crm_pipeline') && peut('crm_pipeline.lire');
   const { donnees: d, chargement, erreur, recharger } = useDonnees(async () => {
-    const [rdv, equipe, contacts, articles] = await Promise.all([
+    const [rdv, equipe, contacts, articles, opportunites] = await Promise.all([
       api.lire('agenda_rendez_vous', { eq: { etablissement_id: etab }, ordre: ['debut'], limite: 3000 }),
       api.rpc('agenda_equipe', { p_etablissement_id: etab }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
+      crm ? api.lire('crm_opportunites', { eq: { etablissement_id: etab }, ordre: ['modifie_le', 'desc'], limite: 3000 }).catch(() => []) : [],
     ]);
-    return { rdv, equipe, articles, contacts: contacts.filter((c) => c.type !== 'fournisseur'), membre: Object.fromEntries(equipe.map((m) => [m.user_id, m])) };
-  }, [etab]);
+    return {
+      rdv, equipe, articles, crm, opportunites, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
+      membre: Object.fromEntries(equipe.map((m) => [m.user_id, m])),
+      opportunite: Object.fromEntries(opportunites.map((o) => [o.id, o])),
+    };
+  }, [etab, crm]);
   // #/agenda?vue=liste&statut=…&nouveau=1 (tableau de bord) ; un statut ouvre la liste.
+  // nouveau=1&contact=<id>&opportunite=<id> (fiche contact, opportunité) : formulaire prérempli.
   const [onglet, setOnglet] = useState(() => (lireParametres().get('vue') === 'liste' || lireParametres().get('statut') ? 'liste' : 'semaine'));
   const [debutSemaine, setDebutSemaine] = useState(() => lundi(new Date()));
   const [filtre, setFiltre] = useState('');
-  const [edition, setEdition] = useState(() => (lireParametres().get('nouveau') === '1' && peut('agenda.gerer') ? {} : null));
+  const [edition, setEdition] = useState(() => {
+    const parametres = lireParametres();
+    if (parametres.get('nouveau') !== '1' || !peut('agenda.gerer')) return null;
+    return { contactId: parametres.get('contact') || undefined, opportuniteId: parametres.get('opportunite') || undefined };
+  });
   const [rdvId] = (sousRoute ?? '').split('/');
   const jours = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const x = new Date(debutSemaine);
@@ -115,7 +127,7 @@ export default function Agenda({ naviguer, sousRoute }) {
         </Section>
       )}
       {ouvert && <DetailRdv r={ouvert} d={d} onFermer={() => naviguer('agenda')} onModifier={() => setEdition({ rdv: ouvert })} onChange={recharger} naviguer={naviguer} />}
-      {edition && <ModaleRdv d={d} rdv={edition.rdv} jour={edition.jour} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); recharger(); }} />}
+      {edition && <ModaleRdv d={d} rdv={edition.rdv} jour={edition.jour} contactId={edition.contactId} opportuniteId={edition.opportuniteId} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); recharger(); }} />}
     </div>
   );
 }
@@ -150,6 +162,10 @@ function DetailRdv({ r, d, onFermer, onModifier, onChange, naviguer }) {
         <dl className="fiche">
           <dt>Client</dt><dd>{r.nom_client}{r.telephone ? ` · ${r.telephone}` : ''}</dd>
           <dt>Avec</dt><dd>{d.membre[r.responsable]?.nom ?? 'Non attribué'}</dd>
+          {r.opportunite_id && d.opportunite[r.opportunite_id] && (
+            <><dt>Opportunité</dt><dd><button type="button" className="lien" onClick={() => naviguer(`crm/${r.opportunite_id}`)}>
+              {d.opportunite[r.opportunite_id].numero} · {d.opportunite[r.opportunite_id].titre}</button></dd></>
+          )}
           {r.prix != null && <><dt>Prix</dt><dd>{montant(r.prix)}</dd></>}
           {r.lieu && <><dt>Lieu</dt><dd>{r.lieu}</dd></>}
           {r.note && <><dt>Note</dt><dd className="texte-multiligne">{r.note}</dd></>}
@@ -182,11 +198,15 @@ function DetailRdv({ r, d, onFermer, onModifier, onChange, naviguer }) {
   );
 }
 
-function ModaleRdv({ d, rdv, jour, onFermer, onFait }) {
+function ModaleRdv({ d, rdv, jour, contactId, opportuniteId, onFermer, onFait }) {
   const { api, etablissement, utilisateur, notifier } = useEspace();
   const debutDefaut = rdv ? versLocal(rdv.debut) : `${jour ?? jourIso(new Date(Date.now() + 86400000))}T09:00`;
+  // Préremplissage depuis l'URL : seulement un contact et une opportunité connus de l'écran.
+  const oppInitiale = !rdv && opportuniteId && d.opportunite[opportuniteId];
+  const contactInitial = (!rdv && [contactId, oppInitiale?.contact_id].find((id) => id && d.contacts.some((c) => c.id === id))) || '';
   const [v, setV] = useState({
-    contact_id: rdv?.contact_id ?? '', nom_client: rdv?.contact_id ? '' : rdv?.nom_client ?? '', telephone: rdv?.contact_id ? '' : rdv?.telephone ?? '',
+    contact_id: rdv ? rdv.contact_id ?? '' : contactInitial,
+    opportunite_id: rdv ? rdv.opportunite_id ?? '' : (oppInitiale && (!contactInitial || oppInitiale.contact_id === contactInitial) ? oppInitiale.id : ''), nom_client: rdv?.contact_id ? '' : rdv?.nom_client ?? '', telephone: rdv?.contact_id ? '' : rdv?.telephone ?? '',
     article_id: rdv?.article_id ?? '', titre: rdv?.titre ?? '', prix: rdv?.prix != null ? String(rdv.prix) : '',
     responsable: rdv ? rdv.responsable ?? '' : (d.equipe.some((m) => m.user_id === utilisateur?.id) ? utilisateur.id : ''),
     debut: debutDefaut, duree: rdv ? String(Math.round((new Date(rdv.fin) - new Date(rdv.debut)) / 60000)) : '60',
@@ -194,6 +214,18 @@ function ModaleRdv({ d, rdv, jour, onFermer, onFait }) {
   });
   const [erreur, setErreur] = useState('');
   const changer = (c) => (e) => setV({ ...v, [c]: e.target.value });
+  // Changer de client retire une opportunité d'un autre client ; choisir une opportunité choisit son client.
+  const changerContact = (e) => {
+    const id = e.target.value;
+    const o = d.opportunite[v.opportunite_id];
+    setV({ ...v, contact_id: id, opportunite_id: o && o.contact_id === id ? v.opportunite_id : '' });
+  };
+  const changerOpportunite = (e) => {
+    const o = d.opportunite[e.target.value];
+    setV({ ...v, opportunite_id: e.target.value, contact_id: o ? o.contact_id : v.contact_id });
+  };
+  const opportunitesProposees = d.opportunites.filter((o) => (o.statut === 'ouverte' || o.id === v.opportunite_id)
+    && (!v.contact_id || o.contact_id === v.contact_id));
   const valider = async (e) => {
     e.preventDefault();
     setErreur('');
@@ -202,6 +234,8 @@ function ModaleRdv({ d, rdv, jour, onFermer, onFait }) {
         id: rdv?.id, contact_id: v.contact_id, nom_client: v.nom_client, telephone: v.telephone, article_id: v.article_id, titre: v.titre,
         prix: v.prix, responsable: v.responsable, debut: new Date(v.debut).toISOString(), duree_minutes: Number(v.duree), lieu: v.lieu, note: v.note,
         statut: rdv?.statut,
+        // Sans accès au CRM, le champ n'est pas envoyé : un lien existant est conservé par le serveur.
+        ...(d.crm ? { opportunite_id: v.opportunite_id } : {}),
       } });
       notifier('Rendez-vous enregistré');
       onFait();
@@ -214,12 +248,20 @@ function ModaleRdv({ d, rdv, jour, onFermer, onFait }) {
       <form className="formulaire" onSubmit={valider}>
         <div className="grille-champs">
           <Champ libelle="Client enregistré">
-            <select value={v.contact_id} onChange={changer('contact_id')}>
+            <select value={v.contact_id} onChange={changerContact}>
               <option value="">— Nouveau client</option>
               {d.contacts.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
             </select>
           </Champ>
           {!v.contact_id && <Champ libelle="Nom du client"><input value={v.nom_client} onChange={changer('nom_client')} required maxLength={160} /></Champ>}
+          {d.crm && (opportunitesProposees.length > 0 || v.opportunite_id) && (
+            <Champ libelle="Opportunité" aide="Facultatif : rattache le rendez-vous au suivi commercial.">
+              <select value={v.opportunite_id} onChange={changerOpportunite}>
+                <option value="">— Aucune</option>
+                {opportunitesProposees.map((o) => <option key={o.id} value={o.id}>{o.numero} · {o.titre}</option>)}
+              </select>
+            </Champ>
+          )}
           {!v.contact_id && <Champ libelle="Téléphone"><input type="tel" value={v.telephone} onChange={changer('telephone')} maxLength={40} /></Champ>}
           <Champ libelle="Prestation">
             <select value={v.article_id} onChange={changer('article_id')}>

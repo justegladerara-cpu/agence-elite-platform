@@ -8,6 +8,10 @@ toutes les solutions comme **module accordé** par Agence Elite. Aucune offre pa
   hôtel, abonnement) donne des points : `floor(total / tranche) × points par tranche` (défaut : 1 point par
   1 000). Calcul en fin de transaction, sur l'état final de la vente ; seul l'écart est inscrit, donc jamais de doublon.
 - **Annulation** : une vente annulée retire ses points ; un client changé sur la vente les transfère.
+- **Retours** (migration `20261003000016_liens_modules`) : les points se calculent sur le total **moins les retours**
+  (`retours_vente`). Chaque retour inscrit l'écart (mouvement « annulation », motif « Retour sur la vente … ») ; un
+  retour total revient au même qu'une annulation. Comme pour l'annulation, le retrait s'applique même si les points
+  ont déjà été dépensés.
 - **Récompense** : « Utiliser les points » (minimum réglable, solde suffisant, récompense décrite). La remise ou le
   cadeau est accordé en caisse ; le motif garde la trace (ex. numéro du ticket).
 - **Ajustement** (gérant) : ajout ou retrait motivé (reprise d'une carte papier, geste commercial). Le solde ne devient

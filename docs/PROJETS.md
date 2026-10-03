@@ -15,6 +15,8 @@ contacts, CRM, facturation, projets) créée **à prix 0** — Agence Elite fixe
 - **Facturer le temps** : crée une facture brouillon (module Facturation), une ligne par tâche (heures × taux du
   projet, sinon paramètre `taux_horaire`). Le temps facturé est rattaché à la facture et ne s'annule plus tant que la
   facture n'est pas annulée.
+- **Facture annulée** : quand la facture du temps passe à « annulé » (brouillon annulé, ou facture émise annulée par
+  avoir, ce qui exige qu'aucun paiement ne reste), le temps rattaché redevient « à facturer » et peut être refacturé.
 
 ## Droits
 `projets.lire` (voir), `projets.contribuer` (ses tâches, son temps, créer des tâches pour soi), `projets.gerer`

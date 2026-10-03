@@ -116,7 +116,7 @@ export function Kpi({ kpi, naviguer, mis_en_avant }) {
   return (
     <Balise
       type={kpi.route ? 'button' : undefined}
-      className={`kpi ${kpi.ton ?? ''} ${kpi.route ? 'cliquable' : ''} ${mis_en_avant ? 'fort' : ''}`}
+      className={`kpi ${kpi.ton ? `kpi-${kpi.ton}` : ''} ${kpi.route ? 'cliquable' : ''} ${mis_en_avant ? 'fort' : ''}`}
       onClick={kpi.route ? () => naviguer(kpi.route) : undefined}
       title={kpi.route ? 'Voir le détail' : undefined}
     >

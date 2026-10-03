@@ -15,6 +15,10 @@ Statut : **actif** (migration `20261003000004_agenda.sql`, module `agenda`). Inc
 - **Facturer** : un rendez-vous honoré avec prestation ou prix donne une **facture brouillon** (module Facturation), une
   seule fois ; elle s'émet et s'encaisse ensuite dans Facturation.
 - La personne choisie est notifiée (lien vers le rendez-vous).
+- **Opportunité CRM** (facultative, champ `opportunite_id` de `enregistrer_rendez_vous`) : opportunité du même
+  établissement, réservée à qui lit le CRM ; le client du rendez-vous est celui de l'opportunité. Une modification qui
+  n'envoie pas le champ conserve le lien. Les fiches contact et opportunité listent les rendez-vous à venir et passés ;
+  « Nouveau rendez-vous » ouvre `agenda?nouveau=1&contact=…&opportunite=…` prérempli.
 
 ## Écrans
 Agenda › **Semaine** (7 colonnes, navigation, « + » par jour), **Liste** (recherche, filtre de statut), filtre « Mes

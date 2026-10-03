@@ -5,6 +5,7 @@ import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { SOURCES } from '../crm/commun.js';
 import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
+import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
 
 const TYPES = { client: 'Client', prospect: 'Prospect', fournisseur: 'Fournisseur', les_deux: 'Client et fournisseur' };
 const CHAMPS = ['type', 'nom', 'societe', 'identifiant_fiscal', 'telephone', 'email', 'adresse', 'notes', 'actif'];
@@ -98,6 +99,7 @@ function FicheContact({ contact, ventes, onFermer, onModifier, onChange, navigue
         {moduleActif('crm_pipeline') && peut('crm_pipeline.lire') && contact.type !== 'fournisseur' && naviguer && (
           <button type="button" className="lien" onClick={() => naviguer(`crm/contact/${contact.id}`)}>Voir les opportunités et activités</button>
         )}
+        {contact.type !== 'fournisseur' && <RendezVousLies contactId={contact.id} naviguer={naviguer} />}
         {peut('ventes.lire') && (
           <>
             <div className="titre-ligne">

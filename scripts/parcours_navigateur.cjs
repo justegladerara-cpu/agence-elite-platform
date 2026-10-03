@@ -84,7 +84,17 @@ const U = 'http://localhost:4173/';
       await p.getByText('Carburant livraison').waitFor();
     });
     await etape('tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.getByText('Chiffre d’affaires').first().waitFor(); });
-    await etape('tableau-30j', async () => { await p.getByRole('tab', { name: '30 jours' }).click(); await p.getByText('Ventes par jour').waitFor(); });
+    await etape('tableau-30j', async () => { await p.getByRole('tab', { name: '30 jours' }).click(); await p.getByText('Chiffre d’affaires par jour').first().waitFor(); await p.getByText('À surveiller').first().waitFor(); });
+    await etape('tableau-domaine', async () => {
+      await p.goto(U + '#/tableau-de-bord/commerce');
+      await p.getByText('Tableau Commerce').waitFor();
+      await p.getByText('Encaissements par mode').first().waitFor();
+    });
+    await etape('indicateur-cliquable', async () => {
+      // Un indicateur ouvre l'écran déjà filtré.
+      await p.locator('.kpi.cliquable').first().click();
+      await p.waitForFunction(() => !location.hash.startsWith('#/tableau-de-bord'), null, { timeout: 15000 });
+    });
     await etape('parametres', async () => { await p.goto(U + '#/parametres'); await p.getByRole('tab', { name: 'Entreprise' }).waitFor(); });
     // Chaque module est ouvert par un profil de démonstration qui y a réellement accès.
     const changerProfil = async (profil) => {

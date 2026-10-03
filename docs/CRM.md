@@ -21,6 +21,13 @@ Statut : **actif** (migration `20261002000020_crm.sql`, module `crm_pipeline`). 
 - Rien ne se supprime (déclencheurs `refuser_suppression`), tout est journalisé.
 - Un fournisseur pur ne porte pas d'opportunité ; tout contact doit appartenir à l'établissement.
 - Notifications : opportunité attribuée, activité assignée, opportunité gagnée (administrateurs).
+- **Devis lié** (migration `20261003000016_liens_modules`) : devis accepté ou converti en facture → opportunité encore
+  ouverte gagnée (prospect → client, notification) ; devis refusé → opportunité perdue, motif « Devis refusé ». Une note
+  est ajoutée aux activités. Fonctionne même si la personne qui change le devis n'a pas le droit CRM (fonction interne
+  `crm_synchroniser_devis`, non appelable par les clients). Une opportunité déjà gagnée ou perdue n'est jamais rouverte.
+  La facture issue du devis se retrouve par `documents_vente.origine_id` : bouton « Ouvrir la facture » sur la fiche.
+- Rendez-vous : un rendez-vous de l'Agenda peut être rattaché à une opportunité ; la fiche opportunité et la vue CRM
+  d'un contact listent les rendez-vous et proposent « Nouveau rendez-vous ».
 
 ## Rôle « Commercial »
 Nouveau rôle (requiert le module) : CRM (lire, gérer), contacts, articles en lecture, facturation (lire, gérer), tableau de bord.
