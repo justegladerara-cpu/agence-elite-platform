@@ -229,4 +229,36 @@ describe('moteur de données local', () => {
     expect(await api.lire('support_tickets')).toHaveLength(3); // le personnel de comptoir suit les tickets
     expect(await api.lire('abonnements')).toEqual([]);
   });
+  test('la démo rapports : totaux cohérents par axe, droits et Hubs respectés', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const au = new Date().toISOString().slice(0, 10);
+    const du = new Date(Date.now() - 300 * 86400000).toISOString().slice(0, 10);
+    const rapport = (axe, extra = {}) => api.rpc('rapport_ventes', { p_etablissement_id: etab, p_du: du, p_au: au, p_axe: axe, ...extra });
+    const hub = await rapport('hub');
+    const somme = (r) => r.lignes.reduce((t, l) => t + Number(l.chiffre), 0);
+    const tdb = await api.rpc('tableau_de_bord_hub', { p_etablissement_id: etab, p_hub_id: null, p_du: du, p_au: au });
+    expect(hub.totaux.nombre).toBe(tdb.nombre_ventes);
+    expect(Number(hub.totaux.chiffre)).toBe(Number(tdb.chiffre_affaires));
+    // La marge du rapport ne compte que les lignes au coût connu (le tableau de bord compte un coût inconnu à zéro).
+    expect(Number(hub.totaux.marge)).toBeLessThanOrEqual(Number(tdb.marge_brute));
+    expect(Object.fromEntries(hub.lignes.map((l) => [l.libelle, l.nombre])))
+      .toEqual(Object.fromEntries(tdb.par_hub.filter((h) => h.nombre_ventes).map((h) => [h.nom, h.nombre_ventes])));
+    for (const axe of ['jour', 'mois', 'vendeur', 'client', 'origine']) expect(somme(await rapport(axe))).toBe(Number(hub.totaux.chiffre));
+    const articles = await rapport('article');
+    // Axe article : chiffre des lignes (avant remise globale du ticket).
+    expect(somme(articles)).toBe(Number((await db.query(
+      "select sum(l.total) t from lignes_vente l join ventes v on v.id = l.vente_id where v.etablissement_id = $1 and v.statut = 'validee'", [etab])).rows[0].t));
+    expect(articles.lignes[0]).toHaveProperty('quantite');
+    const marche = hub.lignes.find((l) => l.libelle === 'Boutique Marché Total');
+    expect((await rapport('jour', { p_hub_id: marche.cle })).totaux.nombre).toBe(marche.nombre);
+    await expect(rapport('pays')).rejects.toThrow(/Axe/);
+    await expect(api.rpc('rapport_ventes', { p_etablissement_id: etab, p_du: '2020-01-01', p_au: au, p_axe: 'jour' })).rejects.toThrow(/trop longue/);
+    utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
+    await expect(rapport('hub')).rejects.toThrow(/rapports.lire/);
+    utilisateur = comptes['resto@demo.agence-elite.fr'];
+    await expect(rapport('hub')).rejects.toThrow(/rapports.lire/);
+    utilisateur = null;
+    await expect(rapport('hub')).rejects.toThrow(/permission denied/);
+  });
 });

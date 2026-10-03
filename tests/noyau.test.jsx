@@ -287,6 +287,17 @@ describe('application sur la base locale', () => {
     expect((await screen.findAllByText(/AB-/, {}, { timeout: 10000 })).length).toBe(3);
   });
 
+  test('Rapports : indicateurs, analyse par article avec marge, par Hub', async () => {
+    window.location.hash = '#/rapports';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Marge brute', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Analyse'), { target: { value: 'article' } });
+    expect(await screen.findByText('Riz parfumé 25 kg', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Exporter/ })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Analyse'), { target: { value: 'hub' } });
+    expect(await screen.findByRole('cell', { name: 'Dépôt principal' }, { timeout: 10000 })).toBeTruthy();
+  });
+
   test('Paramètres › Réglages des modules : chaque application active expose ses réglages', async () => {
     window.location.hash = '#/parametres?onglet=reglages';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
