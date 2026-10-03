@@ -116,8 +116,8 @@ describe('profils', () => {
 
 describe('catalogue', () => {
   test('un module prévu ne devient jamais disponible, vendu ou activé', async () => {
-    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['ecommerce_boutique', '{"nom":"Boutique","statut":"actif"}'])).rejects.toThrow(/pas encore programmé/);
-    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['ecommerce_boutique', '{"nom":"Boutique","statut":"beta"}'])).rejects.toThrow(/pas encore programmé/);
+    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['site_web', '{"nom":"Site web","statut":"actif"}'])).rejects.toThrow(/pas encore programmé/);
+    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['site_web', '{"nom":"Site web","statut":"beta"}'])).rejects.toThrow(/pas encore programmé/);
     await expect(comme(admin, "select accorder_module($1, 'site_web', true)", [etab])).rejects.toThrow(/disponible/);
     await expect(db.query("insert into etablissement_modules(etablissement_id, module_id, actif) values ($1, 'site_web', true)", [etab])).rejects.toThrow();
     // La description d'un module prévu reste modifiable, son statut reste « futur ».

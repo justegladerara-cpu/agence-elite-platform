@@ -222,6 +222,28 @@ describe('application sur la base locale', () => {
     expect(screen.getAllByText('Commencer').length).toBe(1);
   });
 
+  test('E-commerce : commandes reçues, fiche, boutique publique et commande d’un visiteur', async () => {
+    window.location.hash = '#/boutique';
+    const vue = render(<App demarrer={demarrer('boutique@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Mireille T. (démo)', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByText('Mireille T. (démo)'));
+    expect(await screen.findByText('Appeler avant de passer', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Confirmer' })).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/commander/demo-boutique';
+    render(<App demarrer={demarrer(null)} />);
+    expect(await screen.findByText('Elite Mode (démo)', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'L' }).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter Sac en raphia au panier' }));
+    fireEvent.click(screen.getByRole('button', { name: /Panier : 1/ }));
+    fireEvent.change(screen.getByLabelText('Votre nom'), { target: { value: 'Visiteur Test' } });
+    fireEvent.change(screen.getByLabelText('Téléphone'), { target: { value: '+242 06 777 88 99' } });
+    fireEvent.change(screen.getByLabelText('Remise'), { target: { value: 'retrait' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Commander' }));
+    expect(await screen.findByText(/Merci, commande CW-/, {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText(/#\/suivi\//)).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

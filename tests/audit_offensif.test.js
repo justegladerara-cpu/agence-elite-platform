@@ -137,8 +137,11 @@ describe("contexte d'appel", () => {
       "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')",
     )).rows;
     // Exceptions volontaires : la connexion par identifiant (réponse générique, verrou anti force brute)
-    // et la marque d'un écran de connexion personnalisé (nom, logo, couleur : rien d'autre).
-    expect(executables.map((e) => e.proname).sort()).toEqual(['marque_connexion', 'resoudre_connexion']);
+    // la marque d'un écran de connexion personnalisé (nom, logo, couleur : rien d'autre)
+    // et la boutique en ligne publique (catalogue publié, code promo, commande, suivi par lien aléatoire).
+    expect(executables.map((e) => e.proname).sort()).toEqual([
+      'boutique_publique', 'commander_boutique', 'marque_connexion', 'resoudre_connexion', 'suivi_commande_boutique', 'verifier_coupon_boutique',
+    ]);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select recu_vente($1)', [venteB]))).rejects.toThrow(/permission denied/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query("select creer_client('Anonyme')"))).rejects.toThrow(/permission denied/);

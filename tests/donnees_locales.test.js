@@ -182,6 +182,18 @@ describe('moteur de données local', () => {
     expect(await api.lire('hotel_reservations')).toEqual([]);
     expect((await api.lire('hotel_chambres')).length).toBe(7);
   });
+  test('la démo e-commerce : boutique publique, commandes à chaque étape, retour', async () => {
+    utilisateur = comptes['boutique@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Boutique en ligne Démo'")).rows[0].id;
+    const tdb = await api.rpc('tableau_de_bord_boutique', { p_etablissement_id: etab });
+    expect(tdb).toMatchObject({ publiee: true, adresse: 'demo-boutique', nouvelles: 2, a_preparer: 1, a_livrer: 1, commandes_mois: 6, retours_mois: 1, produits_publies: 6 });
+    expect(Number(tdb.chiffre_mois)).toBe(50200);
+    utilisateur = null;
+    const b = await api.rpc('boutique_publique', { p_adresse: 'demo-boutique' });
+    expect(b.produits.find((p) => p.variante === 'L')).toMatchObject({ disponible: false });
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    expect(await api.lire('boutique_commandes')).toEqual([]);
+  });
   test('la démo CRM : pipeline, devis lié, relance en retard, gagnée et perdue', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;

@@ -29,7 +29,7 @@ describe('centre des modules', () => {
   test('les six niveaux sont visibles pour chaque module', async () => {
     const modules = await valeur(admin, 'select editeur_modules()');
     const caisse = modules.find((m) => m.id === 'caisse');
-    expect(caisse.solutions.map((s) => s.id)).toEqual(['commerce', 'restaurant', 'hotel']);
+    expect(caisse.solutions.map((s) => s.id)).toEqual(['commerce', 'restaurant', 'hotel', 'ecommerce']);
     expect(caisse.offres.length).toBeGreaterThan(0);
     expect(caisse.depend_de).toEqual(['paiements', 'stock', 'ventes']);
     expect(caisse.requis_par).toEqual(['cloture', 'restaurant_salle']);

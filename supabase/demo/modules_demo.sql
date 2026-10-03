@@ -710,3 +710,121 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- E-commerce : établissement « Boutique en ligne Démo » (même client), boutique publique « demo-boutique » en ligne,
+-- produits avec variantes, codes promo, commandes à chaque étape (nouvelle, confirmée, en livraison, livrée payée, retournée).
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  client uuid;
+  etab uuid;
+  sa uuid;
+  patron uuid;
+  gerant uuid;
+  hub uuid;
+  ligne record;
+  ar jsonb := '{}'::jsonb;
+  cmd jsonb;
+  id_cmd uuid;
+  vente uuid;
+  domaine constant text := 'demo.agence-elite.fr';
+begin
+  select id into client from public.clients where nom = 'Commerce Démo' order by cree_le limit 1;
+  if client is null or exists (select 1 from public.etablissements where client_id = client and nom = 'Boutique en ligne Démo')
+     or exists (select 1 from public.boutiques where adresse = 'demo-boutique') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
+  select id into gerant from auth.users where email = 'boutique@' || domaine;
+  if gerant is null then
+    insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+    values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'boutique@' || domaine,
+      extensions.crypt(md5(random()::text || clock_timestamp()::text), extensions.gen_salt('bf')), now(),
+      '{"provider": "email", "providers": ["email"]}'::jsonb, '{"nom": "Grâce M. (boutique en ligne)"}'::jsonb, now(), now(), '', '', '', '')
+    returning id into gerant;
+    insert into public.profils (id, nom_complet) values (gerant, 'Grâce M. (boutique en ligne)')
+    on conflict (id) do update set nom_complet = excluded.nom_complet;
+  end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  etab := public.creer_etablissement(client, 'ecommerce', 'Boutique en ligne Démo');
+  insert into public.etablissement_membres (etablissement_id, user_id, role_id) values (etab, gerant, 'gerant')
+  on conflict (etablissement_id, user_id) do nothing;
+  if patron is not null then
+    insert into public.etablissement_membres (etablissement_id, user_id, role_id) values (etab, patron, 'gerant')
+    on conflict (etablissement_id, user_id) do nothing;
+  end if;
+  select id into hub from public.hubs where etablissement_id = etab and principal;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  for ligne in select * from (values
+    ('T-shirt Elite S', 7500, 3000, 12, 'T-shirt Elite', 'S', 1), ('T-shirt Elite M', 7500, 3000, 15, 'T-shirt Elite', 'M', 1),
+    ('T-shirt Elite L', 7500, 3000, 0, 'T-shirt Elite', 'L', 1), ('Casquette brodée', 5000, 2000, 20, null, null, 2),
+    ('Pagne wax 6 yards', 18000, 11000, 8, null, null, 3), ('Sac en raphia', 12000, 6000, 5, null, null, 4)) as v(nom, prix, cout, qte, groupe, variante, ordre) loop
+    ar := ar || jsonb_build_object(ligne.nom, public.enregistrer_article(etab, jsonb_build_object('nom', ligne.nom, 'prix_vente', ligne.prix, 'cout_achat', ligne.cout)));
+    if ligne.qte > 0 then
+      perform public.ajuster_stock_hub(hub, (ar ->> ligne.nom)::uuid, 'entree', ligne.qte, 'Stock de départ (démo)', ligne.cout);
+    end if;
+    perform public.publier_article_boutique((ar ->> ligne.nom)::uuid, jsonb_build_object('groupe', ligne.groupe, 'variante', ligne.variante, 'ordre', ligne.ordre));
+  end loop;
+  perform public.enregistrer_boutique(etab, jsonb_build_object('adresse', 'demo-boutique', 'titre', 'Elite Mode (démo)', 'publiee', true,
+    'presentation', 'Boutique fictive de démonstration : vêtements et accessoires, livrés à Brazzaville.', 'telephone', '+242 06 000 00 00',
+    'frais_livraison', 1000, 'zone_livraison', 'Brazzaville', 'adresse_retrait', 'Marché Total, stand 12 (fictif)', 'minimum_commande', 2000,
+    'paiement_instructions', 'Mobile Money ou espèces à la livraison.'));
+  perform public.enregistrer_coupon_boutique(etab, jsonb_build_object('code', 'BIENVENUE', 'type', 'pourcentage', 'valeur', 10, 'minimum', 10000));
+  perform public.enregistrer_coupon_boutique(etab, jsonb_build_object('code', 'LIVRAISON', 'type', 'montant', 'valeur', 1000, 'utilisations_max', 50));
+
+  -- Commandes passées par des visiteurs (fictifs).
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  -- 1. Livrée et payée.
+  cmd := public.commander_boutique('demo-boutique', jsonb_build_object('nom_client', 'Awa M. (démo)', 'telephone', '+242 06 100 00 01',
+    'mode_livraison', 'livraison', 'adresse_livraison', 'Bacongo, avenue fictive 12', 'code_promo', 'BIENVENUE',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', ar ->> 'Pagne wax 6 yards', 'quantite', 1))));
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  select id into id_cmd from public.boutique_commandes where suivi = (cmd ->> 'suivi')::uuid;
+  vente := public.confirmer_commande_boutique(id_cmd);
+  perform public.avancer_commande_boutique(id_cmd, 'preparee');
+  perform public.avancer_commande_boutique(id_cmd, 'expediee');
+  perform public.avancer_commande_boutique(id_cmd, 'livree');
+  perform public.encaisser_paiement(vente, (cmd ->> 'total')::numeric, 'mobile_money', null, 'MM-DEMO-WEB-1');
+  -- 2. En livraison.
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  cmd := public.commander_boutique('demo-boutique', jsonb_build_object('nom_client', 'Patrick N. (démo)', 'telephone', '+242 05 100 00 02',
+    'mode_livraison', 'livraison', 'adresse_livraison', 'Moungali, rue fictive 3',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', ar ->> 'T-shirt Elite M', 'quantite', 2), jsonb_build_object('article_id', ar ->> 'Casquette brodée', 'quantite', 1))));
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  select id into id_cmd from public.boutique_commandes where suivi = (cmd ->> 'suivi')::uuid;
+  perform public.confirmer_commande_boutique(id_cmd);
+  perform public.avancer_commande_boutique(id_cmd, 'preparee');
+  perform public.avancer_commande_boutique(id_cmd, 'expediee');
+  -- 3. Confirmée, retrait sur place.
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  cmd := public.commander_boutique('demo-boutique', jsonb_build_object('nom_client', 'Chantal B. (démo)', 'telephone', '+242 06 100 00 03',
+    'mode_livraison', 'retrait', 'lignes', jsonb_build_array(jsonb_build_object('article_id', ar ->> 'Sac en raphia', 'quantite', 1))));
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  select id into id_cmd from public.boutique_commandes where suivi = (cmd ->> 'suivi')::uuid;
+  perform public.confirmer_commande_boutique(id_cmd);
+  -- 4. Livrée puis retournée (taille).
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  cmd := public.commander_boutique('demo-boutique', jsonb_build_object('nom_client', 'Rodrigue K. (démo)', 'telephone', '+242 05 100 00 04',
+    'mode_livraison', 'retrait', 'lignes', jsonb_build_array(jsonb_build_object('article_id', ar ->> 'T-shirt Elite S', 'quantite', 1))));
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  select id into id_cmd from public.boutique_commandes where suivi = (cmd ->> 'suivi')::uuid;
+  perform public.confirmer_commande_boutique(id_cmd);
+  perform public.avancer_commande_boutique(id_cmd, 'preparee');
+  perform public.avancer_commande_boutique(id_cmd, 'livree');
+  perform public.annuler_commande_boutique(id_cmd, 'Taille trop petite, client remboursé en magasin');
+  -- 5 et 6. Nouvelles commandes à traiter.
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  perform public.commander_boutique('demo-boutique', jsonb_build_object('nom_client', 'Mireille T. (démo)', 'telephone', '+242 06 100 00 05',
+    'mode_livraison', 'livraison', 'adresse_livraison', 'Poto-Poto, rue fictive 8', 'note', 'Appeler avant de passer', 'code_promo', 'LIVRAISON',
+    'lignes', jsonb_build_array(jsonb_build_object('article_id', ar ->> 'T-shirt Elite S', 'quantite', 1), jsonb_build_object('article_id', ar ->> 'Casquette brodée', 'quantite', 2))));
+  perform public.commander_boutique('demo-boutique', jsonb_build_object('nom_client', 'Jean-Marc O. (démo)', 'telephone', '+242 05 100 00 06',
+    'mode_livraison', 'retrait', 'lignes', jsonb_build_array(jsonb_build_object('article_id', ar ->> 'Pagne wax 6 yards', 'quantite', 2))));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
