@@ -1,40 +1,44 @@
-# État du projet (mis à jour le 2026-10-02)
+# État du projet (mis à jour le 2026-10-03)
 
 ## En production
 | Élément | État |
 |---|---|
 | Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare, publié à chaque push sur `main`) |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **23 migrations** appliquées, toutes présentes dans `supabase/migrations/` (dernière `20261002000015`) |
-| Solution | Commerce : caisse, ventes, paiements, reçus, clôtures (ticket Z), dépenses, articles, stock, contacts |
-| Multi-Hub | Hubs (point de vente, dépôt, mixte), stock par Hub, transferts, inventaires, accès par Hub |
-| Comptes | Supabase Auth ; connexion par identifiant ou e-mail ; mot de passe temporaire à remplacer |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **38 migrations**, toutes dans `supabase/migrations/` (dernière `20261003000008_fidelite`) |
+| Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
-| Personnalisation | identité affichée par client / établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` |
-| Profils | Mon profil (photo, nom, fonction, page d'accueil) ; Paramètres à onglets ; page Applications (5 niveaux) |
-| Catalogue | 12 modules Disponibles (Commerce), 13 modules Prévus (architecture seulement), 6 solutions dont 1 en service |
-| Sauvegarde | chiffrée chaque nuit + vérification de restauration |
-| Clients réels | aucun pour l'instant ; client visible : « Commerce Démo » (fictif) ; pilotes archivés |
+| Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` |
+| Paramètres | onglets Entreprise, Apparence, Documents, Caisses, **Réglages des modules** (formulaire généré depuis `parametres_schema`), Applications, Équipe, Sécurité, Licence |
+| Catalogue | 31 modules Disponibles, 6 solutions (Commerce, Restaurant, Hôtel, E-commerce, Services, RH) |
+| Sauvegarde | chiffrée chaque nuit + vérification de restauration ; lancée aussi avant chaque migration |
+| Clients réels | aucun ; démo fictive « Commerce Démo » (Commerce Démo, Restaurant Démo, Hôtel Démo, Boutique en ligne Démo) |
+
+## Modules disponibles
+| Domaine | Modules (doc) |
+|---|---|
+| Commerce | caisse, ventes, paiements, reçus, clôtures, dépenses, articles, stock, contacts ([COMMERCE](COMMERCE.md)) |
+| Gestion | Facturation ([FACTURATION](FACTURATION.md)), Achats ([ACHATS](ACHATS.md)), Abonnements ([ABONNEMENTS](ABONNEMENTS.md)), Rapports ([RAPPORTS](RAPPORTS.md)) |
+| Relations | CRM ([CRM](CRM.md)), Agenda ([AGENDA](AGENDA.md)), Support ([SUPPORT](SUPPORT.md)), Fidélité ([FIDELITE](FIDELITE.md)), Site web ([SITE_WEB](SITE_WEB.md)) |
+| Organisation | RH : employés, présences, congés ([RH](RH.md)) ; Projets ([PROJETS](PROJETS.md)) ; Documents |
+| Métiers | Restaurant : salle, cuisine ([RESTAURANT](RESTAURANT.md)) ; Hôtel : réservations, chambres ([HOTEL](HOTEL.md)) ; E-commerce ([ECOMMERCE](ECOMMERCE.md)) |
+
+Pages publiques sans connexion : `#/commander/<adresse>` (boutique), `#/suivi/<id>` (suivi de commande), `#/site/<adresse>[/<page>]` (site web).
 
 ## Numérotation des migrations
-Le nom d'un fichier = date + numéro **du jour** : `AAAAMMJJ` + `0000NN`. « Migration 15 » veut dire la 15e du 2 octobre,
-pas la 15e au total. Il y en a 23 au total, toutes appliquées en production, sans trou :
-- 1er octobre (socle) : `20261001000001` à `20261001000008` (8) ;
-- 2 octobre (Commerce, Hubs, comptes, catalogue) : `20261002000001` à `20261002000015` (15).
-
-Une nouvelle migration prend la date du jour et le numéro suivant de ce jour (SOP 03). La liste appliquée en
-production se vérifie avec le workflow « Déploiement de la base » en mode simulation (« aucune migration en attente »).
+Nom = date + numéro **du jour** (`AAAAMMJJ` + `0000NN`). 1er octobre : 8 ; 2 octobre : 22 ; 3 octobre : 8. La liste
+appliquée se vérifie avec le workflow « Déploiement de la base » en mode simulation (« aucune migration en attente »).
 
 ## Comptes Agence Elite
-`contact@agence-elite.fr` (identifiant `Justegladerara`, Super Admin) ; `Admin` (Admin, mot de passe temporaire).
-Comptes démo : `Patrondemo`, `Userdemo` ([SOP 30](SOP/30_DEMO_COMMERCIALE.md)).
+`contact@agence-elite.fr` (identifiant `Justegladerara`, Super Admin) ; `Admin` (mot de passe temporaire).
+Comptes démo : voir [SOP 30](SOP/30_DEMO_COMMERCIALE.md) (`gerante@`, `resto@`, `reception@`, `boutique@demo.agence-elite.fr`…).
 
 ## Qualité
-- 210 tests (PGlite) ; CI : Supabase neuf, démo rejouée 2 fois, pilote API, parcours mot de passe sur Auth réel,
-  sauvegarde/restauration comparée.
+- 370+ tests (PGlite) dont tests offensifs (droits, isolation entre établissements, appels anonymes) ; tests d'écrans.
+- CI : base Supabase neuve, démo rejouée 2 fois, pilote API, parcours mot de passe sur Auth réel ; pilote en production
+  (`pilote-production.yml`) après chaque mise en production.
 
-## Pas encore fait
-- Nom commercial de la plateforme (à décider par Juste).
-- Domaine personnalisé (ex. `app.agence-elite.fr`).
-- Longueur minimale du mot de passe côté serveur Auth (réglage du tableau de bord Supabase) : la règle
-  8 caractères est contrôlée à l'écran ; `1234` et les mots faibles sont refusés par la base.
-- Solutions Hôtel, Restaurant, RH, E-commerce, Services : déclarées au catalogue (Prévues), aucun écran (volontairement). Voir SOP 33 et 42.
+## Pas encore fait (voir le rapport final)
+- Nom commercial de la plateforme (à décider par Juste) ; domaine personnalisé.
+- Marketing (SMS, e-mails de campagne) : aucun fournisseur choisi, consentement à définir.
+- Paie : règles (barèmes, cotisations) non définies ; seule la préparation RH existe.
+- Paiement en ligne (boutique, abonnements) : aucun prestataire choisi.

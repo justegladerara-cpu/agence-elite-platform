@@ -50,3 +50,14 @@ Pour avoir la permission P (`module.action`) dans l'établissement E, il faut :
 - Catalogue : modifications réservées au Super Admin ; un module non programmé ne peut être déclaré disponible ;
   un module non disponible ne peut être vendu, accordé ni activé (déclencheur `etablissement_modules_disponible`) ;
   dépendances circulaires refusées ; réglages validés contre le schéma déclaré.
+
+## Modules métier (2026-10-03)
+- Chaque module : permissions `<module>.lire/…` vérifiées dans la base (`exiger_permission`, `lecture_autorisee`),
+  module et licence actifs exigés, isolation par établissement testée (un gérant d'un autre établissement est refusé).
+- Fonctions appelables sans connexion (liste fermée, testée par `tests/audit_offensif.test.js`) : `marque_connexion`,
+  `resoudre_connexion`, `boutique_publique`, `verifier_coupon_boutique`, `commander_boutique`, `suivi_commande_boutique`,
+  `site_public`, `envoyer_message_site`. Elles ne renvoient que des données publiées et limitent les envois (anti-abus).
+- Site web : aucun code du client (blocs et champs connus seulement, liens `https/tel/mailto/page`, images filtrées).
+- Données financières (ventes, paiements, factures, périodes d'abonnement, mouvements de fidélité, pointages) :
+  jamais supprimées ; annulation avec motif. Suspension ou expiration de licence : rien n'est effacé, tout revient à la réactivation.
+- Données RH sensibles dans `rh_employes_prives` (lecture réservée à `rh_employes.confidentiel` et à l'employé lui-même).

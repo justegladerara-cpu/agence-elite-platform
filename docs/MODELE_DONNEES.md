@@ -102,3 +102,25 @@ Fonctions : `identite_effective`, `marque_connexion` (anonyme, nom/logo/couleur 
 `enregistrer_identite_client`, `enregistrer_apparence_etablissement`, `enregistrer_mon_profil`, `enregistrer_solution`,
 `enregistrer_categorie_module`, `editeur_catalogue`, `editeur_identite_client`, `mes_applications` ; `enregistrer_module`,
 `enregistrer_parametres_module`, `verifier_modules_offre`, `mon_contexte`, `recu_vente` remplacées.
+
+## Modules métier (migrations 16 à 22 du 2 octobre, 1 à 8 du 3 octobre)
+Chaque module a sa documentation (colonnes, règles, fonctions) ; ici, la carte des tables. Toutes portent
+`etablissement_id` verrouillé, RLS en lecture par permission, écriture par fonctions, suppression interdite, audit.
+| Module | Tables |
+|---|---|
+| Socle transversal | `notifications`, `pieces_jointes`, `types_pieces_jointes`, `fichiers`, `documents_dossiers` |
+| RH ([RH](RH.md)) | `rh_departements`, `rh_postes`, `rh_employes`, `rh_employes_prives`, `rh_contrats`, `rh_horaires`, `rh_creneaux`, `rh_jours_feries`, `rh_pointages`, `rh_absences`, `rh_ajustements_conges` |
+| Facturation ([FACTURATION](FACTURATION.md)) | `documents_vente`, `lignes_document_vente` (facture émise → `ventes` origine `facture`) |
+| Achats ([ACHATS](ACHATS.md)) | `commandes_achat`, `lignes_commande_achat`, `receptions_achat`, `lignes_reception_achat`, `paiements_fournisseur` |
+| CRM ([CRM](CRM.md)) | `crm_etapes`, `crm_opportunites`, `crm_activites` |
+| Projets ([PROJETS](PROJETS.md)) | `projets`, `projet_taches`, `projet_temps` |
+| Restaurant ([RESTAURANT](RESTAURANT.md)) | `rest_tables`, `rest_commandes`, `rest_lignes` |
+| Hôtel ([HOTEL](HOTEL.md)) | `hotel_types_chambre`, `hotel_chambres`, `hotel_reservations`, `hotel_prestations` |
+| E-commerce ([ECOMMERCE](ECOMMERCE.md)) | `boutiques`, `boutique_articles`, `boutique_coupons`, `boutique_commandes`, `boutique_lignes` |
+| Site web ([SITE_WEB](SITE_WEB.md)) | `sites`, `site_pages`, `site_messages` |
+| Agenda ([AGENDA](AGENDA.md)) | `agenda_rendez_vous` |
+| Support ([SUPPORT](SUPPORT.md)) | `support_tickets`, `support_messages` |
+| Abonnements ([ABONNEMENTS](ABONNEMENTS.md)) | `abo_formules`, `abonnements`, `abonnement_periodes` |
+| Rapports ([RAPPORTS](RAPPORTS.md)) | aucune (fonction `rapport_ventes`) |
+| Fidélité ([FIDELITE](FIDELITE.md)) | `fidelite_mouvements` |
+`ventes.origine` ∈ `caisse, facture, boutique, restaurant, hotel, abonnement`.
