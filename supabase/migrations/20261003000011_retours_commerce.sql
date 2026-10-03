@@ -38,7 +38,8 @@ create table public.lignes_retour_vente (
   etablissement_id uuid not null references public.etablissements(id) on delete restrict,
   hub_id uuid not null references public.hubs(id) on delete restrict,
   ligne_vente_id uuid not null references public.lignes_vente(id) on delete restrict,
-  article_id uuid not null references public.articles(id) on delete restrict,
+  -- Vide pour une ligne libre (facture sans article) : rien à remettre en stock.
+  article_id uuid references public.articles(id) on delete restrict,
   quantite numeric(14, 3) not null check (quantite > 0),
   montant numeric(14, 2) not null check (montant >= 0),
   unique (retour_id, ligne_vente_id)
