@@ -25,5 +25,6 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 | M5 | Préparation production (docs/PRODUCTION.md, workflows) | fait ; mise en ligne en attente de Juste |
 | M6 | Pilote fictif à deux établissements (tests/pilote.test.js) | fait |
 | M7 | Processus client et guide (docs/PROCESSUS_CLIENT.md) | fait |
+| 008 | Onboarding client — The Dream Lounge Bar Restaurant | en cours (mission urgente autorisée par le propriétaire le 2026-10-03) |
 
-Depuis le 2026-10-02, Codex est en pause : Claude développe directement.
+La pause de Codex décidée le 2026-10-02 est levée pour la tâche 008, explicitement confiée à Codex par le propriétaire.

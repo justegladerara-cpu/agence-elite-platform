@@ -1,5 +1,15 @@
 # Journal de Codex (développeur)
 
+## 2026-10-03 — Tâche 008 : onboarding The Dream (préparation sécurisée)
+- Gouvernance : tâche 008 créée ; `AGENTS.md`, registre des tâches, décisions et état projet alignés sur le dépassement du Lot 1 sans supprimer l'historique.
+- Import générique : migration `20261003000017_import_catalogue_restaurant.sql`, dry-run obligatoire, références idempotentes, variantes/ordre/disponibilité, permission `articles.gerer`, audit existant et aucun stock initial.
+- Catalogue : `donnees/imports/the-dream/catalogue.csv`, 225 lignes tarifaires, 221 actives, 39 catégories, 18 lignes de variante, 4 attentes sans prix ; lignes barrées exclues, recettes et stocks non inventés.
+- Interface : aperçu du rapport avant import dans Articles ; colonnes description, variante, actif, ordre, poste et motif d'attente reconnues.
+- Tests ajoutés : CSV, dry-run, idempotence, permissions/anon, isolation établissement et absence de mouvement de stock.
+- Commandes : tests ciblés (4/4), `npm test` (45 fichiers, 445/445), `npm run build` (succès, avertissement habituel de taille PGlite), `npm ci` (0 vulnérabilité), `git diff --check` (succès). `npm run test:e2e` reste impossible localement car le binaire Chromium Playwright n'est pas installé ; le parcours demeure bloquant en CI.
+- Production : non appliquée. Aucun accès GitHub CLI, secret de base ou session `patrondream` dans l'environnement ; IDs Client/Établissement/Hub non inventés. Action restante détaillée dans `docs/HANDOFF.md`.
+- Question pour Claude : après le rendez-vous, concevoir les groupes d'options génériques (2/3 accompagnements des planches) et confirmer avec le client les libellés des doubles tarifs de vins et le prix des frites.
+
 ## 2026-10-03 — Profondeur métier Commerce, Restaurant, Hôtel et Fidélité
 - Commerce : retours partiels `RET-…`, calcul des remises, quantités cumulées, restitution du stock, remboursements/avoirs, historique et intégration au ticket Z.
 - Restaurant : réservations avec capacité, chevauchement, affectation facultative, arrivée et planning en Salle.
