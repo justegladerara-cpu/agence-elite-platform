@@ -4,7 +4,7 @@
 | Élément | État |
 |---|---|
 | Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare, publié à chaque push sur `main`) |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **38 migrations**, toutes dans `supabase/migrations/` (dernière `20261003000008_fidelite`) |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **43 migrations** dans `supabase/migrations/` après déploiement des migrations de professionnalisation 09 à 13 |
 | Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
 | Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` |
@@ -33,7 +33,7 @@ appliquée se vérifie avec le workflow « Déploiement de la base » en mode si
 Comptes démo : voir [SOP 30](SOP/30_DEMO_COMMERCIALE.md) (`gerante@`, `resto@`, `reception@`, `boutique@demo.agence-elite.fr`…).
 
 ## Qualité
-- 370+ tests (PGlite) dont tests offensifs (droits, isolation entre établissements, appels anonymes) ; tests d'écrans.
+- 370+ tests (PGlite) dont tests offensifs (droits, isolation entre établissements, appels anonymes) ; tests d'écrans ; parcours navigateur bloquant de tous les domaines en CI.
 - CI : base Supabase neuve, démo rejouée 2 fois, pilote API, parcours mot de passe sur Auth réel ; pilote en production
   (`pilote-production.yml`) après chaque mise en production.
 

@@ -10,22 +10,24 @@ export default function Fidelite() {
   const { api, etablissement, peut, montant } = useEspace();
   const etab = etablissement.id;
   const { donnees: d, chargement, erreur, recharger } = useDonnees(async () => {
-    const [soldes, tdb, contacts] = await Promise.all([
+    const [soldes, tdb, contacts, recompenses] = await Promise.all([
       api.rpc('soldes_fidelite', { p_etablissement_id: etab }),
       api.rpc('tableau_de_bord_fidelite', { p_etablissement_id: etab }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
+      api.lire('fidelite_recompenses', { eq: { etablissement_id: etab }, ordre: ['points', 'nom'] }).catch(() => []),
     ]);
-    return { soldes, tdb, contacts: contacts.filter((c) => c.type !== 'fournisseur') };
+    return { soldes, tdb, recompenses, contacts: contacts.filter((c) => c.type !== 'fournisseur') };
   }, [etab]);
   const [ouvert, setOuvert] = useState(null);
   const [ajout, setAjout] = useState(false);
+  const [recompense, setRecompense] = useState(false);
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
   const valeur = Number(d.tdb.valeur_point);
   return (
     <div className="page page-large">
       <PageHeader titre="Fidélité" sousTitre={`Les clients identifiés gagnent des points à chaque achat. Un point vaut ${montant(valeur)} en récompense.`}
-        actions={peut('fidelite.gerer') && <Bouton icone="plus" onClick={() => setAjout(true)}>Ajouter des points</Bouton>} />
+        actions={peut('fidelite.gerer') && <><Bouton onClick={() => setRecompense(true)}>Nouvelle récompense</Bouton><Bouton icone="plus" onClick={() => setAjout(true)}>Ajouter des points</Bouton></>} />
       <div className="grille-indicateurs">
         <StatCard icone="etoile" libelle="Clients avec des points" valeur={d.tdb.clients} />
         <StatCard icone="ventes" libelle="Points en cours" valeur={Number(d.tdb.points_en_cours).toLocaleString('fr-FR')} detail={`Soit ${montant(Number(d.tdb.points_en_cours) * valeur)} de récompenses possibles`} />
@@ -43,25 +45,41 @@ export default function Fidelite() {
             { id: 'dernier', libelle: 'Dernier mouvement', rendu: (s) => formatDateHeure(s.dernier), tri: (s) => s.dernier },
           ]} />
       </Section>
-      {ouvert && <FicheClient s={ouvert} tdb={d.tdb} onFermer={() => setOuvert(null)} onChange={() => { setOuvert(null); recharger(); }} />}
+      <Section titre="Catalogue de récompenses" sousTitre="Des avantages clairs, avec un coût en points fixe et une attribution traçable.">
+        <DataTable lignes={d.recompenses} vide={<p className="texte-doux">Créez une première récompense, par exemple « Livraison offerte ».</p>} colonnes={[
+          { id: 'nom', libelle: 'Récompense', rendu: (r) => <><strong>{r.nom}</strong><br /><small className="texte-doux">{r.description}</small></> },
+          { id: 'points', libelle: 'Coût', classe: 'nombre', rendu: (r) => `${r.points} pts`, tri: (r) => r.points },
+          { id: 'valeur', libelle: 'Valeur indicative', classe: 'nombre', rendu: (r) => r.valeur == null ? '—' : montant(r.valeur) },
+          { id: 'actif', libelle: 'État', rendu: (r) => <Badge ton={r.actif ? 'vert' : 'neutre'}>{r.actif ? 'Disponible' : 'Retirée'}</Badge> },
+        ]} />
+      </Section>
+      {ouvert && <FicheClient s={ouvert} tdb={d.tdb} recompenses={d.recompenses.filter((r) => r.actif)} onFermer={() => setOuvert(null)} onChange={() => { setOuvert(null); recharger(); }} />}
       {ajout && <ModaleAjustement contacts={d.contacts} onFermer={() => setAjout(false)} onFait={() => { setAjout(false); recharger(); }} />}
+      {recompense && <ModaleRecompense onFermer={() => setRecompense(false)} onFait={() => { setRecompense(false); recharger(); }} />}
     </div>
   );
 }
 
-function FicheClient({ s, tdb, onFermer, onChange }) {
+function FicheClient({ s, tdb, recompenses, onFermer, onChange }) {
   const { api, etablissement, peut, montant, notifier } = useEspace();
   const { donnees: mouvements } = useDonnees(() => api.lire('fidelite_mouvements', { eq: { etablissement_id: etablissement.id, contact_id: s.contact_id }, ordre: ['cree_le', 'desc'], limite: 200 }), [s.contact_id]);
   const minimum = Number(tdb.minimum_utilisation);
   const [points, setPoints] = useState(String(Math.max(minimum, 0) || ''));
   const [motif, setMotif] = useState('');
+  const [recompense, setRecompense] = useState('');
   const [erreur, setErreur] = useState('');
   const utiliser = async (e) => {
     e.preventDefault();
     setErreur('');
     try {
-      await api.rpc('utiliser_points_fidelite', { p_etablissement_id: etablissement.id, p_contact_id: s.contact_id, p_points: Number(points), p_motif: motif });
-      notifier(`${points} points utilisés`);
+      if (recompense) {
+        const choisie = recompenses.find((r) => r.id === recompense);
+        await api.rpc('attribuer_recompense_fidelite', { p_recompense_id: recompense, p_contact_id: s.contact_id, p_vente_id: null, p_note: motif || null });
+        notifier(`${choisie.nom} attribuée`);
+      } else {
+        await api.rpc('utiliser_points_fidelite', { p_etablissement_id: etablissement.id, p_contact_id: s.contact_id, p_points: Number(points), p_motif: motif });
+        notifier(`${points} points utilisés`);
+      }
       onChange();
     } catch (err) {
       setErreur(err.message);
@@ -73,11 +91,12 @@ function FicheClient({ s, tdb, onFermer, onChange }) {
       {peut('fidelite.utiliser') && s.solde > 0 && (
         <form onSubmit={utiliser} className="pile">
           <Erreur message={erreur} />
+          {recompenses.length > 0 && <Champ libelle="Récompense du catalogue"><select value={recompense} onChange={(e) => { setRecompense(e.target.value); const r = recompenses.find((x) => x.id === e.target.value); if (r) setPoints(String(r.points)); }}><option value="">Utilisation libre</option>{recompenses.filter((r) => r.points <= s.solde).map((r) => <option key={r.id} value={r.id}>{r.nom} · {r.points} pts</option>)}</select></Champ>}
           <Champ libelle="Points à utiliser" aide={`Minimum ${minimum} ; ${points ? montant(Number(points) * Number(tdb.valeur_point)) : ''} de récompense`}>
             <input type="number" min={Math.max(1, minimum)} max={s.solde} step="1" required value={points} onChange={(e) => setPoints(e.target.value)} />
           </Champ>
           <Champ libelle="Récompense accordée" aide="Ex. remise de 1 000 FCFA sur le ticket V-00125, ou un savon offert.">
-            <input required maxLength={300} value={motif} onChange={(e) => setMotif(e.target.value)} />
+            <input required={!recompense} maxLength={300} value={motif} onChange={(e) => setMotif(e.target.value)} />
           </Champ>
           <Bouton type="submit" variante="principal">Utiliser les points</Bouton>
         </form>
@@ -92,6 +111,17 @@ function FicheClient({ s, tdb, onFermer, onChange }) {
         ]} />
     </Modale>
   );
+}
+
+function ModaleRecompense({ onFermer, onFait }) {
+  const { api, etablissement } = useEspace(); const [v, setV] = useState({ nom: '', description: '', points: '', valeur: '' }); const [erreur, setErreur] = useState('');
+  const valider = async (e) => { e.preventDefault(); try { await api.rpc('enregistrer_recompense_fidelite', { p_etablissement_id: etablissement.id, p: v }); onFait(); } catch (err) { setErreur(err.message); } };
+  return <Modale titre="Nouvelle récompense" onFermer={onFermer}><form className="formulaire" onSubmit={valider}>
+    <Champ libelle="Nom"><input required maxLength={120} value={v.nom} onChange={(e) => setV({ ...v, nom: e.target.value })} autoFocus /></Champ>
+    <Champ libelle="Description"><textarea maxLength={500} value={v.description} onChange={(e) => setV({ ...v, description: e.target.value })} /></Champ>
+    <div className="grille-formulaire"><Champ libelle="Points"><input type="number" min="1" required value={v.points} onChange={(e) => setV({ ...v, points: e.target.value })} /></Champ><Champ libelle="Valeur indicative"><input type="number" min="0" step="any" value={v.valeur} onChange={(e) => setV({ ...v, valeur: e.target.value })} /></Champ></div>
+    <Erreur message={erreur} /><div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal">Créer</Bouton></div>
+  </form></Modale>;
 }
 
 function ModaleAjustement({ contacts, onFermer, onFait }) {

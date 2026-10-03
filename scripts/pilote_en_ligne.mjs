@@ -135,6 +135,26 @@ async function deroulerEtablissement(admin, clientId, cle, nom, offre, formule) 
     verifier(Number(v.total) === 6000 && Number(v.monnaie) === 4000, `total ${v.total}, monnaie ${v.monnaie}`);
     return v;
   });
+  await etape(`${cle} · concurrence stock : une seule vente du dernier article`, async () => {
+    const article = await e.gerant.rpc('enregistrer_article', {
+      p_etablissement_id: e.id,
+      p_article: { nom: `Article concurrence ${cle}`, prix_vente: 100, cout_achat: 50, reference: `CONC-${cle}`, stock_initial: 1 },
+    });
+    const appel = () => e.caissier.rpc('enregistrer_vente', {
+      p_etablissement_id: e.id,
+      p_session_id: e.session,
+      p_lignes: [{ article_id: article, quantite: 1 }],
+      p_paiements: [{ mode: 'especes', montant: 100 }],
+    });
+    const resultats = await Promise.allSettled([appel(), appel()]);
+    const reussites = resultats.filter((r) => r.status === 'fulfilled');
+    const refus = resultats.filter((r) => r.status === 'rejected');
+    verifier(reussites.length === 1 && refus.length === 1, `${reussites.length} vente(s) acceptée(s), ${refus.length} refusée(s)`);
+    const stocks = await e.gerant.lire('stock_hubs', (q) => q.eq('article_id', article));
+    const stock = stocks.reduce((total, ligne) => total + Number(ligne.quantite), 0);
+    verifier(stock === 0, `stock final ${stock}`);
+    return 'verrouillage transactionnel confirmé';
+  });
   await etape(`${cle} · reçu`, async () => {
     const recu = await e.caissier.rpc('recu_vente', { p_vente_id: e.vente.vente_id });
     verifier(JSON.stringify(recu).includes(nom), 'nom commercial absent du reçu');
@@ -244,7 +264,7 @@ async function principal() {
       bloque = true;
     }
     verifier(bloque, 'A peut encore écrire');
-    verifier((await A.gerant.lire('articles')).length === 3, 'A ne lit plus ses articles');
+    verifier((await A.gerant.lire('articles')).length >= 4, 'A ne lit plus ses articles');
     await B.gerant.rpc('enregistrer_article', { p_etablissement_id: B.id, p_article: { nom: 'Article ajouté B', prix_vente: 200 } });
     await admin.rpc('definir_statut_licence', { p_licence_id: A.licence, p_statut: 'active', p_motif: 'Pilote : paiement reçu' });
   });
@@ -267,7 +287,7 @@ async function principal() {
   await etape('session support : lecture seule, tracée', async () => {
     verifier((await admin.lire('articles', (q) => q.eq('etablissement_id', A.id))).length === 0, 'Agence Elite lit sans session support');
     const session = await admin.rpc('ouvrir_session_support', { p_etablissement_id: A.id, p_motif: 'Pilote : vérification' });
-    verifier((await admin.lire('articles', (q) => q.eq('etablissement_id', A.id))).length === 3, 'lecture support impossible');
+    verifier((await admin.lire('articles', (q) => q.eq('etablissement_id', A.id))).length >= 4, 'lecture support impossible');
     let refusee = false;
     try {
       await admin.rpc('enregistrer_article', { p_etablissement_id: A.id, p_article: { nom: 'Support', prix_vente: 1 } });

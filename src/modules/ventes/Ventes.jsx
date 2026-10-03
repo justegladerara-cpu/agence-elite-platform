@@ -70,17 +70,76 @@ function ModaleEncaissement({ vente, sessions, onFermer, onFait }) {
   );
 }
 
+function ModaleRetour({ vente, lignes, retours, sessions, onFermer, onFait }) {
+  const { api, montant } = useEspace();
+  const dejaRetourne = Object.fromEntries(lignes.map((ligne) => [ligne.id,
+    retours.flatMap((retour) => retour.lignes ?? []).filter((retour) => retour.ligne_id === ligne.id)
+      .reduce((total, retour) => total + Number(retour.quantite), 0)]));
+  const [quantites, setQuantites] = useState({});
+  const [motif, setMotif] = useState('');
+  const [mode, setMode] = useState('especes');
+  const [reference, setReference] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const selection = lignes.map((ligne) => ({ ligne_id: ligne.id, quantite: Number(quantites[ligne.id] ?? 0) })).filter((ligne) => ligne.quantite > 0);
+  const estimation = lignes.reduce((total, ligne) => total + (Number(quantites[ligne.id] ?? 0) / Number(ligne.quantite)) * Number(ligne.total), 0)
+    * (Number(vente.sous_total) > 0 ? Number(vente.total) / Number(vente.sous_total) : 1);
+  const valider = async (e) => {
+    e.preventDefault(); setChargement(true); setErreur('');
+    try {
+      const resultat = await api.rpc('enregistrer_retour_vente', {
+        p_vente_id: vente.id, p_lignes: selection, p_motif: motif, p_mode: mode,
+        p_session_id: mode === 'especes' ? sessions.find((session) => session.hub_id === vente.hub_id)?.id ?? null : null,
+        p_reference: reference || null,
+      });
+      onFait(resultat);
+    } catch (err) { setErreur(err.message); setChargement(false); }
+  };
+  return (
+    <Modale titre={`Retour sur ${vente.numero}`} onFermer={onFermer} large>
+      <form className="formulaire" onSubmit={valider}>
+        <p className="texte-doux">Choisissez uniquement les articles réellement rapportés. Les quantités seront remises dans le stock du Hub d’origine.</p>
+        <div className="tableau-conteneur">
+          <table className="tableau">
+            <thead><tr><th>Article</th><th className="nombre">Vendu</th><th className="nombre">Déjà retourné</th><th className="nombre">À retourner</th></tr></thead>
+            <tbody>{lignes.map((ligne) => {
+              const maximum = Number(ligne.quantite) - dejaRetourne[ligne.id];
+              return <tr key={ligne.id}><td>{ligne.libelle}</td><td className="nombre">{formatQuantite(ligne.quantite)}</td>
+                <td className="nombre">{formatQuantite(dejaRetourne[ligne.id])}</td><td className="nombre">
+                  <input aria-label={`Quantité retournée pour ${ligne.libelle}`} type="number" min="0" max={maximum} step="any" disabled={maximum <= 0}
+                    value={quantites[ligne.id] ?? ''} onChange={(e) => setQuantites((q) => ({ ...q, [ligne.id]: e.target.value }))} />
+                </td></tr>;
+            })}</tbody>
+          </table>
+        </div>
+        <div className="grille-formulaire">
+          <Champ libelle="Motif du retour"><textarea required minLength={3} maxLength={500} rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} /></Champ>
+          <Champ libelle="Mode de remboursement"><select value={mode} onChange={(e) => setMode(e.target.value)}>
+            {Object.entries({ ...MODES_PAIEMENT, avoir: 'Avoir / échange' }).map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
+          </select></Champ>
+          {mode !== 'especes' && mode !== 'avoir' && <Champ libelle="Référence"><input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} /></Champ>}
+        </div>
+        <div className="encart"><strong>Montant estimé : {montant(estimation)}</strong><br /><span className="texte-doux">Le serveur applique exactement les remises du ticket. La part non encaissée devient un avoir, sans sortie d’argent.</span></div>
+        {mode === 'especes' && !sessions.some((session) => session.hub_id === vente.hub_id) && <Erreur message="Ouvrez la caisse du Hub d’origine pour rembourser en espèces." />}
+        <Erreur message={erreur} />
+        <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal" chargement={chargement} disabled={!selection.length || !motif.trim()}>Enregistrer le retour</Bouton></div>
+      </form>
+    </Modale>
+  );
+}
+
 export function DetailVente({ venteId, onFermer, onChange }) {
   const { api, montant, peut, notifier } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [[vente], lignes, paiements] = await Promise.all([
+    const [[vente], lignes, paiements, retours] = await Promise.all([
       api.lire('ventes', { eq: { id: venteId } }),
       api.lire('lignes_vente', { eq: { vente_id: venteId } }),
       peut('paiements.lire') ? api.lire('paiements', { eq: { vente_id: venteId }, ordre: ['cree_le'] }) : [],
+      api.rpc('historique_retours_vente', { p_vente_id: venteId }).catch(() => []),
     ]);
     const sessions = await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } });
     const contact = vente.contact_id ? (await api.lire('contacts', { eq: { id: vente.contact_id } }))[0] : null;
-    return { vente, lignes, paiements, sessions, contact };
+    return { vente, lignes, paiements, retours, sessions, contact };
   }, [venteId]);
   const [action, setAction] = useState(null);
 
@@ -98,7 +157,7 @@ export function DetailVente({ venteId, onFermer, onChange }) {
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {donnees && (() => {
-        const { vente, lignes, paiements, sessions, contact } = donnees;
+        const { vente, lignes, paiements, retours, sessions, contact } = donnees;
         const reste = vente.total - vente.montant_paye;
         return (
           <div className="detail">
@@ -153,6 +212,14 @@ export function DetailVente({ venteId, onFermer, onChange }) {
                 </div>
               </>
             )}
+            {retours.length > 0 && <>
+              <h3>Retours et remboursements</h3>
+              <div className="liste-simple">{retours.map((retour) => <div key={retour.id} className="liste-ligne">
+                <span><strong>{retour.numero}</strong> · {retour.motif}<br /><small className="texte-doux">{formatDateHeure(retour.cree_le)} · {retour.lignes.length} ligne(s)</small></span>
+                <strong>− {montant(retour.montant)}</strong>
+                <Badge ton={retour.remboursement?.mode === 'avoir' ? 'bleu' : 'orange'}>{retour.remboursement ? (retour.remboursement.mode === 'avoir' ? 'Avoir / échange' : `Remboursé · ${MODES_PAIEMENT[retour.remboursement.mode]}`) : 'Non encaissé'}</Badge>
+              </div>)}</div>
+            </>}
             <div className="actions">
               {(peut('recus.lire') || peut('ventes.lire')) && <Bouton icone="imprimer" onClick={() => setAction({ type: 'recu' })}>Reçu</Bouton>}
               {vente.statut === 'validee' && reste > 0 && peut('paiements.encaisser') && (
@@ -160,6 +227,9 @@ export function DetailVente({ venteId, onFermer, onChange }) {
               )}
               {vente.statut === 'validee' && peut('ventes.annuler') && (
                 <Bouton variante="danger" onClick={() => setAction({ type: 'annuler' })}>Annuler la vente</Bouton>
+              )}
+              {vente.statut === 'validee' && peut('ventes.retourner') && lignes.some((ligne) => Number(ligne.quantite) > retours.flatMap((retour) => retour.lignes ?? []).filter((retour) => retour.ligne_id === ligne.id).reduce((s, retour) => s + Number(retour.quantite), 0)) && (
+                <Bouton onClick={() => setAction({ type: 'retour' })}>Retour / échange</Bouton>
               )}
             </div>
             {action?.type === 'encaisser' && (
@@ -183,6 +253,8 @@ export function DetailVente({ venteId, onFermer, onChange }) {
                 onFermer={() => setAction(null)}
               />
             )}
+            {action?.type === 'retour' && <ModaleRetour vente={vente} lignes={lignes} retours={retours} sessions={sessions}
+              onFermer={() => setAction(null)} onFait={(resultat) => apres(`${resultat.numero} enregistré · ${montant(resultat.montant_rembourse)} remboursé`)} />}
           </div>
         );
       })()}

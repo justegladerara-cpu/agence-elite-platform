@@ -13,20 +13,21 @@ function useSalle(dependances = []) {
   const etab = etablissement.id;
   const hubsVisibles = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_vente).map((h) => h.id);
   return useDonnees(async () => {
-    const [tables, commandes, articles, categories, contacts, sessions] = await Promise.all([
+    const [tables, commandes, articles, categories, contacts, sessions, reservations] = await Promise.all([
       api.lire('rest_tables', { eq: { etablissement_id: etab, actif: true }, ordre: ['zone', 'ordre', 'nom'] }),
       api.lire('rest_commandes', { eq: { etablissement_id: etab, statut: 'ouverte' }, ordre: ['ouverte_le'] }),
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }).catch(() => []),
+      api.lire('rest_reservations', { eq: { etablissement_id: etab }, gte: { debut: new Date(Date.now() - 86400000).toISOString() }, ordre: ['debut'], limite: 100 }).catch(() => []),
     ]);
     const ids = commandes.map((c) => c.id);
     const lignes = ids.length ? await api.lire('rest_lignes', { dans: { commande_id: ids }, ordre: ['cree_le'] }) : [];
     return {
       tables: tables.filter((t) => hubsVisibles.includes(t.hub_id)),
       commandes: commandes.filter((c) => hubsVisibles.includes(c.hub_id)),
-      lignes, articles, categories, sessions,
+      lignes, articles, categories, sessions, reservations: reservations.filter((r) => hubsVisibles.includes(r.hub_id)),
       article: Object.fromEntries(articles.map((a) => [a.id, a])),
       contacts: contacts.filter((c) => c.type !== 'fournisseur'),
     };
@@ -37,6 +38,7 @@ function PlanDeSalle({ naviguer }) {
   const { api, etablissement, peut, notifier, montant, hubs, multiHub, moduleActif } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useSalle();
   const [ouvrir, setOuvrir] = useState(null);
+  const [reservation, setReservation] = useState(null);
   const tableau = useDonnees(() => api.rpc('tableau_de_bord_restaurant', { p_etablissement_id: etablissement.id }), [etablissement.id]);
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;
@@ -53,6 +55,7 @@ function PlanDeSalle({ naviguer }) {
         actions={(
           <>
             {moduleActif('restaurant_cuisine') && peut('restaurant_cuisine.lire') && <Bouton icone="cuisine" onClick={() => naviguer('cuisine')}>Écran cuisine</Bouton>}
+            {peut('restaurant_salle.servir') && <Bouton icone="calendrier" onClick={() => setReservation({})}>Réserver</Bouton>}
             {peut('restaurant_salle.servir') && <Bouton icone="panier" onClick={() => setOuvrir({ emporter: true })}>À emporter</Bouton>}
             {peut('restaurant_salle.gerer') && <Bouton icone="parametres" onClick={() => naviguer('salle/reglages')}>Tables et postes</Bouton>}
           </>
@@ -111,6 +114,16 @@ function PlanDeSalle({ naviguer }) {
           </div>
         </Section>
       )}
+      <Section titre="Réservations" sousTitre="Les prochaines arrivées, avec ou sans table déjà affectée.">
+        {!d.reservations.filter((r) => ['confirmee', 'arrivee'].includes(r.statut)).length && <p className="texte-doux">Aucune réservation à venir.</p>}
+        <div className="liste-simple">{d.reservations.filter((r) => ['confirmee', 'arrivee'].includes(r.statut)).slice(0, 12).map((r) => {
+          const table = d.tables.find((t) => t.id === r.table_id);
+          return <div key={r.id} className="liste-ligne"><span><strong>{r.nom_client}</strong><br /><small className="texte-doux">{formatDateHeure(r.debut)} · {r.couverts} couvert(s){table ? ` · table ${table.nom}` : ''}</small></span>
+            <Badge ton={r.statut === 'arrivee' ? 'vert' : 'bleu'}>{r.statut === 'arrivee' ? 'Arrivé' : 'Confirmé'}</Badge>
+            <span className="groupe-boutons">{r.statut === 'confirmee' && <Bouton onClick={() => api.rpc('statut_reservation_restaurant', { p_id: r.id, p_statut: 'arrivee', p_motif: null }).then(() => { notifier('Arrivée enregistrée'); recharger(); })}>Arrivée</Bouton>}
+              <button type="button" className="lien" onClick={() => setReservation(r)}>Modifier</button></span></div>;
+        })}</div>
+      </Section>
       {ouvrir && (
         <ModaleOuverture
           table={ouvrir.table}
@@ -119,8 +132,35 @@ function PlanDeSalle({ naviguer }) {
           onFait={(id) => { setOuvrir(null); notifier('Commande ouverte'); recharger(); naviguer(`salle/${id}`); }}
         />
       )}
+      {reservation && <ModaleReservationRestaurant reservation={reservation.id ? reservation : null} tables={d.tables} hubs={hubs.filter((h) => h.capacite_vente && h.actif)}
+        onFermer={() => setReservation(null)} onFait={() => { setReservation(null); notifier('Réservation enregistrée'); recharger(); }} />}
     </div>
   );
+}
+
+function ModaleReservationRestaurant({ reservation, tables, hubs, onFermer, onFait }) {
+  const { api, etablissement, hub } = useEspace();
+  const local = (date) => { const d = date ? new Date(date) : new Date(Date.now() + 3600000); d.setMinutes(Math.ceil(d.getMinutes() / 15) * 15, 0, 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const [v, setV] = useState({ nom_client: reservation?.nom_client ?? '', telephone: reservation?.telephone ?? '', debut: local(reservation?.debut),
+    duree_minutes: reservation?.duree_minutes ?? 120, couverts: reservation?.couverts ?? 2, hub_id: reservation?.hub_id ?? hub?.id ?? hubs[0]?.id ?? '', table_id: reservation?.table_id ?? '', note: reservation?.note ?? '' });
+  const [erreur, setErreur] = useState('');
+  const changer = (cle) => (e) => setV({ ...v, [cle]: e.target.value });
+  const valider = async (e) => { e.preventDefault(); setErreur(''); try {
+    await api.rpc('enregistrer_reservation_restaurant', { p_etablissement_id: etablissement.id, p: { id: reservation?.id, ...v, debut: new Date(v.debut).toISOString() } }); onFait();
+  } catch (err) { setErreur(err.message); } };
+  const tablesHub = tables.filter((t) => t.hub_id === v.hub_id && t.places >= Number(v.couverts));
+  return <Modale titre={reservation ? 'Modifier la réservation' : 'Nouvelle réservation'} onFermer={onFermer}>
+    <form className="formulaire" onSubmit={valider}><div className="grille-formulaire">
+      <Champ libelle="Nom du client"><input required maxLength={120} value={v.nom_client} onChange={changer('nom_client')} autoFocus /></Champ>
+      <Champ libelle="Téléphone"><input maxLength={40} value={v.telephone} onChange={changer('telephone')} /></Champ>
+      <Champ libelle="Date et heure"><input type="datetime-local" required value={v.debut} onChange={changer('debut')} /></Champ>
+      <Champ libelle="Durée"><select value={v.duree_minutes} onChange={changer('duree_minutes')}><option value="60">1 heure</option><option value="90">1 h 30</option><option value="120">2 heures</option><option value="180">3 heures</option></select></Champ>
+      <Champ libelle="Couverts"><input type="number" min="1" max="200" required value={v.couverts} onChange={changer('couverts')} /></Champ>
+      <Champ libelle="Salle / Hub"><select value={v.hub_id} onChange={(e) => setV({ ...v, hub_id: e.target.value, table_id: '' })}>{hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}</select></Champ>
+      <Champ libelle="Table (facultatif)"><select value={v.table_id} onChange={changer('table_id')}><option value="">À affecter à l’arrivée</option>{tablesHub.map((t) => <option key={t.id} value={t.id}>{t.zone} · {t.nom} ({t.places} places)</option>)}</select></Champ>
+    </div><Champ libelle="Note"><textarea rows={2} maxLength={500} value={v.note} onChange={changer('note')} /></Champ><Erreur message={erreur} />
+    <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal">Enregistrer</Bouton></div></form>
+  </Modale>;
 }
 
 function ModaleOuverture({ table, hubs, onFermer, onFait }) {

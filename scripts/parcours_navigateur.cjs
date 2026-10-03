@@ -83,10 +83,29 @@ const U = 'http://localhost:4173/';
     await etape('tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.getByText('Chiffre d’affaires').waitFor(); });
     await etape('tableau-30j', async () => { await p.getByRole('tab', { name: '30 jours' }).click(); await p.getByText('Ventes par jour').waitFor(); });
     await etape('parametres', async () => { await p.goto(U + '#/parametres'); await p.getByRole('tab', { name: 'Entreprise' }).waitFor(); });
+    const modules = [
+      ['rapports', 'Rapports'], ['factures', 'Devis et factures'], ['achats', 'Achats'],
+      ['crm', 'Prospects et opportunités'], ['projets', 'Projets'], ['employes', 'Employés'],
+      ['presences', 'Présences'], ['conges', 'Congés'], ['salle', 'Salle'], ['cuisine', 'Cuisine'],
+      ['hotel', 'Réception'], ['chambres', 'Chambres'], ['boutique', 'Boutique en ligne'],
+      ['siteweb', 'Site web'], ['agenda', 'Agenda'], ['support', 'Support'],
+      ['abonnements', 'Abonnements'], ['fidelite', 'Fidélité'], ['documents', 'Documents'],
+    ];
+    for (const [route, titre] of modules) {
+      await etape(`module-${route}`, async () => {
+        await p.goto(`${U}#/${route}`);
+        await p.getByRole('heading', { name: new RegExp(titre, 'i') }).first().waitFor({ timeout: 20000 });
+        const erreursVisibles = await p.locator('.erreur:visible').allTextContents();
+        if (erreursVisibles.length) throw new Error(erreursVisibles.join(' | '));
+      });
+    }
     await p.setViewportSize({ width: 390, height: 844 });
     await etape('mobile-caisse', async () => { await p.goto(U + '#/caisse'); await p.waitForTimeout(1000); });
     await etape('mobile-tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.waitForTimeout(1000); });
-  } catch {}
+  } catch (erreur) {
+    erreurs.push(`PARCOURS ${erreur.message}`);
+  }
   console.log(erreurs.join('\n') || 'aucune erreur console');
   await b.close();
+  if (erreurs.length) process.exitCode = 1;
 })();
