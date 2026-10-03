@@ -6,7 +6,7 @@ const MODULES_ATTENDUS = {
   achats: 'actif', articles: 'actif', caisse: 'actif', cloture: 'actif', contacts: 'actif', crm_pipeline: 'actif', depenses: 'actif',
   documents: 'actif', ecommerce_boutique: 'actif', etablissement: 'actif', facturation: 'actif', hotel_chambres: 'actif',
   hotel_reservations: 'actif', membres: 'actif', paiements: 'actif', projets: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
-  restaurant_salle: 'actif', rh_conges: 'actif', rh_employes: 'actif', rh_presences: 'actif', site_web: 'futur', stock: 'actif',
+  restaurant_salle: 'actif', rh_conges: 'actif', rh_employes: 'actif', rh_presences: 'actif', site_web: 'actif', stock: 'actif',
   tableau_de_bord: 'actif', ventes: 'actif',
 };
 const SOLUTIONS_ATTENDUES = { commerce: 'active', ecommerce: 'active', hotel: 'active', restaurant: 'active', rh: 'active', services: 'active' };

@@ -138,9 +138,11 @@ describe("contexte d'appel", () => {
     )).rows;
     // Exceptions volontaires : la connexion par identifiant (réponse générique, verrou anti force brute)
     // la marque d'un écran de connexion personnalisé (nom, logo, couleur : rien d'autre)
-    // et la boutique en ligne publique (catalogue publié, code promo, commande, suivi par lien aléatoire).
+    // la boutique en ligne publique (catalogue publié, code promo, commande, suivi par lien aléatoire)
+    // et le site web publié (pages publiées, formulaire de contact).
     expect(executables.map((e) => e.proname).sort()).toEqual([
-      'boutique_publique', 'commander_boutique', 'marque_connexion', 'resoudre_connexion', 'suivi_commande_boutique', 'verifier_coupon_boutique',
+      'boutique_publique', 'commander_boutique', 'envoyer_message_site', 'marque_connexion', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
+      'verifier_coupon_boutique',
     ]);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select recu_vente($1)', [venteB]))).rejects.toThrow(/permission denied/);

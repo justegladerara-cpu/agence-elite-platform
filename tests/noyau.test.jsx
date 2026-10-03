@@ -244,6 +244,27 @@ describe('application sur la base locale', () => {
     expect(screen.getByText(/#\/suivi\//)).toBeTruthy();
   });
 
+  test('Site web : pages, éditeur par blocs, messages ; site public et formulaire', async () => {
+    window.location.hash = '#/siteweb';
+    const vue = render(<App demarrer={demarrer('boutique@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('À propos', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText('Brouillon')).toBeTruthy();
+    fireEvent.click(screen.getByText('Nos services'));
+    expect((await screen.findAllByText('Questions fréquentes', {}, { timeout: 10000 })).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Texte' }));
+    expect(screen.getByText('Modifications non enregistrées.')).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/site/demo-site/contact';
+    render(<App demarrer={demarrer(null)} />);
+    expect(await screen.findByText('Nous écrire', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Menu du site' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Votre nom'), { target: { value: 'Visiteur Test' } });
+    fireEvent.change(screen.getByLabelText('Téléphone'), { target: { value: '+242 06 999 00 11' } });
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Bonjour' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Envoyer' }));
+    expect(await screen.findByText(/votre message est envoyé/, {}, { timeout: 10000 })).toBeTruthy();
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);

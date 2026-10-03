@@ -17,6 +17,9 @@ const anon = (sql, params = []) => commeRole(db, 'anon', null, async (tx) => (aw
 
 beforeAll(async () => {
   db = await creerBase();
+  // Tous les modules du catalogue sont programmés : un module « Prévu » fictif sert aux contrôles ci-dessous.
+  await db.query("insert into modules(id, nom, description, nature, statut, categorie) values ('prevu_test', 'Module prévu (test)', 'Pas encore programmé', 'metier', 'futur', 'marketing')");
+  await db.query("insert into solution_modules(solution_id, module_id) values ('commerce', 'prevu_test')");
   sa = await utilisateur('sa@marque.test');
   admin = await utilisateur('admin@marque.test');
   gerant = await utilisateur('gerant@marque.test');
@@ -116,13 +119,13 @@ describe('profils', () => {
 
 describe('catalogue', () => {
   test('un module prévu ne devient jamais disponible, vendu ou activé', async () => {
-    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['site_web', '{"nom":"Site web","statut":"actif"}'])).rejects.toThrow(/pas encore programmé/);
-    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['site_web', '{"nom":"Site web","statut":"beta"}'])).rejects.toThrow(/pas encore programmé/);
-    await expect(comme(admin, "select accorder_module($1, 'site_web', true)", [etab])).rejects.toThrow(/disponible/);
-    await expect(db.query("insert into etablissement_modules(etablissement_id, module_id, actif) values ($1, 'site_web', true)", [etab])).rejects.toThrow();
+    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['prevu_test', '{"nom":"Prévu","statut":"actif"}'])).rejects.toThrow(/pas encore programmé/);
+    await expect(comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['prevu_test', '{"nom":"Prévu","statut":"beta"}'])).rejects.toThrow(/pas encore programmé/);
+    await expect(comme(admin, "select accorder_module($1, 'prevu_test', true)", [etab])).rejects.toThrow(/disponible/);
+    await expect(db.query("insert into etablissement_modules(etablissement_id, module_id, actif) values ($1, 'prevu_test', true)", [etab])).rejects.toThrow();
     // La description d'un module prévu reste modifiable, son statut reste « futur ».
-    await comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['site_web', '{"nom":"Site web","description":"Site vitrine"}']);
-    expect((await db.query("select statut from modules where id = 'site_web'")).rows[0].statut).toBe('futur');
+    await comme(sa, 'select enregistrer_module($1, $2::jsonb)', ['prevu_test', '{"nom":"Prévu","description":"Bientôt"}']);
+    expect((await db.query("select statut from modules where id = 'prevu_test'")).rows[0].statut).toBe('futur');
   });
 
   test('une dépendance en boucle est refusée', async () => {
@@ -155,7 +158,8 @@ describe('applications d’un établissement', () => {
     const parId = Object.fromEntries(apps.map((a) => [a.id, a]));
     expect(parId.caisse).toMatchObject({ disponible: true, active: true, autorise: true });
     expect(parId.depenses.autorise).toBe(false);
-    expect(parId.site_web).toMatchObject({ disponible: false, inclus_offre: false, accorde: false, active: false, autorise: false, statut: 'futur' });
+    expect(parId.prevu_test).toMatchObject({ disponible: false, inclus_offre: false, accorde: false, active: false, autorise: false, statut: 'futur' });
+    expect(parId.site_web).toMatchObject({ disponible: true, inclus_offre: false, accorde: false, active: false, autorise: false, statut: 'actif' });
     expect(parId.hotel_chambres).toBeUndefined();
     const etranger = await utilisateur('etranger@marque.test');
     await expect(comme(etranger, 'select mes_applications($1)', [etab])).rejects.toThrow(/Accès refusé/);

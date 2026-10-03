@@ -194,6 +194,16 @@ describe('moteur de données local', () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     expect(await api.lire('boutique_commandes')).toEqual([]);
   });
+  test('la démo site web : pages publiées, brouillon non visible, messages reçus', async () => {
+    utilisateur = null;
+    const site = await api.rpc('site_public', { p_adresse: 'demo-site', p_slug: null });
+    expect(site.menu.map((m) => m.slug)).toEqual(['accueil', 'services', 'contact']);
+    expect(site.boutique.adresse).toBe('demo-boutique');
+    await expect(api.rpc('site_public', { p_adresse: 'demo-site', p_slug: 'a-propos' })).rejects.toThrow(/introuvable/);
+    utilisateur = comptes['boutique@demo.agence-elite.fr'];
+    expect(await api.lire('site_messages')).toHaveLength(2);
+    expect(await api.lire('site_pages')).toHaveLength(4);
+  });
   test('la démo CRM : pipeline, devis lié, relance en retard, gagnée et perdue', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;

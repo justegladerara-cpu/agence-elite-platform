@@ -828,3 +828,71 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Site web : site « demo-site » de la « Boutique en ligne Démo » (module accordé comme supplément), accueil, services,
+-- contact publiés, une page en brouillon, deux messages reçus (fictifs).
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  sa uuid;
+  gerant uuid;
+  accueil uuid;
+  page uuid;
+begin
+  select e.id into etab from public.etablissements e join public.clients c on c.id = e.client_id
+  where c.nom = 'Commerce Démo' and e.nom = 'Boutique en ligne Démo' order by e.cree_le limit 1;
+  if etab is null or exists (select 1 from public.sites where adresse = 'demo-site' or etablissement_id = etab) then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerant from auth.users where email = 'boutique@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'site_web', true, 'Démo : site vitrine');
+  perform public.definir_module_etablissement(etab, 'site_web', true);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_site(etab, jsonb_build_object('adresse', 'demo-site', 'titre', 'Elite Mode (démo)', 'couleur', '#7c3aed',
+    'description', 'Boutique fictive de vêtements et accessoires à Brazzaville (démonstration).'));
+  accueil := public.enregistrer_page_site(etab, jsonb_build_object('slug', 'accueil', 'titre', 'Accueil',
+    'description_seo', 'Vêtements et accessoires livrés à Brazzaville (démo).'));
+  perform public.enregistrer_blocs_page_site(accueil, jsonb_build_array(
+    jsonb_build_object('type', 'hero', 'titre', 'La mode Elite, livrée chez vous', 'sous_titre', 'T-shirts, pagnes, sacs et casquettes. Commande en ligne, paiement à la livraison.',
+      'bouton_texte', 'Voir la boutique', 'bouton_lien', '/boutique'),
+    jsonb_build_object('type', 'produits', 'titre', 'Nos nouveautés', 'nombre', 4),
+    jsonb_build_object('type', 'temoignages', 'titre', 'Ils nous font confiance', 'elements', jsonb_build_array(
+      jsonb_build_object('nom', 'Awa M. (démo)', 'texte', 'Livrée le jour même, pagne magnifique.'),
+      jsonb_build_object('nom', 'Patrick N. (démo)', 'texte', 'Bonne qualité, je recommande.'))),
+    jsonb_build_object('type', 'cta', 'titre', 'Une question ?', 'texte', 'Écrivez-nous, nous répondons dans la journée.', 'bouton_texte', 'Nous contacter', 'bouton_lien', '/contact')));
+  perform public.publier_page_site(accueil);
+  page := public.enregistrer_page_site(etab, jsonb_build_object('slug', 'services', 'titre', 'Nos services', 'ordre', 1));
+  perform public.enregistrer_blocs_page_site(page, jsonb_build_array(
+    jsonb_build_object('type', 'services', 'titre', 'Ce que nous proposons', 'elements', jsonb_build_array(
+      jsonb_build_object('titre', 'Livraison à Brazzaville', 'texte', '1 000 FCFA, sous 24 h.'),
+      jsonb_build_object('titre', 'Retrait au marché', 'texte', 'Marché Total, stand 12 (fictif).'),
+      jsonb_build_object('titre', 'Retours', 'texte', 'Taille non adaptée : échange sous 7 jours.'))),
+    jsonb_build_object('type', 'faq', 'titre', 'Questions fréquentes', 'elements', jsonb_build_array(
+      jsonb_build_object('question', 'Comment payer ?', 'reponse', 'Mobile Money ou espèces à la livraison.'),
+      jsonb_build_object('question', 'Livrez-vous à Pointe-Noire ?', 'reponse', 'Pas encore : retrait possible via un proche à Brazzaville.')))));
+  perform public.publier_page_site(page);
+  page := public.enregistrer_page_site(etab, jsonb_build_object('slug', 'contact', 'titre', 'Contact', 'ordre', 2));
+  perform public.enregistrer_blocs_page_site(page, jsonb_build_array(
+    jsonb_build_object('type', 'contact', 'titre', 'Nous écrire', 'telephone', '+242 06 000 00 00', 'adresse', 'Marché Total, stand 12 (fictif)',
+      'horaires', 'Lundi au samedi, 9 h - 18 h', 'formulaire', true)));
+  perform public.publier_page_site(page);
+  page := public.enregistrer_page_site(etab, jsonb_build_object('slug', 'a-propos', 'titre', 'À propos', 'ordre', 3));
+  perform public.enregistrer_blocs_page_site(page, jsonb_build_array(
+    jsonb_build_object('type', 'texte', 'titre', 'Notre histoire', 'texte', 'Page en cours de rédaction (brouillon, non publiée).')));
+  perform public.enregistrer_site(etab, jsonb_build_object('adresse', 'demo-site', 'titre', 'Elite Mode (démo)', 'couleur', '#7c3aed', 'publie', true,
+    'description', 'Boutique fictive de vêtements et accessoires à Brazzaville (démonstration).'));
+
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  perform public.envoyer_message_site('demo-site', jsonb_build_object('nom', 'Sandrine K. (démo)', 'telephone', '+242 06 200 00 01',
+    'message', 'Avez-vous le T-shirt Elite en taille L ? Merci.', 'page_id', page));
+  perform public.envoyer_message_site('demo-site', jsonb_build_object('nom', 'Hervé M. (démo)', 'email', 'herve@exemple.cg',
+    'message', 'Je souhaite commander 20 casquettes pour une association.'));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

@@ -7,6 +7,7 @@ import { Cloche } from './ui/communs.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
+import { SitePublic } from './public/RenduSite.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import {
@@ -729,8 +730,9 @@ export default function App({ demarrer = demarrerDonnees }) {
 
   if (etape === 'demarrage') return <div className="ecran-centre"><Chargement texte="Préparation de la base…" /></div>;
   if (etape === 'erreur') return <div className="ecran-centre"><Erreur message={erreur} /></div>;
-  // Pages publiques (sans compte) : boutique en ligne et suivi de commande.
-  const [publique, cle] = route.split('/');
+  // Pages publiques (sans compte) : site web, boutique en ligne et suivi de commande.
+  const [publique, cle, sousPage] = route.split('/');
+  if (publique === 'site' && cle) return <SitePublic donnees={donnees} adresse={cle.toLowerCase()} slug={sousPage} />;
   if (publique === 'commander' && cle) return <BoutiquePublique key={cle} donnees={donnees} adresse={cle.toLowerCase()} />;
   if (publique === 'suivi' && cle) return <SuiviCommande key={cle} donnees={donnees} suivi={cle} />;
   if (etape === 'connexion') {

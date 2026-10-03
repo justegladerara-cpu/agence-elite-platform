@@ -63,6 +63,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Restaurant : tables, commandes, cuisine, addition séparée | [49](49_SERVIR_EN_SALLE.md) | Client |
 | Hôtel : chambres, réservations, arrivées, départs facturés, entretien | [50](50_GERER_UN_HOTEL.md) | Client |
 | E-commerce : boutique en ligne, commandes, livraison, retours | [51](51_VENDRE_EN_LIGNE.md) | Client |
+| Site web : pages par blocs, publication, messages | [52](52_CREER_UN_SITE_WEB.md) | Client et Agence Elite |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).
