@@ -4,7 +4,7 @@
 | Élément | État |
 |---|---|
 | Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare, publié à chaque push sur `main`) |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **45 migrations** dans `supabase/migrations/` (dernière `20261003000015_cockpit`) |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **46 migrations** dans `supabase/migrations/` (dernière `20261003000016_liens_modules`) |
 | Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
 | Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` (client ou établissement) |
