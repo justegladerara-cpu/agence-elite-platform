@@ -456,3 +456,145 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Restaurant : établissement « Restaurant Démo » (même client), tables, plats, une table servie et encaissée,
+-- une table en cours (plats en cuisine, prêts, à envoyer), une commande à emporter.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  client uuid;
+  etab uuid;
+  sa uuid;
+  gerante uuid;
+  patron uuid;
+  serveur uuid;
+  cuisinier uuid;
+  hub uuid;
+  ligne record;
+  id_tmp uuid;
+  art jsonb := '{}'::jsonb;
+  cat_plats uuid;
+  cat_boissons uuid;
+  t jsonb := '{}'::jsonb;
+  cmd uuid;
+  session uuid;
+  l record;
+  domaine constant text := 'demo.agence-elite.fr';
+begin
+  select id into client from public.clients where nom = 'Commerce Démo' order by cree_le limit 1;
+  if client is null or exists (select 1 from public.etablissements where client_id = client and nom = 'Restaurant Démo') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
+
+  -- Équipe fictive de salle et de cuisine (mot de passe aléatoire : ces comptes ne se connectent pas).
+  for ligne in select * from (values ('resto', 'Gisèle M. (gérante du restaurant)'), ('serveur', 'Rodrigue T. (serveur)'), ('cuisine', 'Mama Odile (cuisine)')) as v(cle, nom) loop
+    select id into id_tmp from auth.users where email = ligne.cle || '@' || domaine;
+    if id_tmp is null then
+      insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+        raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+      values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', ligne.cle || '@' || domaine,
+        extensions.crypt(md5(random()::text || clock_timestamp()::text), extensions.gen_salt('bf')), now(),
+        '{"provider": "email", "providers": ["email"]}'::jsonb, jsonb_build_object('nom', ligne.nom), now(), now(), '', '', '', '')
+      returning id into id_tmp;
+      insert into public.profils (id, nom_complet) values (id_tmp, ligne.nom)
+      on conflict (id) do update set nom_complet = excluded.nom_complet;
+    end if;
+    case ligne.cle when 'resto' then gerante := id_tmp; when 'serveur' then serveur := id_tmp; else cuisinier := id_tmp; end case;
+  end loop;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  etab := public.creer_etablissement(client, 'restaurant', 'Restaurant Démo');
+  insert into public.etablissement_membres (etablissement_id, user_id, role_id) values
+    (etab, gerante, 'gerant'), (etab, serveur, 'serveur'), (etab, cuisinier, 'cuisinier')
+  on conflict (etablissement_id, user_id) do nothing;
+  if patron is not null then
+    insert into public.etablissement_membres (etablissement_id, user_id, role_id) values (etab, patron, 'gerant')
+    on conflict (etablissement_id, user_id) do nothing;
+  end if;
+  select id into hub from public.hubs where etablissement_id = etab and principal;
+
+  -- Carte : plats (cuisine), boissons (bar), eau servie directement.
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  cat_plats := public.enregistrer_categorie(etab, 'Plats');
+  cat_boissons := public.enregistrer_categorie(etab, 'Boissons');
+  for ligne in select * from (values
+    ('PLT-PDG', 'Poulet DG', 6500, 'cuisine', false, 'plats'), ('PLT-POI', 'Poisson braisé', 7000, 'cuisine', false, 'plats'),
+    ('PLT-SAK', 'Saka-saka et riz', 3500, 'cuisine', false, 'plats'), ('PLT-BRO', 'Brochettes de bœuf (5)', 3000, 'cuisine', false, 'plats'),
+    ('BAR-PRI', 'Primus 65 cl', 1000, 'bar', true, 'boissons'), ('BAR-JUS', 'Jus de gingembre', 1000, 'bar', false, 'boissons'),
+    ('BAR-EAU', 'Eau 1,5 L', 700, 'aucun', true, 'boissons')) as v(ref, nom, prix, poste, stock, cat)
+  loop
+    id_tmp := public.enregistrer_article(etab, jsonb_build_object('reference', ligne.ref, 'nom', ligne.nom, 'prix_vente', ligne.prix,
+      'suivi_stock', ligne.stock, 'categorie_id', case ligne.cat when 'plats' then cat_plats else cat_boissons end,
+      'cout_achat', case when ligne.stock then round(ligne.prix * 0.6) end));
+    perform public.definir_poste_preparation(id_tmp, ligne.poste);
+    if ligne.stock then
+      perform public.ajuster_stock_hub(hub, id_tmp, 'entree', 48, 'Stock d''ouverture', round(ligne.prix * 0.6));
+    end if;
+    art := art || jsonb_build_object(ligne.ref, id_tmp);
+  end loop;
+
+  -- Tables : salle et terrasse.
+  for ligne in select * from (values ('T1', 'Salle', 4, 1), ('T2', 'Salle', 4, 2), ('T3', 'Salle', 6, 3), ('T4', 'Salle', 2, 4),
+    ('Terrasse 1', 'Terrasse', 4, 5), ('Terrasse 2', 'Terrasse', 8, 6)) as v(nom, zone, places, ordre) loop
+    t := t || jsonb_build_object(ligne.nom, public.enregistrer_table_restaurant(etab, jsonb_build_object('hub_id', hub, 'nom', ligne.nom,
+      'zone', ligne.zone, 'places', ligne.places, 'ordre', ligne.ordre)));
+  end loop;
+
+  session := public.ouvrir_caisse(etab, null, 20000);
+
+  -- Table T3 : servie et encaissée (addition séparée : un client paie sa part en espèces, le reste en Mobile Money).
+  perform set_config('request.jwt.claims', json_build_object('sub', serveur, 'role', 'authenticated')::text, true);
+  cmd := public.ouvrir_commande_restaurant(etab, jsonb_build_object('table_id', t ->> 'T3', 'couverts', 4));
+  perform public.ajouter_lignes_restaurant(cmd, jsonb_build_array(
+    jsonb_build_object('article_id', art ->> 'PLT-PDG', 'quantite', 2), jsonb_build_object('article_id', art ->> 'PLT-POI', 'quantite', 2),
+    jsonb_build_object('article_id', art ->> 'BAR-PRI', 'quantite', 4), jsonb_build_object('article_id', art ->> 'BAR-EAU', 'quantite', 1)));
+  perform public.envoyer_commande_restaurant(cmd);
+  perform set_config('request.jwt.claims', json_build_object('sub', cuisinier, 'role', 'authenticated')::text, true);
+  for l in select id from public.rest_lignes where commande_id = cmd and statut = 'envoyee' loop
+    perform public.avancer_ligne_restaurant(l.id, 'prete');
+  end loop;
+  perform set_config('request.jwt.claims', json_build_object('sub', serveur, 'role', 'authenticated')::text, true);
+  for l in select id from public.rest_lignes where commande_id = cmd and statut = 'prete' loop
+    perform public.avancer_ligne_restaurant(l.id, 'servie');
+  end loop;
+  select id into id_tmp from public.rest_lignes where commande_id = cmd and article_id = (art ->> 'PLT-PDG')::uuid;
+  id_tmp := public.scinder_ligne_restaurant(id_tmp, 1);
+  perform public.encaisser_commande_restaurant(cmd, session, jsonb_build_array(jsonb_build_object('mode', 'especes', 'montant', 10000)), array[id_tmp]);
+  perform public.encaisser_commande_restaurant(cmd, session,
+    jsonb_build_array(jsonb_build_object('mode', 'mobile_money', 'montant', 25200, 'reference', 'MM-DEMO-0042')));
+
+  -- Table T1 : en cours (poisson prêt, saka-saka en préparation, boissons servies, un plat pas encore envoyé).
+  cmd := public.ouvrir_commande_restaurant(etab, jsonb_build_object('table_id', t ->> 'T1', 'couverts', 3));
+  perform public.ajouter_lignes_restaurant(cmd, jsonb_build_array(
+    jsonb_build_object('article_id', art ->> 'PLT-POI', 'quantite', 1, 'note', 'Bien pimenté'),
+    jsonb_build_object('article_id', art ->> 'PLT-SAK', 'quantite', 2),
+    jsonb_build_object('article_id', art ->> 'BAR-JUS', 'quantite', 3)));
+  perform public.envoyer_commande_restaurant(cmd);
+  perform set_config('request.jwt.claims', json_build_object('sub', cuisinier, 'role', 'authenticated')::text, true);
+  select id into id_tmp from public.rest_lignes where commande_id = cmd and article_id = (art ->> 'PLT-POI')::uuid;
+  perform public.avancer_ligne_restaurant(id_tmp, 'prete');
+  select id into id_tmp from public.rest_lignes where commande_id = cmd and article_id = (art ->> 'PLT-SAK')::uuid;
+  perform public.avancer_ligne_restaurant(id_tmp, 'en_preparation');
+  select id into id_tmp from public.rest_lignes where commande_id = cmd and article_id = (art ->> 'BAR-JUS')::uuid;
+  perform public.avancer_ligne_restaurant(id_tmp, 'prete');
+  perform set_config('request.jwt.claims', json_build_object('sub', serveur, 'role', 'authenticated')::text, true);
+  perform public.avancer_ligne_restaurant(id_tmp, 'servie');
+  perform public.ajouter_lignes_restaurant(cmd, jsonb_build_array(jsonb_build_object('article_id', art ->> 'PLT-BRO', 'quantite', 1)));
+
+  -- Terrasse 1 : bières envoyées au bar.
+  cmd := public.ouvrir_commande_restaurant(etab, jsonb_build_object('table_id', t ->> 'Terrasse 1', 'couverts', 2));
+  perform public.ajouter_lignes_restaurant(cmd, jsonb_build_array(jsonb_build_object('article_id', art ->> 'BAR-PRI', 'quantite', 2),
+    jsonb_build_object('article_id', art ->> 'PLT-BRO', 'quantite', 2)));
+  perform public.envoyer_commande_restaurant(cmd);
+
+  -- À emporter.
+  cmd := public.ouvrir_commande_restaurant(etab, jsonb_build_object('hub_id', hub, 'nom_client', 'M. Okemba'));
+  perform public.ajouter_lignes_restaurant(cmd, jsonb_build_array(jsonb_build_object('article_id', art ->> 'PLT-PDG', 'quantite', 1)));
+  perform public.envoyer_commande_restaurant(cmd);
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

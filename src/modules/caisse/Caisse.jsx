@@ -69,7 +69,7 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir }) {
   );
 }
 
-function ModalePaiement({ total, contacts, contactId, onContact, onValider, onFermer }) {
+export function ModalePaiement({ total, contacts, contactId, onContact, onValider, onFermer, libelleRetour = 'Retour au panier' }) {
   const { montant, devise } = useEspace();
   const [paiements, setPaiements] = useState([{ mode: 'especes', montant: String(total), reference: '' }]);
   const [erreur, setErreur] = useState('');
@@ -96,7 +96,7 @@ function ModalePaiement({ total, contacts, contactId, onContact, onValider, onFe
       onFermer={onFermer}
       pied={(
         <>
-          <Bouton onClick={onFermer}>Retour au panier</Bouton>
+          <Bouton onClick={onFermer}>{libelleRetour}</Bouton>
           <Bouton variante="principal" onClick={valider} chargement={chargement}>Valider la vente</Bouton>
         </>
       )}

@@ -2599,3 +2599,33 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .etapes-pipeline button.actif { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 @media (max-width: 700px) { .kanban-colonne { flex-basis: 78vw; } }
 .page.page-large { max-width: 1600px; }
+
+/* Restaurant : plan de salle, commande, écran cuisine */
+.plan-salle { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+.table-resto {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 96px; padding: 12px 14px;
+  border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte);
+  text-align: left; cursor: pointer; font: inherit; transition: border-color .15s, box-shadow .15s;
+}
+.table-resto:hover, .table-resto:focus-visible { border-color: var(--accent); box-shadow: var(--ombre); }
+.table-resto strong { font-size: 1.05rem; }
+.table-resto.occupee { background: var(--accent-doux); border-color: var(--accent); }
+.table-resto.pret { background: var(--vert-doux); border-color: var(--vert); }
+.table-resto .table-montant { font-weight: 600; font-variant-numeric: tabular-nums; }
+.commande-resto { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.commande-resto .commande-catalogue { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.commande-resto .commande-lignes { position: sticky; top: calc(var(--barre-haut, 60px) + 12px); }
+.liste-ligne.barre > span:first-child strong { text-decoration: line-through; color: var(--texte-faible); }
+.bons-cuisine { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.bon-cuisine { border: 1px solid var(--bordure); border-top: 4px solid var(--accent); border-radius: var(--rayon); background: var(--surface); box-shadow: var(--ombre); }
+.bon-cuisine.attention { border-top-color: var(--orange); }
+.bon-cuisine.retard { border-top-color: var(--rouge); }
+.bon-cuisine header { display: flex; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--bordure); }
+.bon-cuisine header span { color: var(--texte-doux); font-variant-numeric: tabular-nums; }
+.bon-cuisine ul { list-style: none; margin: 0; padding: 6px 0; }
+.bon-cuisine li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 14px; }
+.bon-cuisine li.en_preparation { background: var(--orange-doux); }
+@media (max-width: 900px) {
+  .commande-resto { grid-template-columns: 1fr; }
+  .commande-resto .commande-lignes { position: static; }
+}

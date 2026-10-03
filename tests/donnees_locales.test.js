@@ -160,6 +160,18 @@ describe('moteur de données local', () => {
     utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
     expect(await api.lire('projets')).toEqual([]);
   });
+  test('la démo restaurant : tables occupées, cuisine, addition séparée encaissée', async () => {
+    utilisateur = comptes['resto@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Restaurant Démo'")).rows[0].id;
+    const tdb = await api.rpc('tableau_de_bord_restaurant', { p_etablissement_id: etab });
+    expect(tdb).toMatchObject({ tables: 6, tables_occupees: 2, commandes_ouvertes: 3, tickets_jour: 2, couverts_jour: 9 });
+    expect(Number(tdb.chiffre_jour)).toBe(31700);
+    expect(tdb.prets).toBe(1);
+    utilisateur = comptes['cuisine@demo.agence-elite.fr'];
+    expect((await api.lire('rest_lignes', { dans: { statut: ['envoyee', 'en_preparation'] } })).length).toBeGreaterThan(0);
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    expect(await api.lire('rest_commandes')).toEqual([]);
+  });
   test('la démo CRM : pipeline, devis lié, relance en retard, gagnée et perdue', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;

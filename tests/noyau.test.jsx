@@ -192,6 +192,19 @@ describe('application sur la base locale', () => {
     expect(await screen.findByText('Ce qui a été fait')).toBeTruthy();
   });
 
+  test('Restaurant : plan de salle, commande de table, écran cuisine', async () => {
+    window.location.hash = '#/salle';
+    const vue = render(<App demarrer={demarrer('resto@demo.agence-elite.fr')} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Table T1, occupée/ }, { timeout: 10000 }));
+    expect(await screen.findByText(/Bien pimenté/, {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText(/Envoyer \(1\)/)).toBeTruthy();
+    vue.unmount();
+    window.location.hash = '#/cuisine';
+    render(<App demarrer={demarrer('cuisine@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Table Terrasse 1', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getAllByText('Commencer').length).toBeGreaterThan(0);
+  });
+
   test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
     window.location.hash = '#/editeur';
     render(<App demarrer={demarrer('editeur@demo.local')} />);
