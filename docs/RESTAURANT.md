@@ -65,3 +65,45 @@ La Salle affiche les prochaines réservations. Une réservation contient client,
 table facultative et note. La base refuse une capacité excessive et deux réservations qui se chevauchent sur la même table.
 À l'arrivée, le serveur marque le client arrivé puis ouvre normalement la table : commandes, stock, ventes et paiements
 restent les briques communes.
+
+## Service réel : serveurs, catégories, disponibilité (2026-10-05, migration `20261005000001`)
+
+Générique (aucun client nommé dans le code) ; préparé pour l'onboarding de The Dream.
+
+- **Serveur affecté à une table** (`rest_affectations`) : établissement, Hub, table, serveur, début, fin, auteur, motif
+  de début et de fin. Une seule affectation en cours par table ; changer de serveur termine l'affectation précédente
+  (historique conservé) ; retirer une table ou la déplacer de Hub termine son affectation.
+  Fonctions `affecter_serveur_table`, `retirer_serveur_table`, liste `serveurs_restaurant`.
+- **Serveur de la commande** : à l'ouverture sur table, la commande prend le serveur affecté (sinon celui qui l'ouvre) ;
+  `pris_par` garde l'auteur réel. À emporter : pas de fausse table, serveur = celui qui la prend. Changer le serveur
+  d'une table ne change **pas** les commandes déjà ouvertes : `transferer_serveur_commande` (droit dédié, motif,
+  `rest_transferts_serveur`, notification) est l'action volontaire prévue.
+- **Statistiques** `statistiques_serveurs_restaurant(etab, du, au)` : tables affectées, tables servies, commandes
+  (en cours, clôturées, annulées), couverts, additions, chiffre, encaissé, addition moyenne, plats annulés après envoi.
+  Le chiffre vient des ventes réelles liées aux plats (une vente annulée ne compte pas).
+- **Tableau de la salle** : en plus des clés existantes, `postes` (cuisine / bar en préparation), `serveurs_actifs`,
+  `tables_affectees`, `encaisse_jour`, `ticket_moyen`.
+- **Disponibilité** : `definir_disponibilite_article` (gérant, responsable de salle ou cuisine) ; un article
+  indisponible ou épuisé est refusé par `ajouter_lignes_restaurant` et grisé à l'écran. Le libellé du plat porte la
+  variante (« Château Rodet — Tarif 2 ») sur le bon et l'addition.
+- **Catégories d'articles** : description, ordre, masquage, archivage avec destination des articles, restauration,
+  déplacement en masse (`enregistrer_categorie_article`, `ordonner_categories_articles`, `archiver_categorie_article`,
+  `restaurer_categorie_article`, `deplacer_articles_categorie`). Une catégorie masquée disparaît des puces de la caisse
+  et de la prise de commande ; ses articles restent vendables dans « Tout ».
+- **Import** : `importer_catalogue` dédoublonne (référence, sinon désignation + variante + catégorie, sans accents ni
+  casse, article sans référence), garde le suivi de stock d'un article existant, signale les doublons du fichier et les
+  changements de prix, nomme l'établissement de destination, journalise l'import.
+
+Écrans : Salle (filtres Toutes / Mes tables / Libres / Occupées / Réservées / par serveur, nom du serveur sur chaque
+table, bouton « Affecter les serveurs », encart « Service en cours » pour les responsables), `#/salle/serveurs`
+(activité par période, historique des affectations et des transferts), commande (serveur affiché, « Transférer à un
+autre serveur », recherche sans accents, quantités en cours sur les tuiles, barre de commande fixe sur téléphone),
+Articles (onglet Catégories, filtre par catégorie, sélection multiple, disponibilité, rapport d'import détaillé).
+
+Droits ajoutés : `articles.categories`, `restaurant_salle.affecter`, `restaurant_salle.transferer`,
+`restaurant_salle.performances` (gérant, responsable, responsable Hub). Les serveurs voient toutes les tables de leurs
+Hubs (pour ne pas placer deux clients à la même table) et filtrent « Mes tables » ; ils ne voient que leurs propres
+chiffres.
+
+Limites restantes : pas d'options ni de suppléments structurés (les 2 ou 3 accompagnements d'une planche restent dans
+sa description et la note du plat) ; pas de recette ni de déduction de matières ; pas de plan de salle dessiné.

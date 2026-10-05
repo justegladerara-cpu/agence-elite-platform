@@ -1,6 +1,20 @@
-# État du projet (mis à jour le 2026-10-03)
+# État du projet (mis à jour le 2026-10-05)
 
-## Mission active
+## Mission active (2026-10-05)
+
+Tâche `ai/TACHES/009-the-dream-service-salle.md` (Claude, développeur sur mandat du propriétaire) : catalogue The Dream
+relu sur les 6 photos, catégories administrables, serveurs affectés aux tables avec historique, transferts, statistiques
+par serveur, disponibilité des articles, import corrigé. Branche `claude/inspiring-shannon-wiaa2q`.
+
+| Élément | Git | Production |
+|---|---|---|
+| Migration `20261003000017_import_catalogue_restaurant` | `main` | **NON appliquée** (cause de l'erreur « schema cache ») |
+| Migration `20261005000001_restaurant_service_categories` | branche de la PR | NON appliquée |
+| Écrans Salle / Serveurs / Articles › Catégories | branche de la PR | NON publiés |
+| Catalogue The Dream (218 articles, 29 catégories, 10 à confirmer) | `donnees/imports/the-dream/` | **NON importé** |
+| Établissement The Dream, Hub(s), `patrondream` | — | **non vérifiés** depuis cet environnement (aucun accès base) : workflow « Vérifier un établissement » prêt |
+
+## Mission précédente
 
 La tâche active est `ai/TACHES/008-onboarding-the-dream.md` : préparation et onboarding contrôlé de « The Dream Lounge Bar Restaurant ». La tâche 001 reste l'archive des fondations du Lot 1 et ne décrit plus le périmètre courant. L'état de production de l'import The Dream doit rester indiqué comme non appliqué tant que le workflow protégé et les smoke tests n'ont pas réellement abouti.
 
@@ -10,7 +24,7 @@ Préparation actuelle : migration d'import avec dry-run, écran Articles et cata
 | Élément | État |
 |---|---|
 | Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare, publié à chaque push sur `main`) |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3), **46 migrations** dans `supabase/migrations/` (dernière `20261003000016_liens_modules`) |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3) : **46 migrations appliquées** (dernière `20261003000016_liens_modules`) ; 48 dans Git (`20261003000017` et `20261005000001` en attente) |
 | Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
 | Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` (client ou établissement) |

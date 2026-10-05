@@ -28,3 +28,4 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 | 008 | Onboarding client — The Dream Lounge Bar Restaurant | en cours (mission urgente autorisée par le propriétaire le 2026-10-03) |
 
 La pause de Codex décidée le 2026-10-02 est levée pour la tâche 008, explicitement confiée à Codex par le propriétaire.
+| 009 | The Dream en service : catalogue relu sur photos, catégories, serveurs affectés aux tables | livré dans Git le 2026-10-05 par Claude ; production en attente (voir docs/HANDOFF.md) |

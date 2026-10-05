@@ -70,6 +70,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Rapports : ventes par période, article, vendeur, Hub, export | [56](56_LIRE_LES_RAPPORTS.md) | Client |
 | Fidélité : points sur achats, récompenses, ajustements | [57](57_FIDELISER_LES_CLIENTS.md) | Client |
 | Personnaliser les pages de connexion (textes, logo, apparence, publication) | [58](58_PERSONNALISER_LES_PAGES_DE_CONNEXION.md) | Agence Elite |
+| Importer le catalogue réel d'un client (vérification, dry-run, import, contrôle) | [59](59_IMPORTER_LE_CATALOGUE_D_UN_CLIENT.md) | Agence Elite + client |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

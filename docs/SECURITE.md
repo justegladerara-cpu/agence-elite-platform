@@ -67,3 +67,18 @@ Pour avoir la permission P (`module.action`) dans l'établissement E, il faut :
 - Écriture : Super Admin pour la plateforme, équipe Agence Elite pour client et établissement. Lecture publique : `pages_connexion` renvoie le contenu **publié** (jamais le brouillon), l'identité affichée et rien d'autre.
 - Validation par liste blanche (`champs_pages_auth`) : pas de `<` `>`, images data:image (png/jpeg/gif/webp) ou https sans guillemets ni parenthèses, liens https/mailto/tel, couleurs de palette, choix fermés. Rendu React en texte ; l'image de fond est revérifiée côté écran.
 - Rien n'y règle l'authentification : politique des mots de passe, changement obligatoire, RLS, redirections. L'adresse de retour du lien « mot de passe oublié » = adresse de l'application, vérifiée par Supabase.
+
+## Restaurant en service et catégories (2026-10-05)
+- `rest_affectations`, `rest_transferts_serveur` : RLS active, lecture seulement avec `restaurant_salle.lire` (ou cuisine)
+  **et** le Hub autorisé ; aucune écriture directe ; pas de suppression ni de vidage ; audit par déclencheur.
+  Une affectation ne fait que se terminer ; un transfert ne se modifie jamais.
+- Affecter / changer / retirer un serveur : `restaurant_salle.affecter` + accès au Hub de la table ; le serveur choisi doit
+  être membre actif, avoir `restaurant_salle.servir` et l'accès au Hub (`membre_peut_servir`, interne).
+- Transférer une commande ouverte à un autre serveur : `restaurant_salle.transferer`, motif obligatoire, trace immuable.
+- Statistiques par serveur : sans `restaurant_salle.performances` (ou dirigeant / support), un membre ne reçoit que sa
+  propre ligne — le filtre est fait dans la fonction, pas dans l'écran.
+- Catégories : `articles.categories` (accordée aux rôles qui avaient `articles.gerer`) ; une catégorie contenant des
+  articles en vente ne s'archive pas sans destination ; aucune catégorie ne se supprime.
+- `serveurs_restaurant` expose nom affiché ou identifiant, jamais l'e-mail.
+- Import de catalogue : `articles.gerer` sur l'établissement visé, rapport nommant l'établissement de destination,
+  confirmation explicite à l'écran, événement `articles.import_catalogue` ; jamais de stock.
