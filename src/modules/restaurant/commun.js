@@ -30,6 +30,12 @@ export function trierCategories(categories) {
   return [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr'));
 }
 
+// Le plan et les réglages utilisent le même ordre, sans modifier les données reçues.
+export function trierTables(tables) {
+  return [...tables].sort((a, b) => (a.zone ?? '').localeCompare(b.zone ?? '', 'fr')
+    || (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr'));
+}
+
 // Articles rangés comme le menu : ordre de leur catégorie, puis ordre d'affichage, puis nom.
 export function trierArticles(articles, categories) {
   const rang = Object.fromEntries(trierCategories(categories).map((c, i) => [c.id, i]));

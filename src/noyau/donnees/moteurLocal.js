@@ -1,5 +1,6 @@
 // Moteur de données local : la vraie base (migrations, RLS, fonctions) tourne dans
 // PGlite. Il sert à la démo sans serveur et aux tests ; aucune donnée ne quitte l'appareil.
+import { verifierOrdre } from './lecture.js';
 
 const IDENTIFIANT = /^[a-z_][a-z0-9_]*$/;
 // Comme Supabase (PostgREST) : une colonne « date » arrive en texte AAAA-MM-JJ, jamais en objet Date.
@@ -97,8 +98,9 @@ export function construireLecture(table, options = {}) {
   const selection = colonnes ? colonnes.map(verifierIdentifiant).join(', ') : '*';
   let sql = `select ${selection} from public.${verifierIdentifiant(table)}`;
   if (conditions.length) sql += ` where ${conditions.join(' and ')}`;
-  if (ordre) {
-    const [colonne, sens = 'asc'] = ordre;
+  const tri = verifierOrdre(ordre);
+  if (tri) {
+    const [colonne, sens] = tri;
     sql += ` order by ${verifierIdentifiant(colonne)} ${sens === 'desc' ? 'desc' : 'asc'}`;
   }
   if (limite) sql += ` limit ${Number.parseInt(limite, 10)}`;

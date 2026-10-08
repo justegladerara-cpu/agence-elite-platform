@@ -5,7 +5,7 @@ import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, MenuActions, Modale, ModaleMotif, PageHeader, Recherche, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { ModalePaiement, VignetteArticle } from '../caisse/Caisse.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
-import { STATUTS_LIGNE, minutesDepuis, nomArticle, trierArticles, trierCategories, totalLignes } from './commun.js';
+import { STATUTS_LIGNE, minutesDepuis, nomArticle, trierArticles, trierCategories, trierTables, totalLignes } from './commun.js';
 import Reglages from './Reglages.jsx';
 import Serveurs, { ModaleAffectation, ModaleTransfertServeur, ServiceEnCours } from './Serveurs.jsx';
 
@@ -16,7 +16,7 @@ function useSalle(dependances = []) {
   const hubsVisibles = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_vente).map((h) => h.id);
   return useDonnees(async () => {
     const [tables, commandes, articles, categories, contacts, sessions, reservations, affectations, serveurs] = await Promise.all([
-      api.lire('rest_tables', { eq: { etablissement_id: etab, actif: true }, ordre: ['zone', 'ordre', 'nom'] }),
+      api.lire('rest_tables', { eq: { etablissement_id: etab, actif: true }, ordre: ['zone'] }),
       api.lire('rest_commandes', { eq: { etablissement_id: etab, statut: 'ouverte' }, ordre: ['ouverte_le'] }),
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -29,7 +29,7 @@ function useSalle(dependances = []) {
     const ids = commandes.map((c) => c.id);
     const lignes = ids.length ? await api.lire('rest_lignes', { dans: { commande_id: ids }, ordre: ['cree_le'] }) : [];
     return {
-      tables: tables.filter((t) => hubsVisibles.includes(t.hub_id)),
+      tables: trierTables(tables.filter((t) => hubsVisibles.includes(t.hub_id))),
       commandes: commandes.filter((c) => hubsVisibles.includes(c.hub_id)),
       lignes, articles: trierArticles(articles, categories), categories: trierCategories(categories), sessions,
       reservations: reservations.filter((r) => hubsVisibles.includes(r.hub_id)),

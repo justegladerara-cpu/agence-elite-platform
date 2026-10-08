@@ -11,6 +11,7 @@
     "build:demo": "vite build --mode demo"
   },
   "devDependencies": {
+    "@babel/parser": "7.29.9",
     "@electric-sql/pglite": "0.3.14",
     "@testing-library/react": "16.3.0",
     "@vitejs/plugin-react": "5.0.4",

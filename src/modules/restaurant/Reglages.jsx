@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
-import { POSTES } from './commun.js';
+import { POSTES, trierTables } from './commun.js';
 
 // Réglages de la salle : tables par zone et par Hub, poste de préparation de chaque article.
 export default function Reglages() {
@@ -9,7 +9,7 @@ export default function Reglages() {
   const etab = etablissement.id;
   const { donnees: d, chargement, erreur, recharger } = useDonnees(async () => {
     const [tables, articles] = await Promise.all([
-      api.lire('rest_tables', { eq: { etablissement_id: etab }, ordre: ['zone', 'ordre', 'nom'] }),
+      api.lire('rest_tables', { eq: { etablissement_id: etab }, ordre: ['zone'] }).then(trierTables),
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
     ]);
     return { tables, articles };

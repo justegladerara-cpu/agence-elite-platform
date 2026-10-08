@@ -1,3 +1,4 @@
+import { trierLignes } from '../../noyau/donnees/lecture.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
@@ -15,7 +16,7 @@ export default function Fidelite() {
       api.rpc('soldes_fidelite', { p_etablissement_id: etab }),
       api.rpc('tableau_de_bord_fidelite', { p_etablissement_id: etab }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
-      api.lire('fidelite_recompenses', { eq: { etablissement_id: etab }, ordre: ['points', 'nom'] }).catch(() => []),
+      api.lire('fidelite_recompenses', { eq: { etablissement_id: etab }, ordre: ['points'] }).then((lignes) => trierLignes(lignes, ['points', 'nom'])).catch(() => []),
     ]);
     return { soldes, tdb, recompenses, contacts: contacts.filter((c) => c.type !== 'fournisseur') };
   }, [etab]);

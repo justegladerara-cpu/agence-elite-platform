@@ -1,5 +1,6 @@
 // Mode Supabase : mêmes appels que le mode local, via l'API Supabase.
 import { creerClientSupabase } from '../supabase.js';
+import { verifierOrdre } from './lecture.js';
 
 export function creerApiSupabase(supabase) {
   const echouer = (error) => {
@@ -13,12 +14,13 @@ export function creerApiSupabase(supabase) {
       return data;
     },
     async lire(table, { eq = {}, gte = {}, lte = {}, dans = {}, ordre, limite, colonnes } = {}) {
+      const tri = verifierOrdre(ordre);
       let requete = supabase.from(table).select(colonnes ? colonnes.join(',') : '*');
       for (const [cle, valeur] of Object.entries(eq)) requete = valeur === null ? requete.is(cle, null) : requete.eq(cle, valeur);
       for (const [cle, valeur] of Object.entries(gte)) requete = requete.gte(cle, valeur);
       for (const [cle, valeur] of Object.entries(lte)) requete = requete.lte(cle, valeur);
       for (const [cle, valeurs] of Object.entries(dans)) requete = requete.in(cle, valeurs);
-      if (ordre) requete = requete.order(ordre[0], { ascending: ordre[1] !== 'desc' });
+      if (tri) requete = requete.order(tri[0], { ascending: tri[1] !== 'desc' });
       if (limite) requete = requete.limit(limite);
       const { data, error } = await requete;
       echouer(error);

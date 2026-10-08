@@ -1,3 +1,4 @@
+import { trierLignes } from '../../noyau/donnees/lecture.js';
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
@@ -13,7 +14,7 @@ function useHotel(dependances = []) {
   const etab = etablissement.id;
   return useDonnees(async () => {
     const [types, chambres, reservations, contacts, articles] = await Promise.all([
-      api.lire('hotel_types_chambre', { eq: { etablissement_id: etab }, ordre: ['ordre', 'nom'] }),
+      api.lire('hotel_types_chambre', { eq: { etablissement_id: etab }, ordre: ['ordre'] }).then((lignes) => trierLignes(lignes, ['ordre', 'nom'])),
       api.lire('hotel_chambres', { eq: { etablissement_id: etab }, ordre: ['numero'] }),
       api.lire('hotel_reservations', { eq: { etablissement_id: etab }, ordre: ['arrivee'], limite: 1000 }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
@@ -177,7 +178,7 @@ function Accueil({ naviguer }) {
 function Reservation({ reservationId, naviguer }) {
   const { api, peut, notifier, montant } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useHotel([reservationId]);
-  const prestations = useDonnees(() => api.lire('hotel_prestations', { eq: { reservation_id: reservationId }, ordre: ['date_prestation', 'cree_le'] }), [reservationId]);
+  const prestations = useDonnees(() => api.lire('hotel_prestations', { eq: { reservation_id: reservationId }, ordre: ['date_prestation'] }).then((lignes) => trierLignes(lignes, ['date_prestation', 'cree_le'])), [reservationId]);
   const [action, setAction] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;

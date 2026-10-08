@@ -1,3 +1,4 @@
+import { trierLignes } from '../../noyau/donnees/lecture.js';
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
@@ -10,7 +11,7 @@ export default function Chambres({ naviguer }) {
   const etab = etablissement.id;
   const { donnees: d, chargement, erreur, recharger } = useDonnees(async () => {
     const [types, chambres, sejours] = await Promise.all([
-      api.lire('hotel_types_chambre', { eq: { etablissement_id: etab }, ordre: ['ordre', 'nom'] }),
+      api.lire('hotel_types_chambre', { eq: { etablissement_id: etab }, ordre: ['ordre'] }).then((lignes) => trierLignes(lignes, ['ordre', 'nom'])),
       api.lire('hotel_chambres', { eq: { etablissement_id: etab }, ordre: ['numero'] }),
       api.lire('hotel_reservations', { eq: { etablissement_id: etab, statut: 'en_cours' } }).catch(() => []),
     ]);
