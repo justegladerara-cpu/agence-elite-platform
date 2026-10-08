@@ -1087,7 +1087,7 @@ begin
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
 
-  for ligne in select * from (values ('immo', 'Aline M. (directrice d''agence)'), ('gestion-locative', 'Rodrigue T. (gestionnaire locatif)')) as v(cle, nom) loop
+  for ligne in select * from (values ('immo', 'Aline M. (directrice d''agence)'), ('gestion-locative', 'Fabrice T. (gestionnaire locatif)')) as v(cle, nom) loop
     select id into id_tmp from auth.users where email = ligne.cle || '@' || domaine;
     if id_tmp is null then
       insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
