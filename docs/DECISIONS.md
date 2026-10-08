@@ -2,6 +2,27 @@
 
 Format : date · décision · raison · impact.
 
+
+## Mission013 — mandat de Juste du 08/10 et choix techniques locaux
+
+- Mandat : audit complet et corrections jusqu’aux accès effectifs ; remplace la préparation cloud. Petites PR par thème depuis main actualisé, aucun push direct/force/rebase main, branches Claude protégées. Aucune PR créée dans ce chat faute d’API GitHub autorisée.
+- Tests : données totalement fictives. Le CSV réel The Dream est retiré des entrées de tests ; revue de transcription humaine séparée, aucun fichier client changé. Aucun test désactivé/sauté ou contrôle métier affaibli.
+- Base avant code dépendant : production uniquement workflows protégés, sauvegarde réussie → simulation sur la branche avec EXACTEMENT `20261012000001_fermer_ecritures_directes.sql` et `20261012000002_indexer_cles_etrangeres.sql` → application avec `JE CONFIRME` → vérification → fusion du code dépendant. Ne pas appliquer toute la branche aveuglément en cas d’écart production, ni réappliquer immobilier. Aucune de ces étapes réalisée ici.
+- Modèle SQL : RLS et lecture filtrée/RPC, pas d’écriture API directe ; SECURITY DEFINER à search_path vide ; index FK et déclencheurs métier. Exceptions explicites :4 tables internes RPC-only sans SELECT général,9 RPC publiques à liste fermée, prédicats booléens purs et fonctions internes/triggers, tables immuables/journaux avec conventions propres. La vérification structurelle de délégation ne constitue pas une preuve formelle ; attaques/isolation la complètent.
+- CI : tests de contrats RPC/relations et sécurité après toutes migrations en PGlite, puis mêmes requêtes via psql read only sur le Supabase local reconstruit ; hôtes distants refusés. PostgreSQL réel non exécuté ici, CI obligatoire.
+- Performance : import() des pages/migrations, même police Inter auto-hébergée, seuil500000octets réellement contrôlé ; avertissements fournisseur PGlite restent visibles. ESLint10 minimal hooks/no-unused-vars, aucune règle de style ; versions checkout7.0.1/setup-node7.1.0 vérifiées sur tags/docs officiels.
+
+## Décisions pour Juste — non exécutées
+
+- Accès : rendre effectifs GitHub PR/Actions/checks/logs, Supabase strictement lecture seule, registre public.ecr.aws. Ne pas transmettre de secret dans le chat. Git fetch/push fonctionne déjà.
+- PR #7 : proposition de fermeture uniquement, déclaration commentée par\n littéral puis variable indéfinie ; doublons traités parPR #10 selon mandat, état actuel non relu. Aucun commentaire/fermeture/merge effectué. PR #9 : accord écrit spécifique requis. PR #11 : propriété Claude, source auditée sans modification/fusion/migration.
+- Cloudflare Workers/DNS/secrets : obtenir les logs et décider par écrit ; aucun réglage modifié. L’état rouge transmis n’établit pas sa cause.
+- Supabase protection contre mots de passe compromis : avis transmis, réglage actuel à lire ; activation relève de Juste.
+- The Dream/Hôtel2i/Creo : aucun changement de données/prix/stock ; activation Salle/Cuisine,13 prix moyennés et10 lignes en attente réservés à Juste/gérant.
+- Avis initplan/unused_index/multiple_permissive_policies : mesurer/lire actuellement avant décision ; aucune suppression d’index ou changement de permission sur l’avis seul.
+
+## Historique
+
 - 2026-10-01 · Le CRM Agence Elite reste l'outil interne · décision de Juste · la plateforme a son propre dépôt et sa propre base.
 - 2026-10-01 · Modèle Client → Établissement → Solution · un client peut avoir plusieurs établissements de solutions différentes · l'établissement est l'unité d'isolement.
 - 2026-10-01 · Un seul socle générique ; les solutions sont des configurations · décision de Juste · un module est écrit une seule fois.

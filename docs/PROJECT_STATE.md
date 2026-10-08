@@ -1,5 +1,19 @@
 # État du projet (mis à jour le 2026-10-08)
 
+## Tâche active 013 — audit complet : corrections locales, livraison externe bloquée
+
+Main Git relu le 08/10 : `6cf7517b54e941a0c7a78e1997bb9eb9cd796526`,49 migrations. Sept branches Codex de correction poussées ; rapport/consignes sur une huitième branche dédiée. Aucun push sur main, aucune PR créée/fusionnée, aucune migration appliquée ni publication par cet audit.
+
+La combinaison locale des corrections donne **509/509 tests (56 fichiers)**, lint zéro erreur, builds standard/démo, parcours combinés Commerce/Restaurant et impression réussis ; tous les fichiers JS<=500000octets. Preuves navigateur et limites : [audit](AUDIT_2026-10.md), [preuves](AUDIT_2026-10_PREUVES.md), [tâche 013](../ai/TACHES/013-audit-complet-et-corrections.md).
+
+GitHub REST/GraphQL répond Forbidden pour PR/Actions/checks ; Supabase lecture absent ; registre Docker public.ecr.aws inaccessible (CONNECT403). Aucun résultat CI/base/production actuel inventé. Les50 migrations production dont immobilier20261010000001 sont un constat transmis, non relu ici. Ne pas réappliquer immobilier. Les deux migrations20261012000001/2 attendent la séquence protégée complète, base avant code dépendant.
+
+PR #11 et PR #9 intouchées ; PR #7 seulement proposition de fermeture. Données The Dream/Hôtel2i/Creo inchangées par la mission ; aucune décision sur prix/stock réels ou activation Salle/Cuisine. Rendre les accès effectifs puis reprendre PR/CI/advisors/comparaison/base protégée/fusions/Pages/site/pilote.
+
+## Historique antérieur — ne prouve pas l’état actuel de cet audit
+
+Les sections ci-dessous conservent leurs résultats datés et leurs anciennes références main/base. Elles ne sont pas une vérification des corrections013.
+
 ## Mission terminée : « The Dream en service » (PR #4) — vérifiée en production le 2026-10-08
 
 | Élément | Git | Production (vérifié le 2026-10-08) |
@@ -16,7 +30,7 @@ Décision attendue de Juste : comment donner Salle / Cuisine à The Dream (étab
 
 ## Mission précédente
 
-La tâche active est `ai/TACHES/008-onboarding-the-dream.md` : préparation et onboarding contrôlé de « The Dream Lounge Bar Restaurant ». La tâche 001 reste l'archive des fondations du Lot 1 et ne décrit plus le périmètre courant. L'état de production de l'import The Dream doit rester indiqué comme non appliqué tant que le workflow protégé et les smoke tests n'ont pas réellement abouti.
+La tâche alors active était `ai/TACHES/008-onboarding-the-dream.md` : préparation et onboarding contrôlé de « The Dream Lounge Bar Restaurant ». La tâche 001 reste l'archive des fondations du Lot 1 et ne décrit plus le périmètre courant. L'état de production de l'import The Dream doit rester indiqué comme non appliqué tant que le workflow protégé et les smoke tests n'ont pas réellement abouti.
 
 Préparation actuelle : migration d'import avec dry-run, écran Articles et catalogue de 221 lignes vendables prêts localement. La production The Dream et le contexte `patrondream` ne sont pas encore vérifiés, faute de session ou de secret disponible dans l'environnement de développement.
 

@@ -1,5 +1,18 @@
 # Journal de Codex (développeur)
 
+## 2026-10-08 — Tâche 013 : corrections poussées, vérifications externes bloquées
+
+- Main mis à jour et confirmé à6cf7517b54e941a0c7a78e1997bb9eb9cd796526 ; lectures obligatoires/SOP effectuées ; aucune branche tierce modifiée. PR #7 relue (\n littéral), fermeture seulement proposée ; PR #11 source rendue hors dépôt avec quittance fictive, aucune migration/RPC réelle ; PR #9 intouchée.
+- Registre17 constats documenté avant correction,14 corrections locales ; docs/AUDIT_2026-10.md et AUDIT_2026-10_PREUVES.md portent preuves/limites/statuts. Sept branches par thème poussées : tests-fictifs,restaurant-tests,chargement-pages,impression,contrats-api,lint-ci,securite-base ; une branche diagnostic pour rapport/consignes. Prérequis fictif intégré à chaque thème.
+- Tests : trois suites initiales478/478 ; Restaurant avant4échecs/11réussites reproduit les deux erreurs du mandat, après15/15 ; aucun test désactivé/sauté ou assertion métier affaiblie. Vraie cause : tri positional_UUID après horodatages égaux et état partagé. CSV réel retiré des entrées de test, fichier client intact.
+- Sécurité PGlite : attaques directes et helper hors périmètre refusés après correction, RPC légitimes conservées ; catalogueRLS/SD/triggers/FK/vues +exceptions documentées. Deux nouvelles migrations réservées20261012000001/2 seulement, aucune appliquée. Modèle documentaire compilé/rejoué (avant fonctionabsente), migrations historiques inchangées. Contrôles catalogue CI prévus sur PostgreSQL réel local read only, mais exécution réelle non prouvée.
+- API : six tris invalides corrigés, validation explicite commune ; contrats AST/RPC/paramètres/relations après migrations. ESLint10.12.0 minimal hooks/no-unused-vars, lint0 ; checkout7.0.1/setup-node7.1.0 vérifiés par tags/README officiels, Node24.
+- Combinaison localee50a8a9 : npmci, lint0,509/509 tests56 fichiers ; buildstandard/démo réussis, tousJS<=500000octets, local488.90kB. Conflits d’intégration résolus et lockfile normalisé ; branche de vérification seulement locale.
+- Navigateur :1634 relevés métier/42éditeur aux1360/820/390px, zéroerreur visible/débordement ; gardes motdepasse temporaire respectées via changements normaux fictifs uniquement. Chaque action de sous-route n’est pas couverte. Impression réelle des composants ticket/facture +quittance source fictive conforme aperçu/PDF. Inter locale et favicon suppriment les erreurs réseau initiales ; avertissements fournisseur PGlite restent visibles.
+- Derniers parcours combinés : Commerce et Restaurant réussis sur le preview figé4173, aucune erreur console ; ticket/facture PDF conformes. Logs et empreintes enregistrés dans les preuves.
+- Accès : Gitfetch/push OK ; ghPR/REST/GraphQL/Actions Forbidden, aucune PR créée ni run site/pilote lancé ; Supabase lecture absent ; public.ecr.aws CONNECT403 ; site officiel CONNECT403 proxy (pas réponse site). Avis et50 migrations production seulement transmis, non relus. Aucun lienrun/CI/base/prod inventé.
+- Production : aucune donnée client/prix/stock/activation modifiée ; aucune migration/fusion/publication. Reprise obligatoire : accès effectifs, revueprod, PR/CI, séquence base protégée exacte sauvegarde→simulation→JE CONFIRME→vérification puis fusion dépendante, contrôlesPages/site/pilote après chaque fusion. Décisions Juste enregistrées.
+
 ## 2026-10-08 — Tâche 013 : audit complet, état initial
 - Mandat de Juste reçu ; main actualisé à `6cf7517`, branche Codex dédiée, aucune branche tierce modifiée.
 - Audit consigné avant corrections dans `docs/AUDIT_2026-10.md` ; nouvelle tâche 013.

@@ -26,7 +26,10 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 | M6 | Pilote fictif à deux établissements (tests/pilote.test.js) | fait |
 | M7 | Processus client et guide (docs/PROCESSUS_CLIENT.md) | fait |
 | 008 | Onboarding client — The Dream Lounge Bar Restaurant | en cours (mission urgente autorisée par le propriétaire le 2026-10-03) |
+| 013 | Audit complet et correction des erreurs | corrections locales poussées ; PR/CI/base/production bloquées par accès effectifs |
 
 La pause de Codex décidée le 2026-10-02 est levée pour la tâche 008, explicitement confiée à Codex par le propriétaire.
 | 009 | The Dream en service : catalogue relu sur photos, catégories, serveurs affectés aux tables | livré dans Git le 2026-10-05 par Claude ; production en attente (voir docs/HANDOFF.md) |
 | 010 | Modules complémentaires + réconciliation de catalogue | fait (Claude, PR #6) |
+
+Le mandat explicite de Juste du 08/10 autorise directement la tâche 013 et sa livraison par petites PR ; les règles du mandat priment sur le protocole historique ci-dessus. Voir le rapport AUDIT_2026-10 pour les limites et preuves.
