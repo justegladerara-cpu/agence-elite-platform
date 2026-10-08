@@ -27,6 +27,7 @@ const U = 'http://localhost:4173/';
       await p.getByLabel('Nom de l’article').fill('Casque test');
       await p.getByLabel('Prix de vente').fill('5000');
       await p.getByLabel('Coût d’achat').fill('3000');
+      await p.getByLabel(/Suivre les quantités de cet article/).check();
       await p.getByLabel('Stock initial').fill('10');
       await p.getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText('Casque test').first().waitFor();
