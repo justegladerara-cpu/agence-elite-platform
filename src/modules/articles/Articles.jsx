@@ -312,6 +312,8 @@ export default function Articles() {
     && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.variante ?? '').toLowerCase().includes(texte)));
   const deplacer = peut('articles.categories');
   const gerer = peut('articles.gerer');
+  const [lotEnCours, setLotEnCours] = useState(false);
+  const [lotErreur, setLotErreur] = useState('');
   const changerSuiviLot = async (activer) => {
     setLotEnCours(true);
     setLotErreur('');
