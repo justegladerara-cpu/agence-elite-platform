@@ -39,3 +39,12 @@ describe('rapprochement conservateur des catalogues', () => {
     expect(entrants).toEqual(b);
   });
 });
+
+test('bloque deux variantes qui ciblent le même article existant', () => {
+  const r = rapprocherCatalogue(ancien, [
+    { nom: 'Mojito', prix: 6500, actif: 'oui' },
+    { nom: 'Mojito', prix: 6500, actif: 'oui', variante: 'VIP' },
+  ]);
+  expect(r.bilan.conflit).toBe(2);
+  expect(r.bilan.identique).toBe(0);
+});
