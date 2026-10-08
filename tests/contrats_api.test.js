@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { creerBase } from './helpers/db.js';
+import { creerBaseCatalogue } from './helpers/catalogue.js';
 import { listerAppelsApi } from './helpers/appelsApi.js';
 import { construireLecture } from '../src/noyau/donnees/moteurLocal.js';
 let db;
 let appels;
-beforeAll(async () => { db = await creerBase(); appels = await listerAppelsApi(); });
+beforeAll(async () => { db = await creerBaseCatalogue(); appels = await listerAppelsApi(); });
 afterAll(async () => { await db?.close(); });
 
 test('tous les appels API sont analysés, y compris les RPC dynamiques', () => {

@@ -39,6 +39,8 @@ jobs:
         run: |
           npx supabase start
           npx supabase db reset --local
+      - name: Contrôler les contrats API du catalogue Supabase reconstruit
+        run: AUDIT_BASE_LOCALE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx vitest run tests/contrats_api.test.js
       - name: Pilote complet sur la vraie base (comptes fictifs créés comme en production)
         run: |
           eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
