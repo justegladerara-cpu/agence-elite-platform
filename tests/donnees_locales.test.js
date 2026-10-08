@@ -182,6 +182,27 @@ describe('moteur de données local', () => {
     expect(await api.lire('hotel_reservations')).toEqual([]);
     expect((await api.lire('hotel_chambres')).length).toBe(7);
   });
+  test('la démo immobilier : deux agences, baux, impayé, caution, incident, reversement', async () => {
+    utilisateur = comptes['gestion-locative@demo.agence-elite.fr'];
+    const agences = (await db.query("select id from etablissements where nom like 'Immobilier Démo %' order by nom")).rows;
+    expect(agences.length).toBe(2);
+    for (const { id } of agences) {
+      const tdb = await api.rpc('tableau_de_bord_immobilier', { p_etablissement_id: id });
+      expect(tdb).toMatchObject({ lots: 6, loues: 3, libres: 2, baux_actifs: 3, incidents_ouverts: 1 });
+      expect(Number(tdb.taux_occupation)).toBe(50);
+      expect(Number(tdb.cautions_detenues)).toBe(1260000);
+      expect(Number(tdb.impayes)).toBeGreaterThan(0);
+      expect((await api.lire('immo_situation_baux', { eq: { etablissement_id: id } })).filter((b) => b.impaye > 0).length).toBe(1);
+    }
+    // Le gestionnaire locatif consulte les relevés mais ne prépare pas les reversements (droit du gérant ou du comptable).
+    await expect(api.rpc('preparer_reversement_immo', { p_etablissement_id: agences[0].id, p_proprietaire_id: (await api.lire('immo_proprietaires', { eq: { etablissement_id: agences[0].id } }))[0].id,
+      p_du: '2000-01-01', p_au: '2100-01-01' })).rejects.toThrow(/Permission refusée/);
+    utilisateur = comptes['immo@demo.agence-elite.fr'];
+    const rev = await api.lire('immo_reversements', { eq: { etablissement_id: agences[0].id } });
+    expect(rev).toHaveLength(1);
+    expect(Number(rev[0].net)).toBe(Number(rev[0].loyers_encaisses) - Number(rev[0].commission) - Number(rev[0].frais));
+    expect(Number(rev[0].frais)).toBe(22000);
+  });
   test('la démo e-commerce : boutique publique, commandes à chaque étape, retour', async () => {
     utilisateur = comptes['boutique@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Boutique en ligne Démo'")).rows[0].id;
