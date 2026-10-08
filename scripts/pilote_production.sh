@@ -13,7 +13,7 @@ export PILOTE_LOT="${PILOTE_LOT:-$(date -u +%Y%m%d%H%M)}"
 export PILOTE_MOT_DE_PASSE="Pilote-$(openssl rand -hex 16)!"
 echo "::add-mask::$PILOTE_MOT_DE_PASSE"
 domaine="pilote.agence-elite.fr"
-comptes="agence gerant-a caisse-a gerant-b caisse-b patron"
+comptes="agence gerant-a caisse-a gerant-b caisse-b serveur-b cuisine-b patron"
 
 neutraliser() {
   psql "$SUPABASE_DB_URL" -q -v ON_ERROR_STOP=1 -v lot="$PILOTE_LOT" -v domaine="$domaine" <<'SQL'

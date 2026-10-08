@@ -1,18 +1,18 @@
-# État du projet (mis à jour le 2026-10-05)
+# État du projet (mis à jour le 2026-10-08)
 
-## Mission active (2026-10-05)
+## Mission terminée : « The Dream en service » (PR #4) — vérifiée en production le 2026-10-08
 
-Tâche `ai/TACHES/009-the-dream-service-salle.md` (Claude, développeur sur mandat du propriétaire) : catalogue The Dream
-relu sur les 6 photos, catégories administrables, serveurs affectés aux tables avec historique, transferts, statistiques
-par serveur, disponibilité des articles, import corrigé. Branche `claude/inspiring-shannon-wiaa2q`.
-
-| Élément | Git | Production |
+| Élément | Git | Production (vérifié le 2026-10-08) |
 |---|---|---|
-| Migration `20261003000017_import_catalogue_restaurant` | `main` | **NON appliquée** (cause de l'erreur « schema cache ») |
-| Migration `20261005000001_restaurant_service_categories` | branche de la PR | NON appliquée |
-| Écrans Salle / Serveurs / Articles › Catégories | branche de la PR | NON publiés |
-| Catalogue The Dream (218 articles, 29 catégories, 10 à confirmer) | `donnees/imports/the-dream/` | **NON importé** |
-| Établissement The Dream, Hub(s), `patrondream` | — | **non vérifiés** depuis cet environnement (aucun accès base) : workflow « Vérifier un établissement » prêt |
+| PR #4 | fusionnée sur `main` (`c8b40dc`, 2026-10-08 03:55 UTC) | CI `main` verte : `tests` + `reconstruction-supabase` (run 37725059744) |
+| Migrations `20261003000017` et `20261005000001` | `main` | **appliquées** le 2026-10-05 (run 37381307256, depuis le commit `478c9f6` = tête de la PR) ; simulation du 2026-10-08 sur `main` : « Remote database is up to date » (run 37725217791) |
+| Écrans Salle / Serveurs / Articles › Catégories | `main` | **publiés** : « Cloudflare Pages » et « Workers Builds » `success` sur `c8b40dc` (run « Adresse du site » 37726081940) |
+| Pilote en production (`site=https://saas.agence-elite.fr`) | — | **76/76** + site **7/7** (run 37726084336) — parcours Commerce, isolation, sécurité ; il ne couvre **pas** encore le Restaurant (couvert par la CI : tests PGlite + parcours Chromium Restaurant ordinateur / tablette / téléphone) |
+| The Dream (lecture seule, run 37725544471) | — | inchangé : solution `commerce`, 1 Hub, 10 modules **sans** Salle ni Cuisine, 114 articles, 15 catégories, 0 table, 0 article `DREAM-` ; `patrondream` gérant actif avec tous les droits restaurant (inutilisables tant que les modules ne sont pas activés) |
+| Catalogue The Dream (218 articles, 29 catégories, 10 à confirmer) | `donnees/imports/the-dream/` | **NON importé** (attend l'accord de Juste, dry-run d'abord, SOP 59) |
+
+Décision attendue de Juste : comment donner Salle / Cuisine à The Dream (établissement en solution `commerce`,
+`solution_id` immuable), et import du catalogue (fusion avec les 114 articles saisis à la main).
 
 ## Mission précédente
 
@@ -23,8 +23,8 @@ Préparation actuelle : migration d'import avec dry-run, écran Articles et cata
 ## En production
 | Élément | État |
 |---|---|
-| Site | https://agence-elite-platform.justegladerara.workers.dev (Cloudflare, publié à chaque push sur `main`) |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3) : **46 migrations appliquées** (dernière `20261003000016_liens_modules`) ; 48 dans Git (`20261003000017` et `20261005000001` en attente) |
+| Site | https://saas.agence-elite.fr (Cloudflare Pages `agence-elite-saas`) et https://agence-elite-platform.justegladerara.workers.dev (Worker), publiés à chaque push sur `main` ; `main` = `c8b40dc` |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3) : **48 migrations appliquées** (dernière `20261005000001_restaurant_service_categories`) = 48 dans Git, rien en attente (vérifié le 2026-10-08) |
 | Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
 | Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` (client ou établissement) |
@@ -32,7 +32,7 @@ Préparation actuelle : migration d'import avec dry-run, écran Articles et cata
 | Paramètres | onglets Entreprise, Apparence, Documents, Caisses, **Réglages des modules** (formulaire généré depuis `parametres_schema`), Applications, Équipe, Sécurité, Licence |
 | Catalogue | 31 modules Disponibles, 6 solutions (Commerce, Restaurant, Hôtel, E-commerce, Services, RH) |
 | Sauvegarde | chiffrée chaque nuit + vérification de restauration ; lancée aussi avant chaque migration |
-| Clients réels | aucun ; démo fictive « Commerce Démo » (Commerce Démo, Restaurant Démo, Hôtel Démo, Boutique en ligne Démo) |
+| Clients réels | The Dream Lounge Bar (solution `commerce`, caisse active), Hôtel 2i (`H-2i`, solution `hotel`) ; démo fictive « Commerce Démo » (Commerce Démo, Restaurant Démo, Hôtel Démo, Boutique en ligne Démo) |
 
 ## Modules disponibles
 | Domaine | Modules (doc) |

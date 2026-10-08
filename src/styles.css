@@ -2997,3 +2997,12 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .stat-card.attention.cliquable { cursor: pointer; }
 @media (max-width: 640px) { .stat-card.attention { padding: 12px; } }
 .commande-resto .commande-catalogue .recherche { flex: none; max-width: none; }
+
+/* Articles : sélection multiple lisible sur téléphone (barre collée en bas de l'écran). */
+.aide-selection { margin: 0 0 10px; font-size: .9rem; }
+@media (max-width: 720px) {
+  .barre-selection { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 30; margin: 0; max-height: 60vh; overflow-y: auto;
+    background: var(--surface, #fff); box-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
+  .page:has(.barre-selection) { padding-bottom: 260px; }
+  .barre-selection select, .barre-selection .bouton { flex: 1 1 100%; }
+}

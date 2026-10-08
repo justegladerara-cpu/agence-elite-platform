@@ -29,3 +29,4 @@ Chaque tâche contient, dans cet ordre : Contexte, Objectif, Fichiers concernés
 
 La pause de Codex décidée le 2026-10-02 est levée pour la tâche 008, explicitement confiée à Codex par le propriétaire.
 | 009 | The Dream en service : catalogue relu sur photos, catégories, serveurs affectés aux tables | livré dans Git le 2026-10-05 par Claude ; production en attente (voir docs/HANDOFF.md) |
+| 010 | Modules complémentaires + réconciliation de catalogue | fait (Claude, PR #6) |

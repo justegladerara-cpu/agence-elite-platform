@@ -8,6 +8,13 @@
 - Vérifié : `npm test` (tous verts), `npm run build`, `npm run build:demo`, parcours navigateur (aucune erreur console). L'API Cloudflare n'est testée qu'avec une fausse API.
 - Reste à Juste : réglages uniques de `docs/DEPLOIEMENT.md` §E (CNAME `*` chez LWS, jeton Cloudflare, 2 secrets, redirection Supabase).
 
+## 2026-10-08 — Finalisation de la PR #4 « The Dream en service » (nouvelle session Claude Code)
+- PR #4 fusionnée par Juste (ChatGPT) : `c8b40dc`. Pas de seconde fusion, aucune migration réappliquée, aucune écriture SQL directe.
+- Vérifié : résultat de fusion testé en local avant la fusion (465/465, `build`, `build:demo`, parcours Chromium général et Restaurant : tablette et téléphone compris, aucune erreur console).
+- CI `main` verte (37725059744) ; Cloudflare Pages + Workers `success` sur `c8b40dc` (37726081940) ; base « up to date » en simulation (37725217791) ; pilote 76/76 + site 7/7 sur saas.agence-elite.fr (37726084336) ; The Dream en lecture seule inchangé (37725544471).
+- Constaté : le pilote ne couvre pas le Restaurant ; The Dream reste en solution `commerce` sans Salle ni Cuisine ; catalogue non importé.
+- Reste à Juste : décision Salle / Cuisine pour The Dream, accord pour le dry-run puis l'import du catalogue.
+
 ## 2026-10-02 — Mission 7 phases (audit, éditeur, équipe, licences, production, pilote, processus)
 - 5a21247 : audit offensif, 9 défauts corrigés (TRUNCATE, triggers, séquences, NaN, annulation après clôture, etc.), 30 tests.
 - 399f1c2, 619d8c0 : licences (essai 30 jours, mensuel, annuel, acquisition, suspension, grâce 7 jours), invitations et équipe avec garde-fous, mode support compatible Supabase, espace Agence Elite, import d'articles, mise en service, durcissements.
