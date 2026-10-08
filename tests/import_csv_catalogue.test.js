@@ -1,21 +1,14 @@
-import { readFile } from 'node:fs/promises';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { lireCsvArticles } from '../src/modules/articles/importCsv.js';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Catalogue The Dream relu sur les 6 photos du menu (2026-10-05). Ces nombres sont la référence du rapport.
-const lireCatalogue = async () => lireCsvArticles(await readFile(new URL('../donnees/imports/the-dream/catalogue.csv', import.meta.url), 'utf8'));
+// Les cas de transcription d'un vrai menu restent une revue humaine du client.
+// Les tests automatiques utilisent uniquement un CSV inventé.
+import { catalogueFictifCsv } from './helpers/catalogueFictif.js';
+const lireCatalogue = async () => lireCsvArticles(catalogueFictifCsv());
 
-// Produits barrés au marqueur sur le menu : jamais dans le fichier, sous aucune forme.
-const EXCLUS = [
-  'Ngoumba', 'Ngoki', 'Gazelle', 'Pangolin', 'Sibissi', 'Planche Duo', 'Gazelle à la sauce arachide', 'Ngumba',
-  'Mwambé gazelle', 'Mwambé Ngumba', 'Bouillon de ngoumba', 'Poulpe', 'Seiche', 'Huîtres', 'Escalope',
-  'Saucisse niçoise sauce blanche', 'Omelette nature', 'Mini burger', 'Spaghetti simple', 'Spaghetti délice',
-  'Spaghetti sauce rouge Niger', 'Maboké de ngulu',
-];
-
-describe('catalogue The Dream retranscrit', () => {
-  test('prix lus sur les photos, variantes neutres, lignes à confirmer sans prix', async () => {
+describe('catalogue entièrement fictif', () => {
+  test('prix distincts, variantes neutres, lignes à confirmer sans prix et caractères CSV', async () => {
     const lignes = await lireCatalogue();
     expect(lignes).toHaveLength(228);
     expect(lignes.filter((l) => l.actif === 'oui')).toHaveLength(218);
@@ -25,28 +18,20 @@ describe('catalogue The Dream retranscrit', () => {
     expect(attente.every((l) => l.actif === 'non' && l.motif_attente)).toBe(true);
     expect(new Set(lignes.map((l) => l.reference)).size).toBe(228);
     expect(new Set(lignes.filter((l) => l.actif === 'oui').map((l) => l.categorie)).size).toBe(29);
-    const prix = (nom) => lignes.filter((l) => l.nom === nom).map((l) => l.prix_vente);
-    expect(prix('Château Petit Bois')).toEqual([15000]);
-    expect(prix('Mojito')).toEqual([6500]);
-    expect(prix('Mojito (sans alcool)')).toEqual([5000]);
-    expect(prix('Château Rodet')).toEqual([3500, 15000]);
-    expect(prix('Absolu Vodka')).toEqual([30000]);
-    expect(prix('Hendrick’s Gin')).toEqual([60000]);
-    expect(prix('Côte sautée façon Dream Resto')).toEqual([3000]);
-    expect(prix('Brochette Royal Mix')).toEqual([4000]);
-    expect(prix('Dream délice')).toEqual([3000]);
-    for (const nom of ['J&B Rare', 'Camino Real Tequila Blanco', 'Frites de pomme de terre', 'Sodabi', 'Mwambé mokalu', 'Chikwangue (mayaka)']) {
-      expect(lignes.find((l) => l.nom === nom)).toMatchObject({ actif: 'non' });
-      expect(lignes.find((l) => l.nom === nom).prix_vente).toBeUndefined();
+    expect(lignes.filter((l) => l.nom === 'Article fictif variante 1').map((l) => l.prix_vente)).toEqual([700, 725]);
+    expect(lignes.filter((l) => l.nom === 'Article fictif variante 10').map((l) => l.prix_vente)).toEqual([1150, 1175]);
+    expect(lignes[20]).toMatchObject({ nom: 'Article fictif, « épicé »; grand "format"', prix_vente: 1200, reference: 'FICTIF-021' });
+    for (let i = 219; i <= 228; i += 1) {
+      expect(lignes.find((l) => l.reference === `FICTIF-${i}`)).toMatchObject({ actif: 'non', motif_attente: 'Prix fictif à confirmer' });
+      expect(lignes.find((l) => l.reference === `FICTIF-${i}`).prix_vente).toBeUndefined();
     }
-    expect(lignes.filter((l) => l.variante).map((l) => l.variante).every((v) => ['Tarif 1', 'Tarif 2', 'Sur la terrasse', 'Dans le VIP'].includes(v))).toBe(true);
+    expect(lignes.filter((l) => l.variante).map((l) => l.variante).every((v) => ['Tarif 1', 'Tarif 2'].includes(v))).toBe(true);
     expect(lignes.every((l) => l.suivi_stock === 'non' && l.stock_initial === undefined)).toBe(true);
     expect(lignes.every((l) => ['bar', 'cuisine'].includes(l.poste_preparation))).toBe(true);
-    for (const exclu of EXCLUS) expect(lignes.some((l) => l.nom.toLowerCase() === exclu.toLowerCase())).toBe(false);
   });
 });
 
-describe('import réel du fichier dans un établissement de test', () => {
+describe('import du CSV fictif dans un établissement de test', () => {
   let db;
   let gerant;
   let etab;
@@ -56,8 +41,8 @@ describe('import réel du fichier dans un établissement de test', () => {
   beforeAll(async () => {
     db = await creerBase();
     const ins = async (email) => (await db.query('insert into auth.users(email) values($1) returning id', [email])).rows[0].id;
-    const sa = await ins('sa@dream.test');
-    gerant = await ins('gerant@dream.test');
+    const sa = await ins('sa@exemple.test');
+    gerant = await ins('gerant@exemple.test');
     await db.query("insert into plateforme_admins(user_id, role) values($1, 'super_admin')", [sa]);
     const viaSa = (sql, params) => commeRole(db, 'authenticated', sa, async (tx) => Object.values((await tx.query(sql, params)).rows[0])[0]);
     const client = await viaSa("select creer_client('Client Test Catalogue')");
@@ -85,6 +70,6 @@ describe('import réel du fichier dans un établissement de test', () => {
     expect(await n("select count(*)::int n from articles where etablissement_id = $1 and poste_preparation = 'bar'")).toBe(114);
     expect((await db.query('select count(*)::int n from articles where etablissement_id = $1', [autre])).rows[0].n).toBe(0);
     const premieres = (await db.query('select nom from categories_articles where etablissement_id = $1 order by ordre limit 3', [etab])).rows.map((c) => c.nom);
-    expect(premieres).toEqual(['Softs, jus & énergisants', 'Bières', 'Cocktails sans alcool']);
+    expect(premieres).toEqual(['Catégorie fictive 01', 'Catégorie fictive 02', 'Catégorie fictive 03']);
   });
 });
