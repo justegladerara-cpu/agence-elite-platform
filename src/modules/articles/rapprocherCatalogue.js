@@ -42,7 +42,7 @@ export function rapprocherCatalogue(existants, entrants) {
     const raison = !memeNom ? 'Nom différent' : !memePrix ? 'Prix différent' : !memeVariante ? 'Variante différente' : !memeUnite ? 'Unité différente' : '';
     return { ...base, article_existant_id: ancien.id, statut: raison ? 'conflit' : 'identique', raison: raison || 'Nom, prix, variante et unité compatibles' };
   });
-  const idsRapproches = new Set(correspondances.filter(x => x.statut === 'identique').map(x => x.article_existant_id));
+  // Une ligne existante ne doit jamais être réutilisée par plusieurs variantes entrantes.\n  const utilisations = new Map();\n  for (const entree of correspondances) {\n    if (!entree.article_existant_id) continue;\n    const id = entree.article_existant_id;\n    utilisations.set(id, [...(utilisations.get(id) ?? []), entree]);\n  }\n  for (const usages of utilisations.values()) {\n    if (usages.length <= 1) continue;\n    for (const entree of usages) {\n      entree.statut = 'conflit';\n      entree.raison = 'Plusieurs lignes du catalogue ciblent le même article existant';\n    }\n  }\n  const idsRapproches = new Set(correspondances.filter(x => x.statut === 'identique').map(x => x.article_existant_id));
   return {
     correspondances,
     historiques_uniquement: existants.filter(x => !idsRapproches.has(x.id)).map(x => ({ id: x.id, nom: x.nom })),
