@@ -5,11 +5,12 @@ import { Badge, Bouton, EmptyState, Erreur, MenuActions, PageHeader, Section, Sq
 import { GestionEquipe } from '../etablissement/Equipe.jsx';
 import { ListeMiseEnService } from '../etablissement/MiseEnService.jsx';
 import { GestionHubs } from '../hubs/GestionHubs.jsx';
+import { suggererSousDomaine } from './AdressesEditeur.jsx';
 import { ApparenceEtablissement } from './ApparenceEditeur.jsx';
 import { BadgeLicence, FORMULES, OngletInfos, OngletLicence, OngletModules, OngletSupport, useAction } from './Editeur.jsx';
 
 export function PageEtablissementEditeur({ etablissementId, naviguer }) {
-  const { api } = useEspace();
+  const { api, roleEditeur } = useEspace();
   const [onglet, setOnglet] = useState('apercu');
   const { donnees: detail, chargement, erreur, recharger } = useDonnees(
     () => api.rpc('editeur_etablissement', { p_etablissement_id: etablissementId }),
@@ -53,6 +54,7 @@ export function PageEtablissementEditeur({ etablissementId, naviguer }) {
                 { libelle: 'Ouvrir une session support', icone: 'oeil', onClick: () => setOnglet('support') },
                 { libelle: 'Gérer les Hubs', icone: 'hub', onClick: () => setOnglet('hubs') },
                 { libelle: 'Gérer l’équipe', icone: 'membres', onClick: () => setOnglet('equipe') },
+                roleEditeur === 'super_admin' && { libelle: 'Créer son adresse web', icone: 'globe', onClick: () => naviguer(`editeur/adresses/${suggererSousDomaine(e.nom)}`) },
                 !e.mis_en_service_le && { libelle: 'Déclarer la mise en service', icone: 'fusee', onClick: mettreEnService },
                 { libelle: 'Informations et statut', icone: 'parametres', onClick: () => setOnglet('infos') },
               ]}

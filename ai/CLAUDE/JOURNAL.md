@@ -1,5 +1,12 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-08 — Adresses web des clients (super admin) et connecteur IA
+- Demande de Juste : créer facilement des adresses comme thedream.agence-elite.fr depuis le compte super admin, et via l'IA (« Les deux »).
+- Page `#/editeur/adresses` (menu « Adresses web », super admin seulement) + action « Créer son adresse web » sur chaque établissement.
+- Fonctions Cloudflare Pages : `functions/api/adresses.js` (contrôle `est_super_admin()`), `functions/mcp.js` et `functions/mcp/[[chemin]].js` (connecteur copié dans `serveur/connecteur/`).
+- Aucune migration. Correctif de la PR #8 (`lotEnCours` / `lotErreur` dans Articles) repris pour que la CI passe ; sans effet une fois la PR #8 fusionnée.
+- Vérifié : `npm test` (tous verts), `npm run build`, `npm run build:demo`, parcours navigateur (aucune erreur console). L'API Cloudflare n'est testée qu'avec une fausse API.
+- Reste à Juste : réglages uniques de `docs/DEPLOIEMENT.md` §E (CNAME `*` chez LWS, jeton Cloudflare, 2 secrets, redirection Supabase).
 
 ## 2026-10-08 — Finalisation de la PR #4 « The Dream en service » (nouvelle session Claude Code)
 - PR #4 fusionnée par Juste (ChatGPT) : `c8b40dc`. Pas de seconde fusion, aucune migration réappliquée, aucune écriture SQL directe.
@@ -7,6 +14,7 @@
 - CI `main` verte (37725059744) ; Cloudflare Pages + Workers `success` sur `c8b40dc` (37726081940) ; base « up to date » en simulation (37725217791) ; pilote 76/76 + site 7/7 sur saas.agence-elite.fr (37726084336) ; The Dream en lecture seule inchangé (37725544471).
 - Constaté : le pilote ne couvre pas le Restaurant ; The Dream reste en solution `commerce` sans Salle ni Cuisine ; catalogue non importé.
 - Reste à Juste : décision Salle / Cuisine pour The Dream, accord pour le dry-run puis l'import du catalogue.
+
 ## 2026-10-02 — Mission 7 phases (audit, éditeur, équipe, licences, production, pilote, processus)
 - 5a21247 : audit offensif, 9 défauts corrigés (TRUNCATE, triggers, séquences, NaN, annulation après clôture, etc.), 30 tests.
 - 399f1c2, 619d8c0 : licences (essai 30 jours, mensuel, annuel, acquisition, suspension, grâce 7 jours), invitations et équipe avec garde-fous, mode support compatible Supabase, espace Agence Elite, import d'articles, mise en service, durcissements.

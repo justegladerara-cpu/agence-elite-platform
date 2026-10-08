@@ -2,6 +2,7 @@
 import React from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { EmptyState } from '../../ui/composants.jsx';
+import AdressesEditeur from './AdressesEditeur.jsx';
 import { ListeClients, PageClient } from './ClientsEditeur.jsx';
 import ComptesEditeur from './ComptesEditeur.jsx';
 import { PageEtablissementEditeur } from './EtablissementEditeur.jsx';
@@ -20,6 +21,7 @@ export const MENU_EDITEUR = [
   { id: 'editeur/comptes', libelle: 'Comptes', icone: 'comptes' },
   { id: 'editeur/offres', libelle: 'Offres et prix', icone: 'offres' },
   { id: 'editeur/identite', libelle: 'Identité et apparence', icone: 'cle' },
+  { id: 'editeur/adresses', libelle: 'Adresses web', icone: 'globe', superAdmin: true },
 ];
 
 export function routeEditeurActive(route) {
@@ -48,6 +50,8 @@ export default function EspaceEditeur({ route, naviguer }) {
       return <ComptesEditeur />;
     case 'offres':
       return <OffresEditeur />;
+    case 'adresses':
+      return <AdressesEditeur key={id ?? ''} suggestion={id ?? ''} />;
     case 'identite':
       return <IdentiteEditeur route={route} naviguer={naviguer} />;
     default:

@@ -58,6 +58,19 @@ export async function demarrerSupabase(env = import.meta.env) {
       finsDeSession.add(f);
       return () => finsDeSession.delete(f);
     },
+    // Fonctions serveur de la plateforme (Cloudflare Pages, dossier functions/) appelées avec le jeton de session.
+    async serveur(chemin, { methode = 'GET', corps } = {}) {
+      const jeton = (await supabase.auth.getSession()).data.session?.access_token;
+      if (!jeton) throw new Error('Session expirée : reconnectez-vous');
+      const rep = await fetch(chemin, {
+        method: methode,
+        headers: { authorization: `Bearer ${jeton}`, 'content-type': 'application/json' },
+        body: corps === undefined ? undefined : JSON.stringify(corps),
+      });
+      const donnees = await rep.json().catch(() => null);
+      if (!rep.ok || !donnees) throw new Error(donnees?.erreur ?? 'Service indisponible pour le moment');
+      return donnees;
+    },
     // Lien envoyé par Supabase Auth. L'adresse de retour est toujours celle de l'application (jamais réglable)
     // et Supabase la vérifie avec sa liste d'adresses autorisées. Même réponse que le compte existe ou non.
     async demanderReinitialisation(email) {
