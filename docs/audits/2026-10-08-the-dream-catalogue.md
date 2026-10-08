@@ -1,6 +1,6 @@
 # Audit initial — rapprochement du catalogue The Dream (2026-10-08)
 
-Statut : **audit statique du CSV terminé ; rapprochement avec les articles réels non exécuté**.
+Statut : **audit du CSV et premier rapprochement avec la production exécutés en lecture seule ; aucune mutation des articles**.
 
 ## Sources contrôlées
 - `donnees/imports/the-dream/catalogue.csv` et `README.md`
@@ -44,3 +44,11 @@ Statut : **audit statique du CSV terminé ; rapprochement avec les articles rée
 
 ## Limites
 La lecture SQL détaillée des articles a été refusée par les contrôles de sécurité du connecteur dans cette session. Les chiffres du rapport antérieur (114 articles, 57 ventes) restent à reconfirmer par une extraction autorisée. **Aucun chiffre de fusion finale n'est inventé.**
+
+## Résultats du premier rapprochement réel (2026-10-08)
+- Extraction Supabase en lecture seule : **114 articles** pour The Dream.
+- Comparaison des 218 lignes actives avec normalisation des noms, variantes et prix : **17 concordances exactes**, **14 noms concordants avec divergence de prix**, **187 lignes sans concordance exacte de nom**.
+- Les 187 lignes ne sont **pas** considérées automatiquement comme nouvelles : rechercher synonymes, différences de conditionnement et variantes.
+- Exemples de divergences de prix : Cointreau 30 000 → 20 000 ; Baileys 30 000 → 25 000 ; Saint James Rhum Blanc 20 000 → 40 000 ; Poulet dur braisé 8 000 → 4 500 ; Brochettes de poulet 2 000 → 3 500 FCFA.
+- Moteur `src/modules/articles/rapprocherCatalogue.js` ajouté : aucune écriture, aucun rattachement de plusieurs lignes à un même UUID, blocage des prix et variantes divergents ; tests dédiés.
+- **Ce premier rapprochement n'est pas une proposition de fusion approuvée**. L'import production attend la résolution des conflits et une validation métier des prix.
