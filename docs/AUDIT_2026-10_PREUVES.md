@@ -99,3 +99,10 @@ Log final commerce : `/tmp/audit-013-integration-commerce.log` ; SHA256 `92fb49d
 Log final restaurant : `/tmp/audit-013-integration-restaurant.log` ; SHA256 `c3684d9fa51790d8b4551818941dd916183e446b5e3ef8925bcfff8ad485bade` ; code retour0 confirmé.
 
 Diff migrations main→combinaison : seulement2ajouts20261012000001/2 ; aucune modification/suppression d’une migration historique.
+
+## Sources officielles des versions Actions
+
+- [actions/checkout v7.0.1 — README](https://github.com/actions/checkout/blob/v7.0.1/README.md), dépôt officiel cloné à3d3c42e5aac5ba805825da76410c181273ba90b1 ; runtime/runner minimal vérifiés.
+- [actions/setup-node v7.1.0 — README](https://github.com/actions/setup-node/blob/v7.1.0/README.md), dépôt officiel cloné à949feb2413d6458794dcd2491c4babbbce0c15c1 ; Node24 et runner>=2.327.1.
+
+Tags officiels interrogés par git ls-remote et documentation du tag lue ; aucun choix de version basé uniquement sur une ancienne connaissance du modèle.
