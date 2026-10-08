@@ -624,6 +624,10 @@ Le lien vient du **check « Cloudflare Pages »** que Cloudflare publie sur le c
      à Juste** pour tester avant fusion. Attention : une préview appelle la **base de production** (`.env.production`).
    - `main` : déploiement de production → **https://saas.agence-elite.fr** et https://agence-elite-saas.pages.dev ; le
      Worker publie https://agence-elite-platform.justegladerara.workers.dev (check « Workers Builds » = `success`).
+   - Le même tableau est aussi posté en **commentaire de la PR** par le bot `cloudflare-workers-and-pages`
+     (« Deploying agence-elite-saas with Cloudflare Pages ») : lisible avec `pull_request_read` (`get_comments`). Un
+     second commentaire du même bot, « Deploying Preview to Cloudflare … Build: Failed ❌ », concerne le Worker sur
+     une branche : non bloquant (§13).
 4. Le déploiement est terminé quand le check est `completed` + `success`. Échec = check `failure` (le lien « View logs »
    mène au tableau de bord Cloudflare, accessible à Juste seulement).
 5. Vérifier que le site répond : `curl -I <lien>` si le réseau le permet ; sinon « Adresse du site » (affiche le code HTTP

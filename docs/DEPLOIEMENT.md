@@ -82,6 +82,7 @@ Juste, restauration sur projet neuf).
 
 - Le lien est dans le **check « Cloudflare Pages »** du commit : outil GitHub `pull_request_read` (`get_check_runs`)
   puis `get_check_run` sur l'identifiant du check ; le résumé contient « Preview URL » et « Branch Preview URL ».
+- Le bot `cloudflare-workers-and-pages` poste aussi ce tableau en commentaire de la PR (`get_comments`).
 - Ou lancer « **Adresse du site** » sur la branche : son journal affiche tous les checks du dernier commit, leurs liens,
   les déploiements GitHub et le code HTTP du workers.dev. Sans aucun risque.
 - Production (`main`) : https://saas.agence-elite.fr (Pages, domaine personnalisé) ; https://agence-elite-saas.pages.dev ;
