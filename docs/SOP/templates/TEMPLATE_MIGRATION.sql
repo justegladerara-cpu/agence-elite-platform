@@ -1,5 +1,6 @@
 -- AAAAMMJJHHMMSS_sujet.sql
 -- But : <une phrase>. Non destructive et rejouable : aucune donnée supprimée.
+-- Déclarer d'abord le module et ses permissions exemple.lire/exemple.gerer (SOP 04).
 
 -- 1. Structure
 create table if not exists public.exemple (
@@ -11,13 +12,25 @@ create table if not exists public.exemple (
   cree_par uuid default auth.uid()
 );
 create index if not exists exemple_etablissement on public.exemple(etablissement_id);
+create index if not exists exemple_hub on public.exemple(hub_id);
 
 -- 2. Sécurité : lecture par RLS, aucune écriture directe
 alter table public.exemple enable row level security;
 drop policy if exists exemple_lecture on public.exemple;
 create policy exemple_lecture on public.exemple for select to authenticated
-  using (public.a_acces(etablissement_id));
+  using (public.lecture_autorisee(etablissement_id, 'exemple.lire'));
+grant select on public.exemple to authenticated;
 revoke insert, update, delete on public.exemple from anon, authenticated;
+
+drop trigger if exists exemple_suppression on public.exemple;
+create trigger exemple_suppression before delete on public.exemple
+  for each row execute function public.refuser_suppression();
+drop trigger if exists exemple_etablissement_verrouille on public.exemple;
+create trigger exemple_etablissement_verrouille before update on public.exemple
+  for each row execute function public.verrouiller_etablissement_id();
+drop trigger if exists exemple_journal on public.exemple;
+create trigger exemple_journal after insert or update on public.exemple
+  for each row execute function public.journaliser_modification();
 
 -- 3. Écriture par RPC
 create or replace function public.enregistrer_exemple(p_etablissement_id uuid, p_libelle text)
@@ -31,3 +44,4 @@ begin
 end $$;
 revoke execute on function public.enregistrer_exemple(uuid, text) from public, anon;
 grant execute on function public.enregistrer_exemple(uuid, text) to authenticated;
+notify pgrst, 'reload schema';

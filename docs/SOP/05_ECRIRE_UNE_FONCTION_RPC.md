@@ -3,7 +3,7 @@
 Toute écriture métier passe par une fonction Postgres appelée par `api.rpc(...)`.
 
 Ordre obligatoire dans la fonction :
-1. `security definer`, `set search_path = ''`.
+1. `security definer`, `set search_path = ''`, objets qualifiés (`public.`, `auth.`, `extensions.`).
 2. Identité : `auth.uid()` non nul (sinon refus).
 3. Droits : `exiger_permission(etablissement, permission)` ; `exiger_module_actif` ;
    licence en écriture (`exiger_ecriture`) ; accès au Hub si la donnée a un `hub_id`.
