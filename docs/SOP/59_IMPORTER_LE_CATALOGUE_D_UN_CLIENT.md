@@ -9,7 +9,9 @@ Pour un vrai client (jamais pour la démo). Exemple : The Dream (`donnees/import
    - Prix illisible, absent ou contradictoire : ligne `actif=non`, prix vide, `motif_attente` explicite. Jamais de prix
      deviné.
    - Deux offres différentes (Mojito avec / sans alcool) : deux désignations distinctes.
-   - Écrire un `README.md` : sources, chiffres attendus, exclusions, points à confirmer. Ajouter un test du fichier.
+   - Écrire un `README.md` : sources, chiffres attendus, exclusions, points à confirmer. Faire relire le fichier réel
+     par le client ; les tests automatiques utilisent un CSV fictif couvrant les mêmes cas de format et d'import,
+     jamais le catalogue réel (règle permanente : aucune donnée réelle dans les tests ou la démo).
 2. **Base à jour** : la migration d'import doit être en production (SOP 12). Sinon l'écran l'annonce et n'écrit rien.
 3. **Vérifier la cible** : Actions › « Vérifier un établissement » (lecture seule) avec un mot du nom et l'identifiant
    du responsable : client, établissement, Hubs, modules, membres, droit `articles.gerer`, volumes avant import.
