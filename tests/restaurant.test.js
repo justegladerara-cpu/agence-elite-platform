@@ -22,6 +22,10 @@ let biere;
 let eau;
 let session;
 let commande;
+let lignePoulet;
+let ligneBiere;
+let ligneEau;
+let venteReste;
 
 const utilisateur = async (email) => (await db.query('insert into auth.users(email) values($1) returning id', [email])).rows[0].id;
 const comme = (user, sql, params = []) => commeRole(db, 'authenticated', user, async (tx) => (await tx.query(sql, params)).rows);
@@ -32,6 +36,18 @@ const cmd = async (id) => (await db.query('select * from rest_commandes where id
 
 beforeAll(async () => {
   db = await creerBase();
+  // Reproduction : plusieurs créations peuvent partager le même instant.
+  // UUID valides, ordonnés poulet/eau/bière plutôt que l'ordre du JSON.
+  await db.exec(`
+    create temporary sequence audit_id_ligne;
+    create function pg_temp.audit_id_ligne() returns uuid language sql volatile set search_path = '' as $$
+      with v as (select nextval('pg_temp.audit_id_ligne') n)
+      select ('00000000-0000-0000-0000-' || lpad((case n when 2 then 3 when 3 then 2 else n end)::text,12,'0'))::uuid from v;
+    $$;
+    alter table public.rest_lignes alter column id set default pg_temp.audit_id_ligne();
+    alter table public.rest_lignes alter column cree_le set default date_trunc('day',clock_timestamp());
+  `);
+
   sa = await utilisateur('sa@re.test');
   gerant = await utilisateur('gerant@re.test');
   serveur = await utilisateur('serveur@re.test');
@@ -102,21 +118,29 @@ describe('service en salle et cuisine', () => {
     await comme(serveur, 'select ajouter_lignes_restaurant($1, $2::jsonb)', [commande, json([
       { article_id: poulet, quantite: 3, note: 'bien cuit' }, { article_id: biere, quantite: 4 }, { article_id: eau, quantite: 1 },
     ])]);
-    const [p, b, e] = await lignes(commande);
+    const ajoutees = await lignes(commande);
+    expect(ajoutees).toHaveLength(3);
+    expect(new Set(ajoutees.map((l) => new Date(l.cree_le).getTime())).size).toBe(1);
+    const p = ajoutees.find((l) => l.article_id === poulet);
+    const b = ajoutees.find((l) => l.article_id === biere);
+    const e = ajoutees.find((l) => l.article_id === eau);
+    lignePoulet = p.id; ligneBiere = b.id; ligneEau = e.id;
     expect([p.poste, b.poste, e.poste]).toEqual(['cuisine', 'bar', 'aucun']);
     await comme(serveur, 'select modifier_ligne_restaurant($1, 2, $2)', [e.id, null]);
     await expect(comme(serveur, 'select ajouter_lignes_restaurant($1, $2::jsonb)', [commande, json([{ article_id: poulet, quantite: -1 }])])).rejects.toThrow(/Quantité invalide/);
     expect(await valeur(serveur, 'select envoyer_commande_restaurant($1)', [commande])).toBe(3);
     const apres = await lignes(commande);
-    expect(apres.map((l) => l.statut)).toEqual(['envoyee', 'envoyee', 'servie']);
-    expect(Number(apres[2].quantite)).toBe(2);
+    expect([lignePoulet, ligneBiere, ligneEau].map((id) => apres.find((l) => l.id === id).statut)).toEqual(['envoyee', 'envoyee', 'servie']);
+    expect(Number(apres.find((l) => l.id === ligneEau).quantite)).toBe(2);
     expect((await db.query("select count(*)::int n from notifications where user_id = $1 and type = 'restaurant.envoi'", [cuisinier])).rows[0].n).toBe(1);
     await expect(comme(serveur, 'select envoyer_commande_restaurant($1)', [commande])).rejects.toThrow(/Rien à envoyer/);
     await expect(comme(serveur, 'select modifier_ligne_restaurant($1, 1, null)', [p.id])).rejects.toThrow(/déjà envoyé/);
   });
 
   test('cuisine : en préparation puis prêt (serveur prévenu) ; le serveur ne prépare pas', async () => {
-    const [p, b] = await lignes(commande);
+    const toutes = await lignes(commande);
+    const p = toutes.find((l) => l.id === lignePoulet);
+    const b = toutes.find((l) => l.id === ligneBiere);
     await expect(comme(serveur, "select avancer_ligne_restaurant($1, 'prete')", [p.id])).rejects.toThrow(/Permission refusée/);
     await comme(cuisinier, "select avancer_ligne_restaurant($1, 'en_preparation')", [p.id]);
     await comme(cuisinier, "select avancer_ligne_restaurant($1, 'prete')", [p.id]);
@@ -129,10 +153,13 @@ describe('service en salle et cuisine', () => {
 
   test('un plat envoyé ne se modifie pas en direct et ne s’annule qu’avec le droit et un motif', async () => {
     await expect(comme(serveur, 'update rest_lignes set quantite = 1 where commande_id = $1', [commande])).resolves.toEqual([]);
-    expect(Number((await lignes(commande))[0].quantite)).toBe(3);
+    expect(Number((await lignes(commande)).find((l) => l.id === lignePoulet).quantite)).toBe(3);
+    const avantAjout = new Set((await lignes(commande)).map((l) => l.id));
     await comme(serveur, 'select ajouter_lignes_restaurant($1, $2::jsonb)', [commande, json([{ article_id: poulet, quantite: 1 }])]);
     await comme(serveur, 'select envoyer_commande_restaurant($1)', [commande]);
-    const extra = (await lignes(commande))[3];
+    const nouvelles = (await lignes(commande)).filter((l) => !avantAjout.has(l.id));
+    expect(nouvelles).toHaveLength(1);
+    const extra = nouvelles[0];
     await expect(comme(serveur, "select annuler_ligne_restaurant($1, 'Client parti')", [extra.id])).rejects.toThrow(/Permission refusée/);
     await expect(comme(gerant, "select annuler_ligne_restaurant($1, ' ')", [extra.id])).rejects.toThrow(/motif/);
     await comme(gerant, "select annuler_ligne_restaurant($1, 'Erreur de saisie')", [extra.id]);
@@ -149,7 +176,7 @@ describe('service en salle et cuisine', () => {
 describe('addition et encaissement', () => {
   test('addition séparée : on sépare 1 poulet, on l’encaisse ; vente d’origine restaurant, stock du Hub sorti', async () => {
     session = await valeur(gerant, 'select ouvrir_caisse($1)', [etab]);
-    const [p] = await lignes(commande);
+    const p = (await lignes(commande)).find((l) => l.id === lignePoulet);
     await expect(comme(serveur, 'select scinder_ligne_restaurant($1, 3)', [p.id])).rejects.toThrow(/Quantité à séparer invalide/);
     const part = await valeur(serveur, 'select scinder_ligne_restaurant($1, 1)', [p.id]);
     expect(Number((await db.query('select quantite from rest_lignes where id = $1', [p.id])).rows[0].quantite)).toBe(2);
@@ -166,6 +193,7 @@ describe('addition et encaissement', () => {
   test('le reste est encaissé en une fois : 2 poulets + 4 bières + 2 eaux = 15 000, table libérée', async () => {
     const r = (await comme(serveur, 'select encaisser_commande_restaurant($1, $2, $3::jsonb) r',
       [commande, session, json([{ mode: 'mobile_money', montant: 15000, reference: 'MM-1' }])]))[0].r;
+    venteReste = r.vente_id;
     expect(Number(r.total)).toBe(15000);
     expect(r.commande_close).toBe(true);
     expect((await cmd(commande)).statut).toBe('encaissee');
@@ -178,7 +206,8 @@ describe('addition et encaissement', () => {
   });
 
   test('une vente de restaurant s’annule comme une vente de caisse ; le plat encaissé reste figé', async () => {
-    const venteId = (await lignes(commande))[0].vente_id;
+    const venteId = venteReste;
+    expect(venteId, 'La vente du reste a été enregistrée par la RPC précédente').toBeTruthy();
     await comme(gerant, "select annuler_vente($1, 'Erreur de table')", [venteId]);
     expect((await db.query('select statut from ventes where id = $1', [venteId])).rows[0].statut).toBe('annulee');
   });
