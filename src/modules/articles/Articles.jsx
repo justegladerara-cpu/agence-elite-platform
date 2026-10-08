@@ -312,9 +312,29 @@ export default function Articles() {
     && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.variante ?? '').toLowerCase().includes(texte)));
   const deplacer = peut('articles.categories');
   const gerer = peut('articles.gerer');
-  const [actionLot, setActionLot] = useState(false);
+  const [quantitesLot, setQuantitesLot] = useState(null);
+  const [hubLot, setHubLot] = useState('');
+  const [enregistrementLot, setEnregistrementLot] = useState(false);
   const [lotEnCours, setLotEnCours] = useState(false);
   const [lotErreur, setLotErreur] = useState('');
+  const enregistrerQuantitesLot = async () => {
+    const lignes = Object.entries(quantitesLot ?? {}).filter(([, q]) => q !== '');
+    if (!lignes.length) return;
+    setEnregistrementLot(true);
+    setLotErreur('');
+    try {
+      const hubId = hubLot || etablissement.hubs?.find((h) => h.actif && h.capacite_stock)?.id;
+      if (!hubId) throw new Error('Aucun Hub de stock disponible');
+      for (const [id] of lignes) {
+        const article = donnees.articles.find((a) => a.id === id);
+        if (article && !article.suivi_stock) await api.rpc('enregistrer_article', { p_etablissement_id: etab, p_article: { ...article, suivi_stock: true } });
+      }
+      const resultat = await api.rpc('enregistrer_inventaire', { p_hub_id: hubId, p_lignes: lignes.map(([article_id, quantite_comptee]) => ({ article_id, quantite_comptee: Number(quantite_comptee) })), p_motif: 'Saisie groupée depuis Articles' });
+      notifier(`${resultat.articles} quantité(s) enregistrée(s)`);
+      setQuantitesLot(null); setSelection([]); recharger();
+    } catch (err) { setLotErreur(`Enregistrement non terminé : ${err.message}. Vérifiez les quantités avant de recommencer.`); recharger(); }
+    finally { setEnregistrementLot(false); }
+  };
   const changerSuiviLot = async (activer) => {
     setLotEnCours(true);
     setLotErreur('');
@@ -389,12 +409,21 @@ export default function Articles() {
             <option value="__sans">Sans catégorie</option>
           </select>}
           {deplacer && <Bouton variante="principal" disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>}
-          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(false)}>Stock facultatif</Bouton>}
-          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(true)}>Suivre le stock</Bouton>}
+          {gerer && peut('stock.ajuster') && <Bouton variante="principal" onClick={() => { setHubLot(''); setQuantitesLot(Object.fromEntries(selection.map((id) => [id, '']))); }}>Renseigner les quantités</Bouton>}
+          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(false)}>Ne pas suivre le stock</Bouton>}
           <button type="button" className="lien" onClick={() => setSelection([])}>Tout désélectionner</button>
         </div>
       )}
       <Erreur message={erreurAction || lotErreur} />
+      {quantitesLot && <Modale titre="Renseigner les quantités" large onFermer={() => setQuantitesLot(null)}>
+        <div className="formulaire">
+          <p className="texte-doux">Indiquez uniquement les quantités comptées. Les lignes laissées vides ne changent pas. Les articles renseignés seront suivis en stock.</p>
+          {(etablissement.hubs ?? []).filter((h) => h.actif && h.capacite_stock).length > 1 && <Champ libelle="Lieu de stockage"><select value={hubLot} onChange={(e) => setHubLot(e.target.value)}><option value="">Choisir le Hub…</option>{etablissement.hubs.filter((h) => h.actif && h.capacite_stock).map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}</select></Champ>}
+          <div className="tableau-conteneur"><table className="tableau"><thead><tr><th>Article</th><th>Quantité comptée</th></tr></thead><tbody>{donnees.articles.filter((a) => Object.hasOwn(quantitesLot, a.id)).map((a) => <tr key={a.id}><td>{a.nom}</td><td><input type="number" min="0" step="any" inputMode="decimal" aria-label={`Quantité de ${a.nom}`} value={quantitesLot[a.id]} onChange={(e) => setQuantitesLot((q) => ({ ...q, [a.id]: e.target.value }))} /></td></tr>)}</tbody></table></div>
+          <Erreur message={lotErreur} />
+          <div className="actions"><Bouton onClick={() => setQuantitesLot(null)}>Annuler</Bouton><Bouton variante="principal" chargement={enregistrementLot} disabled={!Object.values(quantitesLot).some((q) => q !== '') || ((etablissement.hubs ?? []).filter((h) => h.actif && h.capacite_stock).length > 1 && !hubLot)} onClick={enregistrerQuantitesLot}>Enregistrer tout</Bouton></div>
+        </div>
+      </Modale>}
       {vue !== 'categories' && donnees && !articles.length && (
         <Vide titre="Aucun article" texte={texte || filtreCategorie ? 'Aucun article ne correspond à ces filtres.' : vue === 'actifs' ? 'Créez votre premier article pour commencer à vendre.' : 'Aucun article archivé.'} />
       )}
