@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate, formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { lireParametres } from '../../noyau/routes.js';

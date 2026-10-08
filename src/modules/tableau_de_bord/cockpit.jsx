@@ -1,6 +1,6 @@
 // Briques communes des tableaux de bord : période, filtres, indicateurs cliquables,
 // « À surveiller », graphiques, listes, activité, actions rapides.
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Bouton, GraphiqueBarres, Icone } from '../../ui/composants.jsx';

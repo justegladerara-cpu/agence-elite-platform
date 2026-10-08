@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { appliquerMarque } from '../noyau/marque.js';
 import { formatDateHeure, formatMontant } from '../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, Erreur } from '../ui/composants.jsx';

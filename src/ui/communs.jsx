@@ -1,6 +1,6 @@
 // Briques d'écran communes à plusieurs modules : pièces jointes, notifications, export, fichiers.
 // La sécurité reste dans la base (types_pieces_jointes, piece_lisible, lire_piece_jointe).
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDonnees, useEspace } from '../noyau/espace.jsx';
 import { formatDate, formatDateHeure } from '../noyau/format.js';
 import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, Modale, ModaleMotif } from './composants.jsx';
@@ -216,7 +216,6 @@ export function Cloche({ naviguer }) {
     charger();
     const minuteur = setInterval(charger, 60000);
     return () => clearInterval(minuteur);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
   useEffect(() => {
     if (!ouvert) return undefined;

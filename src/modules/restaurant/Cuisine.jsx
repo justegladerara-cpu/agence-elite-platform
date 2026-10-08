@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, EmptyState, Erreur, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
@@ -27,7 +27,6 @@ export default function Cuisine({ naviguer }) {
   useEffect(() => {
     const minuteur = setInterval(() => { setMaintenant(Date.now()); recharger(); }, 15000);
     return () => clearInterval(minuteur);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (chargement && !d) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur) return <div className="page"><Erreur message={erreur} /></div>;

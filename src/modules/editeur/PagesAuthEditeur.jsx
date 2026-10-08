@@ -3,7 +3,7 @@
 // Brouillon → aperçu → publication ; historique avec restauration ; retour aux valeurs par défaut.
 // Aucun réglage ne touche à l'authentification elle-même (droits, mots de passe, redirections) : la base refuse
 // toute clé qui n'est pas au catalogue.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApercuPageAuth } from '../../auth/EcransAuth.jsx';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure } from '../../noyau/format.js';

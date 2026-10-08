@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';
 import { dateHeureLocale, SOURCES, TYPES_ACTIVITE, versIso } from './commun.js';

@@ -18,9 +18,7 @@ let principal;
 let autreHub;
 let savon;
 let riz;
-let autreArticle;
 let caisseA;
-let caisseB;
 let sessionA;
 
 const utilisateur = async (email) => (await db.query('insert into auth.users(email) values($1) returning id', [email])).rows[0].id;
@@ -69,7 +67,6 @@ describe('structure des Hubs', () => {
     const d = (await db.query('select capacite_vente, capacite_caisse, capacite_stock from hubs where id = $1', [depot])).rows[0];
     expect(d).toEqual({ capacite_vente: false, capacite_caisse: false, capacite_stock: true });
     caisseA = (await db.query('select id from points_de_vente where hub_id = $1', [hubA])).rows[0].id;
-    caisseB = (await db.query('select id from points_de_vente where hub_id = $1', [hubB])).rows[0].id;
     expect((await db.query('select count(*)::int n from points_de_vente where hub_id = $1', [depot])).rows[0].n).toBe(0);
   });
 

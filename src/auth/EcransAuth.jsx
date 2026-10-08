@@ -2,7 +2,7 @@
 // (Super Admin › Identité et apparence › Pages d'authentification). Leur fonctionnement reste dans le code :
 // Supabase Auth, politique des mots de passe, changement obligatoire, redirections.
 // Le même composant sert à l'écran réel et à l'aperçu de l'éditeur (apercu = aucun envoi).
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { Marque } from '../ui/Marque.jsx';
 import { Bouton, Champ, Erreur, Icone, Onglets } from '../ui/composants.jsx';
 import { configAuth, liensAuth, marqueAuth, texteAuth, variablesAccent } from '../noyau/pagesAuth.js';

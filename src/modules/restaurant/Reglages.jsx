@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
 import { POSTES } from './commun.js';

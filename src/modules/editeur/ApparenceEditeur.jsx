@@ -1,7 +1,7 @@
 // Identité affichée, côté Agence Elite : plateforme (Super Admin), client, établissement.
 // Héritage : plateforme → client → établissement. Le Hub n'a pas d'identité visuelle.
 // Rien ici ne change l'identité technique (ids, solution, modules).
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Section, Squelette } from '../../ui/composants.jsx';
 import { ApercuMarque, ChampsApparence } from '../../ui/Marque.jsx';

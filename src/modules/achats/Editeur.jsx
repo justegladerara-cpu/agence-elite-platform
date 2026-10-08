@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale } from '../../noyau/format.js';
 import { Bouton, Champ, Erreur, Icone, PageHeader, Section, Squelette } from '../../ui/composants.jsx';

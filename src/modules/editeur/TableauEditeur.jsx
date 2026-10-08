@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, formatMontant } from '../../noyau/format.js';
 import {

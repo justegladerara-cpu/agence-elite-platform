@@ -330,7 +330,7 @@ function ModaleProlongation({ reservation, onFermer, onValider }) {
   </form></Modale>;
 }
 
-function ModaleChangementChambre({ reservation, chambres, onFermer, onValider }) {
+function ModaleChangementChambre({ chambres, onFermer, onValider }) {
   const [chambre, setChambre] = useState(chambres[0]?.id ?? ''); const [motif, setMotif] = useState('');
   return <Modale titre="Changer de chambre" onFermer={onFermer}><form className="formulaire" onSubmit={(e) => { e.preventDefault(); onValider(chambre, motif); }}>
     {!chambres.length ? <Erreur message="Aucune autre chambre propre et libre de ce type." /> : <Champ libelle="Nouvelle chambre"><select value={chambre} onChange={(e) => setChambre(e.target.value)}>{chambres.map((c) => <option key={c.id} value={c.id}>Chambre {c.numero}{c.etage ? ` · étage ${c.etage}` : ''}</option>)}</select></Champ>}

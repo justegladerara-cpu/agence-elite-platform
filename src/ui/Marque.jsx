@@ -1,5 +1,4 @@
 // Identité affichée : composants partagés (barre latérale, connexion, formulaires d'apparence).
-import React from 'react';
 import { COULEURS_MARQUE, marqueValide, melanger } from '../noyau/marque.js';
 import { Champ, lireImageReduite } from './composants.jsx';
 

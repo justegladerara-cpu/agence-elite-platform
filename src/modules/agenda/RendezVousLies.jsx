@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, Section } from '../../ui/composants.jsx';

@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Même runtime JSX automatique que Vite pour les écrans et leurs tests.
+  esbuild: { jsx: 'automatic' },
   test: {
     testTimeout: 30_000,
     // La reconstruction de toutes les migrations et l'installation de la démo

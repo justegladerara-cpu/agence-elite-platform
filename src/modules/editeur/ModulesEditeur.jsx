@@ -1,7 +1,7 @@
 // Catalogue de la plateforme : Solutions, Modules, Catégories, identité de la plateforme.
 // Tout se règle ici sans toucher au code. Un module, lui, se programme dans le code (SOP 02) :
 // l'écran ne peut ni en créer un, ni déclarer « Disponible » un module qui n'est pas programmé (la base refuse).
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { ROLES, STATUTS_MODULE } from '../../noyau/format.js';
 import { lireParametres } from '../../noyau/routes.js';

@@ -1,5 +1,4 @@
 // Espace Agence Elite : pages routées sous #/editeur/…
-import React from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { EmptyState } from '../../ui/composants.jsx';
 import { ListeClients, PageClient } from './ClientsEditeur.jsx';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, EmptyState, Erreur, Icone, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { widgetsAccessibles } from '../index.js';

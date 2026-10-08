@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';
 import { SOURCES, ajouterJours, aujourdhui, nuits } from './commun.js';

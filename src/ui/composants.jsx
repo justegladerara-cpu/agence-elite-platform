@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { lireParametres } from '../noyau/routes.js';
 
@@ -304,7 +304,6 @@ export function PageHeader({ titre, sousTitre, fil, badges, actions, children })
     if (!setFil || !fil) return undefined;
     setFil(fil);
     return () => setFil(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cle, setFil]);
   return (
     <header className="page-header">

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale } from '../../noyau/format.js';
 import { EmptyState, Erreur, PageHeader, Squelette } from '../../ui/composants.jsx';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate } from '../../noyau/format.js';
 import { Bouton, Champ, DataTable, EmptyState, Erreur, Icone, Modale, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';

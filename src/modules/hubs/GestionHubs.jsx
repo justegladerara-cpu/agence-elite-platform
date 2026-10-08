@@ -1,6 +1,6 @@
 // Hubs d'un établissement : liste, création, modification, caisses. Utilisé par le responsable
 // d'établissement (page Hubs) et par Agence Elite (fiche établissement). Les règles sont en base.
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { TYPES_HUB } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, MenuActions, Modale, StatusBadge } from '../../ui/composants.jsx';

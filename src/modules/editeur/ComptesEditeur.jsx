@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, ROLES, ROLES_PLATEFORME } from '../../noyau/format.js';
 import { Avatar, Badge, Bouton, Champ, DataTable, Erreur, MenuActions, Modale, PageHeader } from '../../ui/composants.jsx';

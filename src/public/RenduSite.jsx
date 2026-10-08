@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { appliquerMarque } from '../noyau/marque.js';
 import { formatMontant } from '../noyau/format.js';
 import { Bouton, Champ, Chargement, Erreur } from '../ui/composants.jsx';

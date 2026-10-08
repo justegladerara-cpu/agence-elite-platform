@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, Champ, Erreur, MenuActions, Modale, Recherche, Vide } from '../../ui/composants.jsx';
 

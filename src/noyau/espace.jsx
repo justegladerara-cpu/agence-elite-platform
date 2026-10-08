@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { formatMontant } from './format.js';
 
 const ContexteEspace = createContext(null);
@@ -41,7 +41,6 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
   const compteur = useRef(0);
   const etablissement = etablissements.find((e) => e.id === idActif) ?? etablissements[0];
   const [hubChoisi, setHubChoisi] = useState(() => hubInitial(etablissement));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setHubChoisi(hubInitial(etablissement)), [etablissement?.id]);
 
   const notifier = useCallback((texte, ton = 'succes') => {
@@ -119,7 +118,6 @@ export function useDonnees(charger, dependances) {
     return () => {
       actif = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...dependances, version]);
   return { ...etat, recharger: () => setVersion((v) => v + 1) };
 }

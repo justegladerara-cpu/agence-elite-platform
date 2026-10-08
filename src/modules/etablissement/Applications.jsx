@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { STATUTS_MODULE } from '../../noyau/format.js';
 import { Badge, Erreur, Icone, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
