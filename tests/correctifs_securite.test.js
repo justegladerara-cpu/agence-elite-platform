@@ -49,12 +49,12 @@ describe('correctifs de sécurité du Lot 1', () => {
     });
   });
 
-  test("l'acteur d'un événement ne peut pas être usurpé", async () => {
+  test("aucun acteur ne peut écrire directement un événement", async () => {
     await commeRole(db, 'authenticated', employe, async (tx) => {
       await expect(tx.query("insert into evenements(etablissement_id, type, acteur) values($1, 'test', $2)", [etab, gerant])).rejects.toThrow();
     });
     await commeRole(db, 'authenticated', employe, async (tx) => {
-      await tx.query("insert into evenements(etablissement_id, type, acteur) values($1, 'test', $2)", [etab, employe]);
+      await expect(tx.query("insert into evenements(etablissement_id, type, acteur) values($1, 'test', $2)", [etab, employe])).rejects.toThrow();
     });
   });
 
@@ -81,7 +81,7 @@ describe('correctifs de sécurité du Lot 1', () => {
     });
     await commeRole(db, 'authenticated', gerant, async (tx) => {
       expect((await tx.query("update etablissement_membres set permissions_ajustees = '{\"membres.gerer\": false}' where user_id = $1", [gerant])).affectedRows).toBe(0);
-      expect((await tx.query("update etablissement_membres set role_id = 'responsable' where user_id = $1", [employe])).affectedRows).toBe(1);
+      expect((await tx.query("update etablissement_membres set role_id = 'responsable' where user_id = $1", [employe])).affectedRows).toBe(0);
     });
     await expect(db.query('update etablissement_membres set user_id = $1 where user_id = $2', [intrus, employe])).rejects.toThrow(/compte associé/);
   });

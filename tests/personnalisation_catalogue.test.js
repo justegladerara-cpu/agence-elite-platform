@@ -112,7 +112,8 @@ describe('profils', () => {
 
   test('le rôle Super Admin ne s’obtient jamais par le profil', async () => {
     await expect(comme(caissier, "insert into plateforme_admins(user_id, role) values ($1, 'super_admin')", [caissier])).rejects.toThrow();
-    await comme(caissier, "update profils set nom_affiche = 'Super Admin' where id = $1", [caissier]);
+    await comme(caissier, 'select enregistrer_mon_profil($1::jsonb)', ['{"nom_affiche":"Super Admin"}']);
+    expect((await db.query('select nom_affiche from profils where id = $1', [caissier])).rows[0].nom_affiche).toBe('Super Admin');
     expect((await valeur(caissier, 'select mon_contexte()')).editeur).toBeFalsy();
   });
 });

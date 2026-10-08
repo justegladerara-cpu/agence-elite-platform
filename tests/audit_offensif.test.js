@@ -395,9 +395,11 @@ describe('écritures directes et privilèges', () => {
     await expect(db.query('truncate journal_audit')).rejects.toThrow(/Suppression interdite/);
   });
 
-  test('les journaux restent écrits par les membres via leurs droits normaux', async () => {
-    const id = (await comme(caissierA, "insert into evenements(etablissement_id, type, acteur) values($1, 'test', $2) returning id", [etabA, caissierA]))[0].id;
-    expect(Number(id)).toBeGreaterThan(0);
+  test('les journaux sont alimentés par les RPC, jamais par une insertion directe', async () => {
+    await expect(comme(caissierA, "insert into evenements(etablissement_id, type, acteur) values($1, 'test', $2)", [etabA, caissierA])).rejects.toThrow();
+    const avant = await nombre("select count(*) from journal_audit where table_nom = 'invitations' and acteur = $1", [gerantA]);
+    await comme(gerantA, "select inviter_membre($1, 'journal-fictif@exemple.test', 'employe')", [etabA]);
+    expect(await nombre("select count(*) from journal_audit where table_nom = 'invitations' and acteur = $1", [gerantA])).toBe(avant + 1);
   });
 
   test('les fonctions internes sont fermées et toute fonction security definer fixe son search_path', async () => {
@@ -464,8 +466,10 @@ describe("journal d'audit", () => {
   });
 
   test("l'auteur d'une invitation ne peut pas être usurpé", async () => {
-    const id = (await comme(gerantA, "insert into invitations(email, etablissement_id, role_id, cree_par) values('cible@audit.test', $1, 'employe', $2) returning id", [etabA, admin]))[0].id;
+    await expect(comme(gerantA, "insert into invitations(email, etablissement_id, role_id, cree_par) values('cible@exemple.test', $1, 'employe', $2)", [etabA, admin])).rejects.toThrow();
+    const id = (await comme(gerantA, "select inviter_membre($1, 'cible@exemple.test', 'employe') resultat", [etabA]))[0].resultat.id;
     expect((await db.query('select cree_par from invitations where id = $1', [id])).rows[0].cree_par).toBe(gerantA);
-    expect(await comme(gerantA, 'update invitations set cree_par = $2 where id = $1 returning 1', [id, admin]).catch((e) => e.message)).toMatch(/auteur/);
+    expect(await comme(gerantA, 'update invitations set cree_par = $2 where id = $1 returning 1', [id, admin])).toEqual([]);
+    expect((await db.query('select cree_par from invitations where id = $1', [id])).rows[0].cree_par).toBe(gerantA);
   });
 });
