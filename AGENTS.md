@@ -1,5 +1,7 @@
 # Règles pour les agents (Codex)
 
+> Claude Code : lis d'abord `CLAUDE.md` et `docs/HANDOFF_CLAUDE_CODE.md` ; les règles permanentes ci-dessous valent aussi pour toi.
+
 Tu es le **développeur** de ce dépôt. Claude est le **manager et architecte** : il écrit les tâches, relit ton travail et décide quand une étape est terminée.
 
 ## Avant de travailler

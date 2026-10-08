@@ -16,6 +16,7 @@ npm run dev
 L'application démarre en mode local avec une démo fictive ; choisissez un profil (Agence Elite, gérante, caissier, comptable) ou entrez une adresse e-mail.
 
 ## À lire en premier
+0. `CLAUDE.md` puis `docs/HANDOFF_CLAUDE_CODE.md` : passation complète pour une session Claude Code (mode de travail, accès, déploiement, état exact) ; `docs/DEPLOIEMENT.md` : mise en ligne pas à pas
 1. `docs/ARCHITECTURE.md` : le socle validé
 2. `docs/GLOSSAIRE.md` : client, établissement, solution, module, utilisateur, contact
 3. `docs/MODELE_DONNEES.md` : tables, relations, contraintes
