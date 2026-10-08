@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
 import { appliquerMarque } from './noyau/marque.js';
@@ -546,11 +546,11 @@ function Coquille() {
             )}
             {surEditeur && (
               <GardeErreur key={route}>
-                <EspaceEditeur route={route} naviguer={aller} />
+                <Suspense fallback={<Chargement />}><EspaceEditeur route={route} naviguer={aller} /></Suspense>
               </GardeErreur>
             )}
             {!surEditeur && (Page
-              ? <GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Page naviguer={aller} sousRoute={sousRoute} /></GardeErreur>
+              ? <GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Suspense fallback={<Chargement />}><Page naviguer={aller} sousRoute={sousRoute} /></Suspense></GardeErreur>
               : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
           </main>
         </div>

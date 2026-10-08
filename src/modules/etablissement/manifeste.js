@@ -1,8 +1,9 @@
+import { lazy } from 'react';
 // Socle « Établissement » : Hubs, mise en service, applications, paramètres.
-import Hubs from '../hubs/Hubs.jsx';
-import Applications from './Applications.jsx';
-import MiseEnService from './MiseEnService.jsx';
-import Parametres from './Parametres.jsx';
+const Hubs = lazy(() => import('../hubs/Hubs.jsx'));
+const Applications = lazy(() => import('./Applications.jsx'));
+const MiseEnService = lazy(() => import('./MiseEnService.jsx'));
+const Parametres = lazy(() => import('./Parametres.jsx'));
 
 export default {
   module: 'etablissement',

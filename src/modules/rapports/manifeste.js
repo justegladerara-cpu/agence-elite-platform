@@ -1,4 +1,5 @@
-import Rapports from './Rapports.jsx';
+import { lazy } from 'react';
+const Rapports = lazy(() => import('./Rapports.jsx'));
 
 export default {
   module: 'rapports',

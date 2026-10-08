@@ -1,4 +1,5 @@
-import SiteWeb from './SiteWeb.jsx';
+import { lazy } from 'react';
+const SiteWeb = lazy(() => import('./SiteWeb.jsx'));
 
 export default {
   module: 'site_web',

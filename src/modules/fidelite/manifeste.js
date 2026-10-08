@@ -1,4 +1,5 @@
-import Fidelite from './Fidelite.jsx';
+import { lazy } from 'react';
+const Fidelite = lazy(() => import('./Fidelite.jsx'));
 
 export default {
   module: 'fidelite',

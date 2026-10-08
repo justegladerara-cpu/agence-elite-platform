@@ -1,4 +1,5 @@
-import Agenda from './Agenda.jsx';
+import { lazy } from 'react';
+const Agenda = lazy(() => import('./Agenda.jsx'));
 
 export default {
   module: 'agenda',

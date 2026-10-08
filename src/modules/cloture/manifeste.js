@@ -1,4 +1,5 @@
-import Clotures from './Clotures.jsx';
+import { lazy } from 'react';
+const Clotures = lazy(() => import('./Clotures.jsx'));
 
 export default {
   module: 'cloture',

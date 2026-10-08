@@ -1,5 +1,6 @@
-import Chambres from './Chambres.jsx';
-import Reception from './Reception.jsx';
+import { lazy } from 'react';
+const Chambres = lazy(() => import('./Chambres.jsx'));
+const Reception = lazy(() => import('./Reception.jsx'));
 
 export const reservations = {
   module: 'hotel_reservations',

@@ -1,4 +1,5 @@
-import Caisse from './Caisse.jsx';
+import { lazy } from 'react';
+const Caisse = lazy(() => import('./Caisse.jsx'));
 
 export default {
   module: 'caisse',

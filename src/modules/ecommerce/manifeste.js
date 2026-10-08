@@ -1,4 +1,5 @@
-import Boutique from './Boutique.jsx';
+import { lazy } from 'react';
+const Boutique = lazy(() => import('./Boutique.jsx'));
 
 export const boutique = {
   module: 'ecommerce_boutique',

@@ -1,4 +1,5 @@
-import Crm from './Crm.jsx';
+import { lazy } from 'react';
+const Crm = lazy(() => import('./Crm.jsx'));
 
 export default {
   module: 'crm_pipeline',

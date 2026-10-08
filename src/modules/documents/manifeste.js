@@ -1,4 +1,5 @@
-import Documents from './Documents.jsx';
+import { lazy } from 'react';
+const Documents = lazy(() => import('./Documents.jsx'));
 
 export default {
   module: 'documents',

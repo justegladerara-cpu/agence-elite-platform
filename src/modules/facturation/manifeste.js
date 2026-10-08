@@ -1,4 +1,5 @@
-import Factures from './Factures.jsx';
+import { lazy } from 'react';
+const Factures = lazy(() => import('./Factures.jsx'));
 
 export default {
   module: 'facturation',

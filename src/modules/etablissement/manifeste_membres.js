@@ -1,5 +1,6 @@
+import { lazy } from 'react';
 // Socle « Membres » : l'équipe et ses droits.
-import Equipe from './Equipe.jsx';
+const Equipe = lazy(() => import('./Equipe.jsx'));
 
 export default {
   module: 'membres',

@@ -5,8 +5,7 @@ import complement from '../../../tests/sql/supabase_shim_auth.sql?raw';
 import { baseVide, listerComptesDemo, semerDemo } from './demo.js';
 import { creerApiLocale, executerComme, messageErreur, optionsPGlite, preparerBase } from './moteurLocal.js';
 
-const fichiers = import.meta.glob('../../../supabase/migrations/*.sql', { query: '?raw', import: 'default', eager: true });
-const migrations = Object.entries(fichiers).map(([chemin, sql]) => ({ nom: chemin.split('/').pop(), sql }));
+const fichiers = import.meta.glob('../../../supabase/migrations/*.sql', { query: '?raw', import: 'default' });
 const NOM_BASE = 'idb://agence-elite-commerce';
 const CLE_UTILISATEUR = 'ae-utilisateur-local';
 
@@ -30,6 +29,9 @@ function ecrireStockage(cle, valeur) {
 export async function demarrerLocal() {
   const db = new PGlite(NOM_BASE, optionsPGlite);
   await db.waitReady;
+  const migrations = await Promise.all(Object.entries(fichiers).map(async ([chemin, charger]) => ({
+    nom: chemin.split('/').pop(), sql: await charger(),
+  })));
   await preparerBase(db, { shim, complement, migrations });
   if (await baseVide(db)) await semerDemo(db, undefined, undefined, { historique: true });
   let utilisateur = lireStockage(CLE_UTILISATEUR);

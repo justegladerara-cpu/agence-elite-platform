@@ -1,4 +1,5 @@
-import Contacts from './Contacts.jsx';
+import { lazy } from 'react';
+const Contacts = lazy(() => import('./Contacts.jsx'));
 
 export default {
   module: 'contacts',

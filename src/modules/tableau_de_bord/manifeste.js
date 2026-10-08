@@ -1,4 +1,5 @@
-import TableauDeBord from './TableauDeBord.jsx';
+import { lazy } from 'react';
+const TableauDeBord = lazy(() => import('./TableauDeBord.jsx'));
 
 export default {
   module: 'tableau_de_bord',

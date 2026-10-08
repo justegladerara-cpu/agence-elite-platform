@@ -1,15 +1,17 @@
+import { lazy } from 'react';
 // Espace Agence Elite : pages routées sous #/editeur/…
 import React from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { EmptyState } from '../../ui/composants.jsx';
-import { ListeClients, PageClient } from './ClientsEditeur.jsx';
-import ComptesEditeur from './ComptesEditeur.jsx';
-import { PageEtablissementEditeur } from './EtablissementEditeur.jsx';
-import HubsEditeur from './HubsEditeur.jsx';
-import ModulesEditeur from './ModulesEditeur.jsx';
-import OffresEditeur from './OffresEditeur.jsx';
-import IdentiteEditeur from './PagesAuthEditeur.jsx';
-import TableauEditeur from './TableauEditeur.jsx';
+const ListeClients = lazy(() => import('./ClientsEditeur.jsx').then((m) => ({ default: m.ListeClients })));
+const PageClient = lazy(() => import('./ClientsEditeur.jsx').then((m) => ({ default: m.PageClient })));
+const ComptesEditeur = lazy(() => import('./ComptesEditeur.jsx'));
+const PageEtablissementEditeur = lazy(() => import('./EtablissementEditeur.jsx').then((m) => ({ default: m.PageEtablissementEditeur })));
+const HubsEditeur = lazy(() => import('./HubsEditeur.jsx'));
+const ModulesEditeur = lazy(() => import('./ModulesEditeur.jsx'));
+const OffresEditeur = lazy(() => import('./OffresEditeur.jsx'));
+const IdentiteEditeur = lazy(() => import('./PagesAuthEditeur.jsx'));
+const TableauEditeur = lazy(() => import('./TableauEditeur.jsx'));
 
 // Menu de l'espace Agence Elite (le rôle Admin n'a ni tarifs ni administrateurs : la base le refuse aussi).
 export const MENU_EDITEUR = [

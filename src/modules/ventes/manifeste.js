@@ -1,4 +1,5 @@
-import Ventes from './Ventes.jsx';
+import { lazy } from 'react';
+const Ventes = lazy(() => import('./Ventes.jsx'));
 
 export default {
   module: 'ventes',

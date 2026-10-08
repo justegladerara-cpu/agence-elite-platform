@@ -1,5 +1,6 @@
-import Salle from './Salle.jsx';
-import Cuisine from './Cuisine.jsx';
+import { lazy } from 'react';
+const Salle = lazy(() => import('./Salle.jsx'));
+const Cuisine = lazy(() => import('./Cuisine.jsx'));
 
 export const salle = {
   module: 'restaurant_salle',

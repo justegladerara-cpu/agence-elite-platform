@@ -1,4 +1,5 @@
-import Abonnements from './Abonnements.jsx';
+import { lazy } from 'react';
+const Abonnements = lazy(() => import('./Abonnements.jsx'));
 
 export default {
   module: 'abonnements',

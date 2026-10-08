@@ -1,4 +1,5 @@
-import Support from './Support.jsx';
+import { lazy } from 'react';
+const Support = lazy(() => import('./Support.jsx'));
 
 export default {
   module: 'support_tickets',

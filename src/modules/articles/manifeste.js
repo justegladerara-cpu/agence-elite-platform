@@ -1,4 +1,5 @@
-import Articles from './Articles.jsx';
+import { lazy } from 'react';
+const Articles = lazy(() => import('./Articles.jsx'));
 
 export default {
   module: 'articles',

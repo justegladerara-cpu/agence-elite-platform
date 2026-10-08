@@ -1,9 +1,10 @@
+import { lazy } from 'react';
 // Module RH : trois modules en base (rh_employes, rh_presences, rh_conges), un dossier d'écrans.
 // Chaque page déclare son module : elle n'apparaît que si ce module est actif et la permission accordée.
-import Conges from './Conges.jsx';
-import Employes from './Employes.jsx';
-import MonEspace from './MonEspace.jsx';
-import Presences from './Presences.jsx';
+const Conges = lazy(() => import('./Conges.jsx'));
+const Employes = lazy(() => import('./Employes.jsx'));
+const MonEspace = lazy(() => import('./MonEspace.jsx'));
+const Presences = lazy(() => import('./Presences.jsx'));
 
 export default {
   module: 'rh_employes',

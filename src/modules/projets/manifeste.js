@@ -1,4 +1,5 @@
-import Projets from './Projets.jsx';
+import { lazy } from 'react';
+const Projets = lazy(() => import('./Projets.jsx'));
 
 export default {
   module: 'projets',

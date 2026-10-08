@@ -1,4 +1,5 @@
-import Achats from './Achats.jsx';
+import { lazy } from 'react';
+const Achats = lazy(() => import('./Achats.jsx'));
 
 export default {
   module: 'achats',
