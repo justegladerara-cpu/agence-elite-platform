@@ -1483,9 +1483,9 @@ fieldset {
 }
 
 .ticket {
-  width: 300px;
+  width: 80mm;
   max-width: 100%;
-  padding: 14px;
+  padding: 4mm;
   background: #fff;
   color: #000;
   font-family: 'Courier New', ui-monospace, monospace;
@@ -1560,7 +1560,8 @@ fieldset {
 }
 
 @media print {
-  @page {
+  @page ae-ticket {
+    size: auto;
     margin: 4mm;
   }
 
@@ -1573,6 +1574,7 @@ fieldset {
   }
 
   body.impression-ticket .zone-impression .ticket {
+    page: ae-ticket;
     width: 72mm;
     box-shadow: none;
     padding: 0;
@@ -2559,7 +2561,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .totaux-document .total { font-size: 18px; border-top: 1px solid var(--bordure); padding-top: 6px; }
 .document-disposition { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 16px; align-items: start; }
 .feuille-conteneur { overflow-x: auto; }
-.feuille-a4 { width: 210mm; max-width: 100%; min-height: 260mm; margin: 0 auto; padding: 14mm 14mm 10mm; background: #fff; color: #111827; box-shadow: var(--ombre); border-radius: 4px; font-size: 12.5px; display: flex; flex-direction: column; gap: 14px; }
+.feuille-a4 { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm; background: #fff; color: #111827; box-shadow: var(--ombre); border-radius: 4px; font-size: 12.5px; display: flex; flex-direction: column; gap: 14px; }
 .feuille-tete { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
 .feuille-logo { max-height: 56px; max-width: 180px; display: block; margin-bottom: 6px; }
 .feuille-emetteur { font-size: 16px; display: block; }
@@ -2580,12 +2582,11 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .feuille-notes { margin: 0; white-space: pre-wrap; }
 .feuille-pied { margin-top: auto; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 10.5px; color: #4b5563; text-align: center; display: grid; gap: 2px; }
 @media (max-width: 1100px) { .document-disposition { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .feuille-a4 { padding: 16px; min-height: 0; } .feuille-titre { text-align: left; } }
 @media print {
   body.impression-a4 > *:not(.zone-impression) { display: none !important; }
   body.impression-a4 .zone-impression { display: block; }
-  body.impression-a4 .feuille-a4 { box-shadow: none; width: auto; min-height: 0; padding: 0; border-radius: 0; }
-  @page { size: A4; margin: 12mm; }
+  body.impression-a4 .feuille-a4 { page: ae-a4; box-shadow: none; width: 186mm; min-height: 273mm; padding: 0; border-radius: 0; }
+  @page ae-a4 { size: A4; margin: 12mm; }
 }
 
 /* CRM : pipeline en colonnes (glisser-déposer, ou liste « Déplacer… » au clavier) et fil des étapes. */

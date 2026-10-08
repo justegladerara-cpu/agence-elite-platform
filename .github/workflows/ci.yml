@@ -26,6 +26,16 @@ jobs:
           done
           npm run test:e2e
           node scripts/parcours_restaurant.cjs
+      - name: Vérifier aperçu et PDF des documents fictifs
+        run: |
+          npx vite --host 127.0.0.1 --port 4175 --strictPort > /tmp/agence-elite-impression.log 2>&1 &
+          serveur_impression=$!
+          trap 'kill "$serveur_impression" 2>/dev/null || true' EXIT
+          for tentative in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4175/tests/navigateur/impression.html >/dev/null && break
+            sleep 1
+          done
+          URL_IMPRESSION=http://127.0.0.1:4175/tests/navigateur/impression.html node scripts/verifier_impression.cjs
   reconstruction-supabase:
     runs-on: ubuntu-latest
     steps:
