@@ -1,0 +1,46 @@
+# Compare EN LECTURE SEULE un fichier de catalogue préparé (dépôt) avec les articles d'un établissement réel.
+# Lancement manuel : Actions > « Réconcilier un catalogue » > Run workflow.
+# Aucune écriture : transaction « read only » puis annulée. Le rapport complet est joint en artefact CSV.
+name: Réconcilier un catalogue
+on:
+  workflow_dispatch:
+    inputs:
+      recherche:
+        description: "Texte contenu dans le nom de l'établissement ou du client (doit désigner un seul établissement)"
+        required: true
+      fichier:
+        description: "Chemin du fichier CSV dans le dépôt (ex. donnees/imports/the-dream/catalogue.csv)"
+        required: true
+jobs:
+  reconcilier:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier le fichier
+        env:
+          FICHIER: ${{ inputs.fichier }}
+        run: |
+          case "$FICHIER" in
+            donnees/*.csv) ;;
+            *) echo "::error::Le fichier doit être un .csv du dossier donnees/"; exit 1 ;;
+          esac
+          test -f "$FICHIER" || { echo "::error::Fichier introuvable : $FICHIER"; exit 1; }
+      - name: Joindre la base
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/url_base.sh
+      - name: Lecture seule
+        env:
+          RECHERCHE: ${{ inputs.recherche }}
+          FICHIER: ${{ inputs.fichier }}
+        run: |
+          psql "$BASE_URL" -X -v recherche="$RECHERCHE" -v csv="$(cat "$FICHIER")" -v sortie="reconciliation.csv" \
+            -f scripts/reconcilier_catalogue.sql
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reconciliation-${{ github.run_id }}
+          path: reconciliation.csv
+          if-no-files-found: ignore
+          retention-days: 30
