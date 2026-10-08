@@ -1,0 +1,54 @@
+# Applique une correction de données relue et versionnée (dossier donnees/corrections/), jamais une requête libre.
+# Lancement manuel : Actions > « Corriger des données ». Toujours : Sauvegarde de la base → simulation → appliquer.
+# Le script s'arrête de lui-même si l'état de la base n'est pas celui attendu.
+name: Corriger des données
+on:
+  workflow_dispatch:
+    inputs:
+      fichier:
+        description: "Script de correction (donnees/corrections/…/*.sql)"
+        required: true
+      mode:
+        description: "simulation (tout est annulé) ou appliquer"
+        required: true
+        default: simulation
+        type: choice
+        options: [simulation, appliquer]
+      confirmation:
+        description: "Pour appliquer, écrire exactement : JE CONFIRME"
+        required: false
+        default: ""
+concurrency:
+  group: deploiement-base
+  cancel-in-progress: false
+jobs:
+  corriger:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier le fichier et la confirmation
+        env:
+          FICHIER: ${{ inputs.fichier }}
+          MODE: ${{ inputs.mode }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          case "$FICHIER" in
+            donnees/corrections/*.sql) ;;
+            *) echo "::error::Le script doit être un .sql du dossier donnees/corrections/"; exit 1 ;;
+          esac
+          test -f "$FICHIER" || { echo "::error::Fichier introuvable : $FICHIER"; exit 1; }
+          if [ "$MODE" = "appliquer" ] && [ "$CONFIRMATION" != "JE CONFIRME" ]; then
+            echo "::error::Confirmation absente : rien n'est appliqué."; exit 1
+          fi
+      - name: Joindre la base
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/url_base.sh
+      - name: Exécuter
+        env:
+          FICHIER: ${{ inputs.fichier }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          appliquer=false; [ "$MODE" = "appliquer" ] && appliquer=true
+          psql "$BASE_URL" -X -v appliquer="$appliquer" -f "$FICHIER"
