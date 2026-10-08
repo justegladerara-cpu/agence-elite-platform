@@ -388,4 +388,63 @@ grant execute on function public.modules_complementaires_etablissement(uuid) to 
 grant execute on function public.accorder_module(uuid, text, boolean, text) to authenticated;
 grant execute on function public.editeur_etablissement(uuid) to authenticated;
 
+-- 7. Articles : modifications groupées en une seule opération (tout ou rien), tracées.
+--    Clés acceptées : suivi_stock, disponible, epuise, actif (archiver / remettre en vente), poste_preparation
+--    (aucun | cuisine | bar), stock_minimum. Les quantités en stock ne sont jamais modifiées ici (inventaire).
+create or replace function public.modifier_articles_lot(p_etablissement_id uuid, p_article_ids uuid[], p_changements jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  nb integer;
+  cle text;
+begin
+  perform public.exiger_permission(p_etablissement_id, 'articles.gerer');
+  if p_article_ids is null or cardinality(p_article_ids) = 0 then
+    raise exception 'Aucun article sélectionné';
+  end if;
+  if cardinality(p_article_ids) > 2000 then
+    raise exception 'Trop d''articles en une fois (2 000)';
+  end if;
+  if p_changements is null or jsonb_typeof(p_changements) <> 'object' or p_changements = '{}'::jsonb then
+    raise exception 'Aucune modification demandée';
+  end if;
+  for cle in select jsonb_object_keys(p_changements) loop
+    if cle not in ('suivi_stock', 'disponible', 'epuise', 'actif', 'poste_preparation', 'stock_minimum') then
+      raise exception 'Modification non autorisée en lot : %', cle;
+    end if;
+    if cle in ('suivi_stock', 'disponible', 'epuise', 'actif') and jsonb_typeof(p_changements -> cle) <> 'boolean' then
+      raise exception 'Valeur oui / non attendue pour %', cle;
+    end if;
+  end loop;
+  if p_changements ? 'poste_preparation' and coalesce(p_changements ->> 'poste_preparation', '') not in ('aucun', 'cuisine', 'bar') then
+    raise exception 'Poste de préparation inconnu (aucun, cuisine ou bar)';
+  end if;
+  if p_changements ? 'stock_minimum' and (jsonb_typeof(p_changements -> 'stock_minimum') <> 'number' or (p_changements ->> 'stock_minimum')::numeric < 0) then
+    raise exception 'Stock minimum invalide';
+  end if;
+  if exists (select 1 from unnest(p_article_ids) x where not exists (
+      select 1 from public.articles a where a.id = x and a.etablissement_id = p_etablissement_id)) then
+    raise exception 'Article inconnu dans cet établissement';
+  end if;
+  update public.articles a set
+    suivi_stock = case when p_changements ? 'suivi_stock' then (p_changements ->> 'suivi_stock')::boolean else a.suivi_stock end,
+    disponible = case when p_changements ? 'disponible' then (p_changements ->> 'disponible')::boolean else a.disponible end,
+    epuise = case when p_changements ? 'epuise' then (p_changements ->> 'epuise')::boolean else a.epuise end,
+    actif = case when p_changements ? 'actif' then (p_changements ->> 'actif')::boolean else a.actif end,
+    poste_preparation = case when p_changements ? 'poste_preparation' then p_changements ->> 'poste_preparation' else a.poste_preparation end,
+    stock_minimum = case when p_changements ? 'stock_minimum' then (p_changements ->> 'stock_minimum')::numeric else a.stock_minimum end
+  where a.etablissement_id = p_etablissement_id and a.id = any (p_article_ids);
+  get diagnostics nb = row_count;
+  insert into public.evenements (etablissement_id, client_id, type, acteur, donnees)
+  select e.id, e.client_id, 'articles.modification_lot', auth.uid(), jsonb_build_object('changements', p_changements, 'articles', nb)
+  from public.etablissements e where e.id = p_etablissement_id;
+  return nb;
+end
+$$;
+revoke execute on function public.modifier_articles_lot(uuid, uuid[], jsonb) from public, anon;
+grant execute on function public.modifier_articles_lot(uuid, uuid[], jsonb) to authenticated;
+
 notify pgrst, 'reload schema';

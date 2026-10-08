@@ -32,6 +32,24 @@ const U = 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText('Casque test').first().waitFor();
     });
+    await etape('articles-lot', async () => {
+      await p.goto(U + '#/articles');
+      const cases = p.getByRole('checkbox', { name: /^Sélectionner (?!les)/ });
+      await cases.nth(0).check();
+      await cases.nth(1).check();
+      await p.getByText('2 sélectionné(s)').waitFor();
+      await p.getByLabel('Action groupée').selectOption('ne_pas_suivre');
+      await p.getByRole('button', { name: 'Appliquer' }).click();
+      await p.getByText(/2 article\(s\) : ne pas suivre le stock/).first().waitFor();
+      await p.getByLabel('Filtrer par stock').selectOption('non_suivis');
+      await p.getByLabel('Filtrer par stock').selectOption('');
+      // Remise en état pour les étapes suivantes : les deux mêmes articles reprennent le suivi du stock.
+      await cases.nth(0).check();
+      await cases.nth(1).check();
+      await p.getByLabel('Action groupée').selectOption('suivre');
+      await p.getByRole('button', { name: 'Appliquer' }).click();
+      await p.getByText(/2 article\(s\) : suivre le stock/).first().waitFor();
+    });
     await etape('stock-entree', async () => {
       await p.goto(U + '#/stock');
       await p.getByText('Casque test').first().waitFor();

@@ -7,6 +7,29 @@ import { VignetteArticle } from '../caisse/Caisse.jsx';
 import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
 import Categories from './Categories.jsx';
 
+// Actions groupées sur les articles sélectionnés (une seule opération côté base, tout ou rien).
+const ACTIONS_LOT = [
+  { id: 'suivre', libelle: 'Suivre le stock', changements: { suivi_stock: true } },
+  { id: 'ne_pas_suivre', libelle: 'Ne pas suivre le stock (vente sans inventaire)', changements: { suivi_stock: false } },
+  { id: 'disponible', libelle: 'Disponible à la vente', changements: { disponible: true, epuise: false } },
+  { id: 'indisponible', libelle: 'Indisponible (retiré de la vente)', changements: { disponible: false } },
+  { id: 'epuise', libelle: 'Épuisé', changements: { epuise: true } },
+  { id: 'cuisine', libelle: 'Préparé en cuisine', changements: { poste_preparation: 'cuisine' }, module: 'restaurant_salle' },
+  { id: 'bar', libelle: 'Préparé au bar', changements: { poste_preparation: 'bar' }, module: 'restaurant_salle' },
+  { id: 'sans_poste', libelle: 'Sans préparation (servi directement)', changements: { poste_preparation: 'aucun' }, module: 'restaurant_salle' },
+  { id: 'archiver', libelle: 'Archiver', changements: { actif: false }, vue: 'actifs', confirmer: true },
+  { id: 'restaurer', libelle: 'Remettre en vente', changements: { actif: true }, vue: 'archives' },
+];
+
+const FILTRES_STOCK = [
+  ['', 'Tout le stock'],
+  ['suivis', 'Stock suivi'],
+  ['non_suivis', 'Sans suivi de stock'],
+  ['alerte', 'Sous le minimum'],
+  ['epuises', 'Épuisés'],
+  ['indisponibles', 'Indisponibles'],
+];
+
 const VIDE = {
   nom: '', reference: '', code_barres: '', categorie_id: '', prix_vente: '', cout_achat: '', unite: 'unité',
   suivi_stock: false, stock_minimum: '0', stock_initial: '', description: '', photo: '', actif: true,
@@ -282,9 +305,21 @@ function ImportArticles({ onFermer, onImporte }) {
   );
 }
 
+function correspondStock(a, filtre, stock) {
+  if (!filtre) return true;
+  if (filtre === 'suivis') return Boolean(a.suivi_stock);
+  if (filtre === 'non_suivis') return !a.suivi_stock;
+  if (filtre === 'alerte') return Boolean(a.suivi_stock) && stock[a.id] != null && Number(stock[a.id]) <= Number(a.stock_minimum ?? 0);
+  if (filtre === 'epuises') return Boolean(a.epuise);
+  if (filtre === 'indisponibles') return a.disponible === false;
+  return true;
+}
+
 export default function Articles() {
-  const { api, etablissement, montant, peut, notifier } = useEspace();
+  const { api, etablissement, montant, peut, notifier, moduleActif } = useEspace();
   const etab = etablissement.id;
+  const [filtreStock, setFiltreStock] = useState('');
+  const [actionLot, setActionLot] = useState('');
   const [recherche, setRecherche] = useState('');
   const [vue, setVue] = useState('actifs');
   const [filtreCategorie, setFiltreCategorie] = useState('');
@@ -309,26 +344,27 @@ export default function Articles() {
   const ouvertes = (donnees?.categories ?? []).filter((c) => !c.archivee_le);
   const articles = (donnees?.articles ?? []).filter((a) => (vue === 'actifs' ? a.actif : !a.actif)
     && (!filtreCategorie || (filtreCategorie === '__sans' ? !a.categorie_id : a.categorie_id === filtreCategorie))
-    && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.variante ?? '').toLowerCase().includes(texte)));
+    && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.variante ?? '').toLowerCase().includes(texte))
+    && correspondStock(a, filtreStock, donnees?.stock ?? {}));
   const deplacer = peut('articles.categories');
   const gerer = peut('articles.gerer');
   const [lotEnCours, setLotEnCours] = useState(false);
   const [lotErreur, setLotErreur] = useState('');
-  const changerSuiviLot = async (activer) => {
+  const actionsPossibles = ACTIONS_LOT.filter((x) => (!x.module || moduleActif?.(x.module)) && (!x.vue || x.vue === vue));
+  const appliquerLot = async () => {
+    const action = ACTIONS_LOT.find((x) => x.id === actionLot);
+    if (!action) return;
+    if (action.confirmer && !window.confirm(`${action.libelle} : ${selection.length} article(s). Ils ne seront plus proposés à la vente (historique conservé). Continuer ?`)) return;
     setLotEnCours(true);
     setLotErreur('');
     try {
-      const selectionnes = (donnees?.articles ?? []).filter((a) => selection.includes(a.id));
-      for (const article of selectionnes) {
-        if (Boolean(article.suivi_stock) === activer) continue;
-        await api.rpc('enregistrer_article', { p_etablissement_id: etab, p_article: { ...article, suivi_stock: activer } });
-      }
-      notifier(`${selectionnes.length} article(s) : suivi du stock ${activer ? 'activé' : 'désactivé'}`);
+      const n = await api.rpc('modifier_articles_lot', { p_etablissement_id: etab, p_article_ids: selection, p_changements: action.changements });
+      notifier(`${n} article(s) : ${action.libelle.toLowerCase()}`);
       setSelection([]);
+      setActionLot('');
       recharger();
     } catch (err) {
-      setLotErreur(`Opération partielle possible : ${err.message}. Rechargez la liste avant de réessayer.`);
-      recharger();
+      setLotErreur(err.message);
     } finally { setLotEnCours(false); }
   };
   const tousCoches = articles.length > 0 && articles.every((a) => selection.includes(a.id));
@@ -375,21 +411,37 @@ export default function Articles() {
             {(donnees?.categories ?? []).map((c) => <option key={c.id} value={c.id}>{c.nom}{c.archivee_le ? ' (archivée)' : ''}</option>)}
           </select>
         )}
+        {vue !== 'categories' && (
+          <select aria-label="Filtrer par stock" value={filtreStock} onChange={(e) => { setFiltreStock(e.target.value); setSelection([]); }}>
+            {FILTRES_STOCK.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        )}
       </div>
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {vue === 'categories' && donnees && <Categories categories={donnees.categories} articles={donnees.articles} onChange={recharger} />}
+      {vue !== 'categories' && (deplacer || gerer) && articles.length > 0 && selection.length === 0 && (
+        <p className="texte-doux aide-selection">Cochez des articles (ou la case du haut pour tous ceux affichés) pour les modifier ensemble : suivi du stock, disponibilité, catégorie, archivage…</p>
+      )}
       {vue !== 'categories' && (deplacer || gerer) && selection.length > 0 && (
         <div className="barre-selection" role="region" aria-label="Articles sélectionnés">
           <strong>{selection.length} sélectionné(s)</strong>
+          {!tousCoches && <button type="button" className="lien" onClick={() => setSelection(articles.map((a) => a.id))}>Sélectionner les {articles.length} affichés</button>}
+          {gerer && (
+            <>
+              <select aria-label="Action groupée" value={actionLot} onChange={(e) => setActionLot(e.target.value)}>
+                <option value="">Modifier…</option>
+                {actionsPossibles.map((x) => <option key={x.id} value={x.id}>{x.libelle}</option>)}
+              </select>
+              <Bouton variante="principal" disabled={!actionLot} chargement={lotEnCours} onClick={appliquerLot}>Appliquer</Bouton>
+            </>
+          )}
           {deplacer && <select aria-label="Catégorie de destination" value={destination} onChange={(e) => setDestination(e.target.value)}>
             <option value="">Déplacer vers…</option>
             {ouvertes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
             <option value="__sans">Sans catégorie</option>
           </select>}
-          {deplacer && <Bouton variante="principal" disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>}
-          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(false)}>Stock facultatif</Bouton>}
-          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(true)}>Suivre le stock</Bouton>}
+          {deplacer && <Bouton disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>}
           <button type="button" className="lien" onClick={() => setSelection([])}>Tout désélectionner</button>
         </div>
       )}
@@ -427,6 +479,7 @@ export default function Articles() {
                       {a.reference && <small className="texte-doux bloc">{a.reference}</small>}
                       {a.epuise && <Badge ton="rouge">Épuisé</Badge>}
                       {a.disponible === false && <Badge ton="attention">Indisponible</Badge>}
+                      {a.poste_preparation && a.poste_preparation !== 'aucun' && moduleActif?.('restaurant_salle') && <small className="texte-doux"> · {a.poste_preparation === 'bar' ? 'Bar' : 'Cuisine'}</small>}
                     </td>
                     <td>{categories[a.categorie_id] ?? '—'}</td>
                     <td className="nombre">{montant(a.prix_vente)}</td>
