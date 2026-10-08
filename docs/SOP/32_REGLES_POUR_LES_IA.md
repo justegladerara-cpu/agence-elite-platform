@@ -1,6 +1,6 @@
 # SOP 32 · Règles pour les IA (Claude, GPT, Codex…)
 
-**Lire d'abord :** `docs/PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/DECISIONS.md`, puis la SOP de la tâche.
+**Lire d'abord :** `CLAUDE.md`, `docs/HANDOFF_CLAUDE_CODE.md`, `docs/DEPLOIEMENT.md`, `docs/PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/DECISIONS.md`, puis la SOP de la tâche.
 
 **Ne jamais :**
 - reconstruire le projet, créer un autre projet Supabase ou Cloudflare, réinitialiser la base ;

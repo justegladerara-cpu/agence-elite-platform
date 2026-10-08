@@ -1,5 +1,7 @@
 # Passation (pour la prochaine personne ou IA)
 
+> Nouvelle session Claude Code : commencer par [`HANDOFF_CLAUDE_CODE.md`](HANDOFF_CLAUDE_CODE.md) (passation complète du 2026-10-08, état exact au §45).
+
 1. Lire dans l'ordre : `docs/PROJECT_STATE.md` → `docs/DECISIONS.md` → `docs/SOP/README.md` → [SOP 32](SOP/32_REGLES_POUR_LES_IA.md).
 2. Installer : `npm ci` ; tester : `npm test` ; lancer en local sans base : `npm run dev` (mode local PGlite, données fictives).
 3. Code :
