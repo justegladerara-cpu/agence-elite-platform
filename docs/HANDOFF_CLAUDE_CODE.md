@@ -711,6 +711,23 @@ checks Cloudflare de `main` ; 4) « Déploiement de la base » en `simulation` �
 production » avec `site=https://saas.agence-elite.fr` ; 6) décider avec Juste de l'import du catalogue et des modules
 Salle/Cuisine pour The Dream (§25).
 
+## 45 bis. MISE À JOUR DU 2026-10-08 04:15 UTC (après fusion de la PR #4)
+
+Le §45 ci-dessus est **dépassé** sur ces points (vérifié le 2026-10-08 par la nouvelle session Claude Code) :
+
+| Élément | État vérifié |
+|---|---|
+| `main` | `c8b40dc` = fusion de la PR #4 (faite par Juste / ChatGPT à 03:55 UTC) ; arbre identique au résultat de fusion testé en local (465/465, builds, parcours Chromium) |
+| CI de `main` | verte (run 37725059744 : `tests` et `reconstruction-supabase`) |
+| Cloudflare sur `main` | « Cloudflare Pages » success (déploiement `b3890adc`) ; « Workers Builds » success ; workers.dev répond 200 |
+| Base | 48 migrations = 48 dans Git ; « Déploiement de la base » `simulation` sur `main` : « Remote database is up to date » (run 37725217791). Aucune migration réappliquée |
+| Pilote | vert sur `https://saas.agence-elite.fr` : 76/76 + site 7/7 (run 37726084336). Ne teste pas encore le Restaurant |
+| The Dream | « Vérifier un établissement » (run 37725544471, lecture seule) : rien n'a changé ; Salle / Cuisine toujours inactifs (solution `commerce`) ; catalogue non importé |
+| PR ouvertes | aucune (hors documentation de cette mise à jour) |
+
+Prochaines actions (décisions de Juste) : modules restaurant pour The Dream (§25), import du catalogue (dry-run puis
+accord), et ajout d'un volet Restaurant au « Pilote en production ».
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).
