@@ -39,3 +39,11 @@
 - Choix de test : PGlite et un shim Supabase. J'ai vérifié que PGlite gère les rôles, la RLS, `SET LOCAL ROLE` et les claims JWT via `set_config`, ce qui permet de tester sans Docker.
 - Tâche 001 confiée à Codex : fondations et modèle de données.
 - Contraintes rappelées : pas de CRM, pas de production Kangourou, pas d'Elite Hôtel, pas de Supabase distant, pas de module métier.
+
+## 2026-10-05 — Tâche 009 : The Dream en service (catalogue relu sur photos, catégories, serveurs)
+- Diagnostic : `importer_catalogue` absente en production car `20261003000017` n'a jamais été déployée (dernier déploiement de la base sur 1179483).
+- Migration `20261005000001_restaurant_service_categories.sql` : catégories administrables, disponibilité, affectations serveur ↔ table historisées, transferts motivés, statistiques par serveur, tableau de salle enrichi, import v2 dédoublonné.
+- Catalogue relu sur les 6 photos agrandies : 228 lignes, 218 vendables, 10 à confirmer, 20 variantes, 29 catégories ; 16 prix de spiritueux corrigés, divergences avec la transcription du propriétaire documentées (photo retenue).
+- Écrans Salle (filtres, Mes tables, affectation, service en cours), Serveurs, commande (transfert, épuisé, barre mobile), Articles (Catégories, sélection multiple, rapport d'import).
+- Commandes : `npm test` (voir rapport de la PR), `npm run build`, `npm run build:demo`, `node scripts/parcours_navigateur.cjs` et `node scripts/parcours_restaurant.cjs` avec Chromium local (verts, aucune erreur console).
+- Non fait faute d'accès : application en production, vérification de The Dream et de `patrondream`, import réel (procédure prête, voir HANDOFF).

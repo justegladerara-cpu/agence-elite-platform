@@ -2646,6 +2646,41 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .commande-resto .commande-lignes { position: static; }
 }
 
+/* Salle : filtres, serveur de la table, affectation, tuiles et barre de commande sur téléphone */
+.filtres-salle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.filtres-salle .puces { flex: 1 1 320px; }
+.filtres-salle select { width: auto; min-height: 36px; }
+.puces button { min-height: 36px; }
+.table-resto .table-serveur { display: inline-flex; align-items: center; gap: 4px; margin-top: auto; font-size: .85rem; }
+.table-resto.mienne { box-shadow: inset 0 0 0 2px var(--accent); }
+.table-resto.reservee { background: var(--bleu-doux); border-style: dashed; }
+.plan-salle.mode-affectation .table-resto { border-style: dashed; border-color: var(--accent); }
+.tuile-article:disabled { cursor: not-allowed; transform: none; }
+.tuile-article .tuile-quantite {
+  position: absolute; top: 6px; right: 6px; min-width: 26px; padding: 2px 8px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-weight: 700; text-align: center;
+}
+.titre-section { margin: 18px 0 8px; font-size: 1rem; }
+.barre-commande-mobile { display: none; }
+@media (max-width: 900px) {
+  .commande-resto .commande-catalogue { padding-bottom: 72px; }
+  .barre-commande-mobile {
+    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 10px 16px;
+    border: 0; border-radius: var(--rayon); background: var(--texte); color: #fff; font: inherit; box-shadow: var(--ombre);
+  }
+}
+@media (max-width: 640px) {
+  .plan-salle { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .table-resto { min-height: 104px; }
+  .tableau-serveurs thead { display: none; }
+  .tableau-serveurs tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+  .tableau-serveurs td { border: 0; padding: 2px 0; text-align: left; }
+  .tableau-serveurs td::before { content: attr(data-libelle) " : "; color: var(--texte-doux); }
+  .tableau-serveurs td:first-child { grid-column: 1 / -1; }
+  .tableau-serveurs td:first-child::before { content: none; }
+}
+
 /* Hôtel : planning des chambres, cartes d'entretien */
 .planning-hotel { overflow-x: auto; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
 .planning-ligne { display: grid; grid-template-columns: 140px repeat(14, minmax(44px, 1fr)); min-width: 780px; border-bottom: 1px solid var(--bordure); }
@@ -2943,3 +2978,22 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .cockpit-domaines, .cockpit-colonnes { grid-template-columns: minmax(0, 1fr); }
   .page-header .actions-rapides { width: 100%; }
 }
+
+/* Articles : sélection multiple, catégories, rapport d'import */
+.barre-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 14px;
+  border: 1px solid var(--accent); border-radius: var(--rayon); background: var(--accent-doux); }
+.barre-selection select { width: auto; min-height: 36px; }
+.cellule-case { width: 40px; }
+.cellule-case input { width: 20px; height: 20px; }
+.ligne-categorie { align-items: center; }
+.ordre-categorie .icone-bouton { font-size: 1rem; }
+.rapport-import { display: grid; gap: 8px; }
+.rapport-import ul { margin: 6px 0 0; padding-left: 20px; }
+.rapport-import details summary { cursor: pointer; font-weight: 600; }
+
+/* Corrections : la classe générique « .attention » (liste d'alertes du tableau de bord) ne doit pas déformer
+   une carte d'indicateur de ton « attention » ; la recherche de la prise de commande ne s'étire pas en hauteur. */
+.stat-card.attention { grid-template-columns: none; align-items: initial; width: auto; padding: 16px; border-radius: var(--rayon-grand); cursor: default; }
+.stat-card.attention.cliquable { cursor: pointer; }
+@media (max-width: 640px) { .stat-card.attention { padding: 12px; } }
+.commande-resto .commande-catalogue .recherche { flex: none; max-width: none; }

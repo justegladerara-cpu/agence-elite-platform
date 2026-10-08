@@ -52,3 +52,43 @@ L'environnement Codex ne possède ni session `patrondream`, ni secret GitHub/Sup
 7. Smoke tests Salle, Cuisine, Caisse, tablette/téléphone et audit ; documenter les identifiants et nombres réellement appliqués.
 
 Ne pas déclarer la production terminée avant ces étapes. Les fichiers modifiés, commandes, résultats, commit et PR sont également consignés en tête de `ai/CODEX/JOURNAL.md`.
+
+## HANDOFF CLAUDE — 2026-10-05 — The Dream en service (tâche 009)
+
+### Diagnostic
+`importer_catalogue` introuvable en production : la migration `20261003000017` est sur `main` mais **jamais déployée**
+(le dernier « Déploiement de la base » réussi date du commit 1179483 = migration 16 ; la PR #3 a été fusionnée après,
+Cloudflare a publié l'écran). Rien d'autre (grants, signature, RLS) n'était en cause : la signature
+`(p_etablissement_id uuid, p_lignes jsonb, p_simulation boolean)` correspond exactement à l'appel de l'écran.
+
+### Livré (branche `claude/inspiring-shannon-wiaa2q`)
+- Migration `20261005000001_restaurant_service_categories.sql` (incrémentale, aucune donnée réécrite sauf
+  `rest_commandes.pris_par` rempli avec `serveur_id`) : 4 permissions, catégories (description, archivage,
+  restauration, ordre, déplacement en masse), disponibilité, `rest_affectations`, `rest_transferts_serveur`,
+  `ouvrir_commande_restaurant` (serveur affecté), `ajouter_lignes_restaurant` (indisponible/épuisé refusés, variante dans
+  le libellé), `statistiques_serveurs_restaurant`, `tableau_de_bord_restaurant` enrichi, `importer_catalogue` v2,
+  `notify pgrst`.
+- Écrans : `src/modules/restaurant/Salle.jsx`, `Serveurs.jsx` (nouveau), `commun.js` ; `src/modules/articles/Articles.jsx`,
+  `Categories.jsx` (nouveau) ; ordre des catégories en caisse ; correctifs CSS (carte « attention », recherche).
+- Catalogue `donnees/imports/the-dream/catalogue.csv` + `README.md` (divergences, exclusions, à confirmer).
+- Tests : `tests/restaurant_service.test.js` (18), `tests/import_csv_catalogue.test.js` (import réel du fichier),
+  `tests/noyau.test.jsx` (écran), `tests/migrations.test.js` ; parcours Chromium `scripts/parcours_restaurant.cjs`
+  (ajouté à la CI, bloquant).
+- Workflow `verifier-etablissement.yml` + `scripts/verifier_etablissement.sql` (lecture seule).
+- SOP 59 (import d'un catalogue client), SOP 49 et 12 complétées, RESTAURANT, SECURITE, MODELE_DONNEES, DECISIONS.
+
+### À faire, dans cet ordre (humain : Juste)
+1. CI verte sur la PR.
+2. Actions › **Sauvegarde de la base**.
+3. Actions › **Déploiement de la base** › branche de la PR (ou `main` après fusion) › `simulation` : la liste doit
+   être exactement `20261003000017_import_catalogue_restaurant` et `20261005000001_restaurant_service_categories`.
+4. Même workflow › `appliquer` › `JE CONFIRME`.
+5. Fusionner la PR (Cloudflare publie l'écran) — après l'étape 4, jamais avant.
+6. Actions › **Vérifier un établissement** (`dream`, `patrondream`) : relever client, établissement, Hub(s), modules,
+   rôle et droits ; noter les volumes.
+7. Connexion `patrondream` › Articles › Importer › `catalogue.csv` : le rapport doit nommer The Dream et annoncer
+   218 créations, 10 à confirmer, 20 variantes, 29 catégories, 0 avertissement (si le catalogue est vide). Cocher, Importer.
+8. Relancer « Vérifier un établissement » : autres établissements inchangés. Smoke test SOP 14 : Salle › affecter un
+   serveur › ouvrir une table › plat + boisson › Envoyer › Écran cuisine (Cuisine, Bar) › Addition › reçu › Ventes ›
+   Salle › ⋯ › Serveurs et activité.
+9. Faire confirmer au client la liste « À confirmer » du README du catalogue.

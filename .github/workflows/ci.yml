@@ -25,6 +25,7 @@ jobs:
             sleep 1
           done
           npm run test:e2e
+          node scripts/parcours_restaurant.cjs
   reconstruction-supabase:
     runs-on: ubuntu-latest
     steps:

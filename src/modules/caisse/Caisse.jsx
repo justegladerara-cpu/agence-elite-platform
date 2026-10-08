@@ -224,7 +224,9 @@ export default function Caisse({ naviguer }) {
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
-      articles, stock, categories, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
+      articles, stock, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
+      // Ordre choisi dans Articles › Catégories, puis alphabétique.
+      categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
       sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses,
     };
   }, [etab, hubsCaisse.join()]);

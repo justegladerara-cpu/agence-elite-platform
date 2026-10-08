@@ -5,10 +5,12 @@ import { formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { VignetteArticle } from '../caisse/Caisse.jsx';
 import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
+import Categories from './Categories.jsx';
 
 const VIDE = {
   nom: '', reference: '', code_barres: '', categorie_id: '', prix_vente: '', cout_achat: '', unite: 'unité',
   suivi_stock: true, stock_minimum: '0', stock_initial: '', description: '', photo: '', actif: true,
+  disponible: true, epuise: false,
 };
 
 function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
@@ -50,7 +52,10 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
         stock_minimum: Number(valeurs.stock_minimum || 0),
         stock_initial: article ? undefined : Number(valeurs.stock_initial || 0),
       };
-      await api.rpc('enregistrer_article', { p_etablissement_id: etablissement.id, p_article: donnees });
+      const id = await api.rpc('enregistrer_article', { p_etablissement_id: etablissement.id, p_article: donnees });
+      if (Boolean(valeurs.disponible) !== (article?.disponible ?? true) || Boolean(valeurs.epuise) !== (article?.epuise ?? false)) {
+        await api.rpc('definir_disponibilite_article', { p_article_id: id ?? article.id, p_disponible: Boolean(valeurs.disponible), p_epuise: Boolean(valeurs.epuise) });
+      }
       onEnregistre(article ? 'Article modifié' : 'Article créé');
     } catch (err) {
       setErreur(err.message);
@@ -108,6 +113,17 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
             Article en vente (décocher pour l’archiver sans perdre son historique)
           </label>
         )}
+        {article?.variante && <p className="texte-doux">Variante : {article.variante} (modifiable par import du catalogue).</p>}
+        <div className="grille-champs">
+          <label className="case">
+            <input type="checkbox" checked={Boolean(valeurs.disponible)} onChange={changer('disponible')} />
+            Disponible au service
+          </label>
+          <label className="case">
+            <input type="checkbox" checked={Boolean(valeurs.epuise)} onChange={changer('epuise')} />
+            Épuisé pour le moment
+          </label>
+        </div>
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
@@ -118,21 +134,72 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
   );
 }
 
+const ACTIONS_IMPORT = { creer: 'Création', modifier: 'Mise à jour', reutiliser: 'Article existant réutilisé', attente: 'À confirmer (non importé)' };
+
+function RapportImport({ rapport }) {
+  const { montant } = useEspace();
+  const [details, setDetails] = useState(false);
+  const attente = rapport.details.filter((x) => x.action === 'attente');
+  const prix = rapport.details.filter((x) => (x.action === 'modifier' || x.action === 'reutiliser') && x.ancien_prix != null && Number(x.ancien_prix) !== Number(x.prix));
+  return (
+    <div className="rapport-import" role="status">
+      <div className="alerte info">
+        <strong>{rapport.simulation ? 'Aperçu sans écriture' : 'Import terminé'} :</strong> {rapport.crees} création(s), {rapport.modifies} mise(s) à jour,{' '}
+        {rapport.reutilises ?? 0} article(s) existant(s) réutilisé(s), {rapport.inchanges} inchangé(s), {rapport.attente} à confirmer
+        (non importés), {rapport.variantes} ligne(s) de variante. Catégories : {rapport.categories_creees} à créer, {rapport.categories_reutilisees ?? 0} réutilisée(s).
+        Aucun stock n’est créé.
+      </div>
+      {rapport.avertissements?.length > 0 && (
+        <div className="alerte attention"><strong>Avertissements :</strong>
+          <ul>{rapport.avertissements.map((a) => <li key={a.ligne}>Ligne {a.ligne} ({a.reference}) : {a.message}</li>)}</ul>
+        </div>
+      )}
+      {rapport.categories_a_creer?.length > 0 && <p className="texte-doux">Nouvelles catégories : {rapport.categories_a_creer.join(', ')}.</p>}
+      {prix.length > 0 && (
+        <details open><summary>{prix.length} changement(s) de prix</summary>
+          <ul>{prix.map((x) => <li key={x.ligne}>{x.nom} : {montant(x.ancien_prix)} → {montant(x.prix)}</li>)}</ul>
+        </details>
+      )}
+      {attente.length > 0 && (
+        <details><summary>{attente.length} ligne(s) à confirmer, non importée(s)</summary>
+          <ul>{attente.map((x) => <li key={x.ligne}>{x.nom} — {x.motif}</li>)}</ul>
+        </details>
+      )}
+      <button type="button" className="lien" onClick={() => setDetails((v) => !v)}>{details ? 'Masquer le détail' : 'Voir le détail ligne par ligne'}</button>
+      {details && (
+        <div className="tableau-conteneur apercu-import">
+          <table className="tableau">
+            <thead><tr><th>Ligne</th><th>Article</th><th>Action</th><th className="nombre">Prix</th></tr></thead>
+            <tbody>{rapport.details.map((x) => (
+              <tr key={x.ligne}><td>{x.ligne}</td><td>{x.nom}<small className="bloc texte-doux">{x.reference}</small></td>
+                <td>{ACTIONS_IMPORT[x.action] ?? x.action}{x.motif ? ` · ${x.motif}` : ''}</td><td className="nombre">{x.prix != null ? montant(x.prix) : '—'}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ImportArticles({ onFermer, onImporte }) {
-  const { api, etablissement, peut } = useEspace();
+  const { api, etablissement, peut, hubs } = useEspace();
   const [lignes, setLignes] = useState(null);
   const [nomFichier, setNomFichier] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const [simulation, setSimulation] = useState(null);
+  const [confirme, setConfirme] = useState(false);
   const modele = `data:text/csv;charset=utf-8,${encodeURIComponent(MODELE_CSV)}`;
   const avecStock = lignes?.some((l) => l.stock_initial > 0);
+  const cible = simulation?.etablissement;
   return (
-    <Modale titre="Importer des articles" onFermer={onFermer}>
+    <Modale titre="Importer des articles" onFermer={onFermer} large>
       <div className="formulaire">
         <p className="texte-doux">
           Préparez un tableau (Excel, Google Sheets) avec au moins les colonnes <strong>nom</strong> et <strong>prix_vente</strong>,
-          puis enregistrez-le au format CSV. Un article dont la référence existe déjà est mis à jour.
+          puis enregistrez-le au format CSV. Un article dont la référence existe déjà est mis à jour ; un article saisi à la main
+          avec la même désignation, la même variante et la même catégorie est réutilisé au lieu d’être dupliqué.
+          Une ligne sans prix ou marquée inactive n’est jamais créée.
         </p>
         <a className="lien" href={modele} download="modele-articles.csv">Télécharger le modèle</a>
         <label className="bouton secondaire">
@@ -144,6 +211,7 @@ function ImportArticles({ onFermer, onImporte }) {
               const fichier = e.target.files?.[0];
               if (!fichier) return;
               setErreur('');
+              setConfirme(false);
               setNomFichier(fichier.name);
               try {
                 const prochaines = lireCsvArticles(await fichier.text());
@@ -157,7 +225,9 @@ function ImportArticles({ onFermer, onImporte }) {
               } catch (err) {
                 setLignes(null);
                 setSimulation(null);
-                setErreur(err.message);
+                setErreur(/schema cache|Could not find the function/i.test(err.message)
+                  ? 'L’import n’est pas encore activé sur ce serveur (mise à jour de la base en attente). Rien n’a été importé.'
+                  : err.message);
                 setChargement(false);
               }
             }}
@@ -166,34 +236,29 @@ function ImportArticles({ onFermer, onImporte }) {
         </label>
         {lignes && (
           <p>
-            <strong>{lignes.length}</strong> article(s) lus dans {nomFichier}.
-            {avecStock && !peut('stock.ajuster') && ' Vous n’avez pas le droit de saisir du stock : retirez la colonne stock_initial.'}
+            <strong>{lignes.length}</strong> ligne(s) lue(s) dans {nomFichier}.
+            {avecStock && ' La colonne stock_initial est ignorée : saisissez le stock réel dans Stock.'}
           </p>
         )}
-        {simulation && (
-          <div className="alerte info" role="status">
-            <strong>Aperçu sans écriture :</strong> {simulation.crees} création(s), {simulation.modifies} modification(s),{' '}
-            {simulation.inchanges} inchangée(s), {simulation.attente} en attente. Aucun stock initial ne sera créé.
+        {cible && (
+          <div className="alerte attention">
+            Établissement de destination : <strong>{cible.nom}</strong> (client {cible.client}).
+            {hubs.length > 1 ? ` Le catalogue est commun à ses ${hubs.length} Hubs.` : ''}
           </div>
         )}
-        {lignes && (
-          <div className="tableau-conteneur apercu-import">
-            <table className="tableau">
-              <thead><tr><th>Nom</th><th className="nombre">Prix</th><th>Catégorie</th><th>Réf.</th><th className="nombre">Stock</th></tr></thead>
-              <tbody>
-                {lignes.slice(0, 8).map((l, i) => (
-                  <tr key={i}><td>{l.nom}</td><td className="nombre">{l.prix_vente}</td><td>{l.categorie}</td><td>{l.reference}</td><td className="nombre">{l.stock_initial}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {simulation && <RapportImport rapport={simulation} />}
+        {simulation && (
+          <label className="case">
+            <input type="checkbox" checked={confirme} onChange={(e) => setConfirme(e.target.checked)} />
+            J’ai vérifié l’établissement « {cible?.nom ?? etablissement.nom} » et le rapport ci-dessus.
+          </label>
         )}
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
           <Bouton
             variante="principal"
-            disabled={!lignes?.length || !simulation}
+            disabled={!lignes?.length || !simulation || !confirme || !peut('articles.gerer')}
             chargement={chargement}
             onClick={async () => {
               setChargement(true);
@@ -202,7 +267,7 @@ function ImportArticles({ onFermer, onImporte }) {
                 const resultat = await api.rpc('importer_catalogue', {
                   p_etablissement_id: etablissement.id, p_lignes: lignes, p_simulation: false,
                 });
-                onImporte(`${resultat.crees} article(s) créé(s), ${resultat.modifies} modifié(s), ${resultat.attente} en attente`);
+                onImporte(`${resultat.crees} article(s) créé(s), ${resultat.modifies} mis à jour, ${resultat.reutilises ?? 0} réutilisé(s), ${resultat.attente} à confirmer`);
               } catch (err) {
                 setErreur(`${err.message}. Rien n’a été importé : corrigez le fichier puis réessayez.`);
                 setChargement(false);
@@ -222,26 +287,50 @@ export default function Articles() {
   const etab = etablissement.id;
   const [recherche, setRecherche] = useState('');
   const [vue, setVue] = useState('actifs');
+  const [filtreCategorie, setFiltreCategorie] = useState('');
+  const [selection, setSelection] = useState([]);
+  const [destination, setDestination] = useState('');
+  const [erreurAction, setErreurAction] = useState('');
   // ?nouveau=1 : ouvre directement le formulaire de création.
   const [edition, setEdition] = useState(() => (peut('articles.gerer') && lireParametres().get('nouveau') === '1' ? {} : null));
   const [importer, setImporter] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [articles, categories, stock] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab }, ordre: ['nom'] }),
-      api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
+      api.lire('categories_articles', { eq: { etablissement_id: etab }, ordre: ['nom'] }),
       peut('stock.lire') ? api.lire('stock_articles', { eq: { etablissement_id: etab } }) : [],
     ]);
-    return { articles, categories, stock: Object.fromEntries(stock.map((s) => [s.article_id, s.quantite])) };
+    const triees = [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr'));
+    return { articles, categories: triees, stock: Object.fromEntries(stock.map((s) => [s.article_id, s.quantite])) };
   }, [etab]);
 
   const texte = recherche.trim().toLowerCase();
   const categories = Object.fromEntries((donnees?.categories ?? []).map((c) => [c.id, c.nom]));
+  const ouvertes = (donnees?.categories ?? []).filter((c) => !c.archivee_le);
   const articles = (donnees?.articles ?? []).filter((a) => (vue === 'actifs' ? a.actif : !a.actif)
-    && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte)));
+    && (!filtreCategorie || (filtreCategorie === '__sans' ? !a.categorie_id : a.categorie_id === filtreCategorie))
+    && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.variante ?? '').toLowerCase().includes(texte)));
+  const deplacer = peut('articles.categories');
+  const tousCoches = articles.length > 0 && articles.every((a) => selection.includes(a.id));
+  const cocher = (id, oui) => setSelection((liste) => (oui ? [...new Set([...liste, id])] : liste.filter((x) => x !== id)));
+  const changerCategorie = async () => {
+    setErreurAction('');
+    try {
+      const n = await api.rpc('deplacer_articles_categorie', {
+        p_etablissement_id: etab, p_article_ids: selection, p_categorie_id: destination === '__sans' ? null : destination,
+      });
+      notifier(`${n} article(s) déplacé(s) vers ${destination === '__sans' ? 'sans catégorie' : `« ${categories[destination]} »`}`);
+      setSelection([]);
+      setDestination('');
+      recharger();
+    } catch (err) {
+      setErreurAction(err.message);
+    }
+  };
 
   return (
     <div className="page">
-      <EnTete titre="Articles" sousTitre={`${donnees?.articles.filter((a) => a.actif).length ?? 0} article(s) en vente`}>
+      <EnTete titre="Articles" sousTitre={`${donnees?.articles.filter((a) => a.actif).length ?? 0} article(s) en vente · ${ouvertes.length} catégorie(s)`}>
         {peut('articles.gerer') && <Bouton onClick={() => setImporter(true)}>Importer</Bouton>}
         {peut('articles.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouvel article</Bouton>}
       </EnTete>
@@ -256,27 +345,67 @@ export default function Articles() {
         />
       )}
       <div className="filtres">
-        <Onglets onglets={[['actifs', 'En vente'], ['archives', 'Archivés']]} actif={vue} onChange={setVue} />
-        <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom ou référence" />
+        <Onglets onglets={[['actifs', 'En vente'], ['archives', 'Archivés'], ['categories', 'Catégories']]} actif={vue}
+          onChange={(v) => { setVue(v); setSelection([]); }} />
+        {vue !== 'categories' && <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, variante ou référence" />}
+        {vue !== 'categories' && (
+          <select aria-label="Filtrer par catégorie" value={filtreCategorie} onChange={(e) => { setFiltreCategorie(e.target.value); setSelection([]); }}>
+            <option value="">Toutes les catégories</option>
+            <option value="__sans">Sans catégorie</option>
+            {(donnees?.categories ?? []).map((c) => <option key={c.id} value={c.id}>{c.nom}{c.archivee_le ? ' (archivée)' : ''}</option>)}
+          </select>
+        )}
       </div>
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
-      {donnees && !articles.length && (
-        <Vide titre="Aucun article" texte={vue === 'actifs' ? 'Créez votre premier article pour commencer à vendre.' : 'Aucun article archivé.'} />
+      {vue === 'categories' && donnees && <Categories categories={donnees.categories} articles={donnees.articles} onChange={recharger} />}
+      {vue !== 'categories' && deplacer && selection.length > 0 && (
+        <div className="barre-selection" role="region" aria-label="Articles sélectionnés">
+          <strong>{selection.length} sélectionné(s)</strong>
+          <select aria-label="Catégorie de destination" value={destination} onChange={(e) => setDestination(e.target.value)}>
+            <option value="">Déplacer vers…</option>
+            {ouvertes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+            <option value="__sans">Sans catégorie</option>
+          </select>
+          <Bouton variante="principal" disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>
+          <button type="button" className="lien" onClick={() => setSelection([])}>Tout désélectionner</button>
+        </div>
       )}
-      {articles.length > 0 && (
+      <Erreur message={erreurAction} />
+      {vue !== 'categories' && donnees && !articles.length && (
+        <Vide titre="Aucun article" texte={texte || filtreCategorie ? 'Aucun article ne correspond à ces filtres.' : vue === 'actifs' ? 'Créez votre premier article pour commencer à vendre.' : 'Aucun article archivé.'} />
+      )}
+      {vue !== 'categories' && articles.length > 0 && (
         <div className="tableau-conteneur">
           <table className={`tableau ${peut('articles.gerer') ? 'cliquable' : ''}`}>
             <thead>
-              <tr><th /><th>Article</th><th>Catégorie</th><th className="nombre">Prix</th><th className="nombre">Coût</th><th className="nombre">Stock</th></tr>
+              <tr>
+                {deplacer && (
+                  <th className="cellule-case">
+                    <input type="checkbox" aria-label="Tout sélectionner" checked={tousCoches}
+                      onChange={(e) => setSelection(e.target.checked ? articles.map((a) => a.id) : [])} />
+                  </th>
+                )}
+                <th /><th>Article</th><th>Catégorie</th><th className="nombre">Prix</th><th className="nombre">Coût</th><th className="nombre">Stock</th>
+              </tr>
             </thead>
             <tbody>
               {articles.map((a) => {
                 const quantite = donnees.stock[a.id];
                 return (
                   <tr key={a.id} onClick={() => peut('articles.gerer') && setEdition({ article: a })}>
+                    {deplacer && (
+                      <td className="cellule-case" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" aria-label={`Sélectionner ${a.nom}`} checked={selection.includes(a.id)} onChange={(e) => cocher(a.id, e.target.checked)} />
+                      </td>
+                    )}
                     <td className="cellule-vignette"><VignetteArticle article={a} taille="petite" /></td>
-                    <td><strong>{a.nom}</strong>{a.reference && <small className="texte-doux bloc">{a.reference}</small>}</td>
+                    <td>
+                      <strong>{a.nom}</strong>{a.variante && <span className="texte-doux"> — {a.variante}</span>}
+                      {a.reference && <small className="texte-doux bloc">{a.reference}</small>}
+                      {a.epuise && <Badge ton="rouge">Épuisé</Badge>}
+                      {a.disponible === false && <Badge ton="attention">Indisponible</Badge>}
+                    </td>
                     <td>{categories[a.categorie_id] ?? '—'}</td>
                     <td className="nombre">{montant(a.prix_vente)}</td>
                     <td className="nombre">{a.cout_achat != null ? montant(a.cout_achat) : '—'}</td>
@@ -296,7 +425,7 @@ export default function Articles() {
       {edition && donnees && (
         <FormulaireArticle
           article={edition.article}
-          categories={donnees.categories}
+          categories={ouvertes}
           onFermer={() => setEdition(null)}
           onEnregistre={(message) => {
             setEdition(null);

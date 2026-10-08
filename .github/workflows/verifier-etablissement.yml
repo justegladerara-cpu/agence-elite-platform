@@ -1,0 +1,34 @@
+# Vérifie en LECTURE SEULE un établissement réel de la base de production (avant un import ou une mise en service).
+# Lancement manuel : Actions > « Vérifier un établissement » > Run workflow.
+# Aucune écriture : la transaction est ouverte en « read only » puis annulée. Aucun e-mail ni secret n'est affiché.
+name: Vérifier un établissement
+on:
+  workflow_dispatch:
+    inputs:
+      recherche:
+        description: "Texte contenu dans le nom de l'établissement ou du client (ex. dream)"
+        required: true
+        default: dream
+      identifiant:
+        description: "Identifiant de connexion dont on vérifie les droits (ex. patrondream)"
+        required: true
+        default: patrondream
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Joindre la base
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/url_base.sh
+      - name: Lecture seule
+        env:
+          RECHERCHE: ${{ inputs.recherche }}
+          IDENTIFIANT: ${{ inputs.identifiant }}
+        run: |
+          psql "$BASE_URL" -X -v recherche="$RECHERCHE" -v identifiant="$IDENTIFIANT" -f scripts/verifier_etablissement.sql

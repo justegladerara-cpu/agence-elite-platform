@@ -206,6 +206,25 @@ describe('application sur la base locale', () => {
     expect(screen.getAllByText('Commencer').length).toBeGreaterThan(0);
   });
 
+  test('Restaurant : serveur sur chaque table, filtres, affectation et catégories d’articles', async () => {
+    window.location.hash = '#/salle';
+    const vue = render(<App demarrer={demarrer('resto@demo.agence-elite.fr')} />);
+    expect(await screen.findByRole('button', { name: /Table T1, occupée.*serveur/ }, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mes tables' }));
+    expect(await screen.findByText('Aucune table ne vous est affectée pour le moment.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Toutes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Affecter les serveurs' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Table T2,/ }));
+    expect(await screen.findByText('Historique de la table')).toBeTruthy();
+    expect(screen.getAllByRole('option', { name: /Rodrigue/ }).length).toBeGreaterThan(0);
+    vue.unmount();
+    window.location.hash = '#/articles';
+    render(<App demarrer={demarrer('resto@demo.agence-elite.fr')} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Catégories' }, { timeout: 10000 }));
+    expect(await screen.findByRole('button', { name: 'Nouvelle catégorie' })).toBeTruthy();
+    expect(screen.getAllByText(/article\(s\)/).length).toBeGreaterThan(0);
+  });
+
   test('Hôtel : réception, planning, fiche de séjour, entretien', async () => {
     window.location.hash = '#/hotel';
     const vue = render(<App demarrer={demarrer('reception@demo.agence-elite.fr')} />);

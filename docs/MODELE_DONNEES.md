@@ -114,7 +114,7 @@ Chaque module a sa documentation (colonnes, règles, fonctions) ; ici, la carte 
 | Achats ([ACHATS](ACHATS.md)) | `commandes_achat`, `lignes_commande_achat`, `receptions_achat`, `lignes_reception_achat`, `paiements_fournisseur` |
 | CRM ([CRM](CRM.md)) | `crm_etapes`, `crm_opportunites`, `crm_activites` |
 | Projets ([PROJETS](PROJETS.md)) | `projets`, `projet_taches`, `projet_temps` |
-| Restaurant ([RESTAURANT](RESTAURANT.md)) | `rest_tables`, `rest_commandes`, `rest_lignes` |
+| Restaurant ([RESTAURANT](RESTAURANT.md)) | `rest_tables`, `rest_commandes` (`serveur_id` responsable, `pris_par` auteur), `rest_lignes`, `rest_reservations`, `rest_affectations` (serveur ↔ table, début/fin, historique), `rest_transferts_serveur` (transferts de commande, immuables) |
 | Hôtel ([HOTEL](HOTEL.md)) | `hotel_types_chambre`, `hotel_chambres`, `hotel_reservations`, `hotel_prestations` |
 | E-commerce ([ECOMMERCE](ECOMMERCE.md)) | `boutiques`, `boutique_articles`, `boutique_coupons`, `boutique_commandes`, `boutique_lignes` |
 | Site web ([SITE_WEB](SITE_WEB.md)) | `sites`, `site_pages`, `site_messages` |
