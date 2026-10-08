@@ -52,3 +52,13 @@ La lecture SQL détaillée des articles a été refusée par les contrôles de s
 - Exemples de divergences de prix : Cointreau 30 000 → 20 000 ; Baileys 30 000 → 25 000 ; Saint James Rhum Blanc 20 000 → 40 000 ; Poulet dur braisé 8 000 → 4 500 ; Brochettes de poulet 2 000 → 3 500 FCFA.
 - Moteur `src/modules/articles/rapprocherCatalogue.js` ajouté : aucune écriture, aucun rattachement de plusieurs lignes à un même UUID, blocage des prix et variantes divergents ; tests dédiés.
 - **Ce premier rapprochement n'est pas une proposition de fusion approuvée**. L'import production attend la résolution des conflits et une validation métier des prix.
+
+## Import de production exécuté (2026-10-08)
+- Autorisation explicite du propriétaire : réaliser la mise en production et décider de prix moyens provisoires, ajustables avec le gérant.
+- Base Supabase : 114 articles avant ; **301 articles actifs après**, soit **187 nouveaux articles créés** et 114 existants conservés.
+- Les 31 lignes du menu portant le même nom normalisé et la même variante qu'un article existant ont réutilisé cet article ; **14 tarifs divergents ont été remplacés par une moyenne arrondie à 500 FCFA** ; 17 tarifs concordants conservés.
+- Les 10 lignes inactives et sans tarif confirmé n'ont pas été importées.
+- 187/187 nouveaux articles vérifiés en base : actifs, disponibles, non épuisés, sans suivi de stock et prix positif ; références DREAM présentes ; 29 catégories représentées parmi ces nouveaux articles.
+- 41 catégories actives et 301 articles actifs au total pour The Dream ; 158 articles dans les autres établissements (aucun changement d'article prévu pour eux).
+- La caisse actuelle charge les articles actifs de l'établissement et affiche les articles sans suivi de stock ; une validation visuelle en session gérant n'a pas été exécutée.
+- **À faire avec le gérant** : réviser les prix provisoires, confirmer les dix entrées incertaines et rapprocher les possibles synonymes des anciens articles. Aucun historique de vente n'a été intentionnellement modifié.
