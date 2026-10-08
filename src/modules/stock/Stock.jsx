@@ -99,12 +99,15 @@ function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) 
   const { api } = useEspace();
   const [hubId, setHubId] = useState(hubInitial ?? hubsStock[0]?.id);
   const [comptes, setComptes] = useState({});
+  const [selection, setSelection] = useState([]);
   const [motif, setMotif] = useState('');
   const [filtre, setFiltre] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const lignes = donnees.suivis.filter((a) => !filtre || a.nom.toLowerCase().includes(filtre.toLowerCase()));
-  const saisis = Object.entries(comptes).filter(([, v]) => v !== '');
+  const saisis = Object.entries(comptes).filter(([id, v]) => selection.includes(id) && v !== '' && Number.isFinite(Number(v)) && Number(v) >= 0);
+  const toutSelectionne = lignes.length > 0 && lignes.every((a) => selection.includes(a.id));
+  const selectionnerVisibles = (oui) => setSelection((precedent) => oui ? [...new Set([...precedent, ...lignes.map((a) => a.id)])] : precedent.filter((id) => !lignes.some((a) => a.id === id)));
   const valider = async () => {
     setChargement(true);
     setErreur('');
@@ -127,7 +130,7 @@ function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) 
         <>
           <span className="texte-doux">{saisis.length} article(s) compté(s)</span>
           <Bouton onClick={onFermer}>Annuler</Bouton>
-          <Bouton variante="principal" chargement={chargement} disabled={!saisis.length} onClick={valider}>Valider l’inventaire</Bouton>
+          <Bouton variante="principal" chargement={chargement} disabled={!saisis.length || selection.some((id) => comptes[id] === '' || comptes[id] == null || Number(comptes[id]) < 0)} onClick={valider}>Valider l’inventaire</Bouton>
         </>
       )}
     >
@@ -135,7 +138,7 @@ function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) 
         <div className="grille-champs">
           {hubsStock.length > 1 && (
             <Champ libelle="Hub inventorié">
-              <select value={hubId} onChange={(e) => { setHubId(e.target.value); setComptes({}); }}>
+              <select value={hubId} onChange={(e) => { setHubId(e.target.value); setComptes({}); setSelection([]); }}>
                 {hubsStock.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
               </select>
             </Champ>
@@ -143,10 +146,11 @@ function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) 
           <Champ libelle="Motif (facultatif)"><input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Ex. : inventaire de fin de mois" /></Champ>
           <Champ libelle="Filtrer"><input type="search" value={filtre} onChange={(e) => setFiltre(e.target.value)} placeholder="Article" /></Champ>
         </div>
-        <p className="texte-doux">Laissez vide un article non compté : il ne change pas. Chaque écart devient un mouvement « Inventaire » tracé.</p>
+        <p className="texte-doux">Cochez plusieurs articles, puis indiquez leur quantité réelle. Les articles non cochés ne changent pas. Chaque écart est tracé.</p>
+        <div className="actions"><Bouton onClick={() => selectionnerVisibles(true)}>Sélectionner les articles affichés</Bouton><Bouton onClick={() => { setSelection([]); setComptes({}); }}>Tout désélectionner</Bouton></div>
         <div className="tableau-conteneur">
           <table className="tableau">
-            <thead><tr><th>Article</th><th className="nombre">Théorique</th><th className="nombre">Compté</th><th className="nombre">Écart</th></tr></thead>
+            <thead><tr><th><input type="checkbox" aria-label="Tout sélectionner dans le filtre" checked={toutSelectionne} onChange={(e) => selectionnerVisibles(e.target.checked)} /></th><th>Article</th><th className="nombre">Théorique</th><th className="nombre">Compté</th><th className="nombre">Écart</th></tr></thead>
             <tbody>
               {lignes.map((a) => {
                 const theorique = quantiteHub(donnees, a.id, hubId, []);
@@ -154,6 +158,7 @@ function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) 
                 const ecart = v === '' ? null : Number(v) - theorique;
                 return (
                   <tr key={a.id}>
+                    <td><input type="checkbox" aria-label={`Sélectionner ${a.nom}`} checked={selection.includes(a.id)} onChange={(e) => setSelection((prev) => e.target.checked ? [...new Set([...prev, a.id])] : prev.filter((id) => id !== a.id))} /></td>
                     <td><strong>{a.nom}</strong>{a.reference && <small className="texte-doux bloc">{a.reference}</small>}</td>
                     <td className="nombre">{formatQuantite(theorique, a.unite)}</td>
                     <td className="nombre">
@@ -164,6 +169,7 @@ function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) 
                         step="any"
                         inputMode="decimal"
                         aria-label={`Quantité comptée de ${a.nom}`}
+                        disabled={!selection.includes(a.id)}
                         value={v}
                         onChange={(e) => setComptes((c) => ({ ...c, [a.id]: e.target.value }))}
                       />
