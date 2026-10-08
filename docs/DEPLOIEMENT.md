@@ -102,3 +102,22 @@ Juste, restauration sur projet neuf).
 | `supabase db push` : « Remote migration versions not found in local migrations directory » | `list_migrations` / simulation | la base a une migration absente de la branche (base > Git) : travailler depuis la branche qui la contient |
 | « Base injoignable » dans un workflow | journal de `url_base.sh` | secret `SUPABASE_DB_URL` changé / mot de passe tourné : Juste met à jour le secret (SOP 17) |
 | Pilote rouge | journal du job | régression réelle : ne pas relancer en boucle, reproduire avec la CI locale |
+
+## E. Fonctions serveur (dossier `functions/`) : adresses web et connecteur IA
+
+Cloudflare Pages (projet `agence-elite-saas`, https://saas.agence-elite.fr) publie aussi le dossier `functions/` ;
+le Worker `agence-elite-platform` ne sert que les fichiers statiques et ignore ces fonctions.
+
+- `/api/adresses` : page super admin « Adresses web » (`#/editeur/adresses`). Crée `<nom>.agence-elite.fr` comme
+  domaine personnalisé du projet Pages. Réservé aux super admins (`est_super_admin()` vérifié avec le jeton de session).
+- `/mcp` : connecteur IA « Domaines Agence Elite » (Claude, ChatGPT) en lecture seule ; avec les secrets, l'adresse
+  devient `/mcp/<MCP_JETON>` et l'IA peut aussi créer les adresses. Code copié de `justegladerara-cpu/agence-elite-lws-mcp`
+  dans `serveur/connecteur/` (modifier la source, puis recopier).
+
+Réglages uniques (Juste, jamais dans le dépôt) :
+1. LWS › DNS de agence-elite.fr : CNAME `*` → `agence-elite-saas.pages.dev` (les lignes existantes restent prioritaires).
+2. Cloudflare › profil › API Tokens : jeton personnalisé « Compte › Cloudflare Pages › Modifier ».
+3. Projet Pages `agence-elite-saas` › Paramètres › Variables et secrets : `CF_API_TOKEN` (le jeton) et `MCP_JETON`
+   (mot de passe d'au moins 24 caractères), type Secret, puis relancer le dernier déploiement.
+4. Supabase › Authentication › URL Configuration › Redirect URLs : `https://*.agence-elite.fr/**`
+   (sinon « mot de passe oublié » ne revient pas sur les nouvelles adresses).
