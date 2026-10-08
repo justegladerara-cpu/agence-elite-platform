@@ -9,7 +9,7 @@ import Categories from './Categories.jsx';
 
 const VIDE = {
   nom: '', reference: '', code_barres: '', categorie_id: '', prix_vente: '', cout_achat: '', unite: 'unité',
-  suivi_stock: true, stock_minimum: '0', stock_initial: '', description: '', photo: '', actif: true,
+  suivi_stock: false, stock_minimum: '0', stock_initial: '', description: '', photo: '', actif: true,
   disponible: true, epuise: false,
 };
 
@@ -96,7 +96,7 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
         </div>
         <label className="case">
           <input type="checkbox" checked={valeurs.suivi_stock} onChange={changer('suivi_stock')} />
-          Suivre le stock de cet article (décocher pour un service)
+          Suivre les quantités de cet article (facultatif : la vente reste possible sans inventaire)
         </label>
         {valeurs.suivi_stock && (
           <div className="grille-champs">
@@ -311,6 +311,27 @@ export default function Articles() {
     && (!filtreCategorie || (filtreCategorie === '__sans' ? !a.categorie_id : a.categorie_id === filtreCategorie))
     && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.variante ?? '').toLowerCase().includes(texte)));
   const deplacer = peut('articles.categories');
+  const gerer = peut('articles.gerer');
+  const [actionLot, setActionLot] = useState(false);
+  const [lotEnCours, setLotEnCours] = useState(false);
+  const [lotErreur, setLotErreur] = useState('');
+  const changerSuiviLot = async (activer) => {
+    setLotEnCours(true);
+    setLotErreur('');
+    try {
+      const selectionnes = (donnees?.articles ?? []).filter((a) => selection.includes(a.id));
+      for (const article of selectionnes) {
+        if (Boolean(article.suivi_stock) === activer) continue;
+        await api.rpc('enregistrer_article', { p_etablissement_id: etab, p_article: { ...article, suivi_stock: activer } });
+      }
+      notifier(`${selectionnes.length} article(s) : suivi du stock ${activer ? 'activé' : 'désactivé'}`);
+      setSelection([]);
+      recharger();
+    } catch (err) {
+      setLotErreur(`Opération partielle possible : ${err.message}. Rechargez la liste avant de réessayer.`);
+      recharger();
+    } finally { setLotEnCours(false); }
+  };
   const tousCoches = articles.length > 0 && articles.every((a) => selection.includes(a.id));
   const cocher = (id, oui) => setSelection((liste) => (oui ? [...new Set([...liste, id])] : liste.filter((x) => x !== id)));
   const changerCategorie = async () => {
@@ -359,19 +380,21 @@ export default function Articles() {
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {vue === 'categories' && donnees && <Categories categories={donnees.categories} articles={donnees.articles} onChange={recharger} />}
-      {vue !== 'categories' && deplacer && selection.length > 0 && (
+      {vue !== 'categories' && (deplacer || gerer) && selection.length > 0 && (
         <div className="barre-selection" role="region" aria-label="Articles sélectionnés">
           <strong>{selection.length} sélectionné(s)</strong>
-          <select aria-label="Catégorie de destination" value={destination} onChange={(e) => setDestination(e.target.value)}>
+          {deplacer && <select aria-label="Catégorie de destination" value={destination} onChange={(e) => setDestination(e.target.value)}>
             <option value="">Déplacer vers…</option>
             {ouvertes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
             <option value="__sans">Sans catégorie</option>
-          </select>
-          <Bouton variante="principal" disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>
+          </select>}
+          {deplacer && <Bouton variante="principal" disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>}
+          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(false)}>Stock facultatif</Bouton>}
+          {gerer && <Bouton disabled={lotEnCours} onClick={() => changerSuiviLot(true)}>Suivre le stock</Bouton>}
           <button type="button" className="lien" onClick={() => setSelection([])}>Tout désélectionner</button>
         </div>
       )}
-      <Erreur message={erreurAction} />
+      <Erreur message={erreurAction || lotErreur} />
       {vue !== 'categories' && donnees && !articles.length && (
         <Vide titre="Aucun article" texte={texte || filtreCategorie ? 'Aucun article ne correspond à ces filtres.' : vue === 'actifs' ? 'Créez votre premier article pour commencer à vendre.' : 'Aucun article archivé.'} />
       )}
@@ -380,7 +403,7 @@ export default function Articles() {
           <table className={`tableau ${peut('articles.gerer') ? 'cliquable' : ''}`}>
             <thead>
               <tr>
-                {deplacer && (
+                {(deplacer || gerer) && (
                   <th className="cellule-case">
                     <input type="checkbox" aria-label="Tout sélectionner" checked={tousCoches}
                       onChange={(e) => setSelection(e.target.checked ? articles.map((a) => a.id) : [])} />
@@ -394,7 +417,7 @@ export default function Articles() {
                 const quantite = donnees.stock[a.id];
                 return (
                   <tr key={a.id} onClick={() => peut('articles.gerer') && setEdition({ article: a })}>
-                    {deplacer && (
+                    {(deplacer || gerer) && (
                       <td className="cellule-case" onClick={(e) => e.stopPropagation()}>
                         <input type="checkbox" aria-label={`Sélectionner ${a.nom}`} checked={selection.includes(a.id)} onChange={(e) => cocher(a.id, e.target.checked)} />
                       </td>
@@ -410,7 +433,7 @@ export default function Articles() {
                     <td className="nombre">{montant(a.prix_vente)}</td>
                     <td className="nombre">{a.cout_achat != null ? montant(a.cout_achat) : '—'}</td>
                     <td className="nombre">
-                      {!a.suivi_stock && <Badge>Service</Badge>}
+                      {!a.suivi_stock && <Badge>Sans suivi</Badge>}
                       {a.suivi_stock && quantite != null && (
                         <span className={quantite <= a.stock_minimum ? 'texte-alerte' : ''}>{formatQuantite(quantite, a.unite)}</span>
                       )}
