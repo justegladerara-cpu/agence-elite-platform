@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { creerBase } from './helpers/db.js';
+import { creerBaseCatalogue } from './helpers/catalogue.js';
 let db;
 let tables;
 let fonctions;
 beforeAll(async () => {
-  db = await creerBase();
+  db = await creerBaseCatalogue();
   tables = (await db.query(`select c.relname,c.relrowsecurity,
     exists(select 1 from pg_policy p where p.polrelid=c.oid and p.polcmd in ('r','*')) lecture,
     (select array_agg(a.attname) from pg_attribute a where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped) colonnes,

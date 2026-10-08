@@ -12,7 +12,7 @@ appliquer) **avant** de la fusionner, ou immédiatement après si elle est déj�
 4. Actions → **Déploiement de la base** → mode `simulation` : lire la liste des migrations.
 5. Si la liste est celle attendue : mode `appliquer`, confirmation `JE CONFIRME`.
 6. Comparer les totaux après : ils doivent être identiques (une migration n'efface rien).
-7. Push sur `main` du code de l'interface → Cloudflare reconstruit et publie.
+7. Fusionner la PR du code dépendant sur `main` seulement après la base vérifiée → Cloudflare reconstruit et publie. Aucun push direct sur `main`.
 8. [SOP 14](14_SMOKE_TESTS_PRODUCTION.md) : tests en ligne.
 9. En cas de problème : [SOP 16](16_RETOUR_ARRIERE.md).
 

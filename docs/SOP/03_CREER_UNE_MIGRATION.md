@@ -9,7 +9,7 @@
 4. Données existantes : rétro-remplir dans la même migration (ex. Hub principal créé pour chaque
    établissement existant), en vérifiant les totaux avant/après dans un test.
 5. Toute table : `enable row level security` + politiques ; toute fonction `security definer` :
-   `set search_path = public` et `revoke execute … from public, anon` si elle n'est pas publique.
+   `set search_path = ''` et `revoke execute … from public, anon` si elle n'est pas publique. Qualifier les objets (`public.`, `auth.`, `extensions.`) et contrôler l'appartenance/permission ; justifier explicitement les helpers internes et RPC publiques.
 6. Tests : `tests/migrations.test.js` rejoue tout depuis zéro ; ajouter un test métier.
 7. Push → la CI reconstruit un Supabase neuf. Puis production : [SOP 12](12_DEPLOYER_EN_PRODUCTION.md).
 

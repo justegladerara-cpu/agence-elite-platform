@@ -21,7 +21,7 @@ revoke insert, update, delete on public.exemple from anon, authenticated;
 
 -- 3. Écriture par RPC
 create or replace function public.enregistrer_exemple(p_etablissement_id uuid, p_libelle text)
-returns jsonb language plpgsql security definer set search_path = public as $$
+returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_id uuid;
 begin
   perform public.exiger_permission(p_etablissement_id, 'exemple.gerer');
