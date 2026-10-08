@@ -210,6 +210,70 @@ async function principal() {
   const A = await deroulerEtablissement(admin, clientId, 'A', `Boutique pilote A ${lot}`, 'commerce-caisse', 'mensuel');
   const B = await deroulerEtablissement(admin, clientId, 'B', `Boutique pilote B ${lot}`, 'commerce-complet', 'annuel');
 
+  // Restaurant en modules complémentaires : B reste « commerce » et reçoit Salle + Cuisine par sa licence.
+  await etape('B · Salle et Cuisine accordées en complément (motif tracé, dépendances)', async () => {
+    await admin.rpc('accorder_module', { p_etablissement_id: B.id, p_module_id: 'restaurant_cuisine', p_accorde: true, p_motif: `Pilote ${lot} : option restaurant` });
+    const fiche = await admin.rpc('editeur_etablissement', { p_etablissement_id: B.id });
+    verifier(fiche.etablissement.solution_id === 'commerce', 'la solution a changé');
+    const actifs = fiche.modules_complementaires.modules.filter((m) => m.actif).map((m) => m.id);
+    verifier(actifs.includes('restaurant_salle') && actifs.includes('restaurant_cuisine'), `actifs : ${actifs.join(', ')}`);
+    return actifs.join(', ');
+  });
+  await refuse('B · le gérant s’accorde lui-même un module', () => B.gerant.rpc('accorder_module', { p_etablissement_id: B.id, p_module_id: 'hotel_chambres', p_accorde: true, p_motif: 'Moi' }));
+  const R = {};
+  await etape('B · un serveur et un cuisinier rejoignent', async () => {
+    const invServeur = await B.gerant.rpc('inviter_membre', { p_etablissement_id: B.id, p_email: `serveur-b-${lot}@${domaine}`, p_role_id: 'serveur' });
+    const invCuisine = await B.gerant.rpc('inviter_membre', { p_etablissement_id: B.id, p_email: `cuisine-b-${lot}@${domaine}`, p_role_id: 'cuisinier' });
+    R.serveur = await compte('serveur-b', 'Serveur fictif B');
+    R.cuisinier = await compte('cuisine-b', 'Cuisinier fictif B');
+    await R.serveur.rpc('accepter_invitation', { p_invitation_id: invServeur.id });
+    await R.cuisinier.rpc('accepter_invitation', { p_invitation_id: invCuisine.id });
+  });
+  await etape('B · table, carte cuisine / bar, serveur affecté', async () => {
+    const [hub] = await B.gerant.lire('hubs', (q) => q.eq('etablissement_id', B.id).eq('principal', true));
+    R.table = await B.gerant.rpc('enregistrer_table_restaurant', { p_etablissement_id: B.id, p: { hub_id: hub.id, nom: 'T1 pilote', places: 4 } });
+    R.plat = await B.gerant.rpc('enregistrer_article', { p_etablissement_id: B.id, p_article: { nom: 'Poulet fictif', prix_vente: 7000, suivi_stock: false } });
+    R.jus = await B.gerant.rpc('enregistrer_article', { p_etablissement_id: B.id, p_article: { nom: 'Jus fictif', prix_vente: 1500, suivi_stock: false } });
+    await B.gerant.rpc('definir_poste_preparation', { p_article_id: R.plat, p_poste: 'cuisine' });
+    await B.gerant.rpc('definir_poste_preparation', { p_article_id: R.jus, p_poste: 'bar' });
+    await B.gerant.rpc('affecter_serveur_table', { p_table_id: R.table, p_serveur_id: R.serveur.id, p_motif: 'Pilote' });
+  });
+  await etape('B · commande, envoi cuisine et bar', async () => {
+    R.commande = await R.serveur.rpc('ouvrir_commande_restaurant', { p_etablissement_id: B.id, p: { table_id: R.table, couverts: 2 } });
+    await R.serveur.rpc('ajouter_lignes_restaurant', { p_commande_id: R.commande, p_lignes: [{ article_id: R.plat, quantite: 1 }, { article_id: R.jus, quantite: 2 }] });
+    const envoyees = await R.serveur.rpc('envoyer_commande_restaurant', { p_commande_id: R.commande });
+    verifier(Number(envoyees) === 2, `${envoyees} poste(s)`);
+  });
+  await refuse('B · le serveur transfère sa commande sans droit', () => R.serveur.rpc('transferer_serveur_commande', { p_commande_id: R.commande, p_serveur_id: B.gerant.id, p_motif: 'Je pars' }));
+  await etape('B · transfert motivé par le gérant, puis retour', async () => {
+    await B.gerant.rpc('transferer_serveur_commande', { p_commande_id: R.commande, p_serveur_id: B.gerant.id, p_motif: 'Pilote : relève' });
+    await B.gerant.rpc('transferer_serveur_commande', { p_commande_id: R.commande, p_serveur_id: R.serveur.id, p_motif: 'Pilote : retour' });
+  });
+  await etape('B · cuisine / bar : prêt puis servi', async () => {
+    const lignes = await R.cuisinier.lire('rest_lignes', (q) => q.eq('commande_id', R.commande));
+    verifier(lignes.length === 2, `${lignes.length} ligne(s) vue(s) en cuisine`);
+    for (const l of lignes) {
+      await R.cuisinier.rpc('avancer_ligne_restaurant', { p_ligne_id: l.id, p_statut: 'prete' });
+      await R.serveur.rpc('avancer_ligne_restaurant', { p_ligne_id: l.id, p_statut: 'servie' });
+    }
+  });
+  await etape('B · encaissement par la caisse commune', async () => {
+    const session = await B.gerant.rpc('ouvrir_caisse', { p_etablissement_id: B.id, p_point_de_vente_id: B.caisse, p_fond_initial: 0 });
+    const r = await R.serveur.rpc('encaisser_commande_restaurant', { p_commande_id: R.commande, p_session_id: session, p_paiements: [{ mode: 'especes', montant: 10000 }] });
+    verifier(Number(r.total) === 10000 && r.commande_close, `total ${r.total}`);
+  });
+  await etape('B · statistiques du serveur', async () => {
+    const stats = await B.gerant.rpc('statistiques_serveurs_restaurant', { p_etablissement_id: B.id });
+    const s = stats.serveurs.find((x) => x.serveur_id === R.serveur.id);
+    verifier(s && Number(s.commandes_cloturees) === 1, 'statistiques absentes');
+    return `${s.commandes_cloturees} commande(s), ${s.couverts} couvert(s)`;
+  });
+  await refuse('isolation · le gérant A lit les statistiques serveur de B', () => A.gerant.rpc('statistiques_serveurs_restaurant', { p_etablissement_id: B.id }));
+  await etape('isolation · commandes restaurant de B invisibles pour A', async () => {
+    const lignes = await A.gerant.lire('rest_commandes');
+    verifier(lignes.every((l) => l.etablissement_id === A.id), 'commande de B visible');
+  });
+
   // Isolation
   for (const table of ['articles', 'ventes', 'paiements', 'mouvements_stock', 'sessions_caisse', 'contacts', 'depenses', 'clotures', 'etablissement_identite']) {
     try {

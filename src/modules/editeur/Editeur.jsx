@@ -380,7 +380,7 @@ export function OngletLicence({ detail, offres, recharger }) {
   );
 }
 
-export function OngletModules({ detail, recharger }) {
+function ModulesSolution({ detail, recharger }) {
   const { api } = useEspace();
   const { erreur, agir } = useAction(recharger);
   const supplementaires = detail.licence?.modules_supplementaires ?? [];
@@ -428,6 +428,80 @@ export function OngletModules({ detail, recharger }) {
         </table>
       </div>
     </Section>
+  );
+}
+
+// Modules d'une autre solution accordés en complément par la licence (motif obligatoire, dépendances ajoutées par la base).
+function ModulesComplementaires({ detail, recharger }) {
+  const { api } = useEspace();
+  const { erreur, agir } = useAction(recharger);
+  const [demande, setDemande] = useState(null);
+  const complements = detail.modules_complementaires ?? { modules: [], historique: [] };
+  const valider = (motif) => agir(
+    () => api.rpc('accorder_module', { p_etablissement_id: detail.etablissement.id, p_module_id: demande.module.id, p_accorde: demande.accorde, p_motif: motif }),
+    demande.accorde ? `${demande.module.nom} accordé en complément` : `${demande.module.nom} retiré`
+  );
+  return (
+    <Section titre="Modules complémentaires" sousTitre="Modules d’une autre solution, ajoutés par la licence sans changer de solution. Leurs dépendances sont ajoutées automatiquement ; les retirer les masque sans rien supprimer.">
+      <Erreur message={erreur} />
+      {!detail.licence && <p className="texte-doux">Sans licence en cours, aucun module ne peut être accordé.</p>}
+      {complements.modules.length === 0 ? <p className="texte-doux">Aucun module complémentaire disponible pour cet établissement.</p> : (
+        <div className="tableau-conteneur">
+          <table className="tableau">
+            <thead><tr><th>Module</th><th>Option</th><th>État</th><th /></tr></thead>
+            <tbody>
+              {complements.modules.map((m) => (
+                <tr key={m.id}>
+                  <td>
+                    <strong>{m.nom}</strong>
+                    <small className="texte-doux bloc">solution(s) : {m.solutions.join(', ')}</small>
+                    {m.depend_de.length > 0 && <small className="texte-doux bloc">dépend de : {m.depend_de.join(', ')}</small>}
+                  </td>
+                  <td>
+                    {m.option ? (
+                      <small>{formatMontant(m.option.prix_mensuel)} / mois · {formatMontant(m.option.prix_annuel)} / an · mise en service {formatMontant(m.option.prix_mise_en_service)}</small>
+                    ) : <small className="texte-doux">Tarif non défini</small>}
+                  </td>
+                  <td>{m.accorde ? <Badge ton={m.actif ? 'vert' : 'attention'}>{m.actif ? 'Accordé · activé' : 'Accordé · inactif'}</Badge> : <Badge>Non accordé</Badge>}</td>
+                  <td className="actions-ligne">
+                    {detail.licence && !m.accorde && <Bouton onClick={() => setDemande({ module: m, accorde: true })}>Accorder</Bouton>}
+                    {m.accorde && <button type="button" className="lien danger" onClick={() => setDemande({ module: m, accorde: false })}>Retirer</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {complements.historique.length > 0 && (
+        <>
+          <h3>Historique</h3>
+          <ul className="liste-simple">
+            {complements.historique.map((h, i) => (
+              <li key={i}><small className="texte-doux">{formatDateHeure(h.cree_le)}</small> {h.motif}{Number(h.montant) > 0 && ` · ${formatMontant(h.montant)}`}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      {demande && (
+        <ModaleMotif
+          titre={demande.accorde ? `Accorder « ${demande.module.nom} » en complément` : `Retirer « ${demande.module.nom} »`}
+          texte={demande.accorde ? 'Les modules dont il dépend sont ajoutés à la licence. Le tarif de l’option est noté dans l’historique.' : 'Le module est masqué ; ses données sont conservées et réapparaissent si vous l’accordez de nouveau.'}
+          libelleAction={demande.accorde ? 'Accorder' : 'Retirer'}
+          onValider={valider}
+          onFermer={() => setDemande(null)}
+        />
+      )}
+    </Section>
+  );
+}
+
+export function OngletModules({ detail, recharger }) {
+  return (
+    <>
+      <ModulesSolution detail={detail} recharger={recharger} />
+      <ModulesComplementaires detail={detail} recharger={recharger} />
+    </>
   );
 }
 
