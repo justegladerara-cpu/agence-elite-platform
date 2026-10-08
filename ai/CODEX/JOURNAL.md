@@ -1,5 +1,12 @@
 # Journal de Codex (développeur)
 
+## 2026-10-08 — Tâche 013 : audit complet, état initial
+- Mandat de Juste reçu ; main actualisé à `6cf7517`, branche Codex dédiée, aucune branche tierce modifiée.
+- Audit consigné avant corrections dans `docs/AUDIT_2026-10.md` ; nouvelle tâche 013.
+- `npm ci` réussi après EPERM sandbox ; trois suites : 478/478 chacune ; builds standard/démo réussis avec avertissements.
+- Catalogue SQL local reconstruit : 108 tables avec RLS, 397 fonctions, SD avec search_path vide, deux vues security_invoker ; 190 FK sans index couvrant à traiter. Analyse AST de 376 appels API statiques : aucun nom/paramètre absent détecté.
+- Blocages : API GitHub REST/GraphQL Forbidden, aucun connecteur Supabase exposé. PR/CI/advisors/production non vérifiés ; aucune écriture production.
+
 ## 2026-10-03 — Tâche 008 : onboarding The Dream (préparation sécurisée)
 - Gouvernance : tâche 008 créée ; `AGENTS.md`, registre des tâches, décisions et état projet alignés sur le dépassement du Lot 1 sans supprimer l'historique.
 - Import générique : migration `20261003000017_import_catalogue_restaurant.sql`, dry-run obligatoire, références idempotentes, variantes/ordre/disponibilité, permission `articles.gerer`, audit existant et aucun stock initial.
