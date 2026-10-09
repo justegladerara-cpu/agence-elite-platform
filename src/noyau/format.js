@@ -58,6 +58,7 @@ export const ROLES = {
   cuisinier: 'Cuisinier',
   agent_entretien: 'Agent d’entretien',
   livreur: 'Livreur',
+  secretariat: 'Secrétariat',
   lecteur: 'Lecteur',
 };
 

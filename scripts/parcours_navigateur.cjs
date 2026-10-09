@@ -249,6 +249,14 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('dialog').getByRole('button', { name: 'Créer la livraison' }).click();
       await p.getByText(/Livraison LV-00003 créée/).first().waitFor();
     });
+    await etape('scolaire', async () => {
+      await p.goto(U + '#/scolaire?paiement=impaye');
+      await p.getByText('Démo Élève Un').first().click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Encaisser' }).click();
+      await p.getByText(/Reçu RS-00002/).first().waitFor();
+      await p.getByRole('tab', { name: 'Classes' }).click();
+      await p.getByText('CE1 (démo)').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
