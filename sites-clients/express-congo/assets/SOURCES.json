@@ -1,0 +1,92 @@
+[
+  {
+    "name": "logo-expresscongo.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/logo-expresscongo.png",
+    "sha256": "e684f7360e6c46c32a33643789cb20b0fbd4ef50bd066a078694769d20f8f150",
+    "bytes": 6809,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:14.706Z"
+  },
+  {
+    "name": "ae_1_banniere.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/ae_1_banniere.png",
+    "sha256": "5f3ad895c106b84075284c513584bb7c07179c1d03132030cf36c76b5ef5547f",
+    "bytes": 167762,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:15.259Z"
+  },
+  {
+    "name": "m_1_banniere.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/m_1_banniere.png",
+    "sha256": "e6ab31912c68a874a26970b4184715fef412d34ffc48002dbacba5f267f6c296",
+    "bytes": 88931,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:15.446Z"
+  },
+  {
+    "name": "cc_1_banniere.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/cc_1_banniere.png",
+    "sha256": "1361ec091167fc86552e73b429b2aac7fd97ec752cd025900ec288304e9a8507",
+    "bytes": 175145,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:15.688Z"
+  },
+  {
+    "name": "red-plane.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/red-plane.png",
+    "sha256": "d01b091cb6b430abed1666294863f387b4787843d4e9a85912ef89970699349a",
+    "bytes": 10144,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:15.850Z"
+  },
+  {
+    "name": "red-boat.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/red-boat.png",
+    "sha256": "db9e7c564c4bda5903a712875cdefad43c9810bebb01fe91d8ed511c98f0f26e",
+    "bytes": 17599,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:16.000Z"
+  },
+  {
+    "name": "red-container.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/red-container.png",
+    "sha256": "30ecd0774b90f26083c1c8aedafd1f32d7c1ba80f3f1ba79f3334d05a618431a",
+    "bytes": 6939,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:16.152Z"
+  },
+  {
+    "name": "comment-mesurer.jpg",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/08/comment-mesurer.jpg",
+    "sha256": "460c49bee9d129eadf038df61f4e524c73567a87f757eecc1b1686aefbd7dbb8",
+    "bytes": 230377,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:16.400Z"
+  },
+  {
+    "name": "favicon.png",
+    "url": "https://expresscongo.fr/wp-content/uploads/2025/10/cropped-logo-expresscongo-32x32.png",
+    "sha256": "b38e4448f5ac6d669d41a7dcba075539c69796b4dcb07281cecc0a3b56b7bed2",
+    "bytes": 750,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:16.541Z"
+  },
+  {
+    "name": "grille-tarifaire-source.pdf",
+    "url": "https://expresscongo.fr/wp-content/uploads/2026/09/grille-tarifaire.pdf",
+    "sha256": "c403eba4f015f45f99dc4567d3cb780ed63de7ee9c72141b729b92c5e3c4c9f7",
+    "bytes": 418665,
+    "status": "OBSERVÉ",
+    "rights": "À_CONFIRMER",
+    "retrievedAt": "2026-10-08T07:23:16.895Z"
+  }
+]

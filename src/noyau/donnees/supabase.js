@@ -58,6 +58,10 @@ export async function demarrerSupabase(env = import.meta.env) {
       finsDeSession.add(f);
       return () => finsDeSession.delete(f);
     },
+    // Jeton de session de la personne connectée, pour les sites clients rattachés (voir noyau/sites.js).
+    async jeton() {
+      return (await supabase.auth.getSession()).data.session?.access_token ?? null;
+    },
     // Fonctions serveur de la plateforme (Cloudflare Pages, dossier functions/) appelées avec le jeton de session.
     async serveur(chemin, { methode = 'GET', corps } = {}) {
       const jeton = (await supabase.auth.getSession()).data.session?.access_token;
