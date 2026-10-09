@@ -1,8 +1,11 @@
 // Socle « Établissement » : Hubs, mise en service, applications, paramètres.
-import Hubs from '../hubs/Hubs.jsx';
-import Applications from './Applications.jsx';
-import MiseEnService from './MiseEnService.jsx';
-import Parametres from './Parametres.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Hubs = lazy(() => import('../hubs/Hubs.jsx'));
+const Applications = lazy(() => import('./Applications.jsx'));
+const MiseEnService = lazy(() => import('./MiseEnService.jsx'));
+const Parametres = lazy(() => import('./Parametres.jsx'));
 
 export default {
   module: 'etablissement',

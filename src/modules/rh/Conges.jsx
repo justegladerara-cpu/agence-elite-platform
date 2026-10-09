@@ -283,7 +283,7 @@ export default function Conges({ naviguer }) {
       )}
       {donnees && onglet === 'calendrier' && <Calendrier absences={donnees.absences} employes={donnees.employes} feries={donnees.feries} />}
       {donnees && onglet === 'toutes' && (
-        <DataTable
+        <DataTable exportable={false}
           colonnes={[
             { id: 'employe', libelle: 'Employé', tri: nom, rendu: (a) => <button type="button" className="lien" onClick={(e) => { e.stopPropagation(); naviguer(`employes/${a.employe_id}`); }}>{nom(a)}</button> },
             { id: 'type', libelle: 'Type', tri: (a) => a.type, rendu: (a) => TYPES_ABSENCE[a.type] },
@@ -320,7 +320,7 @@ export default function Conges({ naviguer }) {
             </select>
           )}
         >
-          <DataTable
+          <DataTable exportable={false}
             colonnes={[
               { id: 'nom', libelle: 'Employé', tri: (s) => s.nom, rendu: (s) => <strong>{s.nom}</strong> },
               { id: 'droit', libelle: 'Acquis', tri: (s) => Number(s.droit), rendu: (s) => s.droit, classe: 'nombre' },

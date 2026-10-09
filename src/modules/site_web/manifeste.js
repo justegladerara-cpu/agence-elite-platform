@@ -1,4 +1,7 @@
-import SiteWeb from './SiteWeb.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const SiteWeb = lazy(() => import('./SiteWeb.jsx'));
 
 export default {
   module: 'site_web',

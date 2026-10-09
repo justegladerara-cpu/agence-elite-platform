@@ -1,4 +1,7 @@
-import Fidelite from './Fidelite.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Fidelite = lazy(() => import('./Fidelite.jsx'));
 
 export default {
   module: 'fidelite',

@@ -145,7 +145,7 @@ function Journal({ organisation }) {
       {chargement && !donnees && <Squelette />}
       <Erreur message={erreur} />
       {donnees && (
-        <DataTable
+        <DataTable exportable={false}
           colonnes={[
             { id: 'jour', libelle: 'Jour', tri: (p) => p.jour, rendu: (p) => formatDate(p.jour) },
             { id: 'employe', libelle: 'Employé', tri: nom, rendu: nom },

@@ -446,10 +446,45 @@ export function MenuActions({ actions, libelle = 'Plus d’actions' }) {
 
 // Tableau de données : recherche, filtres, tri, pagination, ligne cliquable.
 // colonnes : [{ id, libelle, rendu: (l) => node, tri: (l) => valeur, classe }]
+// Texte d'une cellule pour l'export : valeur de tri numérique (montants, quantités) sinon texte affiché.
+function texteNoeud(noeud) {
+  if (noeud == null || typeof noeud === 'boolean') return '';
+  if (typeof noeud === 'string' || typeof noeud === 'number') return String(noeud);
+  if (Array.isArray(noeud)) return noeud.map(texteNoeud).filter(Boolean).join(' ');
+  if (React.isValidElement(noeud)) return texteNoeud(noeud.props?.children ?? noeud.props?.libelle ?? noeud.props?.statut);
+  return '';
+}
+
+export function valeurExport(colonne, ligne) {
+  if (colonne.exporter) return colonne.exporter(ligne);
+  const tri = colonne.tri?.(ligne);
+  if (typeof tri === 'number') return tri;
+  const texte = colonne.rendu ? texteNoeud(colonne.rendu(ligne)) : texteNoeud(ligne[colonne.id]);
+  return (texte || (tri ?? '')).toString().replace(/\u202f|\u00a0/g, ' ').trim();
+}
+
+export function csvDepuisTable(colonnes, lignes) {
+  const cellule = (v) => {
+    const texte = v == null ? '' : String(v);
+    return /[";\n]/.test(texte) ? `"${texte.replace(/"/g, '""')}"` : texte;
+  };
+  const exportables = colonnes.filter((c) => c.libelle && c.exporter !== false);
+  return [exportables.map((c) => cellule(c.libelle)).join(';'),
+    ...lignes.map((l) => exportables.map((c) => cellule(valeurExport(c, l))).join(';'))].join('\n');
+}
+
+function nomFichier(titre) {
+  const base = String(titre || document.title.split('·')[0] || 'liste').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'liste';
+  return `${base}-${new Date().toISOString().slice(0, 10)}.csv`;
+}
+
 export function DataTable({
   colonnes, lignes, cle = 'id', rechercher, placeholder = 'Rechercher…', filtres = [], triInitial, parPage = 20,
-  onLigne, vide, actions, chargement,
+  onLigne, vide, actions, chargement, titreExport, exportable = true,
 }) {
+  const zone = useRef(null);
+  const [impression, setImpression] = useState(false);
   // Filtres et recherche initiaux lus dans l'adresse (#/page?statut=…&q=…) : un indicateur du
   // tableau de bord ouvre l'écran déjà filtré.
   const [texte, setTexte] = useState(() => (rechercher ? lireParametres().get('q') ?? '' : ''));
@@ -483,13 +518,45 @@ export function DataTable({
   const pages = Math.max(1, Math.ceil(resultat.length / parPage));
   const filtresActifs = Boolean(texte.trim()) || Object.values(valeursFiltres).some(Boolean);
   const pageCourante = Math.min(page, pages - 1);
-  const visibles = resultat.slice(pageCourante * parPage, (pageCourante + 1) * parPage);
+  const visibles = impression ? resultat : resultat.slice(pageCourante * parPage, (pageCourante + 1) * parPage);
+  const exporter = () => {
+    const contenu = `\ufeff${csvDepuisTable(colonnes, resultat)}`;
+    const url = URL.createObjectURL(new Blob([contenu], { type: 'text/csv;charset=utf-8' }));
+    const lien = document.createElement('a');
+    lien.href = url;
+    lien.download = nomFichier(titreExport);
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  // Impression : toutes les lignes filtrées (pas seulement la page affichée), sans menu ni barres.
+  useEffect(() => {
+    if (!impression) return undefined;
+    const fin = () => {
+      document.body.classList.remove('impression-liste');
+      setImpression(false);
+    };
+    document.body.classList.add('impression-liste');
+    window.addEventListener('afterprint', fin);
+    const minuterie = setTimeout(() => {
+      window.print();
+      // Navigateurs sans « afterprint » : on revient à l'affichage normal après l'appel.
+      if (!('onafterprint' in window)) fin();
+    }, 50);
+    return () => {
+      clearTimeout(minuterie);
+      window.removeEventListener('afterprint', fin);
+      document.body.classList.remove('impression-liste');
+    };
+  }, [impression]);
   const trier = (c) => {
     if (!c.tri) return;
     setTri((t) => (t?.id === c.id ? { id: c.id, sens: t.sens === 'asc' ? 'desc' : 'asc' } : { id: c.id, sens: 'asc' }));
   };
   return (
-    <div className="data-table">
+    <div className={`data-table ${impression ? 'a-imprimer' : ''}`} ref={zone}>
+      {impression && <h2 className="titre-impression">{titreExport || document.title}</h2>}
       {(rechercher || filtres.length > 0 || actions) && (
         <div className="data-table-outils">
           {rechercher && <Recherche valeur={texte} onChange={(v) => { setTexte(v); setPage(0); }} placeholder={placeholder} />}
@@ -502,6 +569,12 @@ export function DataTable({
           ))}
           <span className="data-table-compte">{resultat.length} résultat{resultat.length > 1 ? 's' : ''}</span>
           {filtresActifs && <Bouton icone="fermer" onClick={() => { setTexte(''); setValeursFiltres({}); setPage(0); }}>Effacer les filtres</Bouton>}
+          {resultat.length > 0 && (
+            <span className="data-table-export">
+              {exportable && <button type="button" className="icone-bouton" onClick={exporter} aria-label="Exporter la liste (CSV pour Excel)" title="Exporter la liste (CSV pour Excel)"><Icone nom="telecharger" /></button>}
+              <button type="button" className="icone-bouton" onClick={() => setImpression(true)} aria-label="Imprimer la liste" title="Imprimer la liste"><Icone nom="imprimer" /></button>
+            </span>
+          )}
           {actions}
         </div>
       )}

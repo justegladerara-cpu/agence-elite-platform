@@ -1,4 +1,7 @@
-import Support from './Support.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Support = lazy(() => import('./Support.jsx'));
 
 export default {
   module: 'support_tickets',

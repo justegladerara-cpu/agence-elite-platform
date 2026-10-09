@@ -106,7 +106,7 @@ function Liste({ naviguer }) {
             onChange={setOnglet}
           />
           {onglet === 'reappro' ? <Reapprovisionnement suggestions={donnees.suggestions} naviguer={naviguer} /> : (
-            <DataTable
+            <DataTable exportable={false}
               key={onglet}
               colonnes={[
                 { id: 'numero', libelle: 'Numéro', tri: (c) => c.numero, rendu: (c) => <strong>{c.numero}</strong> },

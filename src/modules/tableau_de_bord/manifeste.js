@@ -1,4 +1,7 @@
-import TableauDeBord from './TableauDeBord.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const TableauDeBord = lazy(() => import('./TableauDeBord.jsx'));
 
 export default {
   module: 'tableau_de_bord',
