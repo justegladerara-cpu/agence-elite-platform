@@ -217,6 +217,16 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('heading', { name: 'Assistant' }).first().waitFor();
       await p.getByText('À regarder').first().waitFor();
     });
+    await etape('production', async () => {
+      await p.goto(U + '#/production');
+      await p.getByText('OF-00002').first().waitFor();
+      await p.getByText('OF-00002').first().click();
+      await p.getByRole('dialog').getByText('Composants nécessaires').waitFor();
+      await p.getByRole('dialog').getByRole('button', { name: 'Terminer la fabrication' }).click();
+      await p.getByText(/OF-00002 terminé/).first().waitFor();
+      await p.getByRole('tab', { name: 'Recettes' }).click();
+      await p.getByText('Panier garni (démo)').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

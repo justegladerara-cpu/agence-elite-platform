@@ -22,6 +22,7 @@ import membres from './etablissement/manifeste_membres.js';
 import paiements from './paiements/manifeste.js';
 import rapports from './rapports/manifeste.js';
 import fidelite from './fidelite/manifeste.js';
+import production from './production/manifeste.js';
 import projets from './projets/manifeste.js';
 import { cuisine as restaurantCuisine, salle as restaurantSalle } from './restaurant/manifeste.js';
 import rh from './rh/manifeste.js';
@@ -31,7 +32,7 @@ import support from './support/manifeste.js';
 import tableauDeBord from './tableau_de_bord/manifeste.js';
 import ventes from './ventes/manifeste.js';
 
-export const MANIFESTES = [tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, abonnements, articles, stock, achats, crm, contacts, agenda, support, fidelite, siteWeb, depenses, rh, projets, documents, etablissement, membres];
+export const MANIFESTES = [tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, abonnements, articles, stock, production, achats, crm, contacts, agenda, support, fidelite, siteWeb, depenses, rh, projets, documents, etablissement, membres];
 
 // Ordre des groupes du menu ; un groupe inconnu déclaré par un nouveau module s'ajoute à la fin.
 export const GROUPES = ['Pilotage', 'Vente', 'Catalogue et stock', 'Relations', 'Ressources humaines', 'Organisation'];

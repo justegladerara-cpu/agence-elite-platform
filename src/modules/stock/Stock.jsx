@@ -13,6 +13,9 @@ export const TYPES_MOUVEMENT = {
   transfert_sortie: ['Transfert (envoi)', 'bleu'],
   transfert_entree: ['Transfert (réception)', 'bleu'],
   transfert_annulation: ['Transfert annulé', 'orange'],
+  retour_partiel: ['Retour client', 'orange'],
+  production_sortie: ['Fabrication (composant)', 'bleu'],
+  production_entree: ['Fabrication (produit fini)', 'vert'],
 };
 
 const ACTIONS = {
