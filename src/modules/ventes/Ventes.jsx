@@ -4,6 +4,7 @@ import { dateLocale, formatDate, formatDateHeure, formatQuantite, MODES_PAIEMENT
 import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, ModaleMotif, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
+import { exporterCsv } from '../../ui/communs.jsx';
 
 const PERIODES = [['jour', 'Aujourd’hui'], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout']];
 const DEBUTS = { jour: 0, semaine: -6, mois: -29 };
@@ -323,7 +324,25 @@ export default function Ventes({ sousRoute }) {
         sousTitre={vue === 'retours'
           ? `${retours.length} retour(s) · ${montant(retours.reduce((s, r) => s + Number(r.montant), 0))}`
           : `${multiHub ? `${hub ? hub.nom : 'Tous les Hubs'} · ` : ''}${validees.length} vente(s) validée(s) · ${montant(total)}`}
-      />
+      >
+        {vue === 'ventes' && ventes.length > 0 && (
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`ventes-${dateLocale()}.csv`, [
+            { libelle: 'Numéro', valeur: (v) => v.numero },
+            { libelle: 'Date', valeur: (v) => formatDateHeure(v.cree_le) },
+            ...(multiHub ? [{ libelle: 'Hub', valeur: (v) => nomHub(v.hub_id) }] : []),
+            { libelle: 'Origine', valeur: (v) => ORIGINES[v.origine] ?? v.origine ?? '' },
+            { libelle: 'Contact', valeur: (v) => donnees.contacts[v.contact_id] ?? '' },
+            { libelle: 'Sous-total', valeur: (v) => v.sous_total },
+            { libelle: 'Remise', valeur: (v) => v.remise },
+            { libelle: 'Total', valeur: (v) => v.total },
+            { libelle: 'Payé', valeur: (v) => v.montant_paye },
+            { libelle: 'État', valeur: (v) => (v.statut === 'annulee' ? 'Annulée' : v.montant_paye >= v.total ? 'Payée' : 'À encaisser') },
+          ], ventes)}
+          >
+            Exporter
+          </Bouton>
+        )}
+      </EnTete>
       <Onglets onglets={[['ventes', 'Ventes'], ['retours', 'Retours et remboursements']]} actif={vue} onChange={setVue} />
       <div className="filtres">
         <Onglets onglets={ongletsPeriode} actif={periode} onChange={setPeriode} />

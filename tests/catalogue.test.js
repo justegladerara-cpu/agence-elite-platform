@@ -5,12 +5,12 @@ let db;
 const MODULES_ATTENDUS = {
   abonnements: 'actif', achats: 'actif', agenda: 'actif', articles: 'actif', caisse: 'actif', cloture: 'actif', contacts: 'actif', crm_pipeline: 'actif', depenses: 'actif',
   documents: 'actif', ecommerce_boutique: 'actif', fidelite: 'actif', etablissement: 'actif', facturation: 'actif', hotel_chambres: 'actif',
-  hotel_reservations: 'actif', membres: 'actif', paiements: 'actif', projets: 'actif', rapports: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
+  hotel_reservations: 'actif', immo_biens: 'actif', immo_locations: 'actif', immo_maintenance: 'actif', membres: 'actif', paiements: 'actif', projets: 'actif', rapports: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
   restaurant_salle: 'actif', rh_conges: 'actif', rh_employes: 'actif', rh_presences: 'actif', site_web: 'actif', stock: 'actif', support_tickets: 'actif',
   tableau_de_bord: 'actif', ventes: 'actif',
 };
-const SOLUTIONS_ATTENDUES = { commerce: 'active', ecommerce: 'active', hotel: 'active', restaurant: 'active', rh: 'active', services: 'active' };
-const ROLES_ATTENDUS = ['gerant', 'responsable', 'responsable_hub', 'responsable_rh', 'gestionnaire_depot', 'commercial', 'employe', 'receptionniste', 'serveur', 'cuisinier', 'agent_entretien', 'comptable', 'collaborateur', 'lecteur'];
+const SOLUTIONS_ATTENDUES = { commerce: 'active', ecommerce: 'active', hotel: 'active', immobilier: 'active', restaurant: 'active', rh: 'active', services: 'active' };
+const ROLES_ATTENDUS = ['gerant', 'responsable', 'responsable_hub', 'responsable_rh', 'gestionnaire_depot', 'commercial', 'employe', 'receptionniste', 'gestionnaire_immobilier', 'agent_immobilier', 'serveur', 'cuisinier', 'agent_entretien', 'comptable', 'collaborateur', 'lecteur'];
 beforeAll(async () => { db = await creerBase(); }); afterAll(async () => db.close());
 
 describe('catalogue de départ', () => {
@@ -41,6 +41,6 @@ describe('catalogue de départ', () => {
   });
   test('la migration est idempotente', async () => {
     await db.exec(await readFile('supabase/migrations/20261001000005_donnees_catalogue.sql', 'utf8'));
-    expect((await db.query('select count(*)::int n from solutions')).rows[0].n).toBe(6);
+    expect((await db.query('select count(*)::int n from solutions')).rows[0].n).toBe(7);
   });
 });

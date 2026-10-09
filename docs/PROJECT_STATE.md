@@ -1,4 +1,9 @@
-# État du projet (mis à jour le 2026-10-08)
+# État du projet (mis à jour le 2026-10-09)
+
+## Mission en cours : « Améliorations maximales » (2026-10-09)
+Plan et statuts dans `docs/AMELIORATIONS/`. Lot 1 « Confort transversal » ([CONFORT](CONFORT.md)) : recherche Ctrl+K,
+création rapide, thème sombre, export des listes, application installable. Statut : CODE PRÊT (migration
+`20261010000101` non appliquée).
 
 ## Mission terminée : « The Dream en service » (PR #4) — vérifiée en production le 2026-10-08
 

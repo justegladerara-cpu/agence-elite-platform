@@ -1,4 +1,7 @@
-import Projets from './Projets.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Projets = lazy(() => import('./Projets.jsx'));
 
 export default {
   module: 'projets',

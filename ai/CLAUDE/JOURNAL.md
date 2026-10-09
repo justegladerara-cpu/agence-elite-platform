@@ -1,5 +1,12 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-09 — Améliorations maximales, lot 1 « Confort transversal » (branche `claude/confort-transversal`)
+- Mission de Juste : inventaire, catalogue de propositions, 10 modules et 10 intégrations (plan `docs/AMELIORATIONS/`).
+- Lot 1 : recherche universelle Ctrl+K (écrans, créations, données via `recherche_universelle`, migration `20261010000101`, security invoker), bouton « + » de création rapide, raccourcis clavier, thème sombre / contraste / texte / gros boutons par appareil, export CSV et impression de toute liste `DataTable`, export des ventes, application installable (manifeste + icônes), écrans chargés à la demande (fichier principal 897 ko → 433 ko).
+- Numérotation `20261010000101+` : la PR #11 (Immobilier) occupe déjà `20261010000001`.
+- Vérifié : `npm test` 494/494, `npm run build`, `npm run build:demo`, `parcours_navigateur` et `parcours_restaurant` sur le build du lot (aucune erreur console).
+- Audit de l'historique Git devenu public : aucun secret à révoquer ; données clients visibles signalées à Juste.
+
 ## 2026-10-09 — Sites clients rattachés : Express Congo géré depuis le Super Admin
 - Demande de Juste : mettre Express Congo en ligne et le rattacher à la plateforme pour gérer accès et réglages depuis le compte super admin.
 - Menu « Sites clients » (`#/editeur/sites`, super admin seulement) : état, comptes et rôles (création par lien d'activation, rôle, désactivation, lien de mot de passe, fermeture des sessions), démo publique, journal, « Ouvrir la gestion » (lien 60 s).

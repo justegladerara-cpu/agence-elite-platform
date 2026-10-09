@@ -99,7 +99,7 @@ function JournalTemps({ d, lignes, recharger }) {
   const projet = (t) => d.projets.find((x) => x.id === t.projet_id);
   return (
     <>
-      <DataTable
+      <DataTable exportable={false}
         colonnes={[
           { id: 'date', libelle: 'Jour', tri: (t) => t.date_travail, rendu: (t) => formatDate(t.date_travail) },
           { id: 'qui', libelle: 'Qui', tri: (t) => d.membre[t.user_id]?.nom ?? '', rendu: (t) => d.membre[t.user_id]?.nom ?? '—' },

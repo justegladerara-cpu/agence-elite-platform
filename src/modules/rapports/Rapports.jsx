@@ -92,7 +92,7 @@ export default function Rapports() {
             {['jour', 'semaine', 'mois'].includes(axe) && r.lignes.length > 1 && (
               <GraphiqueBarres libelle="Chiffre d’affaires par période" donnees={r.lignes.slice(-31).map((l) => ({ libelle: l.libelle.replace('Semaine du ', '').slice(0, 5), titre: l.libelle, valeur: Number(l.chiffre) }))} />
             )}
-            <DataTable lignes={r.lignes} cle="cle" rechercher={(l) => libelle(l)}
+            <DataTable exportable={false} lignes={r.lignes} cle="cle" rechercher={(l) => libelle(l)}
               triInitial={['jour', 'semaine', 'mois'].includes(axe) ? { id: 'libelle', sens: 'asc' } : { id: 'chiffre', sens: 'desc' }}
               vide={<p className="texte-doux">Aucune vente sur la période.</p>} colonnes={colonnes} />
             {parArticle && <p className="texte-doux">Montants des lignes, avant remise globale du ticket. Marge = prix de vente moins coût d’achat enregistré au moment de la vente.</p>}

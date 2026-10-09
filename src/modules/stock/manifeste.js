@@ -1,5 +1,8 @@
-import Stock from './Stock.jsx';
-import Transferts from './Transferts.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Stock = lazy(() => import('./Stock.jsx'));
+const Transferts = lazy(() => import('./Transferts.jsx'));
 
 export default {
   module: 'stock',

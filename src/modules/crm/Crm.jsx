@@ -132,7 +132,7 @@ function ListeOpportunites({ d, naviguer, seuil = 14 }) {
   const contact = (o) => nomContact(d.contact[o.contact_id]);
   const responsable = (o) => d.membre[o.responsable_id]?.nom ?? '—';
   return (
-    <DataTable
+    <DataTable exportable={false}
       colonnes={[
         { id: 'numero', libelle: 'N°', tri: (o) => o.numero, rendu: (o) => <strong>{o.numero}</strong> },
         { id: 'titre', libelle: 'Opportunité', tri: (o) => o.titre, rendu: (o) => o.titre },

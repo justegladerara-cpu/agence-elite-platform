@@ -2,7 +2,7 @@
 // Les captures vont dans captures-parcours/ (ignoré par Git).
 require('node:fs').mkdirSync('captures-parcours', { recursive: true });
 const { chromium } = require('playwright');
-const U = 'http://localhost:4173/';
+const U = process.env.URL_APP ?? 'http://localhost:4173/';
 (async () => {
   // CHROMIUM_PATH : navigateur déjà installé (environnements sans accès au CDN Playwright).
   const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
@@ -144,6 +144,46 @@ const U = 'http://localhost:4173/';
       }
     }
     await changerProfil('Mireille');
+    // Confort : palette Ctrl+K (écran puis donnée), création rapide, export et impression d'une liste, thème sombre.
+    await etape('palette-ecran', async () => {
+      await p.goto(U + '#/tableau-de-bord');
+      await p.getByText('Chiffre d’affaires').first().waitFor();
+      await p.keyboard.press('Control+k');
+      const champ = p.getByRole('combobox', { name: 'Rechercher partout' });
+      await champ.fill('stock');
+      // Entrée ouvre la ligne choisie : on attend que « Stock » soit en tête et sélectionné.
+      await p.locator('[role="option"][aria-selected="true"]', { hasText: /^Stock/ }).waitFor();
+      await champ.press('Enter');
+      await p.waitForFunction(() => location.hash.startsWith('#/stock'));
+    });
+    await etape('palette-donnee', async () => {
+      await p.getByRole('button', { name: /Rechercher partout/ }).click();
+      await p.getByRole('combobox', { name: 'Rechercher partout' }).fill('Casque');
+      await p.getByRole('option', { name: /Casque test/ }).first().click();
+      await p.waitForFunction(() => location.hash.startsWith('#/articles?q=Casque'));
+      await p.getByText('Casque test').first().waitFor();
+    });
+    await etape('creation-rapide', async () => {
+      await p.getByRole('button', { name: 'Créer', exact: true }).click();
+      await p.getByRole('combobox', { name: 'Que voulez-vous créer ?' }).fill('contact');
+      await p.keyboard.press('Enter');
+      await p.waitForFunction(() => location.hash.startsWith('#/contacts?nouveau=1'));
+      await p.getByRole('dialog').first().waitFor();
+      await p.keyboard.press('Escape');
+    });
+    await etape('liste-export', async () => {
+      await p.goto(U + '#/support');
+      const [telechargement] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: /Exporter la liste/ }).first().click()]);
+      if (!/\.csv$/.test(telechargement.suggestedFilename())) throw new Error('Export : fichier inattendu ' + telechargement.suggestedFilename());
+    });
+    await etape('theme-sombre', async () => {
+      await p.evaluate(() => localStorage.setItem('ae-affichage', JSON.stringify({ theme: 'sombre' })));
+      await p.reload();
+      await p.getByText('Chiffre d’affaires').first().waitFor({ timeout: 60000 }).catch(() => {});
+      const theme = await p.evaluate(() => document.documentElement.dataset.theme);
+      if (theme !== 'sombre') throw new Error('Thème sombre non appliqué');
+      await p.evaluate(() => localStorage.removeItem('ae-affichage'));
+    });
     await p.setViewportSize({ width: 390, height: 844 });
     await etape('mobile-caisse', async () => { await p.goto(U + '#/caisse'); await p.waitForTimeout(1000); });
     await etape('mobile-tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.waitForTimeout(1000); });

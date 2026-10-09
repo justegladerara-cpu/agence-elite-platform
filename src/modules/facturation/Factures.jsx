@@ -78,7 +78,7 @@ function Liste({ naviguer }) {
               </button>
             </div>
           )}
-          <DataTable
+          <DataTable exportable={false}
             key={onglet}
             colonnes={[
               { id: 'numero', libelle: 'Numéro', tri: (d) => d.numero ?? '', rendu: (d) => <strong>{d.numero ?? <span className="texte-faible">Brouillon</span>}</strong> },

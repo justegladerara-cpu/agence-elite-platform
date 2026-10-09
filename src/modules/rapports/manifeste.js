@@ -1,4 +1,7 @@
-import Rapports from './Rapports.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Rapports = lazy(() => import('./Rapports.jsx'));
 
 export default {
   module: 'rapports',

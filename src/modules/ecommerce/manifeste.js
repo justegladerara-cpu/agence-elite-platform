@@ -1,4 +1,7 @@
-import Boutique from './Boutique.jsx';
+import { lazy } from 'react';
+
+// Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
+const Boutique = lazy(() => import('./Boutique.jsx'));
 
 export const boutique = {
   module: 'ecommerce_boutique',
