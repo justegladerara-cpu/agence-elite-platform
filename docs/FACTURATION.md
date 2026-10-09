@@ -25,9 +25,22 @@ Devis (`DE-00001`, brouillon → envoyé → accepté/refusé) → **Facturer** 
 responsable, responsable Hub, comptable), `facturation.annuler` (gérant, responsable, comptable).
 Lecture limitée aux Hubs autorisés de la personne.
 
+## Retards : balance âgée et relances (2026-10-09)
+Onglet **Retards** de Devis et factures (`#/factures?onglet=retards`) : pour chaque client, le reste dû des factures
+émises réparti en À échoir, 1 à 30 j, 31 à 60 j, 61 à 90 j, plus de 90 j (retard compté depuis l'échéance, sinon
+depuis la date de la facture), total et retard le plus ancien. Export CSV et impression comme toute liste.
+**Relancer** prépare un message dont le ton monte avec le retard (rappel, échéance passée, plus de 60 jours). On peut le
+modifier, le copier, ou l'ouvrir dans WhatsApp quand la fiche du contact a un téléphone. Rien n'est envoyé
+automatiquement. Calcul dans le navigateur à partir des factures et ventes déjà lisibles (`balanceAgee`,
+`messageRelance` dans `src/modules/facturation/commun.js`), sans migration.
+
+Limites connues : pas d'historique des relances envoyées, pas d'envoi automatique (attend l'intégration e-mail ou
+WhatsApp), retards calculés sur 2 000 documents au plus (limite de lecture de l'écran).
+
 ## Pas encore fait
 Avoir partiel (retour d'une partie seulement), acomptes, factures récurrentes (voir module Abonnements),
-envoi par e-mail depuis la plateforme (pas de service d'envoi configuré), relances automatiques programmées.
+envoi par e-mail depuis la plateforme (pas de service d'envoi configuré), relances automatiques programmées
+(les relances se préparent à la main depuis l'onglet Retards).
 
 ## Tests
 `tests/facturation.test.js` (12 tests : calculs, cycle devis, émission, stock, numérotation, figement, paiements,

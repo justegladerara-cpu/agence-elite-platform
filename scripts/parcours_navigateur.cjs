@@ -201,6 +201,17 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       const [telechargement] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: /Exporter la liste/ }).first().click()]);
       if (!/\.csv$/.test(telechargement.suggestedFilename())) throw new Error('Export : fichier inattendu ' + telechargement.suggestedFilename());
     });
+    await etape('balance-agee', async () => {
+      await p.goto(U + '#/factures?onglet=retards');
+      await p.getByText(/Plus de 90 j/).first().waitFor();
+      const relancer = p.getByRole('button', { name: 'Relancer' }).first();
+      if (await relancer.count()) {
+        await relancer.click();
+        await p.getByRole('dialog').getByText(/Total :/).first().waitFor().catch(() => {});
+        await p.getByRole('dialog').locator('textarea').waitFor();
+        await p.keyboard.press('Escape');
+      }
+    });
     await etape('export-listes-simples', async () => {
       for (const [ecran, nom] of [['articles', /^articles-/], ['contacts', /^contacts-/], ['depenses', /^depenses-/], ['clotures', /^tickets-z/]]) {
         await p.goto(U + '#/' + ecran);
