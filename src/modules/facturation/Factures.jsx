@@ -7,8 +7,9 @@ import { exporterCsv } from '../../ui/communs.jsx';
 import { etatDocument, TYPES_DOCUMENT } from './commun.js';
 import DocumentVente from './Document.jsx';
 import EditeurDocument from './Editeur.jsx';
+import BalanceAgee from './BalanceAgee.jsx';
 
-const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs']];
+const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs'], ['retards', 'Retards']];
 
 function Liste({ naviguer }) {
   const { api, etablissement, peut, montant } = useEspace();
@@ -29,7 +30,7 @@ function Liste({ naviguer }) {
   const { donnees, chargement, erreur } = useDonnees(async () => {
     const [documents, contacts, ventes, tdb] = await Promise.all([
       api.lire('documents_vente', { eq: { etablissement_id: etablissement.id }, ordre: ['cree_le', 'desc'], limite: 2000 }),
-      api.lire('contacts', { eq: { etablissement_id: etablissement.id }, colonnes: ['id', 'nom', 'societe'] }),
+      api.lire('contacts', { eq: { etablissement_id: etablissement.id }, colonnes: ['id', 'nom', 'societe', 'telephone'] }),
       api.lire('ventes', { eq: { etablissement_id: etablissement.id, origine: 'facture' }, colonnes: ['id', 'total', 'montant_paye', 'statut_paiement', 'statut'] }).catch(() => []),
       api.rpc('tableau_de_bord_facturation', { p_etablissement_id: etablissement.id }),
     ]);
@@ -69,7 +70,8 @@ function Liste({ naviguer }) {
             <StatCard icone="facture" libelle="Facturé ce mois" valeur={montant(donnees.tdb.facture_mois)} />
             <StatCard icone="document" libelle="Devis en cours" valeur={donnees.tdb.devis_ouverts} detail={donnees.tdb.taux_conversion != null ? `${donnees.tdb.taux_conversion} % acceptés` : undefined} />
           </div>
-          <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, donnees.documents.filter((d) => d.type === k).length])} actif={onglet} onChange={setOnglet} />
+          <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, k === 'retards' ? undefined : donnees.documents.filter((d) => d.type === k).length])} actif={onglet} onChange={setOnglet} />
+          {onglet === 'retards' && <BalanceAgee documents={donnees.documents} ventes={donnees.vente} contacts={donnees.contact} aujourdhui={aujourdhui} naviguer={naviguer} />}
           {periode && (
             <div>
               <button type="button" className="puce-filtre" onClick={() => setPeriode(null)} aria-label="Retirer le filtre de période">
@@ -78,7 +80,7 @@ function Liste({ naviguer }) {
               </button>
             </div>
           )}
-          <DataTable exportable={false}
+          {onglet !== 'retards' && <DataTable exportable={false}
             key={onglet}
             colonnes={[
               { id: 'numero', libelle: 'Numéro', tri: (d) => d.numero ?? '', rendu: (d) => <strong>{d.numero ?? <span className="texte-faible">Brouillon</span>}</strong> },
@@ -116,7 +118,7 @@ function Liste({ naviguer }) {
                 )}
               />
             )}
-          />
+          />}
         </>
       )}
     </div>

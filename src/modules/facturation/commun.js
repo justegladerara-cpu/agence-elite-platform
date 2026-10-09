@@ -32,3 +32,58 @@ export function totaux(lignes) {
     return { ht: t.ht + c.ht, tva: t.tva + c.tva, ttc: t.ttc + c.ttc };
   }, { ht: 0, tva: 0, ttc: 0 });
 }
+
+// Balance âgée : factures émises non soldées, réparties selon les jours de retard (échéance, sinon date de la facture).
+export const TRANCHES_RETARD = [['a_echoir', 'À échoir'], ['j30', '1 à 30 j'], ['j60', '31 à 60 j'], ['j90', '61 à 90 j'], ['plus90', 'Plus de 90 j']];
+
+export function joursDeRetard(echeance, aujourdhui) {
+  const ms = Date.parse(`${aujourdhui}T00:00:00Z`) - Date.parse(`${echeance}T00:00:00Z`);
+  return Math.round(ms / 86400000);
+}
+
+export function trancheRetard(jours) {
+  if (jours <= 0) return 'a_echoir';
+  if (jours <= 30) return 'j30';
+  if (jours <= 60) return 'j60';
+  if (jours <= 90) return 'j90';
+  return 'plus90';
+}
+
+export function balanceAgee(documents, ventes, aujourdhui) {
+  const parContact = new Map();
+  for (const d of documents) {
+    if (d.type !== 'facture' || d.statut !== 'emise') continue;
+    const v = ventes[d.vente_id];
+    if (!v || v.statut !== 'validee') continue;
+    const reste = Math.round((Number(v.total) - Number(v.montant_paye)) * 100) / 100;
+    if (reste <= 0) continue;
+    const jours = joursDeRetard(d.echeance ?? d.date_document, aujourdhui);
+    const tranche = trancheRetard(jours);
+    const ligne = parContact.get(d.contact_id) ?? {
+      contact_id: d.contact_id, total: 0, retard_max: 0, factures: [],
+      tranches: Object.fromEntries(TRANCHES_RETARD.map(([k]) => [k, 0])),
+    };
+    ligne.tranches[tranche] = Math.round((ligne.tranches[tranche] + reste) * 100) / 100;
+    ligne.total = Math.round((ligne.total + reste) * 100) / 100;
+    ligne.retard_max = Math.max(ligne.retard_max, jours);
+    ligne.factures.push({ id: d.id, numero: d.numero, echeance: d.echeance ?? d.date_document, reste, jours });
+    parContact.set(d.contact_id, ligne);
+  }
+  return [...parContact.values()].sort((a, b) => b.retard_max - a.retard_max || b.total - a.total);
+}
+
+// Message de relance prêt à copier (WhatsApp, SMS, e-mail). Le ton monte avec le retard le plus ancien.
+export function messageRelance({ nom, factures, montant, emetteur }) {
+  const retard = Math.max(...factures.map((f) => f.jours));
+  const ouverture = retard > 60
+    ? `Bonjour ${nom}, malgré nos précédents rappels, les factures suivantes restent impayées :`
+    : retard > 0
+      ? `Bonjour ${nom}, sauf erreur de notre part, les factures suivantes sont arrivées à échéance :`
+      : `Bonjour ${nom}, pour rappel, les factures suivantes arrivent à échéance :`;
+  const lignes = factures.map((f) => `- ${f.numero} : ${montant(f.reste)}${f.jours > 0 ? ` (en retard de ${f.jours} j)` : ''}`);
+  const total = factures.reduce((s, f) => s + f.reste, 0);
+  const fin = retard > 60
+    ? 'Merci de régler ce montant sans délai ou de nous contacter pour convenir d’un échéancier.'
+    : 'Merci de procéder au règlement ou de nous indiquer la date prévue.';
+  return [ouverture, ...lignes, `Total : ${montant(total)}.`, fin, emetteur ? `Cordialement, ${emetteur}` : 'Cordialement.'].join('\n');
+}
