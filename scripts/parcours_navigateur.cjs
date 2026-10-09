@@ -212,6 +212,13 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
         await p.keyboard.press('Escape');
       }
     });
+    await etape('connexions', async () => {
+      await p.goto(U + '#/parametres');
+      await p.getByRole('tab', { name: 'Connexions' }).click();
+      await p.getByText('Bac à sable Agence Elite').waitFor();
+      await p.getByText(/Démonstration locale/).waitFor();
+      if ((await p.locator('.carte.integration').count()) !== 11) throw new Error('11 services attendus');
+    });
     await etape('export-listes-simples', async () => {
       for (const [ecran, nom] of [['articles', /^articles-/], ['contacts', /^contacts-/], ['depenses', /^depenses-/], ['clotures', /^tickets-z/]]) {
         await p.goto(U + '#/' + ecran);

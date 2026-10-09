@@ -3120,3 +3120,8 @@ kbd {
 .comptage-coupures legend { padding: 0 6px; font-weight: 600; }
 .coupure { display: grid; grid-template-columns: 1fr 80px; align-items: center; gap: 4px 8px; }
 .coupure small { grid-column: 1 / -1; }
+
+/* Paramètres › Connexions : une carte par service. */
+.grille-integrations { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.carte.integration h3 { margin: 0; font-size: 15px; }
+.carte.integration p { margin: 8px 0; }

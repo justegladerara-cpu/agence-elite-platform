@@ -71,6 +71,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Fidélité : points sur achats, récompenses, ajustements | [57](57_FIDELISER_LES_CLIENTS.md) | Client |
 | Personnaliser les pages de connexion (textes, logo, apparence, publication) | [58](58_PERSONNALISER_LES_PAGES_DE_CONNEXION.md) | Agence Elite |
 | Importer le catalogue réel d'un client (vérification, dry-run, import, contrôle) | [59](59_IMPORTER_LE_CATALOGUE_D_UN_CLIENT.md) | Agence Elite + client |
+| Connecter un service externe (mode test, clé chiffrée, webhook, désactivation) | [60](60_CONNECTER_UN_SERVICE_EXTERNE.md) | Gérant |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

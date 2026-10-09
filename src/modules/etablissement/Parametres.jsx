@@ -5,6 +5,7 @@ import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Tabs } from '../../ui/composants.jsx';
 import { ChampsApparence } from '../../ui/Marque.jsx';
 import { ListeApplications } from './Applications.jsx';
+import { Connexions } from './Connexions.jsx';
 
 function Identite({ partie }) {
   const { api, etablissement, peut, notifier, recharger } = useEspace();
@@ -356,13 +357,13 @@ function Securite() {
 
 const ONGLETS = [
   ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'], ['reglages', 'Réglages des modules'],
-  ['applications', 'Applications'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Licence'],
+  ['applications', 'Applications'], ['connexions', 'Connexions'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Licence'],
 ];
 
 // Paramètres de l'établissement. Les onglets n'existent que si la fonction existe vraiment.
 export default function Parametres({ naviguer }) {
   const { etablissement, peut, moduleActif } = useEspace();
-  const onglets = ONGLETS.filter(([id]) => id !== 'caisses' || moduleActif('caisse'));
+  const onglets = ONGLETS.filter(([id]) => (id !== 'caisses' || moduleActif('caisse')) && (id !== 'connexions' || peut('etablissement.integrations')));
   const demande = lireParametres().get('onglet');
   const [onglet, setOnglet] = useState(onglets.some(([id]) => id === demande) ? demande : 'entreprise');
   return (
@@ -375,6 +376,7 @@ export default function Parametres({ naviguer }) {
       {onglet === 'caisses' && <ReglagesCaisse />}
       {onglet === 'reglages' && <ReglagesModules />}
       {onglet === 'applications' && <ListeApplications />}
+      {onglet === 'connexions' && <Connexions />}
       {onglet === 'equipe' && (
         <div className="deux-colonnes">
           <div className="carte">
