@@ -164,6 +164,10 @@ describe('moteur de données local', () => {
     const tdb = await api.rpc('tableau_de_bord_projets', { p_etablissement_id: etab });
     expect(tdb).toMatchObject({ en_cours: 2, en_retard: 1 });
     expect(Number(tdb.heures_a_facturer)).toBe(5.5);
+    expect(tdb).toMatchObject({ livrables_soumis: 1, decisions_attente: 1, corrections_restantes: 1 });
+    const boutique = (await api.lire('projets', { eq: { etablissement_id: etab } })).find((p) => p.nom.startsWith('Mini-boutique'));
+    const s = await api.rpc('synthese_projet', { p_projet_id: boutique.id });
+    expect([s.demarrage_faits, s.demarrage_total, s.qualite_total, s.taches_bloquees]).toEqual([2, 3, 3, 1]);
     utilisateur = comptes['caisse-marche@demo.agence-elite.fr'];
     expect(await api.lire('projets')).toEqual([]);
   });

@@ -1330,3 +1330,35 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- Projets avancés (lot C) sur la mini-boutique de l'hôtel : checklists, dépendance, livrable corrigé puis resoumis,
+-- décision à valider et attente du client. Fictif.
+do $$
+declare etab uuid; gerante uuid; pr uuid; l uuid; installer uuid; former uuid; points uuid[];
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id into pr from public.projets where etablissement_id = etab and nom = 'Mini-boutique du hall de l''hôtel';
+  if pr is null or exists (select 1 from public.projet_livrables where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into installer from public.projet_taches where projet_id = pr and titre = 'Installer le présentoir';
+  select id into former from public.projet_taches where projet_id = pr and titre = 'Former le réceptionniste à la caisse';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.ajouter_points_checklist(pr, 'demarrage', '["Bon de commande signé", "Accès au hall confirmé", "Liste des produits validée"]'::jsonb);
+  perform public.ajouter_points_checklist(pr, 'qualite', '["Prix affichés sur chaque produit", "Caisse testée avec un ticket", "Photo de l''installation envoyée"]'::jsonb);
+  points := array(select id from public.projet_checklist where projet_id = pr and genre = 'demarrage' order by ordre);
+  perform public.cocher_point_checklist(points[1], true);
+  perform public.cocher_point_checklist(points[2], true);
+  if installer is not null and former is not null then
+    perform public.definir_dependance_tache(former, installer);
+  end if;
+  l := public.enregistrer_livrable(etab, jsonb_build_object('projet_id', pr, 'titre', 'Plan du présentoir', 'description', 'Emplacement et rangement des produits'));
+  perform public.soumettre_livrable(l, 'Première proposition envoyée à l''économe');
+  perform public.decider_livrable(l, 'a_corriger', 'Mettre les boissons fraîches à hauteur des yeux', 'M. Ibara (économat)');
+  perform public.soumettre_livrable(l, 'Boissons déplacées au deuxième niveau');
+  perform public.noter_projet(pr, 'decision', 'Les prix sont affichés taxes comprises');
+  perform public.noter_projet(pr, 'attente', 'Ouverture du présentoir avant le week-end');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

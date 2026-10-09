@@ -2,29 +2,74 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate } from '../../noyau/format.js';
 import { lireParametres } from '../../noyau/routes.js';
-import { Badge, Bouton, DataTable, EmptyState, Erreur, MenuActions, ModaleMotif, PageHeader, Section, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
+import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette, StatCard, Tabs } from '../../ui/composants.jsx';
 import { exporterCsv, PiecesJointes } from '../../ui/communs.jsx';
 import { COLONNES_TACHES, heures, PRIORITES, STATUTS_PROJET } from './commun.js';
 import { ModaleProjet, ModaleTache, ModaleTemps } from './Formulaires.jsx';
+import Suivi, { ModaleSaisie } from './Suivi.jsx';
 
 function useProjets(deps = []) {
   const { api, etablissement } = useEspace();
   return useDonnees(async () => {
-    const [projets, taches, temps, contacts, membres, tdb] = await Promise.all([
+    const [projets, taches, temps, contacts, membres, tdb, absents] = await Promise.all([
       api.lire('projets', { eq: { etablissement_id: etablissement.id }, ordre: ['cree_le', 'desc'], limite: 2000 }),
       api.lire('projet_taches', { eq: { etablissement_id: etablissement.id }, ordre: ['ordre'], limite: 5000 }),
       api.lire('projet_temps', { eq: { etablissement_id: etablissement.id }, ordre: ['date_travail', 'desc'], limite: 5000 }),
       api.lire('contacts', { eq: { etablissement_id: etablissement.id }, ordre: ['nom'] }),
       api.rpc('projets_membres', { p_etablissement_id: etablissement.id }),
       api.rpc('tableau_de_bord_projets', { p_etablissement_id: etablissement.id }),
+      api.rpc('projets_absents', { p_etablissement_id: etablissement.id }).catch(() => []),
     ]);
     return {
-      projets, taches, temps, membres, tdb,
+      projets, taches, temps, membres, tdb, absents,
       contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       contact: Object.fromEntries(contacts.map((c) => [c.id, c])),
       membre: Object.fromEntries(membres.map((m) => [m.user_id, m])),
     };
   }, [etablissement.id, ...deps]);
+}
+
+// Réaffecter les tâches ouvertes d'une personne (absence, départ) à une autre.
+function ModaleReaffecter({ d, projetId, de, onFermer, onFait }) {
+  const { api, etablissement } = useEspace();
+  const [v, setV] = useState({ de: de ?? '', a: '' });
+  const [erreur, setErreur] = useState('');
+  const ouvertes = (u) => d.taches.filter((t) => t.assigne_a === u && !['terminee', 'annulee'].includes(t.statut) && (!projetId || t.projet_id === projetId)).length;
+  const valider = async (e) => {
+    e.preventDefault();
+    try {
+      const n = await api.rpc('reaffecter_taches', { p_etablissement_id: etablissement.id, p_de: v.de, p_a: v.a, p_projet_id: projetId ?? null });
+      onFait(n);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <Modale titre="Réaffecter des tâches" onFermer={onFermer}>
+      <form className="formulaire" onSubmit={valider}>
+        <p className="texte-doux">Les tâches ouvertes {projetId ? 'de ce projet' : 'de tous les projets en cours'} passent à une autre personne, qui est prévenue.</p>
+        <div className="grille-champs">
+          <Champ libelle="Tâches de">
+            <select value={v.de} onChange={(e) => setV({ ...v, de: e.target.value })} required>
+              <option value="">— Choisir</option>
+              {d.membres.map((m) => <option key={m.user_id} value={m.user_id}>{m.nom} ({ouvertes(m.user_id)})</option>)}
+            </select>
+          </Champ>
+          <Champ libelle="Reprises par">
+            <select value={v.a} onChange={(e) => setV({ ...v, a: e.target.value })} required>
+              <option value="">— Choisir</option>
+              {d.membres.filter((m) => m.user_id !== v.de).map((m) => <option key={m.user_id} value={m.user_id}>{m.nom}</option>)}
+            </select>
+          </Champ>
+        </div>
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal">Réaffecter</Bouton>
+        </div>
+      </form>
+    </Modale>
+  );
 }
 
 const avancement = (d, projetId) => {
@@ -51,6 +96,10 @@ function Taches({ d, projetId, recharger, filtre = () => true }) {
     }
   };
   const projet = (t) => d.projets.find((p) => p.id === t.projet_id);
+  const bloquante = (t) => {
+    const a = t.depend_de && d.taches.find((x) => x.id === t.depend_de);
+    return a && !['terminee', 'annulee'].includes(a.statut) ? a : null;
+  };
   return (
     <>
       <Erreur message={erreur} />
@@ -71,6 +120,8 @@ function Taches({ d, projetId, recharger, filtre = () => true }) {
                     {t.priorite !== 'normale' && <Badge ton={PRIORITES[t.priorite][1]}>{PRIORITES[t.priorite][0]}</Badge>}
                   </div>
                   {t.echeance && <small className={t.statut !== 'terminee' && t.echeance < aujourdhui ? 'texte-alerte' : 'texte-doux'}>Échéance {formatDate(t.echeance)}</small>}
+                  {bloquante(t) && <small className="texte-alerte">Attend : {bloquante(t).titre}</small>}
+                  {t.livrable_id && t.statut !== 'terminee' && <Badge ton="orange">Correction</Badge>}
                   {peutBouger(t) && (
                     <div className="groupe-boutons">
                       <select className="kanban-deplacer" aria-label={`Déplacer ${t.titre}`} value="" onChange={(e) => e.target.value && deplacer(t, e.target.value)}>
@@ -86,7 +137,7 @@ function Taches({ d, projetId, recharger, filtre = () => true }) {
           );
         })}
       </div>
-      {edition && <ModaleTache projetId={edition.projet_id} tache={edition} membres={d.membres} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); notifier('Tâche enregistrée'); recharger(); }} />}
+      {edition && <ModaleTache projetId={edition.projet_id} tache={edition} membres={d.membres} taches={d.taches.filter((x) => x.projet_id === edition.projet_id)} onFermer={() => setEdition(null)} onFait={() => { setEdition(null); notifier('Tâche enregistrée'); recharger(); }} />}
       {temps && <ModaleTemps projets={d.projets} taches={d.taches} membres={d.membres} projetId={temps.projet_id} tacheId={temps.id} onFermer={() => setTemps(null)} onFait={() => { setTemps(null); notifier('Temps enregistré'); recharger(); }} />}
     </>
   );
@@ -138,7 +189,7 @@ function FicheProjet({ projetId, naviguer }) {
   const { api, peut, notifier, montant, moduleActif } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useProjets([projetId]);
   const { donnees: s, recharger: rechargerSynthese } = useDonnees(() => api.rpc('synthese_projet', { p_projet_id: projetId }), [projetId]);
-  const [onglet, setOnglet] = useState(() => (['temps', 'infos'].includes(lireParametres().get('vue')) ? lireParametres().get('vue') : 'taches'));
+  const [onglet, setOnglet] = useState(() => (['temps', 'infos', 'suivi'].includes(lireParametres().get('vue')) ? lireParametres().get('vue') : 'taches'));
   const [action, setAction] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
   const toutRecharger = () => { recharger(); rechargerSynthese(); };
@@ -177,7 +228,8 @@ function FicheProjet({ projetId, naviguer }) {
                   libelle: `Facturer ${s.heures_facturables_a_facturer} h`, icone: 'facture',
                   onClick: () => executer('facturer_temps_projet', { p_projet_id: p.id }, 'Facture brouillon créée', (id) => naviguer(`factures/${id}/modifier`)),
                 },
-                actif && { libelle: 'Terminer le projet', icone: 'coche', onClick: () => executer('changer_statut_projet', { p_projet_id: p.id, p_statut: 'termine' }, 'Projet terminé') },
+                actif && { libelle: 'Réaffecter des tâches', onClick: () => setAction('reaffecter') },
+                actif && { libelle: 'Terminer le projet', icone: 'coche', onClick: () => setAction('terminer') },
                 !actif && { libelle: 'Rouvrir', onClick: () => executer('changer_statut_projet', { p_projet_id: p.id, p_statut: 'en_cours' }, 'Projet rouvert') },
                 actif && { libelle: 'Annuler le projet', danger: true, onClick: () => setAction('annuler') },
               ]} />
@@ -195,7 +247,14 @@ function FicheProjet({ projetId, naviguer }) {
           <StatCard icone="calendrier" libelle="Fin prévue" valeur={p.date_fin_prevue ? formatDate(p.date_fin_prevue) : '—'} detail={p.budget ? `budget ${montant(p.budget)}` : undefined} />
         </div>
       )}
-      <Tabs onglets={[['taches', 'Tâches'], ['temps', 'Temps'], ['infos', 'Informations']]} actif={onglet} onChange={setOnglet} />
+      {s && (s.corrections_restantes > 0 || s.livrables_soumis > 0 || s.decisions_attente > 0 || s.taches_bloquees > 0) && (
+        <p className="encart">
+          {[s.livrables_soumis > 0 && `${s.livrables_soumis} livrable(s) en attente de décision`, s.corrections_restantes > 0 && `${s.corrections_restantes} correction(s) restante(s)`,
+            s.decisions_attente > 0 && `${s.decisions_attente} décision(s) à valider`, s.taches_bloquees > 0 && `${s.taches_bloquees} tâche(s) en attente d’une autre`].filter(Boolean).join(' · ')}
+        </p>
+      )}
+      <Tabs onglets={[['taches', 'Tâches'], ['suivi', 'Suivi et livrables'], ['temps', 'Temps'], ['infos', 'Informations']]} actif={onglet} onChange={setOnglet} />
+      {onglet === 'suivi' && <Suivi projet={p} naviguer={naviguer} onChange={toutRecharger} />}
       {onglet === 'taches' && <Taches d={d} projetId={p.id} recharger={toutRecharger} />}
       {onglet === 'temps' && <JournalTemps d={d} lignes={d.temps.filter((t) => t.projet_id === p.id)} recharger={toutRecharger} />}
       {onglet === 'infos' && (
@@ -214,7 +273,14 @@ function FicheProjet({ projetId, naviguer }) {
           <PiecesJointes objetType="projet" objetId={p.id} titre="Documents du projet" peutAjouter={peut('projets.contribuer')} peutArchiver={gerer} />
         </div>
       )}
-      {action === 'tache' && <ModaleTache projetId={p.id} membres={d.membres} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Tâche ajoutée'); toutRecharger(); }} />}
+      {action === 'reaffecter' && <ModaleReaffecter d={d} projetId={p.id} onFermer={() => setAction(null)} onFait={(n) => { setAction(null); notifier(`${n} tâche(s) réaffectée(s)`); toutRecharger(); }} />}
+      {action === 'terminer' && (
+        <ModaleSaisie titre={`Terminer ${p.numero}`} texte="Le compte rendu de fin est conservé dans le suivi du projet."
+          champs={[{ cle: 'compte_rendu', libelle: 'Compte rendu de fin (facultatif)', long: true, lignes: 5 }]} libelleAction="Terminer le projet"
+          onValider={async ({ compte_rendu: cr }) => { await api.rpc('changer_statut_projet', { p_projet_id: p.id, p_statut: 'termine', p_motif: cr || null }); notifier('Projet terminé'); toutRecharger(); }}
+          onFermer={() => setAction(null)} />
+      )}
+      {action === 'tache' && <ModaleTache projetId={p.id} membres={d.membres} taches={d.taches.filter((x) => x.projet_id === p.id)} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Tâche ajoutée'); toutRecharger(); }} />}
       {action === 'temps' && <ModaleTemps projets={d.projets} taches={d.taches} membres={d.membres} projetId={p.id} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Temps enregistré'); toutRecharger(); }} />}
       {action === 'modifier' && <ModaleProjet projet={p} contacts={d.contacts} membres={d.membres} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Projet modifié'); toutRecharger(); }} />}
       {action === 'annuler' && (
@@ -253,6 +319,16 @@ function Accueil({ naviguer }) {
             <StatCard icone="horloge" libelle="Mon temps cette semaine" valeur={`${d.tdb.mes_heures_semaine} h`} detail={`${d.tdb.heures_semaine} h pour l’équipe`} onClick={() => setOnglet('temps')} />
             <StatCard icone="facture" libelle="Temps à facturer" valeur={`${d.tdb.heures_a_facturer} h`} />
           </div>
+          {d.absents.length > 0 && (
+            <div className="encart">
+              {d.absents.map((a) => (
+                <div key={a.user_id} className="liste-ligne">
+                  <span>{d.membre[a.user_id]?.nom ?? 'Un membre'} est absent jusqu’au {formatDate(a.jusqu_au)} et a {a.taches} tâche(s) ouverte(s).</span>
+                  {peut('projets.gerer') && <Bouton onClick={() => setAction({ reaffecter: a.user_id })}>Réaffecter</Bouton>}
+                </div>
+              ))}
+            </div>
+          )}
           <Tabs onglets={[['projets', 'Projets'], ['mes_taches', 'Mes tâches'], ['temps', 'Temps']]} actif={onglet} onChange={setOnglet} />
           {onglet === 'projets' && (
             <DataTable
@@ -277,6 +353,7 @@ function Accueil({ naviguer }) {
           )}
           {onglet === 'mes_taches' && <Taches d={d} recharger={recharger} filtre={(t) => t.assigne_a === utilisateur?.id} />}
           {onglet === 'temps' && <JournalTemps d={d} lignes={d.temps} recharger={recharger} />}
+          {action?.reaffecter && <ModaleReaffecter d={d} de={action.reaffecter} onFermer={() => setAction(null)} onFait={(n) => { setAction(null); notifier(`${n} tâche(s) réaffectée(s)`); recharger(); }} />}
           {action === 'projet' && <ModaleProjet contacts={d.contacts} membres={d.membres} onFermer={() => setAction(null)} onFait={(id) => naviguer(`projets/${id}`)} />}
           {action === 'temps' && <ModaleTemps projets={d.projets} taches={d.taches} membres={d.membres} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Temps enregistré'); recharger(); }} />}
         </>

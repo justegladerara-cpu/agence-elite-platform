@@ -32,7 +32,31 @@ membre qui a `projets.contribuer`.
 Page « Projets » (groupe Organisation) : projets (avancement), mes tâches, journal du temps (export CSV) ; fiche projet
 (indicateurs, tâches, temps, informations, documents, facturation) ; widget « Projets ».
 
+## Suivi avancé (lot C, migration `20261010000113_projets_avances.sql`)
+Onglet **Suivi et livrables** de la fiche projet :
+- **Checklists** de démarrage et de qualité (`projet_checklist`) : points saisis ou repris du modèle réglé
+  (`modele_demarrage`, `modele_qualite`, un point par ligne), cochés par les contributeurs, retirés par le pilote.
+  Réglage `qualite_avant_cloture` (non par défaut) : « Terminer » est refusé tant qu'un point qualité reste ouvert.
+- **Livrables versionnés** (`projet_livrables`, `projet_livrable_versions`) : soumis (V1, V2…), puis validés ou à
+  corriger, avec le nom de la personne qui décide côté client. Une demande de correction crée une tâche
+  « Correction : … (Vn) » de priorité haute pour le pilote ; le compteur « corrections restantes » la suit.
+  Une version soumise et sa décision ne se modifient plus.
+- **Décisions** à valider et **attentes du client** (`projet_journal`) ; le **compte rendu de fin** se saisit en
+  terminant le projet.
+- **Demandes supplémentaires** : devis brouillon lié au projet (`documents_vente.projet_id`), à chiffrer dans l'éditeur.
+- Sur un devis accepté ou facturé : menu ⋯ › « Créer le projet et ses tâches » (`taches_depuis_devis`) : une tâche
+  par ligne comptée, une seule fois par ligne ; le projet est celui du devis, ou un nouveau projet pour le client.
+
+Onglet **Tâches** : « Attend la fin de » (`definir_dependance_tache`) ; une tâche ne passe pas en cours tant que la
+tâche attendue n'est pas terminée ; pas de dépendance circulaire ni entre projets.
+
+**Continuité** : ⋯ › « Réaffecter des tâches » (`reaffecter_taches`) ; l'accueil Projets signale les personnes
+absentes aujourd'hui (absence RH approuvée, `projets_absents`) qui ont des tâches ouvertes. Tableau de bord :
+corrections restantes, livrables en attente, décisions à valider, tâches de personnes absentes.
+
 ## Limites connues
 - Pas de diagramme de Gantt ni de dépendances entre tâches.
 - Pas de taux horaire par personne (un taux par projet).
 - Pas de chronomètre : le temps se saisit après coup.
+- Lot C : le client ne valide pas lui-même en ligne (la décision est saisie par l'équipe, avec son nom) ; l'espace
+  client viendra au lot P. Les absences ne sont connues que si la personne a une fiche RH liée à son compte.

@@ -311,6 +311,19 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('dialog').getByText('Remise globale').waitFor();
       await p.keyboard.press('Escape');
     });
+    await etape('projets-avances', async () => {
+      await p.goto(U + '#/projets');
+      await p.getByText('Mini-boutique du hall de l\'hôtel').first().click();
+      await p.getByText('Attend : Installer le présentoir').first().waitFor();
+      await p.getByRole('tab', { name: 'Suivi et livrables' }).click();
+      await p.getByText('Plan du présentoir').first().waitFor();
+      await p.getByRole('checkbox', { name: /Prix affichés sur chaque produit/ }).click();
+      await p.getByText(/1 \/ 3 fait/).first().waitFor();
+      await p.getByRole('button', { name: 'Valider', exact: true }).click();
+      await p.getByRole('dialog').getByRole('textbox').fill('M. Ibara');
+      await p.getByRole('dialog').getByRole('button', { name: 'Valider' }).click();
+      await p.getByText('Livrable validé').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
