@@ -1,0 +1,289 @@
+{
+  "status": "PROPOSÉ",
+  "validatedBy": null,
+  "validatedAt": null,
+  "agencies": [
+    {
+      "slug": "paris",
+      "name": "Paris",
+      "country": "France",
+      "address": "67 boulevard de Belleville, 75011 Paris",
+      "phones": ["+33148052220", "+33762374792"],
+      "timezone": "Europe/Paris",
+      "status": "OBSERVÉ",
+      "validatedBy": null,
+      "validatedAt": null,
+      "hoursObserved": "du lundi au vendredi de 9 h à 17 h et le samedi de 9 h à 17 h, sans interruption (affichés pour l’ensemble du réseau sur le site actuel, non confirmés par agence)"
+    },
+    {
+      "slug": "brazzaville",
+      "name": "Brazzaville",
+      "country": "République du Congo",
+      "address": "97 bis rue Djambala, Moungali, en venant par l’avenue Marien Ngouabi",
+      "phones": ["+242056271674", "+242065814481"],
+      "timezone": "Africa/Brazzaville",
+      "status": "OBSERVÉ",
+      "validatedBy": null,
+      "validatedAt": null,
+      "hoursObserved": "du lundi au vendredi de 9 h à 17 h et le samedi de 9 h à 17 h, sans interruption (affichés pour l’ensemble du réseau sur le site actuel, non confirmés par agence)"
+    },
+    {
+      "slug": "pointe-noire",
+      "name": "Pointe-Noire",
+      "country": "République du Congo",
+      "address": "Route de la Base, arrêt Entrée KM4, deuxième parcelle à droite du bar Dynastie",
+      "phones": ["+242056271672", "+242065814480"],
+      "timezone": "Africa/Brazzaville",
+      "status": "OBSERVÉ",
+      "validatedBy": null,
+      "validatedAt": null,
+      "hoursObserved": "du lundi au vendredi de 9 h à 17 h et le samedi de 9 h à 17 h, sans interruption (affichés pour l’ensemble du réseau sur le site actuel, non confirmés par agence)"
+    }
+  ],
+  "services": [
+    {
+      "slug": "fret-aerien",
+      "key": "aerien",
+      "name": "Fret aérien",
+      "icon": "red-plane.png",
+      "image": "ae_1_banniere.png",
+      "intro": "Courriers et colis : décrivez votre contenu pour préparer une proposition adaptée.",
+      "body": "Le fret aérien permet d’acheminer des courriers et des colis. Le choix de l’offre dépend de la nature de la marchandise, du poids réel, des dimensions et du traitement douanier convenu. Les délais et les dates de départ sont à confirmer pour chaque demande.",
+      "formats": "Courriers, cartons et colis",
+      "criterion": "Contenu, poids et dimensions",
+      "faq": "Le dédouanement est-il compris ? Les prestations incluses et exclues doivent être précisées dans la proposition. Aucune prise en charge douanière n’est automatique."
+    },
+    {
+      "slug": "fret-maritime",
+      "key": "maritime",
+      "name": "Fret maritime",
+      "icon": "red-boat.png",
+      "image": "m_1_banniere.png",
+      "intro": "Cartons et palettes en groupage : commencez par mesurer le volume de votre envoi.",
+      "body": "Le groupage rassemble des envois dans un chargement commun. Pour préparer votre demande, relevez les dimensions extérieures des cartons ou palettes emballés et leur poids. Le volume calculé aide à décrire votre besoin ; il ne détermine pas un prix garanti.",
+      "formats": "Cartons et palettes en groupage",
+      "criterion": "Volume, contenu et conditions",
+      "faq": "Puis-je connaître le prix à partir du volume ? Le volume sert à préparer le devis. La règle maritime publiée présente une ambiguïté : aucune estimation automatique n’est activée."
+    },
+    {
+      "slug": "conteneurs-complets",
+      "key": "conteneur",
+      "name": "Conteneurs complets",
+      "icon": "red-container.png",
+      "image": "cc_1_banniere.png",
+      "intro": "Un projet de chargement complet ? Précisez vos marchandises, volumes et contraintes.",
+      "body": "Une demande de conteneur complet nécessite une étude du contenu, de son volume, de son poids et des contraintes de chargement. Les équipements, disponibilités et conditions sont proposés après examen. Aucun type de conteneur ni charge maximale n’est garanti sur cette page.",
+      "formats": "Projet de chargement complet",
+      "criterion": "Étude du projet",
+      "faq": "Quel équipement choisir ? Transmettez les dimensions, le poids et les contraintes de manutention. L’équipe doit confirmer l’équipement disponible et compatible."
+    }
+  ],
+  "pages": [
+    {
+      "slug": "preparer-mon-envoi",
+      "title": "Préparer mon envoi",
+      "description": "Les étapes pour décrire et préparer un premier envoi.",
+      "sections": [
+        [
+          "Commencez par le contenu",
+          "Décrivez précisément les marchandises, leur état et les contraintes connues. Faites vérifier leur admissibilité avant tout dépôt."
+        ],
+        [
+          "Choisissez une solution",
+          "Comparez l’aérien, le groupage maritime et le conteneur complet. Si vous hésitez, demandez conseil dans le formulaire de devis."
+        ],
+        [
+          "Mesurez et pesez",
+          "Relevez les dimensions extérieures de l’envoi emballé et son poids réel. Incluez la palette lorsqu’elle fait partie du chargement."
+        ],
+        [
+          "Attendez les instructions",
+          "Les justificatifs, modalités de dépôt et conditions douanières dépendent de l’offre retenue. Une date souhaitée n’est pas une réservation."
+        ]
+      ]
+    },
+    {
+      "slug": "emballage-et-documents",
+      "title": "Emballage et documents",
+      "description": "Préparez un descriptif utile et demandez les instructions propres à votre envoi.",
+      "sections": [
+        [
+          "Décrire avant de déposer",
+          "Préparez une liste du contenu de chaque colis. Signalez les objets fragiles, la valeur déclarée et les besoins de manutention."
+        ],
+        [
+          "Dimensions de l’emballage",
+          "Mesurez l’extérieur du conditionnement final. Les dimensions de l’objet seul ne suffisent pas."
+        ],
+        [
+          "Documents nécessaires",
+          "La liste applicable doit être confirmée par Express Congo selon la marchandise, la destination et le mode de transport. Ne transmettez pas de pièce d’identité dans la demande initiale sans nécessité confirmée."
+        ]
+      ]
+    },
+    {
+      "slug": "marchandises-reglementees",
+      "title": "Marchandises réglementées",
+      "description": "Faites vérifier le contenu avant de remettre vos marchandises.",
+      "sections": [
+        [
+          "Une validation préalable",
+          "Décrivez la nature, la quantité et les particularités du contenu. N’expédiez pas un produit dont l’admissibilité reste incertaine."
+        ],
+        [
+          "Pas de liste universelle",
+          "Les restrictions dépendent du mode de transport, de la route et des règles applicables. Seule une validation pour votre envoi permet de préparer la proposition."
+        ],
+        [
+          "Téléphones et électronique",
+          "Les conditions de transport et de traitement douanier restent à faire confirmer. La présence d’une catégorie dans une ancienne grille ne prouve pas son admissibilité actuelle."
+        ]
+      ]
+    },
+    {
+      "slug": "a-propos",
+      "title": "Relier les envois, rapprocher les familles",
+      "description": "Express Congo, fret de la France vers la République du Congo, avec des agences à Paris, Brazzaville et Pointe-Noire.",
+      "sections": [
+        [
+          "Rapprocher les familles",
+          "Express Congo a été fondée par Annie Tsakala avec une idée simple : rapprocher les familles installées en France de leurs proches au Congo. Chaque jour, l’équipe accompagne aussi bien un particulier qui envoie un colis à sa famille qu’une entreprise qui développe ses échanges avec le Congo."
+        ],
+        [
+          "Trois agences, un même suivi",
+          "L’agence de Paris réceptionne et prépare les envois ; celles de Brazzaville et de Pointe-Noire accueillent les marchandises à l’arrivée et organisent le retrait. Fret aérien, groupage maritime ou conteneur complet : la solution est choisie selon votre envoi, puis détaillée dans une proposition écrite."
+        ],
+        [
+          "Notre façon de travailler",
+          "Vous décrivez votre envoi, nous vous adressons une proposition précise, puis vous suivez chaque étape jusqu’à la remise. Les dates de départ, les prestations incluses et les conditions sont confirmées par écrit avant tout dépôt."
+        ]
+      ]
+    },
+    {
+      "slug": "actualites",
+      "title": "Informations et actualités",
+      "description": "Les annonces et départs seront publiés après validation.",
+      "sections": [
+        [
+          "Aucune annonce validée pour le moment",
+          "Aucune date de départ ni fréquence n’est publiée tant que l’équipe ne l’a pas confirmée. Consultez le guide de préparation pour avancer sur votre demande."
+        ]
+      ]
+    },
+    {
+      "slug": "cgv",
+      "title": "Conditions générales de vente",
+      "description": "Conditions générales applicables aux prestations de transport et de logistique d’Express Congo.",
+      "sections": [
+        [
+          "Cadre",
+          "Les prestations d’Express Congo sont régies par les conditions générales de vente de l’Union des entreprises de transport et logistique de France (TLF, version du 1er janvier 2017), publiées sur le site officiel. Les conditions particulières convenues pour un envoi priment sur ces conditions générales."
+        ],
+        [
+          "Prix",
+          "Les prix sont établis à partir des informations fournies par l’expéditeur : nature, poids, volume, prestations et itinéraire. Ils sont calculés hors droits, taxes et frais de douane, et peuvent être revus si ces éléments changent."
+        ],
+        [
+          "Paiement",
+          "Les factures sont payables à réception, sans escompte, au plus tard 30 jours après leur date. Tout retard entraîne des intérêts et une indemnité forfaitaire de recouvrement de 40 €."
+        ],
+        [
+          "Assurance",
+          "Aucune assurance n’est souscrite sans ordre écrit précisant, pour chaque envoi, les risques à couvrir et les valeurs à garantir. Une déclaration de valeur peut être faite moyennant un supplément."
+        ],
+        [
+          "Responsabilité",
+          "En cas de perte ou d’avarie, l’indemnisation est limitée à 20 € par kilogramme de poids brut manquant ou endommagé, dans la limite de 5 000 € par tonne et de 60 000 € par événement, sauf déclaration de valeur."
+        ],
+        [
+          "Dates et réclamations",
+          "Les dates de départ et d’arrivée sont données à titre indicatif. Les réserves doivent être formulées et confirmées dans les délais légaux ; les actions se prescrivent par un an."
+        ],
+        [
+          "Juridiction",
+          "Les tribunaux du siège social d’Express Congo sont seuls compétents."
+        ]
+      ]
+    },
+    {
+      "slug": "mentions-legales",
+      "title": "Mentions légales",
+      "description": "Éditeur, directrice de la publication et hébergement du site Express Congo.",
+      "sections": [
+        [
+          "Éditeur",
+          "Express Congo — siège social : 67, boulevard de Belleville, 75011 Paris. SIREN : 529 427 924 (établissement 529 427 924 00012). Code APE : 5229B (affrètement et organisation des transports). Téléphone : +33 1 48 05 22 20. Email : expresscongo@yahoo.fr."
+        ],
+        ["Directrice de la publication", "Annie-Jésus Tsakala Massala."],
+        [
+          "Hébergement",
+          "Le site est hébergé par Cloudflare, Inc., 101 Townsend Street, San Francisco, CA 94107, États-Unis. L’ancien site était hébergé par 1&1 IONOS, 7 place de la Gare, 57200 Sarreguemines."
+        ],
+        ["Réalisation", "Conception et développement : Agence Élite."]
+      ]
+    },
+    {
+      "slug": "confidentialite",
+      "title": "Confidentialité",
+      "description": "Les traitements réellement présents dans cette version de démonstration.",
+      "sections": [
+        [
+          "Demande de devis",
+          "Le formulaire enregistre le nom, les coordonnées, le descriptif et les mesures nécessaires au traitement de la demande. En démonstration, utilisez exclusivement des données fictives."
+        ],
+        [
+          "Conservation et droits",
+          "Les durées de conservation et l’interlocuteur pour les droits d’accès, rectification et suppression doivent être confirmés avant toute collecte réelle."
+        ],
+        [
+          "Stockage temporaire",
+          "La sauvegarde facultative conserve seulement les caractéristiques de l’envoi dans la session du navigateur. Les coordonnées et pièces jointes n’y sont jamais sauvegardées. Aucun service de statistiques ni traceur publicitaire n’est installé."
+        ]
+      ]
+    },
+    {
+      "slug": "cookies",
+      "title": "Cookies et services tiers",
+      "description": "Information sur les outils installés.",
+      "sections": [
+        [
+          "Cette version",
+          "Aucun traceur publicitaire, carte externe, service d’analyse ou vidéo tierce n’est intégré. Un bandeau d’acceptation décoratif n’est donc pas affiché."
+        ],
+        [
+          "Services futurs",
+          "Tout ajout de traceur doit faire l’objet d’une configuration et d’une information correspondant à son usage réel avant activation."
+        ]
+      ]
+    },
+    {
+      "slug": "accessibilite",
+      "title": "Accessibilité",
+      "description": "Objectif du projet et état des vérifications.",
+      "sections": [
+        [
+          "Objectif WCAG 2.2 AA",
+          "Les formulaires proposent des libellés et erreurs liés aux champs ; les liens et boutons ont un focus visible. Le projet vise une utilisation au clavier et sur mobile."
+        ],
+        [
+          "État de conformité",
+          "Une vérification complète reste nécessaire. Cette page n’est pas une déclaration de conformité. Les tests réellement exécutés sont consignés dans TEST_REPORT.md."
+        ]
+      ]
+    }
+  ],
+  "socialObserved": [
+    {
+      "network": "Facebook",
+      "url": "https://www.facebook.com/ExpressCG/",
+      "status": "OBSERVÉ"
+    }
+  ],
+  "sourceNote": "Coordonnées et informations reprises du site officiel expresscongo.fr (relevé du 9 octobre 2026).",
+  "contact": {
+    "email": "expresscongo@yahoo.fr",
+    "whatsapp": "+33621933298",
+    "phone": "+33148052220",
+    "status": "OBSERVÉ"
+  }
+}
