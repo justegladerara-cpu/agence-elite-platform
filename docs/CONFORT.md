@@ -53,6 +53,7 @@ le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
 - Les listes en tableau simple (articles, contacts, dépenses, clôtures) n'ont pas encore l'export générique.
 - Pas d'icône d'application par client (white-label) ni de mode hors ligne.
 - La recherche de données ne couvre pas encore les documents, les commandes de la boutique ni les notes.
+- Pas de palette ni de bouton « + » dans l'espace Agence Elite (super admin) : ils servent dans un établissement.
 
 ## Tests
 `tests/recherche_universelle.test.js` (droits, isolement, saisie, anonyme), `tests/confort.test.jsx` (actions, affichage,
