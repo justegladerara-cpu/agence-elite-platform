@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17.6
+    environment:
+      POSTGRES_DB: express_congo
+      POSTGRES_USER: ec_local
+      POSTGRES_PASSWORD: local_demo_only
+    ports:
+      - "127.0.0.1:54322:5432"
+    volumes:
+      - ec_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ec_local -d express_congo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  ec_postgres:
