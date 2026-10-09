@@ -3022,7 +3022,7 @@ kbd {
   border-radius: 5px; background: var(--surface-douce); color: var(--texte-doux); font: 600 11px/1.4 var(--police); text-align: center;
 }
 .voile-palette { place-items: start center; padding-top: 12vh; }
-.palette {
+.palette-recherche {
   width: min(640px, 100%); max-height: 70vh; display: flex; flex-direction: column; overflow: hidden;
   background: var(--surface); border: 1px solid var(--bordure); border-radius: 14px; box-shadow: var(--ombre-forte);
 }
@@ -3044,7 +3044,7 @@ kbd {
   .barre-haut-recherche { min-width: 0; padding: 0 9px; }
   .barre-haut-recherche span, .barre-haut-recherche kbd { display: none; }
   .voile-palette { padding-top: 8px; }
-  .palette { max-height: calc(100vh - 16px); }
+  .palette-recherche { max-height: calc(100vh - 16px); }
   .palette-pied { display: none; }
 }
 

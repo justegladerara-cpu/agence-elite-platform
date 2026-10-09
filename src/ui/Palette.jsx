@@ -84,7 +84,7 @@ export function Palette({ mode = 'tout', onFermer, naviguer }) {
   const t = texte.trim();
   return createPortal(
     <div className="voile voile-palette" onMouseDown={(e) => e.target === e.currentTarget && onFermer()}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label={mode === 'creer' ? 'Créer' : 'Rechercher'}>
+      <div className="palette-recherche" role="dialog" aria-modal="true" aria-label={mode === 'creer' ? 'Créer' : 'Rechercher'}>
         <div className="palette-saisie">
           <Icone nom={mode === 'creer' ? 'plus' : 'recherche'} />
           <input
