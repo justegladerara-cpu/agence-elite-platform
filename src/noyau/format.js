@@ -57,6 +57,7 @@ export const ROLES = {
   serveur: 'Serveur',
   cuisinier: 'Cuisinier',
   agent_entretien: 'Agent d’entretien',
+  livreur: 'Livreur',
   lecteur: 'Lecteur',
 };
 
