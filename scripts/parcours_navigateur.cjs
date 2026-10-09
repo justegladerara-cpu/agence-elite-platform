@@ -266,6 +266,19 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Plan comptable' }).click();
       await p.getByText('Comptes utilisés par les écritures automatiques').waitFor();
     });
+    await etape('marketing', async () => {
+      await p.goto(U + '#/marketing?statut=brouillon');
+      await p.getByText('Nouveautés du mois (démo)').first().click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Préparer les destinataires' }).click();
+      await p.getByText(/1 destinataire\(s\) retenu\(s\)/).first().waitFor();
+      await p.goto(U + '#/marketing?statut=prete');
+      await p.getByText('Nouveautés du mois (démo)').first().click();
+      await p.getByRole('dialog').getByText(/Bloqué :/).waitFor();
+      await p.getByRole('dialog').getByRole('button', { name: 'Déclarer l’envoi fait' }).click();
+      await p.getByRole('dialog').getByRole('textbox').fill('Envoyé depuis le téléphone de la boutique');
+      await p.getByRole('dialog').getByRole('button', { name: 'Déclarer envoyée' }).click();
+      await p.getByText('Campagne déclarée envoyée').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
