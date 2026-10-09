@@ -1,0 +1,21 @@
+.data/
+.backups/
+test-results/
+playwright-report/
+assets/font-package/
+.lockfile/
+next-env.d.ts
+*.db
+*.db-shm
+*.db-wal
+.pnpm_modules/
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts
+
+# Ajouté au déplacement dans le dépôt de la plateforme
+node_modules/
+.next/
+*.tsbuildinfo
+.env*.local
