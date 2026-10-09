@@ -2,9 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale } from '../../noyau/format.js';
 import { Bouton, Champ, Erreur, Icone, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
-import { calculerLigne, totaux, TYPES_DOCUMENT } from './commun.js';
+import { calculerLigne, totaux, TYPES_DOCUMENT, vrai } from './commun.js';
 
-const ligneVide = (tva) => ({ cle: Math.random().toString(36).slice(2), article_id: '', libelle: '', description: '', quantite: '1', unite: '', prix_unitaire: '', remise: '', taux_tva: String(tva ?? 0) });
+const ligneVide = (tva) => ({ cle: Math.random().toString(36).slice(2), article_id: '', libelle: '', description: '', quantite: '1', unite: '', prix_unitaire: '', remise: '', taux_tva: String(tva ?? 0), optionnelle: false, retenue: false });
 
 // Création ou modification d'un devis / d'une facture en brouillon. La base recalcule et valide tout.
 export default function EditeurDocument({ type: typeNouveau, documentId, naviguer }) {
@@ -24,7 +24,10 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
       type: complet.document.type, contact_id: complet.document.contact_id, hub_id: complet.document.hub_id,
       date_document: complet.document.date_document, echeance: complet.document.echeance ?? '', objet: complet.document.objet ?? '',
       notes: complet.document.notes ?? '', conditions: complet.document.conditions ?? '',
-      lignes: complet.lignes.map((l) => ({ ...ligneVide(), ...Object.fromEntries(Object.entries(l).map(([k, x]) => [k, x == null ? '' : String(x)])), cle: l.id })),
+      lignes: complet.lignes.map((l) => ({
+        ...ligneVide(), ...Object.fromEntries(Object.entries(l).map(([k, x]) => [k, x == null ? '' : String(x)])),
+        optionnelle: vrai(l.optionnelle), retenue: vrai(l.retenue), cle: l.id,
+      })),
     } : {
       type: typeNouveau, contact_id: '', hub_id: hub?.id ?? '', date_document: dateLocale(), echeance: '', objet: '', notes: '', conditions: '',
       lignes: [ligneVide(tva)],
@@ -63,7 +66,7 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
         p_etablissement_id: etablissement.id,
         p_document: {
           ...v, id: documentId,
-          lignes: v.lignes.map(({ cle, id: _id, ...l }) => ({ ...l, article_id: l.article_id || null })),
+          lignes: v.lignes.map(({ cle, id: _id, ...l }) => ({ ...l, article_id: l.article_id || null, optionnelle: v.type === 'devis' && l.optionnelle, retenue: v.type === 'devis' && l.optionnelle && l.retenue })),
         },
       });
       naviguer(`factures/${id}`);
@@ -117,12 +120,18 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
                       </select>
                       <input value={l.libelle} onChange={(e) => changerLigne(i, 'libelle', e.target.value)} required maxLength={200} placeholder="Désignation" aria-label={`Désignation de la ligne ${i + 1}`} />
                       <input value={l.description} onChange={(e) => changerLigne(i, 'description', e.target.value)} maxLength={1000} placeholder="Détail (facultatif)" aria-label={`Détail de la ligne ${i + 1}`} className="discret" />
+                      {v.type === 'devis' && (
+                        <label className="case">
+                          <input type="checkbox" checked={l.optionnelle} onChange={(e) => changerLigne(i, 'optionnelle', e.target.checked)} aria-label={`Ligne ${i + 1} en option`} />
+                          <span>En option (hors total si le client ne la retient pas)</span>
+                        </label>
+                      )}
                     </td>
                     <td className="nombre"><input type="number" min="0" step="any" inputMode="decimal" value={l.quantite} onChange={(e) => changerLigne(i, 'quantite', e.target.value)} required aria-label={`Quantité ligne ${i + 1}`} /></td>
                     <td className="nombre"><input type="number" min="0" step="any" inputMode="decimal" value={l.prix_unitaire} onChange={(e) => changerLigne(i, 'prix_unitaire', e.target.value)} required aria-label={`Prix ligne ${i + 1}`} /></td>
                     <td className="nombre"><input type="number" min="0" step="any" inputMode="decimal" value={l.remise} onChange={(e) => changerLigne(i, 'remise', e.target.value)} aria-label={`Remise ligne ${i + 1}`} /></td>
                     <td className="nombre"><input type="number" min="0" max="100" step="any" value={l.taux_tva} onChange={(e) => changerLigne(i, 'taux_tva', e.target.value)} aria-label={`TVA ligne ${i + 1}`} /></td>
-                    <td className="nombre">{montant(calculerLigne(l).ht)}</td>
+                    <td className="nombre">{montant(calculerLigne(l).ht)}{l.optionnelle && <small className="texte-doux bloc">option</small>}</td>
                     <td>
                       <div className="groupe-boutons">
                         <button type="button" className="icone-bouton" onClick={() => deplacer(i, -1)} aria-label="Monter" disabled={i === 0}>↑</button>

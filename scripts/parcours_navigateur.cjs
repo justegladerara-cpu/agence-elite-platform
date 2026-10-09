@@ -291,6 +291,26 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Ticket escaladé').first().waitFor();
       await p.getByText(/Escaladé ×1/).first().waitFor();
     });
+    await etape('devis-contrats', async () => {
+      await p.goto(U + '#/contrats?vue=registre');
+      await p.getByText('Approvisionnement en riz : prix garantis').first().waitFor();
+      await p.getByRole('cell').getByText('Préavis à envoyer').first().waitFor();
+      await p.goto(U + '#/contrats');
+      await p.getByText('Eau minérale pour les chambres : livraison mensuelle').first().click();
+      await p.getByText(/Avenant 1 · Ajout de l'eau gazeuse/).first().waitFor();
+      await p.getByRole('button', { name: 'Ajouter un avenant' }).click();
+      await p.getByRole('dialog').getByRole('textbox', { name: 'Objet de l’avenant' }).fill('Livraison le samedi incluse');
+      await p.getByRole('dialog').getByRole('button', { name: 'Ajouter l’avenant' }).click();
+      await p.getByText(/Avenant 2 · Livraison le samedi incluse/).first().waitFor();
+      await p.goto(U + '#/factures?onglet=devis');
+      await p.getByText(/-V2$/).first().click();
+      await p.getByText('Acompte à la commande').first().waitFor();
+      await p.getByRole('checkbox', { name: /Livraison le samedi/ }).click();
+      await p.getByText('Option retenue').first().waitFor();
+      await p.getByRole('button', { name: 'Comparer' }).click();
+      await p.getByRole('dialog').getByText('Remise globale').waitFor();
+      await p.keyboard.press('Escape');
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

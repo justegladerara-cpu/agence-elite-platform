@@ -6,14 +6,17 @@ import {
   Badge, Bouton, Champ, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette,
 } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
-import { etatDocument, TYPES_DOCUMENT } from './commun.js';
+import { etatDocument, etatEcheances, ligneComptee, repartirEcheances, tauxRemise, TYPES_DOCUMENT, vrai } from './commun.js';
 
 // Rendu A4 d'un devis, d'une facture ou d'un avoir : le même à l'écran et à l'impression.
 export function FeuilleDocument({ complet }) {
-  const { document: d, lignes, contact, identite, devise, parametres, vente, origine } = complet;
+  const { document: d, lignes: toutes, contact, identite, devise, parametres, vente, origine } = complet;
+  const lignes = toutes.filter(ligneComptee);
+  const options = toutes.filter((l) => !ligneComptee(l));
+  const echeances = complet.echeances ?? [];
   const doc = identite?.documents ?? {};
   const m = (n) => formatMontant(n, devise);
-  const avecTva = lignes.some((l) => Number(l.taux_tva) > 0);
+  const avecTva = toutes.some((l) => Number(l.taux_tva) > 0);
   const titre = d.type === 'facture' && d.statut === 'brouillon' ? 'Facture (brouillon)' : TYPES_DOCUMENT[d.type];
   return (
     <article className="feuille-a4">
@@ -55,7 +58,20 @@ export function FeuilleDocument({ complet }) {
         <tbody>
           {lignes.map((l) => (
             <tr key={l.id}>
-              <td>{l.libelle}{l.description && <div className="feuille-petit">{l.description}</div>}</td>
+              <td>{l.libelle}{vrai(l.optionnelle) && <span className="feuille-petit"> (option retenue)</span>}{l.description && <div className="feuille-petit">{l.description}</div>}</td>
+              <td className="nombre">{formatQuantite(l.quantite, l.unite)}</td>
+              <td className="nombre">{m(l.prix_unitaire)}</td>
+              <td className="nombre">{Number(l.remise) ? m(l.remise) : ''}</td>
+              {avecTva && <td className="nombre">{Number(l.taux_tva) ? `${Number(l.taux_tva)} %` : ''}</td>}
+              <td className="nombre">{m(l.total_ht)}</td>
+            </tr>
+          ))}
+          {options.length > 0 && (
+            <tr><td colSpan={avecTva ? 6 : 5} className="feuille-petit"><strong>Options proposées, non comprises dans le total</strong></td></tr>
+          )}
+          {options.map((l) => (
+            <tr key={l.id} className="feuille-option">
+              <td>{l.libelle} <span className="feuille-petit">(option)</span>{l.description && <div className="feuille-petit">{l.description}</div>}</td>
               <td className="nombre">{formatQuantite(l.quantite, l.unite)}</td>
               <td className="nombre">{m(l.prix_unitaire)}</td>
               <td className="nombre">{Number(l.remise) ? m(l.remise) : ''}</td>
@@ -76,6 +92,14 @@ export function FeuilleDocument({ complet }) {
           </>
         )}
       </div>
+      {echeances.length > 0 && d.type !== 'avoir' && (
+        <table className="feuille-lignes">
+          <thead><tr><th>Échéancier</th><th>Date</th><th className="nombre">Montant</th></tr></thead>
+          <tbody>
+            {echeances.map((e) => <tr key={e.id}><td>{e.libelle || `Échéance ${e.ordre}`}</td><td>{formatDate(e.date_echeance)}</td><td className="nombre">{m(e.montant)}</td></tr>)}
+          </tbody>
+        </table>
+      )}
       {d.notes && <p className="feuille-notes">{d.notes}</p>}
       {(d.conditions || parametres?.conditions_paiement) && d.type !== 'avoir' && (
         <p className="feuille-petit"><strong>Conditions :</strong> {d.conditions || parametres.conditions_paiement}</p>
@@ -138,11 +162,114 @@ function ModalePaiement({ complet, onFermer, onFait }) {
   );
 }
 
+function ModaleEcheancier({ complet, onFermer, onFait }) {
+  const { api, montant } = useEspace();
+  const d = complet.document;
+  const [lignes, setLignes] = useState(() => (complet.echeances.length
+    ? complet.echeances.map((e) => ({ date_echeance: e.date_echeance, montant: String(e.montant), libelle: e.libelle ?? '' }))
+    : repartirEcheances(d.total_ttc, 2, d.date_document)));
+  const [nombre, setNombre] = useState(String(lignes.length));
+  const [erreur, setErreur] = useState('');
+  const somme = Math.round(lignes.reduce((t, l) => t + (Number(l.montant) || 0), 0) * 100) / 100;
+  const changer = (i, champ, valeur) => setLignes((x) => x.map((l, k) => (k === i ? { ...l, [champ]: valeur } : l)));
+  const valider = async (vider) => {
+    setErreur('');
+    try {
+      await api.rpc('definir_echeancier', { p_document_id: d.id, p_echeances: vider ? [] : lignes.map((l) => ({ ...l, montant: Number(l.montant) })) });
+      onFait(vider ? 'Échéancier retiré' : 'Échéancier enregistré');
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <Modale titre="Échéancier" onFermer={onFermer} large>
+      <form className="formulaire" onSubmit={(e) => { e.preventDefault(); valider(false); }}>
+        <p className="texte-doux">Informatif : imprimé sur le document. Les paiements s’enregistrent sur la facture émise ; un acompte se note comme première échéance.</p>
+        <div className="grille-champs">
+          <Champ libelle="Répartir en">
+            <select value={nombre} onChange={(e) => { setNombre(e.target.value); setLignes(repartirEcheances(d.total_ttc, Number(e.target.value), d.date_document)); }}>
+              {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1} échéance{i ? 's' : ''} mensuelle{i ? 's' : ''}</option>)}
+            </select>
+          </Champ>
+        </div>
+        <div className="tableau-conteneur">
+          <table className="tableau">
+            <thead><tr><th>Libellé</th><th>Date</th><th className="nombre">Montant</th><th /></tr></thead>
+            <tbody>
+              {lignes.map((l, i) => (
+                <tr key={i}>
+                  <td><input value={l.libelle} onChange={(e) => changer(i, 'libelle', e.target.value)} maxLength={80} aria-label={`Libellé échéance ${i + 1}`} placeholder={`Échéance ${i + 1}`} /></td>
+                  <td><input type="date" value={l.date_echeance} min={d.date_document} onChange={(e) => changer(i, 'date_echeance', e.target.value)} required aria-label={`Date échéance ${i + 1}`} /></td>
+                  <td className="nombre"><input type="number" min="0" step="any" value={l.montant} onChange={(e) => changer(i, 'montant', e.target.value)} required aria-label={`Montant échéance ${i + 1}`} /></td>
+                  <td><button type="button" className="icone-bouton" onClick={() => setLignes((x) => x.filter((_, k) => k !== i))} disabled={lignes.length === 1} aria-label={`Retirer l’échéance ${i + 1}`}>×</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Bouton type="button" icone="plus" onClick={() => setLignes((x) => [...x, { date_echeance: x[x.length - 1]?.date_echeance ?? d.date_document, montant: '', libelle: '' }])}>Ajouter une échéance</Bouton>
+        <p className={somme === Number(d.total_ttc) ? 'texte-doux' : 'encart'}>Total des échéances : {montant(somme)} sur {montant(d.total_ttc)}</p>
+        <Erreur message={erreur} />
+        <div className="actions">
+          {complet.echeances.length > 0 && <Bouton type="button" onClick={() => valider(true)}>Retirer l’échéancier</Bouton>}
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal">Enregistrer l’échéancier</Bouton>
+        </div>
+      </form>
+    </Modale>
+  );
+}
+
+// Comparateur : versions d'une même offre côte à côte, ligne par ligne.
+function ModaleComparaison({ versions, devise, onFermer }) {
+  const { api } = useEspace();
+  const { donnees: lignes, erreur } = useDonnees(() => api.lire('lignes_document_vente', { dans: { document_id: versions.map((v) => v.id) }, ordre: ['ordre'] }), [versions.map((v) => v.id).join()]);
+  const m = (n) => formatMontant(n, devise);
+  const libelles = [...new Set((lignes ?? []).map((l) => l.libelle))];
+  const cellule = (v, libelle) => {
+    const l = (lignes ?? []).filter((x) => x.document_id === v.id && x.libelle === libelle);
+    if (!l.length) return '—';
+    return l.map((x) => `${m(x.total_ht)}${vrai(x.optionnelle) ? (vrai(x.retenue) ? ' (option retenue)' : ' (option)') : ''}`).join(' + ');
+  };
+  return (
+    <Modale titre="Comparer les versions" onFermer={onFermer} large>
+      <Erreur message={erreur} />
+      {!lignes ? <Squelette lignes={4} /> : (
+        <div className="tableau-conteneur">
+          <table className="tableau">
+            <thead><tr><th>Ligne</th>{versions.map((v) => <th key={v.id} className="nombre">{v.numero} (V{v.version})</th>)}</tr></thead>
+            <tbody>
+              {libelles.map((libelle) => <tr key={libelle}><td>{libelle}</td>{versions.map((v) => <td key={v.id} className="nombre">{cellule(v, libelle)}</td>)}</tr>)}
+              <tr><td><strong>Total</strong></td>{versions.map((v) => <td key={v.id} className="nombre"><strong>{m(v.total_ttc)}</strong></td>)}</tr>
+              <tr><td>Remise globale</td>{versions.map((v) => <td key={v.id} className="nombre">{tauxRemise(lignes.filter((l) => l.document_id === v.id))} %</td>)}</tr>
+              <tr><td>Validité</td>{versions.map((v) => <td key={v.id} className="nombre">{v.echeance ? formatDate(v.echeance) : '—'}</td>)}</tr>
+              <tr><td>État</td>{versions.map((v) => <td key={v.id} className="nombre">{etatDocument(v, null, dateLocale())[0]}</td>)}</tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modale>
+  );
+}
+
 export default function DocumentVente({ documentId, naviguer }) {
-  const { api, peut, notifier } = useEspace();
+  const { api, peut, notifier, moduleActif } = useEspace();
   const [action, setAction] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
-  const { donnees: c, chargement, erreur, recharger } = useDonnees(() => api.rpc('document_vente_complet', { p_document_id: documentId }), [documentId]);
+  const { donnees: c, chargement, erreur, recharger } = useDonnees(async () => {
+    const complet = await api.rpc('document_vente_complet', { p_document_id: documentId });
+    const doc = complet.document;
+    const racine = doc.version_de ?? doc.id;
+    const [echeances, suivantes, premiere, parametres, contrats] = await Promise.all([
+      api.lire('echeances_document', { eq: { document_id: doc.id }, ordre: ['ordre'] }).catch(() => []),
+      doc.type === 'devis' ? api.lire('documents_vente', { eq: { etablissement_id: doc.etablissement_id, version_de: racine } }).catch(() => []) : [],
+      doc.type === 'devis' && doc.version_de ? api.lire('documents_vente', { eq: { id: racine } }).catch(() => []) : [],
+      api.lire('etablissement_parametres', { eq: { etablissement_id: doc.etablissement_id, module_id: 'facturation' } }).catch(() => []),
+      doc.type === 'devis' && moduleActif('contrats') ? api.lire('contrats', { eq: { document_vente_id: doc.id } }).catch(() => []) : [],
+    ]);
+    const versions = doc.type === 'devis' ? [...(doc.version_de ? premiere : [doc]), ...suivantes].sort((a, b) => a.version - b.version) : [];
+    return { ...complet, echeances, versions, contrats, seuilRemise: Number(parametres[0]?.data?.remise_max_sans_validation ?? 0) };
+  }, [documentId]);
   if (chargement && !c) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur || !c) {
     return (
@@ -166,6 +293,15 @@ export default function DocumentVente({ documentId, naviguer }) {
     }
   };
   const etat = etatDocument(d, c.vente, dateLocale());
+  const taux = tauxRemise(c.lignes);
+  const remiseAValider = c.seuilRemise > 0 && taux > c.seuilRemise && taux > Number(d.remise_validee_pct ?? -1)
+    && ['brouillon', 'envoye', 'accepte'].includes(d.statut) && d.type !== 'avoir';
+  const derniereVersion = !c.versions.length || c.versions[c.versions.length - 1].id === d.id;
+  const options = c.lignes.filter((l) => vrai(l.optionnelle));
+  const echeancierModifiable = gerer && ((d.type === 'devis' && ['brouillon', 'envoye', 'accepte'].includes(d.statut)) || (d.type === 'facture' && ['brouillon', 'emise'].includes(d.statut)));
+  const echeances = d.type === 'facture' && d.statut === 'emise' && c.vente
+    ? etatEcheances(c.echeances, c.vente.montant_paye, dateLocale())
+    : c.echeances.map((e) => ({ ...e, etat: null }));
   const reste = c.vente ? c.vente.total - c.vente.montant_paye : 0;
   const nom = d.numero ?? 'Brouillon';
   return (
@@ -184,6 +320,9 @@ export default function DocumentVente({ documentId, naviguer }) {
             {gerer && d.type === 'devis' && ['envoye', 'accepte'].includes(d.statut) && (
               <Bouton variante="principal" icone="facture" onClick={() => executer('convertir_devis', { p_document_id: d.id }, 'Facture créée depuis le devis', (id) => naviguer(`factures/${id}`))}>Facturer</Bouton>
             )}
+            {remiseAValider && peut('facturation.valider_remises') && (
+              <Bouton onClick={() => executer('valider_remise_document', { p_document_id: d.id }, `Remise de ${taux} % validée`)}>Valider la remise</Bouton>
+            )}
             {gerer && d.type === 'facture' && d.statut === 'brouillon' && (
               <Bouton variante="principal" onClick={() => setAction('emettre')}>Émettre la facture</Bouton>
             )}
@@ -194,6 +333,9 @@ export default function DocumentVente({ documentId, naviguer }) {
             <MenuActions actions={[
               gerer && d.type === 'devis' && d.statut === 'envoye' && { libelle: 'Accepté par le client', onClick: () => executer('changer_statut_devis', { p_document_id: d.id, p_statut: 'accepte' }, 'Devis accepté') },
               gerer && d.type === 'devis' && d.statut === 'envoye' && { libelle: 'Refusé par le client', onClick: () => executer('changer_statut_devis', { p_document_id: d.id, p_statut: 'refuse' }, 'Devis refusé') },
+              gerer && d.type === 'devis' && derniereVersion && ['brouillon', 'envoye', 'accepte', 'refuse'].includes(d.statut) && { libelle: 'Nouvelle version', onClick: () => executer('nouvelle_version_devis', { p_document_id: d.id }, 'Nouvelle version créée', (id) => naviguer(`factures/${id}/modifier`)) },
+              d.type === 'devis' && ['accepte', 'converti'].includes(d.statut) && moduleActif('contrats') && peut('contrats.gerer') && !c.contrats.some((k) => k.statut !== 'annule')
+                && { libelle: 'Créer le contrat', onClick: () => executer('contrat_depuis_devis', { p_document_id: d.id }, 'Contrat créé', (id) => naviguer(`contrats/${id}`)) },
               gerer && d.type !== 'avoir' && { libelle: 'Dupliquer', onClick: () => executer('dupliquer_document_vente', { p_document_id: d.id }, 'Copie créée', (id) => naviguer(`factures/${id}/modifier`)) },
               d.statut !== 'emise' && gerer && !['annule', 'converti', 'refuse'].includes(d.statut) && d.type !== 'avoir' && { libelle: 'Annuler', danger: true, onClick: () => setAction('annuler') },
               d.statut === 'emise' && d.type === 'facture' && peut('facturation.annuler') && { libelle: 'Annuler par un avoir', danger: true, onClick: () => setAction('annuler') },
@@ -202,6 +344,9 @@ export default function DocumentVente({ documentId, naviguer }) {
         )}
       />
       <Erreur message={erreurAction} />
+      {remiseAValider && (
+        <p className="encart">Remise de {taux} % au-delà du seuil de {c.seuilRemise} % : un responsable doit la valider avant l’envoi, l’accord ou l’émission.</p>
+      )}
       <div className="document-disposition">
         <div className="feuille-conteneur"><FeuilleDocument complet={c} /></div>
         <div className="pile">
@@ -214,6 +359,54 @@ export default function DocumentVente({ documentId, naviguer }) {
                     <span><strong>{formatMontant(p.montant, c.devise)}</strong> · {MODES_PAIEMENT[p.mode]}<small className="texte-doux bloc">{formatDateHeure(p.cree_le)}{p.reference ? ` · ${p.reference}` : ''}</small></span>
                     {p.statut === 'annule' && <Badge>annulé</Badge>}
                   </div>
+                ))}
+              </div>
+            </Section>
+          )}
+          {options.length > 0 && (
+            <Section titre="Options" sousTitre="Cochées : comprises dans le total">
+              <div className="liste-simple">
+                {options.map((l) => (
+                  <label key={l.id} className="case">
+                    <input type="checkbox" checked={vrai(l.retenue)} disabled={!gerer || !['brouillon', 'envoye'].includes(d.statut)}
+                      onChange={(e) => executer('retenir_option_devis', { p_ligne_id: l.id, p_retenue: e.target.checked }, e.target.checked ? 'Option retenue' : 'Option retirée')} />
+                    <span>{l.libelle} · {formatMontant(l.total_ttc, c.devise)}</span>
+                  </label>
+                ))}
+              </div>
+            </Section>
+          )}
+          {(echeances.length > 0 || echeancierModifiable) && d.type !== 'avoir' && (
+            <Section titre="Échéancier" action={echeancierModifiable && <Bouton onClick={() => setAction('echeancier')}>{echeances.length ? 'Modifier' : 'Définir'}</Bouton>}>
+              {!echeances.length && <p className="texte-doux">Aucun échéancier : paiement en une fois.</p>}
+              <div className="liste-simple">
+                {echeances.map((e) => (
+                  <div key={e.id} className="liste-ligne">
+                    <span><strong>{formatMontant(e.montant, c.devise)}</strong> · {formatDate(e.date_echeance)}<small className="texte-doux bloc">{e.libelle || `Échéance ${e.ordre}`}</small></span>
+                    {e.etat && <Badge ton={e.etat[1]}>{e.etat[0]}</Badge>}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+          {c.versions.length > 1 && (
+            <Section titre="Versions" action={<Bouton onClick={() => setAction('comparer')}>Comparer</Bouton>}>
+              <div className="liste-simple">
+                {c.versions.map((x) => (
+                  <div key={x.id} className="liste-ligne">
+                    {x.id === d.id ? <strong>V{x.version} · {x.numero} (affichée)</strong>
+                      : <button type="button" className="lien" onClick={() => naviguer(`factures/${x.id}`)}>V{x.version} · {x.numero}</button>}
+                    <Badge ton={etatDocument(x, null, dateLocale())[1]}>{etatDocument(x, null, dateLocale())[0]}</Badge>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+          {c.contrats.length > 0 && (
+            <Section titre="Contrat">
+              <div className="liste-simple">
+                {c.contrats.map((k) => (
+                  <div key={k.id} className="liste-ligne"><button type="button" className="lien" onClick={() => naviguer(`contrats/${k.id}`)}>Contrat {k.numero}</button></div>
                 ))}
               </div>
             </Section>
@@ -244,6 +437,8 @@ export default function DocumentVente({ documentId, naviguer }) {
         </div>
       </div>
       <ZoneImpression><FeuilleDocument complet={c} /></ZoneImpression>
+      {action === 'echeancier' && <ModaleEcheancier complet={c} onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />}
+      {action === 'comparer' && <ModaleComparaison versions={c.versions} devise={c.devise} onFermer={() => setAction(null)} />}
       {action === 'paiement' && <ModalePaiement complet={c} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Paiement enregistré'); recharger(); }} />}
       {action === 'emettre' && (
         <Modale

@@ -26,8 +26,12 @@ export function calculerLigne(l) {
   return { ht, tva, ttc: Math.round((ht + tva) * 100) / 100 };
 }
 
+// Une ligne en option (devis) ne compte dans le total que si le client la retient.
+export const vrai = (x) => x === true || x === 'true';
+export const ligneComptee = (l) => !vrai(l.optionnelle) || vrai(l.retenue);
+
 export function totaux(lignes) {
-  return lignes.reduce((t, l) => {
+  return lignes.filter(ligneComptee).reduce((t, l) => {
     const c = calculerLigne(l);
     return { ht: t.ht + c.ht, tva: t.tva + c.tva, ttc: t.ttc + c.ttc };
   }, { ht: 0, tva: 0, ttc: 0 });
@@ -86,4 +90,35 @@ export function messageRelance({ nom, factures, montant, emetteur }) {
     ? 'Merci de régler ce montant sans délai ou de nous contacter pour convenir d’un échéancier.'
     : 'Merci de procéder au règlement ou de nous indiquer la date prévue.';
   return [ouverture, ...lignes, `Total : ${montant(total)}.`, fin, emetteur ? `Cordialement, ${emetteur}` : 'Cordialement.'].join('\n');
+}
+
+// Remise globale en % du montant avant remise (lignes comptées), comme la base.
+export function tauxRemise(lignes) {
+  const comptees = lignes.filter(ligneComptee);
+  const brut = comptees.reduce((s, l) => s + Math.round(Number(l.quantite) * Number(l.prix_unitaire) * 100) / 100, 0);
+  const remise = comptees.reduce((s, l) => s + (Number(l.remise) || 0), 0);
+  return brut > 0 ? Math.round((10000 * remise) / brut) / 100 : 0;
+}
+
+// Échéancier : état de chaque échéance d'une facture émise selon le cumul payé (le plus ancien d'abord).
+export function etatEcheances(echeances, payeTotal, aujourdhui) {
+  let restePaye = Number(payeTotal) || 0;
+  return echeances.map((e) => {
+    const montant = Number(e.montant);
+    const couvert = Math.min(montant, Math.max(0, restePaye));
+    restePaye -= couvert;
+    const etat = couvert >= montant ? ['Payée', 'vert'] : e.date_echeance < aujourdhui ? ['En retard', 'rouge'] : couvert > 0 ? ['Payée en partie', 'orange'] : ['À venir', 'neutre'];
+    return { ...e, couvert, etat };
+  });
+}
+
+// Répartit un total en n échéances mensuelles (la dernière absorbe l'arrondi).
+export function repartirEcheances(total, n, premiere) {
+  const t = Math.round(Number(total) * 100);
+  const part = Math.floor(t / n);
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(`${premiere}T00:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() + i);
+    return { date_echeance: d.toISOString().slice(0, 10), montant: String((i === n - 1 ? t - part * (n - 1) : part) / 100), libelle: i === 0 && n > 1 ? 'Acompte' : i === n - 1 && n > 1 ? 'Solde' : '' };
+  });
 }

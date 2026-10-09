@@ -37,8 +37,30 @@ automatiquement. Calcul dans le navigateur à partir des factures et ventes déj
 Limites connues : pas d'historique des relances envoyées, pas d'envoi automatique (attend l'intégration e-mail ou
 WhatsApp), retards calculés sur 2 000 documents au plus (limite de lecture de l'écran).
 
+## Devis avancés (lot B, migration `20261010000112_devis_contrats.sql`)
+- **Options** : une ligne de devis peut être « en option ». Elle est imprimée à part et ne compte dans le total que si
+  le client la retient (section « Options » du devis, `retenir_option_devis`, avant l'accord). La facture ne reprend
+  que les lignes comptées. Une facture n'a jamais de ligne en option.
+- **Versions** : menu ⋯ › « Nouvelle version » (`nouvelle_version_devis`) : brouillon numéroté `DE-00012-V2`,
+  l'ancienne version encore ouverte est annulée (« Remplacé par la version 2 »), l'opportunité CRM ouverte suit.
+  Section « Versions » et bouton **Comparer** : lignes, total, remise, validité et état côte à côte.
+- **Validité** : « Expiré » s'affiche après la date de validité. Réglage `bloquer_devis_expires` (non par défaut) :
+  refuse l'accord ou la facturation d'un devis expiré.
+- **Remises** : réglage `remise_max_sans_validation` (0 = pas de contrôle). Au-delà, envoi, accord, facturation
+  et émission sont refusés tant qu'une personne avec `facturation.valider_remises` (gérant, responsable) n'a pas
+  cliqué « Valider la remise ». Le taux validé est retenu : une remise plus forte redemande une validation. La
+  facture issue du devis garde la validation.
+- **Échéancier** (`echeances_document`, `definir_echeancier`) : dates et montants dont la somme égale le total,
+  imprimés sur le devis ou la facture et copiés sur la facture si le total n'a pas changé. Sur une facture émise,
+  chaque échéance affiche « Payée », « Payée en partie », « En retard » ou « À venir » selon le cumul payé. Un
+  acompte se note comme première échéance.
+
+Limites connues : l'échéancier est informatif (pas de relance automatique par échéance) ; pas de facture
+d'acompte séparée (règles fiscales selon le pays, à décider) ; le seuil de remise s'applique aussi aux factures
+créées par d'autres modules (abonnements, hôtel, agenda, projets) quand il est réglé.
+
 ## Pas encore fait
-Avoir partiel (retour d'une partie seulement), acomptes, factures récurrentes (voir module Abonnements),
+Avoir partiel (retour d'une partie seulement), facture d'acompte séparée, factures récurrentes (voir module Abonnements),
 envoi par e-mail depuis la plateforme (pas de service d'envoi configuré), relances automatiques programmées
 (les relances se préparent à la main depuis l'onglet Retards).
 

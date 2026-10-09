@@ -31,13 +31,14 @@ import rh from './rh/manifeste.js';
 import scolaire from './scolaire/manifeste.js';
 import comptabilite from './comptabilite/manifeste.js';
 import marketing from './marketing/manifeste.js';
+import contrats from './contrats/manifeste.js';
 import siteWeb from './site_web/manifeste.js';
 import stock from './stock/manifeste.js';
 import support from './support/manifeste.js';
 import tableauDeBord from './tableau_de_bord/manifeste.js';
 import ventes from './ventes/manifeste.js';
 
-export const MANIFESTES = [tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, abonnements, livraisons, location, articles, stock, production, achats, crm, marketing, contacts, scolaire, agenda, support, fidelite, siteWeb, depenses, comptabilite, rh, projets, documents, etablissement, membres];
+export const MANIFESTES = [tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, contrats, abonnements, livraisons, location, articles, stock, production, achats, crm, marketing, contacts, scolaire, agenda, support, fidelite, siteWeb, depenses, comptabilite, rh, projets, documents, etablissement, membres];
 
 // Ordre des groupes du menu ; un groupe inconnu déclaré par un nouveau module s'ajoute à la fin.
 export const GROUPES = ['Pilotage', 'Vente', 'Catalogue et stock', 'Relations', 'Ressources humaines', 'Organisation'];

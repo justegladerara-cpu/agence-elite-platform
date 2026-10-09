@@ -27,7 +27,8 @@ const utilisateur = async (email) => (await db.query('insert into auth.users(ema
 const comme = (user, sql, params = []) => commeRole(db, 'authenticated', user, async (tx) => (await tx.query(sql, params)).rows);
 const valeur = async (user, sql, params = []) => Object.values((await comme(user, sql, params))[0])[0];
 const json = (v) => JSON.stringify(v);
-const lignes = async (id) => (await db.query('select * from rest_lignes where commande_id = $1 order by cree_le, id', [id])).rows;
+// Lignes d'une même saisie : même cree_le ; l'ordre de saisie (poulet, bière, eau) départage, sans dépendre des uuid.
+const lignes = async (id) => (await db.query('select * from rest_lignes where commande_id = $1 order by cree_le, array_position($2::uuid[], article_id), id', [id, [poulet, biere, eau]])).rows;
 const cmd = async (id) => (await db.query('select * from rest_commandes where id = $1', [id])).rows[0];
 
 beforeAll(async () => {

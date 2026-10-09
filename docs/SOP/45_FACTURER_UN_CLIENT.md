@@ -9,3 +9,11 @@
 5. Erreur après émission : annuler les paiements (Ventes › paiement › Annuler, motif), puis
    menu ⋯ › **Annuler par un avoir** (motif). Le stock revient, la vente est annulée, l'avoir est numéroté.
 6. Suivi : cartes « À encaisser / En retard » en haut de la page et sur le tableau de bord ; export CSV par onglet.
+7. **Options** : dans l'éditeur du devis, cocher « En option » sur une ligne. Quand le client choisit, cocher
+   l'option dans la section « Options » du devis (avant de le marquer accepté).
+8. **Nouvelle version** : menu ⋯ › Nouvelle version, modifier, renvoyer. **Comparer** montre les versions côte à côte.
+9. **Remise au-delà du seuil** (si réglé dans Paramètres › Facturation) : un responsable ouvre le document et clique
+   « Valider la remise » avant l'envoi.
+10. **Échéancier** : section « Échéancier » › Définir : répartir en N échéances ou saisir dates et montants (la somme
+    doit égaler le total). L'acompte est la première échéance.
+11. **Contrat** : sur un devis accepté, menu ⋯ › Créer le contrat (module Contrats, SOP 68).
