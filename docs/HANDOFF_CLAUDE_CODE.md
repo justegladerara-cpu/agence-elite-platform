@@ -728,15 +728,18 @@ Le §45 ci-dessus est **dépassé** sur ces points (vérifié le 2026-10-08 par 
 Prochaines actions (décisions de Juste) : modules restaurant pour The Dream (§25), import du catalogue (dry-run puis
 accord), et ajout d'un volet Restaurant au « Pilote en production ».
 
-## 45 ter. MISSION « AMÉLIORATIONS MAXIMALES » (commencée le 2026-10-09)
+## 45 ter. MISSION « AMÉLIORATIONS MAXIMALES » (2026-10-09) : TERMINÉE
 
-Plan et suivi : `docs/AMELIORATIONS/` (inventaire, catalogue de propositions avec statuts, rapport final).
-Lot 1 « Confort transversal » (branche `claude/confort-transversal`, doc [CONFORT](CONFORT.md)) : migration
-`20261010000101_recherche_universelle.sql` à appliquer par « Déploiement de la base » **avant** la fusion.
-Migrations de la mission numérotées `20261010000101+` (la PR #11 Immobilier a `20261010000001`).
-Le dépôt est **public** depuis le 2026-10-09 (quota GitHub Actions) : ne pas lancer de workflow qui affiche des
-données de clients réels dans ses journaux (« Vérifier un établissement », « Réconcilier un catalogue ») tant qu'il
-le reste.
+Bilan : `docs/AMELIORATIONS/RAPPORT_FINAL.md`. 12 lots fusionnés (PR #12, #14 à #24) ; migrations
+`20261010000101` à `20261010000110` appliquées en production avant chaque fusion ; pilote en production vert sur
+`main` `a9a1736` (run 37989650607). Base : 60 migrations en production = 60 dans Git.
+Modules ajoutés en Bêta, désactivés par défaut : assistant, production, location, livraisons, scolaire, comptabilite,
+marketing. `cockpit_domaines` est redéfini en entier par chaque migration qui ajoute un domaine (21 entrées).
+Suite : demande des 150 fonctions, classée dans `docs/AMELIORATIONS/DEMANDE_150_2026-10-09.md`, construite par lots A à H.
+Le dépôt est **public** (choix de Juste du 2026-10-09) : ne pas lancer de workflow qui affiche des données de clients
+réels (« Vérifier un établissement », « Réconcilier un catalogue »).
+Bruit connu : « Workers Builds » échoue sur les branches de PR (le site est publié par Cloudflare Pages) ;
+`express-congo.yml` échoue à chaque push (autre session).
 
 ## 46–47. Prompt pour la nouvelle session
 
