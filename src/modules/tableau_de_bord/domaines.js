@@ -70,6 +70,14 @@ export const DOMAINES = {
       { libelle: 'Réceptionner', icone: 'stock', route: 'achats?onglet=en_cours', permission: 'achats.recevoir' },
     ],
   },
+  location: {
+    icone: 'cle', sousTitre: 'Objets loués, retours, cautions et revenus',
+    actions: [
+      { libelle: 'Nouvelle location', icone: 'plus', route: 'location', permission: 'location.louer', principal: true },
+      { libelle: 'Retours en retard', icone: 'alerte', route: 'location?statut=en_cours', permission: 'location.lire' },
+      { libelle: 'Parc', icone: 'cle', route: 'location?vue=parc', permission: 'location.lire' },
+    ],
+  },
   production: {
     icone: 'inventaire', sousTitre: 'Ordres de fabrication, recettes et coût des composants',
     actions: [

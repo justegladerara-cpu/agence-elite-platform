@@ -74,6 +74,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Connecter un service externe (mode test, clé chiffrée, webhook, désactivation) | [60](60_CONNECTER_UN_SERVICE_EXTERNE.md) | Gérant |
 | Utiliser l'assistant (alertes du jour, réglage des seuils) | [61](61_UTILISER_L_ASSISTANT.md) | Gérant + Agence Elite |
 | Fabriquer un produit (recette, ordre, fin de fabrication) | [62](62_FABRIQUER_UN_PRODUIT.md) | Gérant + atelier |
+| Louer un objet (parc, réservation, remise, retour, caution) | [63](63_LOUER_UN_OBJET.md) | Équipe + gérant |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

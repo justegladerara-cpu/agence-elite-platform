@@ -227,6 +227,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Recettes' }).click();
       await p.getByText('Panier garni (démo)').first().waitFor();
     });
+    await etape('location', async () => {
+      await p.goto(U + '#/location');
+      await p.getByText('LC-00001').first().click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Enregistrer le retour' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Valider le retour' }).click();
+      await p.getByText(/LC-00001 rendu/).first().waitFor();
+      await p.getByRole('tab', { name: 'Parc' }).click();
+      await p.getByText('Tente de réception (démo)').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

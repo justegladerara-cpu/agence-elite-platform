@@ -1102,3 +1102,34 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- Location (Bêta) : deux objets fictifs et une location en cours pour le « Client fidèle Démo ».
+do $$
+declare etab uuid; sa uuid; gerante uuid; tente uuid; sono uuid; client uuid; contrat jsonb;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not exists (select 1 from public.modules where id = 'location')
+     or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'location') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into client from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'location', true, 'Démo : location de matériel');
+  perform public.definir_module_etablissement(etab, 'location', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  tente := public.enregistrer_objet_location(etab, jsonb_build_object('nom', 'Tente de réception (démo)', 'reference', 'LOC-TEN',
+    'categorie', 'Événementiel', 'tarif_jour', 25000, 'caution', 50000));
+  sono := public.enregistrer_objet_location(etab, jsonb_build_object('nom', 'Sonorisation (démo)', 'reference', 'LOC-SON',
+    'categorie', 'Événementiel', 'tarif_jour', 15000, 'caution', 30000));
+  if client is not null then
+    contrat := public.creer_contrat_location(etab, jsonb_build_object('contact_id', client, 'objets', jsonb_build_array(tente, sono),
+      'debut', current_date - 1, 'fin_prevue', current_date + 1, 'note', 'Mariage (fictif)'));
+    perform public.remettre_contrat_location((contrat ->> 'id')::uuid, true);
+    perform public.encaisser_contrat_location((contrat ->> 'id')::uuid, 40000, 'mobile_money');
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
