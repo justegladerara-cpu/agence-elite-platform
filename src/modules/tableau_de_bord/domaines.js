@@ -78,6 +78,14 @@ export const DOMAINES = {
       { libelle: 'Plan comptable', icone: 'parametres', route: 'comptabilite?vue=plan', permission: 'comptabilite.lire' },
     ],
   },
+  contrats: {
+    icone: 'document', sousTitre: 'Contrats en cours, engagements annualisés, fins et préavis à surveiller',
+    actions: [
+      { libelle: 'Nouveau contrat', icone: 'plus', route: 'contrats', permission: 'contrats.gerer', principal: true },
+      { libelle: 'Registre des engagements', icone: 'document', route: 'contrats?vue=registre', permission: 'contrats.lire' },
+      { libelle: 'Préavis à envoyer', icone: 'alerte', route: 'contrats?vue=registre&filtre=preavis', permission: 'contrats.lire' },
+    ],
+  },
   marketing: {
     icone: 'message', sousTitre: 'Campagnes préparées, envoyées et accords des contacts',
     actions: [

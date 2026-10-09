@@ -1272,3 +1272,61 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- Devis et contrats (lot B) : version 2 du devis de l'école avec une option et un échéancier, contrat client né du
+-- devis de l'hôtel avec un avenant, contrat fournisseur à reconduction tacite dont le préavis approche. Fictif.
+do $$
+declare
+  etab uuid; sa uuid; gerante uuid; d uuid; v2 uuid; hotel_devis uuid; grossiste uuid; k uuid; aujourdhui date; lignes jsonb;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not exists (select 1 from public.modules where id = 'contrats')
+     or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'contrats') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into d from public.documents_vente where etablissement_id = etab and type = 'devis' and objet = 'Cantine : riz et huile du trimestre' and statut = 'envoye';
+  select id into hotel_devis from public.documents_vente where etablissement_id = etab and type = 'devis' and objet = 'Eau minérale pour les chambres';
+  select id into grossiste from public.contacts where etablissement_id = etab and nom = 'Grossiste Démo';
+  aujourdhui := public.date_locale(etab);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'contrats', true, 'Démo : contrats et engagements');
+  perform public.definir_module_etablissement(etab, 'contrats', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+
+  if d is not null then
+    v2 := public.nouvelle_version_devis(d);
+    select jsonb_agg(jsonb_build_object('article_id', article_id, 'libelle', libelle, 'quantite', quantite, 'prix_unitaire', prix_unitaire,
+             'remise', remise, 'taux_tva', taux_tva) order by ordre) into lignes
+    from public.lignes_document_vente where document_id = v2;
+    lignes := lignes || jsonb_build_array(jsonb_build_object('libelle', 'Livraison le samedi', 'quantite', 3, 'prix_unitaire', 1500, 'optionnelle', true));
+    perform public.enregistrer_document_vente(etab, (select jsonb_build_object('id', v2, 'type', 'devis', 'contact_id', contact_id, 'hub_id', hub_id,
+      'objet', objet, 'lignes', lignes) from public.documents_vente where id = v2));
+    perform public.definir_echeancier(v2, (select jsonb_build_array(
+      jsonb_build_object('date_echeance', aujourdhui, 'montant', round(total_ttc / 2), 'libelle', 'Acompte à la commande'),
+      jsonb_build_object('date_echeance', aujourdhui + 30, 'montant', total_ttc - round(total_ttc / 2), 'libelle', 'Solde à la livraison'))
+      from public.documents_vente where id = v2));
+    perform public.changer_statut_devis(v2, 'envoye');
+  end if;
+
+  if hotel_devis is not null then
+    k := public.contrat_depuis_devis(hotel_devis);
+    perform public.enregistrer_contrat(etab, (select jsonb_build_object('id', k, 'contact_id', contact_id, 'document_vente_id', document_vente_id,
+      'objet', 'Eau minérale pour les chambres : livraison mensuelle', 'montant', 60000, 'periodicite', 'mensuelle',
+      'debut', aujourdhui - 120, 'fin', aujourdhui + 245, 'reconduction_tacite', false, 'preavis_jours', 30,
+      'conditions', 'Livraison le premier lundi du mois. Contrat fictif de démonstration.') from public.contrats where id = k));
+    perform public.changer_statut_contrat(k, 'actif', null, aujourdhui - 125);
+    perform public.ajouter_avenant(k, jsonb_build_object('objet', 'Ajout de l''eau gazeuse', 'date_effet', aujourdhui - 30, 'montant', 72000));
+  end if;
+
+  if grossiste is not null then
+    k := public.enregistrer_contrat(etab, jsonb_build_object('sens', 'fournisseur', 'contact_id', grossiste,
+      'objet', 'Approvisionnement en riz : prix garantis', 'montant', 450000, 'periodicite', 'trimestrielle',
+      'debut', aujourdhui - 320, 'fin', aujourdhui + 45, 'reconduction_tacite', true, 'preavis_jours', 30));
+    perform public.changer_statut_contrat(k, 'actif', null, aujourdhui - 325);
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

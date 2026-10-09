@@ -130,7 +130,14 @@ describe('moteur de données local', () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
     const docs = await api.lire('documents_vente', { eq: { etablissement_id: etab } });
-    expect(docs.filter((d) => d.type === 'devis')).toHaveLength(3); // dont celui du CRM
+    expect(docs.filter((d) => d.type === 'devis')).toHaveLength(4); // dont celui du CRM et la version 2 de celui de l'école
+    const v2 = docs.find((d) => d.version === 2);
+    expect(v2).toMatchObject({ statut: 'envoye' });
+    expect(v2.numero).toMatch(/-V2$/);
+    expect(await api.lire('echeances_document', { eq: { document_id: v2.id } })).toHaveLength(2);
+    const contrats = await api.lire('contrats', { eq: { etablissement_id: etab } });
+    expect(contrats.map((k) => k.sens).sort()).toEqual(['client', 'fournisseur']);
+    expect(await api.lire('contrat_avenants', { eq: { etablissement_id: etab } })).toHaveLength(1);
     expect(docs.filter((d) => d.type === 'avoir')).toHaveLength(1);
     const tdb = await api.rpc('tableau_de_bord_facturation', { p_etablissement_id: etab });
     expect(tdb.nb_en_retard).toBe(1);
