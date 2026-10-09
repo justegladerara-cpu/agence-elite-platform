@@ -7,6 +7,13 @@
 - Vérifié : `npm test` 494/494, `npm run build`, `npm run build:demo`, `parcours_navigateur` et `parcours_restaurant` sur le build du lot (aucune erreur console).
 - Audit de l'historique Git devenu public : aucun secret à révoquer ; données clients visibles signalées à Juste.
 
+## 2026-10-09 — Sites clients rattachés : Express Congo géré depuis le Super Admin
+- Demande de Juste : mettre Express Congo en ligne et le rattacher à la plateforme pour gérer accès et réglages depuis le compte super admin.
+- Menu « Sites clients » (`#/editeur/sites`, super admin seulement) : état, comptes et rôles (création par lien d'activation, rôle, désactivation, lien de mot de passe, fermeture des sessions), démo publique, journal, « Ouvrir la gestion » (lien 60 s).
+- Aucun secret ni migration : le site vérifie le jeton de session avec `est_super_admin()` (clé publishable). `api.jeton()` ajouté au client Supabase ; CSP `connect-src` complétée. Doc : `docs/SITES_CLIENTS.md`.
+- Vérifié : `npm test` (51 fichiers, 490 tests), `npm run build`, rendu de l'écran avec un faux site (1440 et 390 px, aucune erreur).
+- Reste à Juste : publier le Worker `express-congo` sur Cloudflare (voir le README du site) ; tant qu'il n'est pas en ligne, l'écran affiche « Le site ne répond pas ».
+
 ## 2026-10-08 — Adresses web des clients (super admin) et connecteur IA
 - Demande de Juste : créer facilement des adresses comme thedream.agence-elite.fr depuis le compte super admin, et via l'IA (« Les deux »).
 - Page `#/editeur/adresses` (menu « Adresses web », super admin seulement) + action « Créer son adresse web » sur chaque établissement.
