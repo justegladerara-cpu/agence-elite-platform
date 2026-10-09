@@ -70,6 +70,13 @@ export const DOMAINES = {
       { libelle: 'Réceptionner', icone: 'stock', route: 'achats?onglet=en_cours', permission: 'achats.recevoir' },
     ],
   },
+  livraisons: {
+    icone: 'camion', sousTitre: 'Livraisons du jour, tournées, échecs et encaissements',
+    actions: [
+      { libelle: 'Nouvelle livraison', icone: 'plus', route: 'livraisons?nouveau=1', permission: 'livraisons.gerer', principal: true },
+      { libelle: 'Échecs à replanifier', icone: 'alerte', route: 'livraisons?statut=echec', permission: 'livraisons.lire' },
+    ],
+  },
   location: {
     icone: 'cle', sousTitre: 'Objets loués, retours, cautions et revenus',
     actions: [

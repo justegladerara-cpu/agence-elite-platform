@@ -236,6 +236,19 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Parc' }).click();
       await p.getByText('Tente de réception (démo)').first().waitFor();
     });
+    await etape('livraisons', async () => {
+      await p.goto(U + '#/livraisons');
+      await p.getByText('LV-00002').first().click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Livrée' }).click();
+      await p.getByRole('dialog').getByLabel('Reçue par').fill('Mme Démo');
+      await p.getByRole('dialog').getByRole('button', { name: 'Confirmer la livraison' }).click();
+      await p.getByText(/LV-00002 livrée/).first().waitFor();
+      await p.goto(U + '#/livraisons?nouveau=1');
+      await p.getByRole('dialog').getByLabel('Destinataire', { exact: true }).fill('Client E2E');
+      await p.getByRole('dialog').getByLabel('Adresse', { exact: true }).fill('Rue du Test, Pointe-Noire');
+      await p.getByRole('dialog').getByRole('button', { name: 'Créer la livraison' }).click();
+      await p.getByText(/Livraison LV-00003 créée/).first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
