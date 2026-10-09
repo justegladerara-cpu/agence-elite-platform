@@ -70,6 +70,14 @@ export const DOMAINES = {
       { libelle: 'Réceptionner', icone: 'stock', route: 'achats?onglet=en_cours', permission: 'achats.recevoir' },
     ],
   },
+  scolaire: {
+    icone: 'membres', sousTitre: 'Élèves inscrits, frais encaissés et impayés',
+    actions: [
+      { libelle: 'Inscrire un élève', icone: 'plus', route: 'scolaire', permission: 'scolaire.inscrire', principal: true },
+      { libelle: 'Frais impayés', icone: 'alerte', route: 'scolaire?paiement=impaye', permission: 'scolaire.lire' },
+      { libelle: 'Classes', icone: 'membres', route: 'scolaire?vue=classes', permission: 'scolaire.lire' },
+    ],
+  },
   livraisons: {
     icone: 'camion', sousTitre: 'Livraisons du jour, tournées, échecs et encaissements',
     actions: [

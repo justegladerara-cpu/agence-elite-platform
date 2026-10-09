@@ -76,6 +76,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Fabriquer un produit (recette, ordre, fin de fabrication) | [62](62_FABRIQUER_UN_PRODUIT.md) | Gérant + atelier |
 | Louer un objet (parc, réservation, remise, retour, caution) | [63](63_LOUER_UN_OBJET.md) | Équipe + gérant |
 | Livrer un client (livraison, tournée, preuve, échec) | [64](64_LIVRER_UN_CLIENT.md) | Responsable + livreur |
+| Gérer les inscriptions et les frais d'une école (Scolarité) | [65](65_GERER_UNE_ECOLE.md) | Responsable + secrétariat |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

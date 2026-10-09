@@ -1158,3 +1158,36 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- Scolarité (Bêta) : accordée en complément à Commerce Démo pour montrer l'écran ; élèves et frais fictifs.
+do $$
+declare etab uuid; sa uuid; gerante uuid; annee uuid; cp uuid; ce1 uuid; parent uuid; e1 uuid; e2 uuid; e3 uuid; i1 uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not exists (select 1 from public.modules where id = 'scolaire')
+     or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'scolaire') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into parent from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'scolaire', true, 'Démo : école et frais de scolarité');
+  perform public.definir_module_etablissement(etab, 'scolaire', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  annee := public.enregistrer_annee_scolaire(etab, jsonb_build_object('libelle', 'Année démo', 'debut', current_date - 30, 'fin', current_date + 280, 'active', true));
+  cp := public.enregistrer_classe(etab, jsonb_build_object('annee_id', annee, 'nom', 'CP A (démo)', 'niveau', 'CP', 'capacite', 30,
+    'frais_inscription', 15000, 'frais_scolarite', 120000));
+  ce1 := public.enregistrer_classe(etab, jsonb_build_object('annee_id', annee, 'nom', 'CE1 (démo)', 'niveau', 'CE1', 'capacite', 25,
+    'frais_inscription', 15000, 'frais_scolarite', 135000));
+  e1 := public.enregistrer_eleve(etab, jsonb_build_object('nom', 'Démo', 'prenom', 'Élève Un', 'responsable_id', parent));
+  e2 := public.enregistrer_eleve(etab, jsonb_build_object('nom', 'Démo', 'prenom', 'Élève Deux', 'responsable_id', parent));
+  e3 := public.enregistrer_eleve(etab, jsonb_build_object('nom', 'Exemple', 'prenom', 'Élève Trois'));
+  i1 := public.inscrire_eleve(etab, jsonb_build_object('eleve_id', e1, 'classe_id', cp));
+  perform public.inscrire_eleve(etab, jsonb_build_object('eleve_id', e2, 'classe_id', ce1, 'remise', 15000, 'motif_remise', 'Fratrie (démo)'));
+  perform public.inscrire_eleve(etab, jsonb_build_object('eleve_id', e3, 'classe_id', ce1));
+  perform public.encaisser_scolarite(i1, 50000, 'mobile_money', 'Démo');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
