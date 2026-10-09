@@ -149,8 +149,11 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/tableau-de-bord');
       await p.getByText('Chiffre d’affaires').first().waitFor();
       await p.keyboard.press('Control+k');
-      await p.getByRole('combobox', { name: 'Rechercher partout' }).fill('stock');
-      await p.keyboard.press('Enter');
+      const champ = p.getByRole('combobox', { name: 'Rechercher partout' });
+      await champ.fill('stock');
+      // Entrée ouvre la ligne choisie : on attend que « Stock » soit en tête et sélectionné.
+      await p.locator('[role="option"][aria-selected="true"]', { hasText: /^Stock/ }).waitFor();
+      await champ.press('Enter');
       await p.waitForFunction(() => location.hash.startsWith('#/stock'));
     });
     await etape('palette-donnee', async () => {
