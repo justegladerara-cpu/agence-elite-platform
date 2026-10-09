@@ -1213,3 +1213,31 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- Marketing (Bêta) : un segment, l'accord fictif du « Client fidèle Démo » pour WhatsApp et SMS, une campagne en brouillon.
+do $$
+declare etab uuid; sa uuid; gerante uuid; client uuid; seg uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not exists (select 1 from public.modules where id = 'marketing')
+     or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'marketing') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into client from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'marketing', true, 'Démo : campagnes marketing');
+  perform public.definir_module_etablissement(etab, 'marketing', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  seg := public.enregistrer_segment(etab, jsonb_build_object('nom', 'Clients (démo)', 'criteres', jsonb_build_object('types', jsonb_build_array('client'))));
+  if client is not null then
+    perform public.definir_consentement(etab, client, 'whatsapp', true, 'Accord fictif de démonstration');
+    perform public.definir_consentement(etab, client, 'sms', true, 'Accord fictif de démonstration');
+  end if;
+  perform public.enregistrer_campagne(etab, jsonb_build_object('nom', 'Nouveautés du mois (démo)', 'canal', 'whatsapp', 'segment_id', seg,
+    'message', 'Bonjour, découvrez nos nouveautés cette semaine en boutique (message fictif).'));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

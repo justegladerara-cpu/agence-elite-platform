@@ -78,6 +78,14 @@ export const DOMAINES = {
       { libelle: 'Plan comptable', icone: 'parametres', route: 'comptabilite?vue=plan', permission: 'comptabilite.lire' },
     ],
   },
+  marketing: {
+    icone: 'message', sousTitre: 'Campagnes préparées, envoyées et accords des contacts',
+    actions: [
+      { libelle: 'Nouvelle campagne', icone: 'plus', route: 'marketing', permission: 'marketing.gerer', principal: true },
+      { libelle: 'Campagnes prêtes', icone: 'message', route: 'marketing?statut=prete', permission: 'marketing.lire' },
+      { libelle: 'Accords des contacts', icone: 'contacts', route: 'marketing?vue=consentements', permission: 'marketing.lire' },
+    ],
+  },
   scolaire: {
     icone: 'membres', sousTitre: 'Élèves inscrits, frais encaissés et impayés',
     actions: [
