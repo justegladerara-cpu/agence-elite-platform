@@ -37,3 +37,16 @@ Réservé au rôle `super_admin` (le menu est masqué aux autres, et le site ref
    (modèle : `sites-clients/express-congo/src/server/platform.ts`).
 2. Ajouter l'entrée dans `src/noyau/sites.js` et son adresse dans `connect-src` de `public/_headers`.
 3. `npm test` (test `tests/sites_clients.test.jsx`), `npm run build`.
+
+## Publication automatique
+
+Les sites clients sont publiés **par la publication Cloudflare de la plateforme** : `wrangler.jsonc` (champ
+`build.command`) lance `scripts/publier_sites_clients.mjs` juste avant de publier la plateforme. Dans Cloudflare
+Workers Builds, sur `main`, avec le jeton fourni par Cloudflare, le script fait pour chaque `sites-clients/<site>/`
+qui a un script `cf:deploy` : `npm ci` puis `npm run cf:deploy` (Worker du même nom que dans son `wrangler.jsonc`).
+
+- Ailleurs (poste local, CI GitHub, Cloudflare Pages, autres branches) : rien.
+- Une erreur d'un site est affichée dans le journal de build (`[sites-clients] … ÉCHEC`) et **ne bloque jamais**
+  la plateforme.
+- Vérifier : le connecteur Cloudflare (`workers_get_worker_code express-congo`) ne doit plus montrer « Hello world ».
+- Coût : quelques minutes de plus sur chaque build de la plateforme.

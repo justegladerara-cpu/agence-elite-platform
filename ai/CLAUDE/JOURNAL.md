@@ -1,5 +1,10 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-10 — Publication automatique des sites clients
+- Demande de Juste : tout faire sans action de sa part. Aucun accès direct à Cloudflare depuis la session (API bloquée, connecteur sans publication).
+- `wrangler.jsonc` : `build.command` → `scripts/publier_sites_clients.mjs`, qui publie `sites-clients/*` avec le jeton de Workers Builds (main uniquement), sans jamais faire échouer la plateforme.
+- Vérifié en local : sans Workers Builds → ignoré ; branche ≠ main → ignoré ; échec simulé → « ÉCHEC », sortie 0 ; `wrangler deploy --dry-run` lance bien le script.
+
 ## 2026-10-09 — Sites clients rangés dans ce dépôt
 - Demande de Juste : les sites clients vivent dans le dépôt de la plateforme. Express Congo déplacé de `agenceelite` vers `sites-clients/express-congo` (146 fichiers suivis, identiques).
 - `vitest.config.js` exclut `sites-clients/**` ; workflow `.github/workflows/express-congo.yml` (vérifications + publication si secret `CLOUDFLARE_API_TOKEN`).

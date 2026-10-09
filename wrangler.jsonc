@@ -1,12 +1,16 @@
 // Publication sur Cloudflare (Workers avec fichiers statiques) : le site est le
 // dossier dist produit par « npm run build ». Les en-têtes de sécurité viennent
-// de public/_headers. Aucune logique côté serveur.
+// de public/_headers. Aucune logique côté serveur pour la plateforme elle-même.
 {
   "name": "agence-elite-platform",
   "compatibility_date": "2026-10-01",
   // Adresse publique *.workers.dev toujours active (sinon le site n'est plus joignable).
   "workers_dev": true,
   "preview_urls": true,
+  // Avant chaque publication : publie aussi les sites clients de sites-clients/ (Express Congo…), avec le jeton
+  // fourni par Cloudflare Workers Builds. Ne fait rien ailleurs et ne fait jamais échouer la plateforme.
+  // Voir scripts/publier_sites_clients.mjs et docs/SITES_CLIENTS.md.
+  "build": { "command": "node scripts/publier_sites_clients.mjs" },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"

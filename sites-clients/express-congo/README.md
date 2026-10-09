@@ -63,7 +63,9 @@ Le site client (`/manifest.webmanifest`) et le logiciel de gestion (`/gestion.we
 
 Le site tourne sur Cloudflare Workers via l’adaptateur OpenNext, avec la base **D1** `express-congo-demo` (même SQL que la base locale). Configuration : `wrangler.jsonc` (Worker `express-congo`, liaison `DB`, `APP_ENV=demo`, `DATABASE_DRIVER=d1`) et `open-next.config.ts`.
 
-**Mettre en ligne (une seule fois, au choix)** — l’adresse sera `https://express-congo.justegladerara.workers.dev`, celle qu’attend la plateforme Agence Élite.
+**Mise en ligne automatique** : depuis le 10 octobre 2026, chaque mise à jour de `main` du dépôt de la plateforme publie aussi ce site (voir `docs/SITES_CLIENTS.md` à la racine, « Publication automatique »). Les options ci-dessous restent possibles mais ne sont plus nécessaires.
+
+**Autres façons de mettre en ligne** — l’adresse sera `https://express-congo.justegladerara.workers.dev`, celle qu’attend la plateforme Agence Élite.
 
 _Option A — relier le dépôt dans Cloudflare (recommandé, aucun jeton)_ : tableau de bord Cloudflare → Workers & Pages → Créer → Importer un dépôt Git :
 
