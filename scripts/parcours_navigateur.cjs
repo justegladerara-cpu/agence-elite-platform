@@ -257,6 +257,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Classes' }).click();
       await p.getByText('CE1 (démo)').first().waitFor();
     });
+    await etape('comptabilite', async () => {
+      await p.goto(U + '#/comptabilite');
+      await p.getByRole('button', { name: /Générer les écritures \(\d+\)/ }).click();
+      await p.getByText(/écriture\(s\) générée\(s\)/).first().waitFor();
+      await p.getByRole('tab', { name: 'Balance' }).click();
+      await p.getByText(/Les deux sont toujours égaux/).waitFor();
+      await p.getByRole('tab', { name: 'Plan comptable' }).click();
+      await p.getByText('Comptes utilisés par les écritures automatiques').waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
