@@ -154,7 +154,7 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onValide
   );
 }
 
-function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRemise, contacts, contactId, onContact, onEncaisser }) {
+function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRemise, contacts, contactId, onContact, onEncaisser, onAttente }) {
   const { montant } = useEspace();
   const sousTotal = lignes.reduce((s, l) => s + articles[l.article_id].prix_vente * l.quantite, 0);
   const total = Math.max(sousTotal - Number(remise || 0), 0);
@@ -200,11 +200,76 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
           </div>
           <div className="panier-total"><span>Total</span><strong>{montant(total)}</strong></div>
         </div>
+        {onAttente && lignes.length > 0 && <Bouton icone="horloge" onClick={onAttente}>Mettre en attente</Bouton>}
         <Bouton variante="principal grand" disabled={!lignes.length} onClick={() => onEncaisser(total)}>
           Encaisser {lignes.length > 0 && montant(total)}
         </Bouton>
       </div>
     </aside>
+  );
+}
+
+function ModaleMiseEnAttente({ onValider, onFermer }) {
+  const [libelle, setLibelle] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [enCours, setEnCours] = useState(false);
+  const valider = async (e) => {
+    e.preventDefault();
+    setEnCours(true);
+    setErreur('');
+    try {
+      await onValider(libelle.trim());
+    } catch (err) {
+      setErreur(err.message);
+      setEnCours(false);
+    }
+  };
+  return (
+    <Modale titre="Mettre la vente en attente" onFermer={onFermer}>
+      <form className="formulaire" onSubmit={valider}>
+        <Champ libelle="Nom pour la retrouver (facultatif)" aide="Ex. « Monsieur en bleu », « Table 4 ». Le stock ne bouge pas tant que la vente n’est pas encaissée.">
+          <input value={libelle} maxLength={60} onChange={(e) => setLibelle(e.target.value)} autoFocus />
+        </Champ>
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal" chargement={enCours}>Mettre en attente</Bouton>
+        </div>
+      </form>
+    </Modale>
+  );
+}
+
+function ModaleAttentes({ attentes, panierOccupe, onAction, onFermer }) {
+  const { montant } = useEspace();
+  const [erreur, setErreur] = useState('');
+  const agir = async (a, action) => {
+    setErreur('');
+    try {
+      await onAction(a, action);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <Modale titre="Ventes en attente" onFermer={onFermer}>
+      {panierOccupe && <p className="bandeau attention">Le panier en cours n’est pas vide : encaissez-le ou mettez-le en attente avant d’en reprendre un autre.</p>}
+      <Erreur message={erreur} />
+      <ul className="liste-attentes">
+        {attentes.map((a) => (
+          <li key={a.id}>
+            <span>
+              <strong>{a.libelle}</strong>
+              <small className="texte-doux bloc">{formatDateHeure(a.cree_le)} · {a.lignes.length} ligne(s) · environ {montant(a.total_estime)}</small>
+            </span>
+            <span className="actions-ligne">
+              <Bouton variante="principal" disabled={panierOccupe} onClick={() => agir(a, 'reprendre')}>Reprendre</Bouton>
+              <button type="button" className="lien danger" onClick={() => agir(a, 'abandonner')}>Abandonner</button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Modale>
   );
 }
 
@@ -214,20 +279,22 @@ export default function Caisse({ naviguer }) {
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [articles, stock, categories, contacts, sessions, pointsDeVente] = await Promise.all([
+    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }),
       api.lire('points_de_vente', { eq: { etablissement_id: etab, actif: true }, ordre: ['cree_le'] }),
+      // Ventes en attente (migration 20261010000102) : sans la table, la fonction est simplement masquée.
+      api.lire('ventes_en_attente', { eq: { etablissement_id: etab, statut: 'en_attente' }, ordre: ['cree_le'] }).catch(() => null),
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
       articles, stock, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
-      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses,
+      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes,
     };
   }, [etab, hubsCaisse.join()]);
   const [pdvChoisi, setPdvChoisi] = useState(null);
@@ -239,6 +306,8 @@ export default function Caisse({ naviguer }) {
   const [paiement, setPaiement] = useState(null);
   const [recu, setRecu] = useState(null);
   const [panierMobile, setPanierMobile] = useState(false);
+  const [miseEnAttente, setMiseEnAttente] = useState(false);
+  const [listeAttente, setListeAttente] = useState(false);
 
   const parId = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
   const session = donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
@@ -302,6 +371,31 @@ export default function Caisse({ naviguer }) {
     recharger();
   };
 
+  // Les ventes en attente du Hub de la caisse : un panier mis de côté se reprend sur n'importe quelle caisse du Hub.
+  const attentes = donnees.attentes?.filter((a) => a.hub_id === session.hub_id) ?? null;
+  const mettreEnAttente = async (libelle) => {
+    await api.rpc('mettre_vente_en_attente', {
+      p_session_id: session.id, p_lignes: lignes, p_libelle: libelle || null, p_contact_id: contactId, p_remise: Number(remise || 0),
+    });
+    setMiseEnAttente(false);
+    setPanierMobile(false);
+    vider();
+    notifier('Vente mise en attente');
+    recharger();
+  };
+  const terminerAttente = async (attente, action) => {
+    const r = await api.rpc('terminer_vente_en_attente', { p_id: attente.id, p_action: action });
+    if (action === 'reprendre') {
+      // Un article archivé entre-temps n'est pas repris ; le prix est celui du moment de la vente.
+      setLignes(r.lignes.filter((l) => parId[l.article_id]).map((l) => ({ article_id: l.article_id, quantite: Number(l.quantite) })));
+      setRemise(Number(r.remise) ? String(r.remise) : '');
+      setContactId(r.contact_id ?? null);
+      notifier(`« ${r.libelle} » reprise`);
+    } else notifier(`« ${r.libelle} » abandonnée`);
+    setListeAttente(false);
+    recharger();
+  };
+
   const recherchePrecise = (e) => {
     if (e.key !== 'Enter') return;
     const exact = donnees.articles.find((a) => a.code_barres === recherche.trim() || a.reference === recherche.trim());
@@ -324,6 +418,7 @@ export default function Caisse({ naviguer }) {
               </select>
             )}
           </div>
+          {attentes?.length > 0 && <Bouton icone="horloge" onClick={() => setListeAttente(true)}>En attente ({attentes.length})</Bouton>}
           {peut('cloture.cloturer') && <Bouton icone="cloture" onClick={() => naviguer('clotures')}>Clôturer</Bouton>}
         </div>
         <div onKeyDown={recherchePrecise}>
@@ -370,12 +465,17 @@ export default function Caisse({ naviguer }) {
           contactId={contactId}
           onContact={setContactId}
           onEncaisser={(total) => setPaiement({ total })}
+          onAttente={attentes ? () => setMiseEnAttente(true) : null}
         />
         <button className="panier-fermer-mobile" onClick={() => setPanierMobile(false)}>Continuer les achats</button>
       </div>
       <button className="panier-mobile" onClick={() => setPanierMobile(true)}>
         <Icone nom="panier" /> {formatQuantite(nombreArticles)} article(s) · voir le panier
       </button>
+      {miseEnAttente && <ModaleMiseEnAttente onValider={mettreEnAttente} onFermer={() => setMiseEnAttente(false)} />}
+      {listeAttente && attentes && (
+        <ModaleAttentes attentes={attentes} panierOccupe={lignes.length > 0} onAction={terminerAttente} onFermer={() => setListeAttente(false)} />
+      )}
       {paiement && (
         <ModalePaiement
           total={paiement.total}
