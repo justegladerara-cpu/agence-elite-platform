@@ -1,5 +1,12 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-09 — Améliorations maximales, lot 1 « Confort transversal » (branche `claude/confort-transversal`)
+- Mission de Juste : inventaire, catalogue de propositions, 10 modules et 10 intégrations (plan `docs/AMELIORATIONS/`).
+- Lot 1 : recherche universelle Ctrl+K (écrans, créations, données via `recherche_universelle`, migration `20261010000101`, security invoker), bouton « + » de création rapide, raccourcis clavier, thème sombre / contraste / texte / gros boutons par appareil, export CSV et impression de toute liste `DataTable`, export des ventes, application installable (manifeste + icônes), écrans chargés à la demande (fichier principal 897 ko → 433 ko).
+- Numérotation `20261010000101+` : la PR #11 (Immobilier) occupe déjà `20261010000001`.
+- Vérifié : `npm test` 494/494, `npm run build`, `npm run build:demo`, `parcours_navigateur` et `parcours_restaurant` sur le build du lot (aucune erreur console).
+- Audit de l'historique Git devenu public : aucun secret à révoquer ; données clients visibles signalées à Juste.
+
 ## 2026-10-08 — Adresses web des clients (super admin) et connecteur IA
 - Demande de Juste : créer facilement des adresses comme thedream.agence-elite.fr depuis le compte super admin, et via l'IA (« Les deux »).
 - Page `#/editeur/adresses` (menu « Adresses web », super admin seulement) + action « Créer son adresse web » sur chaque établissement.

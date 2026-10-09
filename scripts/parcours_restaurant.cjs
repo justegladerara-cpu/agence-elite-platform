@@ -4,7 +4,7 @@
 // CHROMIUM_PATH : navigateur déjà installé. Captures dans captures-parcours/ (ignoré par Git).
 require('node:fs').mkdirSync('captures-parcours', { recursive: true });
 const { chromium } = require('playwright');
-const U = 'http://localhost:4173/';
+const U = process.env.URL_APP ?? 'http://localhost:4173/';
 
 (async () => {
   const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});

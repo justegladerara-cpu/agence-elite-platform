@@ -728,6 +728,16 @@ Le §45 ci-dessus est **dépassé** sur ces points (vérifié le 2026-10-08 par 
 Prochaines actions (décisions de Juste) : modules restaurant pour The Dream (§25), import du catalogue (dry-run puis
 accord), et ajout d'un volet Restaurant au « Pilote en production ».
 
+## 45 ter. MISSION « AMÉLIORATIONS MAXIMALES » (commencée le 2026-10-09)
+
+Plan et suivi : `docs/AMELIORATIONS/` (inventaire, catalogue de propositions avec statuts, rapport final).
+Lot 1 « Confort transversal » (branche `claude/confort-transversal`, doc [CONFORT](CONFORT.md)) : migration
+`20261010000101_recherche_universelle.sql` à appliquer par « Déploiement de la base » **avant** la fusion.
+Migrations de la mission numérotées `20261010000101+` (la PR #11 Immobilier a `20261010000001`).
+Le dépôt est **public** depuis le 2026-10-09 (quota GitHub Actions) : ne pas lancer de workflow qui affiche des
+données de clients réels dans ses journaux (« Vérifier un établissement », « Réconcilier un catalogue ») tant qu'il
+le reste.
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).
