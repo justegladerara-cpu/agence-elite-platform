@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Préproduction de démonstration Express Congo (non indexable).
+  "name": "express-congo",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "observability": { "enabled": true },
+  // Adresse publique https://express-congo.<compte>.workers.dev.
+  "workers_dev": true,
+  "preview_urls": true,
+  "vars": {
+    "APP_ENV": "demo",
+    "DATABASE_DRIVER": "d1",
+    // Plateforme Agence Élite : URL et clé « publishable » (publiques par nature).
+    // Elles servent seulement à demander à la plateforme si un jeton est celui d’un Super Admin.
+    "PLATEFORME_SUPABASE_URL": "https://xrlfedosaqtffraadmgk.supabase.co",
+    "PLATEFORME_SUPABASE_KEY": "sb_publishable_fpHQmPBtF_4pFMaOnBIKXQ_7KcmvjeX",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "express-congo-demo",
+      "database_id": "3030b52b-f159-4f94-acaf-df0dd85761bc",
+    },
+  ],
+}
