@@ -212,6 +212,11 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
         await p.keyboard.press('Escape');
       }
     });
+    await etape('assistant', async () => {
+      await p.goto(U + '#/assistant');
+      await p.getByRole('heading', { name: 'Assistant' }).first().waitFor();
+      await p.getByText('À regarder').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
