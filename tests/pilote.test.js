@@ -119,9 +119,9 @@ describe('pilote : mise en service de deux établissements sans code', () => {
       p.A.id, p.A.session, JSON.stringify([{ article_id: p.B.savon, quantite: 1 }]), JSON.stringify([{ mode: 'especes', montant: 800 }]),
     ])).rejects.toThrow();
     // Le tableau de bord lit sous les droits de l'utilisateur : sur B, le gérant de A ne voit rien.
-    const bordB = await valeur(p.A.gerant, 'select tableau_de_bord_commerce($1, current_date, current_date)', [p.B.id]);
+    const bordB = await valeur(p.A.gerant, 'select tableau_de_bord_commerce($1, date_locale($1), date_locale($1))', [p.B.id]);
     expect(Number(bordB.nombre_ventes)).toBe(0);
-    expect(Number((await valeur(p.B.gerant, 'select tableau_de_bord_commerce($1, current_date, current_date)', [p.B.id])).nombre_ventes)).toBe(1);
+    expect(Number((await valeur(p.B.gerant, 'select tableau_de_bord_commerce($1, date_locale($1), date_locale($1))', [p.B.id])).nombre_ventes)).toBe(1);
     await expect(comme(p.B.gerant, "select inviter_membre($1, 'x@pilote.test', 'employe')", [p.A.id])).rejects.toThrow(/Permission refusée/);
     expect((await valeur(p.A.gerant, 'select equipe_etablissement($1)', [p.A.id])).membres.map((m) => m.email).sort())
       .toEqual(['caisse-a@pilote.test', 'gerant-a@pilote.test']);

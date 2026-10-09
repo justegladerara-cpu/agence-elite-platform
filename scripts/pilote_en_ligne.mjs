@@ -84,7 +84,11 @@ async function compte(cle, nom) {
   return { id: data.user.id, email, nom, client, rpc, lire, ecrire };
 }
 
-const aujourdhui = new Date().toISOString().slice(0, 10);
+// Le tableau de bord compte en date locale de l'établissement (son fuseau) : une fenêtre d'un jour de part et d'autre
+// de la date UTC couvre ce jour quel que soit le fuseau ; l'établissement fictif n'a des ventes que du jour.
+const jourUtc = (decalage) => new Date(Date.now() + decalage * 86400000).toISOString().slice(0, 10);
+const veille = jourUtc(-1);
+const lendemain = jourUtc(1);
 
 async function deroulerEtablissement(admin, clientId, cle, nom, offre, formule) {
   const e = { cle, nom };
@@ -179,7 +183,7 @@ async function deroulerEtablissement(admin, clientId, cle, nom, offre, formule) 
     return z;
   });
   await etape(`${cle} · tableau de bord`, async () => {
-    const bord = await e.gerant.rpc('tableau_de_bord_commerce', { p_etablissement_id: e.id, p_du: aujourdhui, p_au: aujourdhui });
+    const bord = await e.gerant.rpc('tableau_de_bord_commerce', { p_etablissement_id: e.id, p_du: veille, p_au: lendemain });
     verifier(Number(bord.nombre_ventes) >= 1, `ventes ${bord.nombre_ventes}`);
     return `CA ${bord.chiffre_affaires} XAF, ${bord.nombre_ventes} vente(s)`;
   });
@@ -287,7 +291,7 @@ async function principal() {
   await refuse('isolation · le gérant A invite dans B', () => A.gerant.rpc('inviter_membre', { p_etablissement_id: B.id, p_email: `x-${lot}@${domaine}`, p_role_id: 'employe' }));
   await refuse('isolation · le gérant B crée un article dans A', () => B.gerant.rpc('enregistrer_article', { p_etablissement_id: A.id, p_article: { nom: 'Intrus', prix_vente: 1 } }));
   await etape('isolation · tableau de bord de B vide pour le gérant A', async () => {
-    const bord = await A.gerant.rpc('tableau_de_bord_commerce', { p_etablissement_id: B.id, p_du: aujourdhui, p_au: aujourdhui });
+    const bord = await A.gerant.rpc('tableau_de_bord_commerce', { p_etablissement_id: B.id, p_du: veille, p_au: lendemain });
     verifier(Number(bord.nombre_ventes) === 0, 'des ventes de B sont visibles');
   });
 
