@@ -1052,3 +1052,21 @@ begin
   perform public.enregistrer_recompense_fidelite(etab,jsonb_build_object('nom','Produit découverte','description','Un produit offert en caisse','points',80,'valeur',1000));
   perform set_config('request.jwt.claims','',true);
 end $$;
+
+-- Assistant (Bêta) : activé dans Commerce Démo ; il ne crée aucune donnée, il lit celles de la démo.
+do $$
+declare etab uuid; sa uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not exists (select 1 from public.modules where id = 'assistant')
+     or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'assistant') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'assistant', true, 'Démo : assistant des anomalies');
+  perform public.definir_module_etablissement(etab, 'assistant', true);
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
