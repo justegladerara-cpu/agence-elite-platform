@@ -1,5 +1,17 @@
 # État du projet (mis à jour le 2026-10-08)
 
+## Mission 3 terminée : gestion immobilière multi-agences (PR #11) — 2026-10-08
+
+| Élément | État |
+|---|---|
+| Code | PR #11 : solution « Immobilier », écrans Biens / Locations / Maintenance, démo fictive à deux agences ([IMMOBILIER](IMMOBILIER.md), [SOP 60](SOP/60_METTRE_EN_SERVICE_UNE_AGENCE_IMMOBILIERE.md)) |
+| Base | migration `20261010000001_immobilier` : sauvegarde (run 37758163797) → simulation « 1 migration » (run 37758175003) → **appliquée** (run 37759107248) avant la fusion ; vérifié en lecture : 50 migrations, 3 modules `immo_*` actifs au catalogue, 0 activation |
+| Clients réels | **aucune activation** (The Dream, Hôtel 2i, Creo inchangés) ; la démo « Immobilier Démo Centre / Nord » se crée avec le workflow des comptes de démonstration |
+
+Mission 1 (modules complémentaires, réconciliation, sélection multiple des articles) : fusionnée (`6cf7517`),
+« Adresse du site » et « Pilote en production » verts sur `main` (runs 37741866235, 37741869561).
+Restent à faire : mission 2 (Studio, modification à l'écran) et mission 4 (portail en marque blanche).
+
 ## Mission terminée : « The Dream en service » (PR #4) — vérifiée en production le 2026-10-08
 
 | Élément | Git | Production (vérifié le 2026-10-08) |

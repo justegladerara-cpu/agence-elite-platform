@@ -1052,3 +1052,118 @@ begin
   perform public.enregistrer_recompense_fidelite(etab,jsonb_build_object('nom','Produit découverte','description','Un produit offert en caisse','points',80,'valeur',1000));
   perform set_config('request.jwt.claims','',true);
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Immobilier : deux agences fictives du même client (« Immobilier Démo Centre » et « Immobilier Démo Nord »),
+-- propriétaires, immeuble et lots, baux, loyers payés / partiels / impayés, caution, incident, reversement préparé.
+-- Aucune donnée réelle.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  client uuid;
+  sa uuid;
+  patron uuid;
+  gerant uuid;
+  gestion uuid;
+  ligne record;
+  id_tmp uuid;
+  etab uuid;
+  agence record;
+  pr1 uuid;
+  pr2 uuid;
+  imm uuid;
+  b jsonb := '{}'::jsonb;
+  l jsonb := '{}'::jsonb;
+  bail uuid;
+  jour date;
+  debut date;
+  domaine constant text := 'demo.agence-elite.fr';
+begin
+  select id into client from public.clients where nom = 'Commerce Démo' order by cree_le limit 1;
+  if client is null or exists (select 1 from public.etablissements where client_id = client and nom = 'Immobilier Démo Centre') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
+
+  for ligne in select * from (values ('immo', 'Aline M. (directrice d''agence)'), ('gestion-locative', 'Fabrice T. (gestionnaire locatif)')) as v(cle, nom) loop
+    select id into id_tmp from auth.users where email = ligne.cle || '@' || domaine;
+    if id_tmp is null then
+      insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+        raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+      values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', ligne.cle || '@' || domaine,
+        extensions.crypt(md5(random()::text || clock_timestamp()::text), extensions.gen_salt('bf')), now(),
+        '{"provider": "email", "providers": ["email"]}'::jsonb, jsonb_build_object('nom', ligne.nom), now(), now(), '', '', '', '')
+      returning id into id_tmp;
+      insert into public.profils (id, nom_complet) values (id_tmp, ligne.nom)
+      on conflict (id) do update set nom_complet = excluded.nom_complet;
+    end if;
+    if ligne.cle = 'immo' then gerant := id_tmp; else gestion := id_tmp; end if;
+  end loop;
+
+  for agence in select * from (values ('Immobilier Démo Centre', 'Centre-ville'), ('Immobilier Démo Nord', 'Quartier Nord')) as v(nom, quartier) loop
+    perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+    etab := public.creer_etablissement(client, 'immobilier', agence.nom);
+    insert into public.etablissement_membres (etablissement_id, user_id, role_id) values
+      (etab, gerant, 'gerant'), (etab, gestion, 'gestionnaire_immobilier')
+    on conflict (etablissement_id, user_id) do nothing;
+    if patron is not null then
+      insert into public.etablissement_membres (etablissement_id, user_id, role_id) values (etab, patron, 'gerant')
+      on conflict (etablissement_id, user_id) do nothing;
+    end if;
+    jour := public.date_locale(etab);
+    debut := (date_trunc('month', jour) - interval '3 months')::date;
+    b := '{}'::jsonb;
+    l := '{}'::jsonb;
+
+    perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+    pr1 := public.enregistrer_proprietaire_immo(etab, jsonb_build_object('nom', 'Propriétaire Démo A (' || agence.quartier || ')', 'telephone', '+242 06 000 10 01',
+      'commission_taux', 10, 'mode_reversement', 'mobile_money', 'coordonnees_reversement', 'Mobile Money fictif 06 000 10 01', 'mandat_debut', debut));
+    pr2 := public.enregistrer_proprietaire_immo(etab, jsonb_build_object('nom', 'Propriétaire Démo B (' || agence.quartier || ')', 'telephone', '+242 05 000 20 02',
+      'commission_taux', 8, 'mode_reversement', 'virement', 'mandat_debut', debut));
+    imm := public.enregistrer_bien_immo(etab, jsonb_build_object('type', 'immeuble', 'nom', 'Résidence Démo ' || agence.quartier, 'proprietaire_id', pr1,
+      'quartier', agence.quartier, 'ville', 'Ville Démo'));
+    for ligne in select * from (values ('A1', 'appartement', 150000, 3), ('A2', 'appartement', 150000, 3), ('B1', 'studio', 80000, 1),
+      ('B2', 'studio', 80000, 1)) as v(nom, type, loyer, pieces) loop
+      b := b || jsonb_build_object(ligne.nom, public.enregistrer_bien_immo(etab, jsonb_build_object('type', ligne.type,
+        'nom', 'Résidence Démo ' || agence.quartier || ' — ' || ligne.nom, 'parent_id', imm, 'proprietaire_id', pr1, 'quartier', agence.quartier,
+        'ville', 'Ville Démo', 'loyer_indicatif', ligne.loyer, 'pieces', ligne.pieces)));
+    end loop;
+    b := b || jsonb_build_object('V', public.enregistrer_bien_immo(etab, jsonb_build_object('type', 'villa', 'nom', 'Villa Démo ' || agence.quartier,
+      'proprietaire_id', pr2, 'quartier', agence.quartier, 'ville', 'Ville Démo', 'loyer_indicatif', 400000, 'pieces', 5)));
+    b := b || jsonb_build_object('L', public.enregistrer_bien_immo(etab, jsonb_build_object('type', 'local', 'nom', 'Local commercial Démo ' || agence.quartier,
+      'proprietaire_id', pr2, 'quartier', agence.quartier, 'ville', 'Ville Démo', 'loyer_indicatif', 250000, 'statut', 'travaux')));
+
+    perform set_config('request.jwt.claims', json_build_object('sub', gestion, 'role', 'authenticated')::text, true);
+    for ligne in select * from (values ('1', 'Locataire Démo 1'), ('2', 'Locataire Démo 2'), ('3', 'Locataire Démo 3'), ('4', 'Société Démo Locataire')) as v(cle, nom) loop
+      l := l || jsonb_build_object(ligne.cle, public.enregistrer_locataire_immo(etab, jsonb_build_object('nom', ligne.nom,
+        'type', case when ligne.cle = '4' then 'entreprise' else 'particulier' end, 'telephone', '+242 06 000 30 0' || ligne.cle)));
+    end loop;
+    -- Bail à jour : 4 mois payés.
+    bail := public.creer_bail_immo(etab, jsonb_build_object('bien_id', b ->> 'A1', 'locataire_id', l ->> '1', 'date_debut', debut, 'duree_mois', 12,
+      'loyer', 150000, 'charges', 10000, 'caution', 300000, 'caution_encaissee', true, 'mode_caution', 'especes'));
+    perform public.encaisser_loyer_immo(bail, jsonb_build_object('montant', 480000, 'mode', 'mobile_money', 'date', debut + 5, 'reference', 'DEMO-MM-1'));
+    perform public.encaisser_loyer_immo(bail, jsonb_build_object('montant', 160000, 'mode', 'especes', 'date', jour));
+    -- Bail en retard : un mois payé, un acompte, le reste impayé.
+    bail := public.creer_bail_immo(etab, jsonb_build_object('bien_id', b ->> 'B1', 'locataire_id', l ->> '2', 'date_debut', debut, 'duree_mois', 12,
+      'loyer', 80000, 'caution', 160000, 'caution_encaissee', true));
+    perform public.encaisser_loyer_immo(bail, jsonb_build_object('montant', 80000, 'mode', 'especes', 'date', debut + 3));
+    perform public.encaisser_loyer_immo(bail, jsonb_build_object('montant', 30000, 'mode', 'especes', 'date', debut + 40));
+    -- Villa louée à une entreprise, bail récent.
+    bail := public.creer_bail_immo(etab, jsonb_build_object('bien_id', b ->> 'V', 'locataire_id', l ->> '4', 'date_debut', date_trunc('month', jour)::date,
+      'duree_mois', 24, 'loyer', 400000, 'caution', 800000, 'caution_encaissee', true, 'mode_caution', 'virement'));
+    perform public.encaisser_loyer_immo(bail, jsonb_build_object('montant', 400000, 'mode', 'virement', 'date', jour, 'reference', 'DEMO-VIR-1'));
+    -- Incidents : un résolu à la charge du propriétaire, un en cours.
+    id_tmp := public.enregistrer_incident_immo(etab, jsonb_build_object('bien_id', b ->> 'A1', 'titre', 'Fuite sous l''évier', 'priorite', 'haute',
+      'prestataire', 'Plombier Démo', 'devis', 25000));
+    perform public.changer_statut_incident_immo(id_tmp, 'resolu', jsonb_build_object('cout', 22000, 'date', jour));
+    perform public.enregistrer_incident_immo(etab, jsonb_build_object('bien_id', b ->> 'L', 'titre', 'Remise en peinture du local', 'priorite', 'normale',
+      'prestataire', 'Peintre Démo', 'devis', 180000));
+
+    perform set_config('request.jwt.claims', json_build_object('sub', gerant, 'role', 'authenticated')::text, true);
+    perform public.preparer_reversement_immo(etab, pr1, debut, jour);
+  end loop;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

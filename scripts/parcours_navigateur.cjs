@@ -131,6 +131,7 @@ const U = 'http://localhost:4173/';
       ['Gisèle', [['salle', 'Salle'], ['cuisine', 'Cuisine']]],
       ['Serge', [['hotel', 'Réception'], ['chambres', 'Chambres']]],
       ['Grâce', [['boutique', 'Boutique en ligne'], ['siteweb', 'Site web']]],
+      ['Aline', [['locations', 'Locations'], ['biens', 'Biens'], ['maintenance', 'Maintenance']]],
     ];
     for (const [profil, pages] of modules) {
       await changerProfil(profil);
@@ -143,6 +144,21 @@ const U = 'http://localhost:4173/';
         });
       }
     }
+    // Immobilier (profil encore ouvert : Aline) : impayé visible, quittance imprimable, échéancier d'un bail.
+    await etape('immo-quittance', async () => {
+      await p.goto(`${U}#/locations`);
+      await p.getByRole('tab', { name: /Encaissements/ }).click();
+      await p.locator('table.tableau tbody tr').first().click();
+      await p.getByRole('heading', { name: /Quittance de loyer/ }).first().waitFor({ timeout: 20000 });
+      await p.keyboard.press('Escape');
+    });
+    await etape('immo-bail', async () => {
+      await p.goto(`${U}#/locations`);
+      await p.getByRole('tab', { name: /Impayés/ }).click();
+      await p.locator('table.tableau tbody tr').first().click();
+      await p.getByRole('tab', { name: /Échéancier/ }).waitFor({ timeout: 20000 });
+      await p.getByText(/Partielle|À payer/).first().waitFor();
+    });
     await changerProfil('Mireille');
     await p.setViewportSize({ width: 390, height: 844 });
     await etape('mobile-caisse', async () => { await p.goto(U + '#/caisse'); await p.waitForTimeout(1000); });
