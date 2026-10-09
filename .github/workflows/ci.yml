@@ -26,7 +26,6 @@ jobs:
           done
           npm run test:e2e
           node scripts/parcours_restaurant.cjs
-          node scripts/parcours_restaurant.cjs
           node scripts/parcours_editeur.cjs
       - name: Captures des parcours (démo fictive) en cas d'échec
         if: failure()
