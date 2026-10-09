@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
 import { appliquerMarque } from './noyau/marque.js';
@@ -8,6 +8,8 @@ import {
   ContexteAuth, EcranAuth, FormulaireNouveauMotDePasse, ParcoursConnexion, useConfigAuth, VueAccueil, VueNouveauMotDePasse, VueReinitialisation,
 } from './auth/EcransAuth.jsx';
 import { Cloche } from './ui/communs.jsx';
+import { Palette, RACCOURCIS, useRaccourcis } from './ui/Palette.jsx';
+import { CHOIX_AFFICHAGE, enregistrerAffichage, lireAffichage } from './noyau/affichage.js';
 
 export { verifierNouveauMotDePasse } from './auth/EcransAuth.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
@@ -257,6 +259,43 @@ function Bandeaux({ naviguer }) {
   return bandeaux;
 }
 
+// Affichage sur cet appareil : appliqué tout de suite, mémorisé dans ce navigateur seulement.
+function ReglagesAffichage() {
+  const [affichage, setAffichage] = useState(lireAffichage);
+  const regler = (cle) => (e) => setAffichage(enregistrerAffichage({ [cle]: e.target.value }));
+  const libelles = { theme: 'Thème', texte: 'Taille du texte', contraste: 'Contraste', tactile: 'Boutons' };
+  return (
+    <fieldset className="groupe-champs">
+      <legend>Affichage sur cet appareil</legend>
+      <p className="texte-doux">Appliqué tout de suite, sans enregistrer. Chaque appareil garde ses propres réglages (caisse tactile, téléphone…).</p>
+      <div className="grille-champs">
+        {Object.entries(CHOIX_AFFICHAGE).map(([cle, choix]) => (
+          <Champ key={cle} libelle={libelles[cle]}>
+            <select value={affichage[cle]} onChange={regler(cle)}>
+              {choix.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </Champ>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function AideRaccourcis({ onFermer }) {
+  return (
+    <Modale titre="Raccourcis clavier" onFermer={onFermer}>
+      <dl className="liste-raccourcis">
+        {RACCOURCIS.map(([touches, texte]) => (
+          <div key={texte}>
+            <dt>{touches.map((t) => <kbd key={t}>{t}</kbd>)}</dt>
+            <dd>{texte}</dd>
+          </div>
+        ))}
+      </dl>
+    </Modale>
+  );
+}
+
 // Mon profil : ce que la personne règle elle-même. Le rôle, les droits et les Hubs ne se modifient jamais ici.
 function MonCompte({ onFermer }) {
   const espace = useEspace();
@@ -346,12 +385,15 @@ function MonCompte({ onFermer }) {
               </>
             )}
             {onglet === 'preferences' && (
-              <Champ libelle="Page d’accueil" aide="L’écran ouvert à la connexion.">
-                <select value={valeurs.page_accueil} onChange={changer('page_accueil')}>
-                  <option value="">Par défaut</option>
-                  {pages.map((p) => <option key={p.id} value={p.id}>{p.libelle}</option>)}
-                </select>
-              </Champ>
+              <>
+                <Champ libelle="Page d’accueil" aide="L’écran ouvert à la connexion.">
+                  <select value={valeurs.page_accueil} onChange={changer('page_accueil')}>
+                    <option value="">Par défaut</option>
+                    {pages.map((p) => <option key={p.id} value={p.id}>{p.libelle}</option>)}
+                  </select>
+                </Champ>
+                <ReglagesAffichage />
+              </>
             )}
             <Erreur message={erreur} />
             <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton></div>
@@ -410,7 +452,7 @@ function ProfilUtilisateur({ libelleRole, onCompte }) {
   );
 }
 
-function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, naviguer }) {
+function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, naviguer, onRecherche, onCreer }) {
   const { etablissement, etablissements, choisirEtablissement, hubs, hub, multiHub, choisirHub } = useEspace();
   const contexteFil = useFilAriane();
   const fil = contexteFil?.fil ?? filDefaut;
@@ -419,6 +461,16 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
       <button className="icone-bouton bouton-menu" onClick={onMenu} aria-label="Ouvrir le menu"><Icone nom="menu" /></button>
       <FilAriane elements={fil} />
       <div className="barre-haut-outils">
+        {!surEditeur && etablissement && (
+          <>
+            <button type="button" className="barre-haut-recherche" onClick={onRecherche} aria-label="Rechercher partout (Ctrl+K)" title="Rechercher partout (Ctrl+K)">
+              <Icone nom="recherche" taille={16} />
+              <span>Rechercher…</span>
+              <kbd>Ctrl K</kbd>
+            </button>
+            <button type="button" className="icone-bouton" onClick={onCreer} aria-label="Créer" title="Créer (touche N)"><Icone nom="plus" /></button>
+          </>
+        )}
         {!surEditeur && etablissements.length > 1 && (
           <label className="selecteur">
             <Icone nom="editeur" taille={16} />
@@ -449,6 +501,13 @@ function Coquille() {
   const [route, naviguer, requete] = useRoute();
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [compte, setCompte] = useState(false);
+  // Palette : null (fermée), 'tout' (rechercher) ou 'creer' ; aide des raccourcis.
+  const [palette, setPalette] = useState(null);
+  const [aide, setAide] = useState(false);
+  const ouvrirRecherche = useCallback(() => setPalette('tout'), []);
+  const ouvrirCreation = useCallback(() => setPalette('creer'), []);
+  const ouvrirAide = useCallback(() => setAide(true), []);
+  useRaccourcis({ ouvrirRecherche, ouvrirCreation, ouvrirAide, actif: Boolean(etablissement) && !palette });
   const pages = etablissement ? pagesAccessibles(espace) : [];
   const menu = etablissement ? pagesDuMenu(espace) : [];
   const surEditeur = editeur && (route.startsWith('editeur') || !etablissement);
@@ -535,7 +594,7 @@ function Coquille() {
         </aside>
         {menuOuvert && <div className="voile-menu" onClick={() => setMenuOuvert(false)} />}
         <div className="colonne">
-          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} />
+          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} onRecherche={ouvrirRecherche} onCreer={ouvrirCreation} />
           <main className="contenu">
             {!surEditeur && <Bandeaux naviguer={aller} />}
             {contexte.invitations.length > 0 && (
@@ -550,11 +609,13 @@ function Coquille() {
               </GardeErreur>
             )}
             {!surEditeur && (Page
-              ? <GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Page naviguer={aller} sousRoute={sousRoute} /></GardeErreur>
+              ? <GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Suspense fallback={<Chargement texte="Ouverture de l’écran…" />}><Page naviguer={aller} sousRoute={sousRoute} /></Suspense></GardeErreur>
               : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
           </main>
         </div>
         {compte && <MonCompte onFermer={() => setCompte(false)} />}
+        {palette && etablissement && <Palette mode={palette} onFermer={() => setPalette(null)} naviguer={aller} />}
+        {aide && <AideRaccourcis onFermer={() => setAide(false)} />}
       </div>
     </FournisseurFil>
   );
