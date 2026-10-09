@@ -279,6 +279,18 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('dialog').getByRole('button', { name: 'Déclarer envoyée' }).click();
       await p.getByText('Campagne déclarée envoyée').first().waitFor();
     });
+    await etape('support-avance', async () => {
+      await p.goto(U + '#/support/bibliotheque');
+      await p.getByText('Changer le rouleau de l\'imprimante de caisse').first().waitFor();
+      await p.goto(U + '#/support?etat=actifs');
+      await p.getByText('Commande de l\'hôtel incomplète').first().click();
+      await p.getByRole('combobox', { name: 'Réponse type' }).selectOption({ label: 'Livraison incomplète' });
+      await p.getByRole('button', { name: 'Escalader' }).click();
+      await p.getByRole('dialog').getByRole('textbox').fill('Le client attend la livraison aujourd\'hui');
+      await p.getByRole('dialog').getByRole('button', { name: 'Valider' }).click();
+      await p.getByText('Ticket escaladé').first().waitFor();
+      await p.getByText(/Escaladé ×1/).first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

@@ -1241,3 +1241,34 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Support avancé : deux réponses types, un article d'aide, la nature « réclamation » et une note de satisfaction
+-- sur les tickets fictifs de « Commerce Démo ».
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  etab uuid;
+  gerante uuid;
+  tk uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.support_bibliotheque where etablissement_id = etab)
+     or not exists (select 1 from public.support_tickets where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_element_support(etab, jsonb_build_object('genre', 'reponse', 'titre', 'Accusé de réception',
+    'texte', 'Bonjour, nous avons bien reçu votre demande et nous revenons vers vous rapidement.'));
+  perform public.enregistrer_element_support(etab, jsonb_build_object('genre', 'reponse', 'titre', 'Livraison incomplète',
+    'texte', 'Nous vérifions le bon de livraison avec notre dépôt et nous vous livrons le complément.', 'categorie', 'Livraison'));
+  perform public.enregistrer_element_support(etab, jsonb_build_object('genre', 'article', 'titre', 'Changer le rouleau de l''imprimante de caisse',
+    'texte', E'1. Ouvrir le capot.\n2. Placer le rouleau, papier vers le haut.\n3. Refermer et imprimer un ticket test.', 'categorie', 'Caisse'));
+  select id into tk from public.support_tickets where etablissement_id = etab and sujet = 'Ticket de caisse illisible' and statut = 'resolu';
+  if tk is not null then
+    perform public.noter_satisfaction_ticket(tk, 5, 'Duplicata remis tout de suite (démo).');
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
