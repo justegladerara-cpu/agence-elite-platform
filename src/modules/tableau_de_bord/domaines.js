@@ -70,6 +70,14 @@ export const DOMAINES = {
       { libelle: 'Réceptionner', icone: 'stock', route: 'achats?onglet=en_cours', permission: 'achats.recevoir' },
     ],
   },
+  comptabilite: {
+    icone: 'activite', sousTitre: 'Produits, charges, résultat et trésorerie comptable',
+    actions: [
+      { libelle: 'Générer les écritures', icone: 'activite', route: 'comptabilite', permission: 'comptabilite.saisir', principal: true },
+      { libelle: 'Balance', icone: 'document', route: 'comptabilite?vue=balance', permission: 'comptabilite.lire' },
+      { libelle: 'Plan comptable', icone: 'parametres', route: 'comptabilite?vue=plan', permission: 'comptabilite.lire' },
+    ],
+  },
   scolaire: {
     icone: 'membres', sousTitre: 'Élèves inscrits, frais encaissés et impayés',
     actions: [
