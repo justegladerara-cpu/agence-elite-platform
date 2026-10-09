@@ -64,3 +64,25 @@ Une vente validée reste définitive. Depuis sa fiche, un responsable utilise **
 quantités réellement rapportées, puis le mode de remboursement. La base applique les remises du ticket, empêche de retourner
 plus que vendu, remet le stock dans le Hub d'origine et conserve un document `RET-…`. Un remboursement en espèces exige la
 caisse ouverte du Hub et est déduit du ticket Z. **Avoir / échange** trace la valeur rendue sans prétendre à une sortie bancaire.
+
+## Ventes en attente, plafond de remise, ticket X (2026-10-09)
+
+- **Mettre en attente** (panier de la caisse) : le panier est mis de côté avec un nom facultatif (« Table 4 »,
+  « Monsieur en bleu ») ; la caisse est libre pour le client suivant. **En attente (n)** liste les paniers du Hub :
+  **Reprendre** les remet dans la caisse (prix relus au moment de l'encaissement, article archivé entre-temps ignoré),
+  **Abandonner** les clôt. Rien n'est vendu ni sorti du stock tant que la vente n'est pas encaissée. 20 paniers au
+  plus par caisse. Table `ventes_en_attente`, fonctions `mettre_vente_en_attente` et `terminer_vente_en_attente`
+  (droit `caisse.utiliser`, Hub vérifié, aucune suppression, journal d'audit).
+- **Plafond de remise** (Paramètres › Réglages des modules › Caisse, « Remise maximale sans autorisation ») : 100 %
+  par défaut, donc aucune limite. Au-delà du plafond, la vente est refusée à qui n'a pas le droit
+  `caisse.remise_libre` (gérant et responsable l'ont). Remises de ligne et remise globale sont additionnées. Contrôle
+  dans la base, à la validation de la vente (déclencheur `ventes_plafond_remise`) : il vaut aussi pour la Salle.
+- **Ticket X** et **comptage par coupures** : voir [SOP 29](SOP/29_CLOTURE_DE_CAISSE.md).
+
+### Limites connues
+- Pas de validation à distance : au-delà du plafond, un responsable doit se connecter sur le poste pour encaisser.
+- Une vente en attente n'est pas réservée : le stock peut partir avant sa reprise (contrôlé à l'encaissement).
+- Les coupures sont une aide à la saisie : seul le total compté est gardé dans le ticket Z.
+- Migration `20261010000102_caisse_attente_remise.sql` ; tests `tests/caisse_confort.test.js`,
+  `tests/caisse_ecrans.test.jsx`, parcours navigateur `caisse-attente`, `cloture`, `ticket-x`.
+

@@ -71,6 +71,22 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Valider la vente' }).click();
       await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
     });
+    await etape('caisse-attente', async () => {
+      await p.getByRole('button', { name: 'Nouvelle vente' }).click();
+      await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
+      await p.locator('button:has-text("Casque test")').first().click();
+      await p.getByRole('button', { name: 'Mettre en attente' }).click();
+      await p.getByLabel(/Nom pour la retrouver/).fill('Client en bleu');
+      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en attente' }).click();
+      await p.getByRole('button', { name: 'En attente (1)' }).click();
+      await p.getByText('Client en bleu').waitFor();
+      await p.getByRole('button', { name: 'Reprendre' }).click();
+      await p.locator('.panier-ligne', { hasText: 'Casque test' }).waitFor();
+      // On la remet en attente : la clôture doit le signaler.
+      await p.getByRole('button', { name: 'Mettre en attente' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en attente' }).click();
+      await p.getByRole('button', { name: 'En attente (1)' }).waitFor();
+    });
     await etape('ventes', async () => {
       await p.goto(U + '#/ventes');
       await p.getByText('10 000 FCFA').first().waitFor().catch(() => {});
@@ -86,7 +102,16 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/Annulée/).first().waitFor();
     });
     await etape('stock-apres', async () => { await p.goto(U + '#/stock'); await p.getByText('Casque test').first().waitFor(); });
-    await etape('cloture', async () => { await p.goto(U + '#/clotures'); await p.getByLabel('Espèces comptées dans le tiroir').waitFor(); });
+    await etape('cloture', async () => {
+      await p.goto(U + '#/clotures');
+      await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
+      await p.getByText(/1 vente\(s\) en attente sur cette caisse/).waitFor();
+    });
+    await etape('ticket-x', async () => {
+      await p.getByRole('button', { name: 'Ticket X' }).click();
+      await p.locator('.ticket-apercu').getByText('TICKET X · ÉTAT INTERMÉDIAIRE').waitFor();
+      await p.keyboard.press('Escape');
+    });
     await etape('ticket-z', async () => {
       await p.getByLabel('Espèces comptées dans le tiroir').fill('50000');
       await p.getByRole('button', { name: 'Clôturer et éditer le ticket Z' }).click();

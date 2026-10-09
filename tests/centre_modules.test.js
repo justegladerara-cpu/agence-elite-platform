@@ -34,7 +34,7 @@ describe('centre des modules', () => {
     expect(caisse.depend_de).toEqual(['paiements', 'stock', 'ventes']);
     expect(caisse.requis_par).toEqual(['cloture', 'restaurant_salle']);
     expect(caisse.etablissements_actifs).toBe(1);
-    expect(caisse.permissions.map((p) => p.id)).toEqual(['caisse.utiliser']);
+    expect(caisse.permissions.map((p) => p.id)).toEqual(['caisse.remise_libre', 'caisse.utiliser']);
     expect(caisse.utilisateurs).toBe(1);
   });
 

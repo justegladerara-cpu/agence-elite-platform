@@ -6,15 +6,16 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '
 import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
 
-export function TicketZ({ z, identite, nomEtablissement, devise }) {
+// Ticket X (type « X ») : même contenu, édité pendant que la caisse reste ouverte, sans numéro ni comptage.
+export function TicketZ({ z, identite, nomEtablissement, devise, type = 'Z' }) {
   const m = (n) => formatMontant(n, devise);
   return (
     <div className="ticket">
       <strong className="ticket-nom">{identite?.nom_commercial ?? nomEtablissement}</strong>
-      <div className="ticket-titre">TICKET Z · {z.numero}</div>
+      <div className="ticket-titre">{type === 'X' ? 'TICKET X · ÉTAT INTERMÉDIAIRE' : `TICKET Z · ${z.numero}`}</div>
       <div className="ticket-ligne"><span>Caisse</span><span>{z.point_de_vente}</span></div>
       <div className="ticket-ligne"><span>Ouverture</span><span>{formatDateHeure(z.ouverte_le)}</span></div>
-      <div className="ticket-ligne"><span>Clôture</span><span>{formatDateHeure(z.cloturee_le)}</span></div>
+      <div className="ticket-ligne"><span>{type === 'X' ? 'Édité le' : 'Clôture'}</span><span>{formatDateHeure(z.cloturee_le)}</span></div>
       <div className="ticket-sep" />
       <div className="ticket-ligne"><span>Ventes ({z.nombre_ventes})</span><strong>{m(z.total_ventes)}</strong></div>
       <div className="ticket-ligne"><span>Remises</span><span>{m(z.total_remises)}</span></div>
@@ -57,24 +58,54 @@ export function TicketZ({ z, identite, nomEtablissement, devise }) {
   );
 }
 
-function ModaleZ({ z, onFermer }) {
+function ModaleZ({ z, onFermer, type = 'Z' }) {
   const { etablissement, devise } = useEspace();
   useEffect(() => {
     document.body.classList.add('impression-ticket');
     return () => document.body.classList.remove('impression-ticket');
   }, []);
-  const ticket = <TicketZ z={z} identite={etablissement.identite} nomEtablissement={etablissement.nom} devise={devise} />;
+  const ticket = <TicketZ z={z} identite={etablissement.identite} nomEtablissement={etablissement.nom} devise={devise} type={type} />;
   return (
-    <Modale titre={`Ticket ${z.numero}`} onFermer={onFermer} pied={<Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>}>
+    <Modale titre={type === 'X' ? 'Ticket X (caisse toujours ouverte)' : `Ticket ${z.numero}`} onFermer={onFermer} pied={<Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>}>
       <div className="ticket-apercu">{ticket}</div>
       {createPortal(<div className="zone-impression">{ticket}</div>, document.body)}
     </Modale>
   );
 }
 
-function SessionOuverte({ session, onCloturee }) {
+// Coupures réglées dans Paramètres › Réglages des modules › Clôture (« 10000, 5000, 500 ») : nombres positifs, du plus
+// grand au plus petit, sans doublon. Aucune devise n'est supposée.
+export function lireCoupures(texte) {
+  const valeurs = String(texte ?? '').split(/[,;\s]+/).map((x) => Number(x.replace(',', '.'))).filter((n) => Number.isFinite(n) && n > 0);
+  return [...new Set(valeurs)].sort((a, b) => b - a).slice(0, 20);
+}
+
+function ComptageCoupures({ coupures, onTotal }) {
+  const { montant } = useEspace();
+  const [nombres, setNombres] = useState({});
+  const changer = (c, v) => {
+    const suivant = { ...nombres, [c]: v };
+    setNombres(suivant);
+    onTotal(coupures.reduce((s, x) => s + x * (Number(suivant[x]) || 0), 0));
+  };
+  return (
+    <fieldset className="comptage-coupures">
+      <legend>Compter par billets et pièces</legend>
+      {coupures.map((c) => (
+        <label key={c} className="coupure">
+          <span>{montant(c)} ×</span>
+          <input type="number" min="0" step="1" inputMode="numeric" value={nombres[c] ?? ''} onChange={(e) => changer(c, e.target.value)} aria-label={`Nombre de ${montant(c)}`} />
+          <small className="texte-doux">{montant(c * (Number(nombres[c]) || 0))}</small>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
   const { api, montant, peut } = useEspace();
   const { donnees: apercu, chargement, erreur } = useDonnees(() => api.rpc('apercu_cloture', { p_session_id: session.id }), [session.id]);
+  const [ticketX, setTicketX] = useState(null);
   const [comptees, setComptees] = useState('');
   const [commentaire, setCommentaire] = useState('');
   const [erreurCloture, setErreurCloture] = useState('');
@@ -101,8 +132,12 @@ function SessionOuverte({ session, onCloturee }) {
           <h2>{apercu.point_de_vente}</h2>
           <p className="texte-doux">Ouverte le {formatDateHeure(apercu.ouverte_le)}</p>
         </div>
-        <Badge ton="vert">Ouverte</Badge>
+        <div className="actions-gauche">
+          <Bouton icone="imprimer" onClick={() => setTicketX({ ...apercu, cloturee_le: new Date().toISOString() })}>Ticket X</Bouton>
+          <Badge ton="vert">Ouverte</Badge>
+        </div>
       </div>
+      {ticketX && <ModaleZ z={ticketX} type="X" onFermer={() => setTicketX(null)} />}
       <div className="grille-indicateurs">
         <div className="indicateur"><span className="indicateur-libelle">Ventes</span><strong>{montant(apercu.total_ventes)}</strong><small>{apercu.nombre_ventes} vente(s)</small></div>
         {Object.entries(apercu.encaissements).map(([mode, total]) => (
@@ -112,6 +147,10 @@ function SessionOuverte({ session, onCloturee }) {
       </div>
       {peut('cloture.cloturer') ? (
         <form className="formulaire cloture-formulaire" onSubmit={cloturer}>
+          {attentes > 0 && (
+            <p className="bandeau attention">{attentes} vente(s) en attente sur cette caisse : reprenez-les ou abandonnez-les depuis la caisse avant de clôturer.</p>
+          )}
+          {coupures.length > 0 && <ComptageCoupures coupures={coupures} onTotal={(t) => setComptees(String(t))} />}
           <Champ libelle="Espèces comptées dans le tiroir">
             <input type="number" min="0" step="any" inputMode="decimal" value={comptees} onChange={(e) => setComptees(e.target.value)} required />
           </Champ>
@@ -136,14 +175,18 @@ export default function Clotures() {
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [zOuvert, setZOuvert] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [sessions, clotures, points] = await Promise.all([
+    const [sessions, clotures, points, parametres, attentes] = await Promise.all([
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }),
       api.lire('clotures', { eq: { etablissement_id: etab }, ordre: ['cloturee_le', 'desc'], limite: 100 }),
       api.lire('points_de_vente', { eq: { etablissement_id: etab } }),
+      api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'cloture' } }).catch(() => []),
+      // Table ajoutée par la migration 20261010000102 : absente, la clôture fonctionne comme avant.
+      api.lire('ventes_en_attente', { eq: { etablissement_id: etab, statut: 'en_attente' }, colonnes: ['id', 'session_caisse_id'] }).catch(() => []),
     ]);
     const noms = Object.fromEntries(points.map((p) => [p.id, `${p.nom}${multiHub ? ` · ${hubs.find((h) => h.id === p.hub_id)?.nom ?? ''}` : ''}`]));
     const garder = (x) => !hubFiltre || x.hub_id === hubFiltre;
-    return { sessions: sessions.filter(garder), clotures: clotures.filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
+    const attentesParSession = attentes.reduce((n, a) => ({ ...n, [a.session_caisse_id]: (n[a.session_caisse_id] ?? 0) + 1 }), {});
+    return { coupures: lireCoupures(parametres[0]?.data?.coupures), attentesParSession, sessions: sessions.filter(garder), clotures: clotures.filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
   }, [etab, hubFiltre]);
 
   return (
@@ -167,6 +210,8 @@ export default function Clotures() {
             <SessionOuverte
               key={s.id}
               session={s}
+              coupures={donnees.coupures}
+              attentes={donnees.attentesParSession[s.id] ?? 0}
               onCloturee={(z) => {
                 notifier(`Caisse clôturée : ${z.numero}`);
                 setZOuvert(z);

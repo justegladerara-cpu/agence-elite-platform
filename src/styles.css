@@ -3112,3 +3112,11 @@ kbd {
   .cockpit-periodes button { min-height: 36px; }
   .palette button { width: 36px; height: 36px; }
 }
+
+/* Caisse : ventes en attente, comptage du tiroir par coupures. */
+.liste-attentes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.liste-attentes li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 10px; }
+.comptage-coupures { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 16px; border: 1px solid var(--bordure); border-radius: 10px; padding: 10px 12px; margin: 0; }
+.comptage-coupures legend { padding: 0 6px; font-weight: 600; }
+.coupure { display: grid; grid-template-columns: 1fr 80px; align-items: center; gap: 4px 8px; }
+.coupure small { grid-column: 1 / -1; }
