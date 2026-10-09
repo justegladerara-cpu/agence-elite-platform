@@ -42,6 +42,8 @@ async function attendreAffichage(p) {
   for (let i = 0; i < profils.length; i += 1) {
     await p.setViewportSize(FORMATS[0][1]);
     await p.goto(U);
+    await p.evaluate(() => { localStorage.removeItem('ae-utilisateur-local'); localStorage.removeItem('ae-session-ouverte'); });
+    await p.reload();
     await p.locator('button.profil').nth(i).click({ timeout: 120000 });
     await p.waitForTimeout(1500);
     const changer = await p.getByText(/Choisissez votre mot de passe|nouveau mot de passe/i).count();
@@ -57,7 +59,11 @@ async function attendreAffichage(p) {
       for (const [format, vue] of FORMATS) {
         erreurs = [];
         await p.setViewportSize(vue);
-        await p.goto(U + route);
+        // Navigation interne (pas de rechargement) : mesure le temps d'ouverture d'un écran, comme l'utilisateur.
+        await p.evaluate(() => { window.location.hash = '#/'; });
+        await p.waitForTimeout(100);
+        await p.evaluate((r) => { window.location.hash = r; }, route);
+        await p.waitForTimeout(50);
         const ms = await attendreAffichage(p);
         const mesure = await p.evaluate(() => {
           const main = document.querySelector('main');
@@ -75,8 +81,8 @@ async function attendreAffichage(p) {
         resultats.push({ profil: profils[i], page: libelle, route, format, ms, erreurs: [...erreurs], ...mesure });
       }
     }
-    // Déconnexion
-    await p.evaluate(() => { localStorage.removeItem('ae-utilisateur-local'); localStorage.removeItem('ae-session-ouverte'); });
+    fs.writeFileSync(SORTIE, JSON.stringify(resultats, null, 1));
+    console.log(`profil ${profils[i]} : ${ids.length} pages`);
   }
   fs.writeFileSync(SORTIE, JSON.stringify(resultats, null, 1));
   console.log(`audit : ${resultats.length} mesures, ${profils.length} profils → ${SORTIE}`);

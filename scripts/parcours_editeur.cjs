@@ -9,7 +9,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
 fs.mkdirSync('captures-parcours', { recursive: true });
 
 (async () => {
-  const b = await chromium.launch();
+  const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
   const p = await b.newPage({ viewport: { width: 1366, height: 860 } });
   const erreurs = [];
   p.on('pageerror', (e) => erreurs.push(`PAGEERROR ${e.message}`));
