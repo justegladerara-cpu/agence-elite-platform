@@ -2,8 +2,11 @@
 
 Un **site client** est une application réalisée par Agence Elite pour un client et hébergée **à part** (son propre
 Worker Cloudflare, sa propre base). Exemple : **Express Congo** (fret France → Congo : site public, devis, suivi,
-logiciel de gestion des agences), code dans le dépôt `justegladerara-cpu/agenceelite`, dossier
-`sites-clients/express-congo`.
+logiciel de gestion des agences), code dans **ce dépôt**, dossier `sites-clients/express-congo`.
+
+Les sites clients sont rangés dans `sites-clients/<site>/` : chacun a son `package.json`, ses tests et son propre
+Worker Cloudflare. Ils sont exclus des tests de la plateforme (`vitest.config.js`) et vérifiés par leur propre
+workflow (`.github/workflows/<site>.yml`). Le build de la plateforme ne les touche pas.
 
 ## Ce que fait le Super Admin (menu « Sites clients », `#/editeur/sites`)
 

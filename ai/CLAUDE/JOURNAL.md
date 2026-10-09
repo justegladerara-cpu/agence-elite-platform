@@ -1,5 +1,11 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-09 — Sites clients rangés dans ce dépôt
+- Demande de Juste : les sites clients vivent dans le dépôt de la plateforme. Express Congo déplacé de `agenceelite` vers `sites-clients/express-congo` (146 fichiers suivis, identiques).
+- `vitest.config.js` exclut `sites-clients/**` ; workflow `.github/workflows/express-congo.yml` (vérifications + publication si secret `CLOUDFLARE_API_TOKEN`).
+- Vérifié : plateforme 53 fichiers / 500 tests, build OK ; Express Congo 34 tests, 15 parcours navigateur, build Cloudflare OK.
+- Reste : Worker `express-congo` à créer sur Cloudflare (import de ce dépôt, racine `sites-clients/express-congo`) ou secret `CLOUDFLARE_API_TOKEN` dans ce dépôt.
+
 ## 2026-10-09 — Améliorations maximales, lot 1 « Confort transversal » (branche `claude/confort-transversal`)
 - Mission de Juste : inventaire, catalogue de propositions, 10 modules et 10 intégrations (plan `docs/AMELIORATIONS/`).
 - Lot 1 : recherche universelle Ctrl+K (écrans, créations, données via `recherche_universelle`, migration `20261010000101`, security invoker), bouton « + » de création rapide, raccourcis clavier, thème sombre / contraste / texte / gros boutons par appareil, export CSV et impression de toute liste `DataTable`, export des ventes, application installable (manifeste + icônes), écrans chargés à la demande (fichier principal 897 ko → 433 ko).

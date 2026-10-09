@@ -1,0 +1,8 @@
+.next/
+.open-next/
+.wrangler/
+node_modules/
+test-results/
+playwright-report/
+.data/
+package-lock.json
