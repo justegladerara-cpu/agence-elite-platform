@@ -26,6 +26,7 @@ jobs:
           done
           npm run test:e2e
           node scripts/parcours_restaurant.cjs
+          node scripts/parcours_editeur.cjs
   reconstruction-supabase:
     runs-on: ubuntu-latest
     steps:

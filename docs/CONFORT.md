@@ -39,6 +39,12 @@ affichage. Les tickets et documents A4 restent noir sur blanc.
   `exporter: (ligne) => …` ou s'exclut avec `exporter: false` ; `exportable={false}` retire le bouton CSV d'une liste
   qui a déjà son propre export (factures, achats, CRM…).
 - Ventes : bouton « Exporter » (numéro, date, Hub, origine, contact, sous-total, remise, total, payé, état).
+- Articles, contacts, dépenses et tickets Z : bouton « Exporter » (la liste affichée, avec ses filtres).
+
+## Téléphone
+Sur écran de moins de 640 px, en-têtes triables, liens d'action, choix de période et pastilles de couleur font au
+moins 36 px de haut (audit : 0 bouton trop petit sur Présences, Congés, Projets, Factures, Achats, Équipe, Chambres,
+tableau de bord et écrans éditeur).
 
 ## Application installable
 `public/manifest.webmanifest` + icônes neutres (`public/icones/`) : « Installer » / « Ajouter à l'écran d'accueil »
@@ -50,7 +56,6 @@ le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
 
 ## Limites connues
 - Pas de filtres enregistrés ni de choix des colonnes.
-- Les listes en tableau simple (articles, contacts, dépenses, clôtures) n'ont pas encore l'export générique.
 - Pas d'icône d'application par client (white-label) ni de mode hors ligne.
 - La recherche de données ne couvre pas encore les documents, les commandes de la boutique ni les notes.
 - Pas de palette ni de bouton « + » dans l'espace Agence Elite (super admin) : ils servent dans un établissement.
@@ -58,4 +63,4 @@ le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
 ## Tests
 `tests/recherche_universelle.test.js` (droits, isolement, saisie, anonyme), `tests/confort.test.jsx` (actions, affichage,
 export, découpage du code), parcours navigateur (`palette-ecran`, `palette-donnee`, `creation-rapide`, `liste-export`,
-`theme-sombre`).
+`theme-sombre`, `export-listes-simples`) et parcours éditeur (`scripts/parcours_editeur.cjs`, lancé en CI).
