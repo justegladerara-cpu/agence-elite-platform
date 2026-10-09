@@ -9,6 +9,7 @@ import { PageEtablissementEditeur } from './EtablissementEditeur.jsx';
 import HubsEditeur from './HubsEditeur.jsx';
 import ModulesEditeur from './ModulesEditeur.jsx';
 import OffresEditeur from './OffresEditeur.jsx';
+import SitesEditeur from './SitesEditeur.jsx';
 import IdentiteEditeur from './PagesAuthEditeur.jsx';
 import TableauEditeur from './TableauEditeur.jsx';
 
@@ -22,6 +23,7 @@ export const MENU_EDITEUR = [
   { id: 'editeur/offres', libelle: 'Offres et prix', icone: 'offres' },
   { id: 'editeur/identite', libelle: 'Identité et apparence', icone: 'cle' },
   { id: 'editeur/adresses', libelle: 'Adresses web', icone: 'globe', superAdmin: true },
+  { id: 'editeur/sites', libelle: 'Sites clients', icone: 'dossier', superAdmin: true },
 ];
 
 export function routeEditeurActive(route) {
@@ -52,6 +54,8 @@ export default function EspaceEditeur({ route, naviguer }) {
       return <OffresEditeur />;
     case 'adresses':
       return <AdressesEditeur key={id ?? ''} suggestion={id ?? ''} />;
+    case 'sites':
+      return <SitesEditeur key={id ?? ''} siteId={id} naviguer={naviguer} />;
     case 'identite':
       return <IdentiteEditeur route={route} naviguer={naviguer} />;
     default:
