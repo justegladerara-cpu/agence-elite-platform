@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '../../ui/composants.jsx';
+import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
 
 export function TicketZ({ z, identite, nomEtablissement, devise }) {
@@ -147,7 +148,17 @@ export default function Clotures() {
 
   return (
     <div className="page">
-      <EnTete titre="Clôture de caisse" sousTitre="Ticket Z : le bilan figé de chaque caisse" />
+      <EnTete titre="Clôture de caisse" sousTitre="Ticket Z : le bilan figé de chaque caisse">
+        {donnees?.clotures.length > 0 && (
+          <Bouton icone="telecharger" onClick={() => exporterCsv('tickets-z.csv', [
+            { libelle: 'N°', valeur: (z) => z.numero },
+            { libelle: 'Clôture', valeur: (z) => formatDateHeure(z.cloturee_le) },
+            { libelle: 'Caisse', valeur: (z) => z.point_de_vente ?? '' },
+            { libelle: 'Ventes', valeur: (z) => z.total_ventes },
+            { libelle: 'Écart', valeur: (z) => z.ecart },
+          ], donnees.clotures)}>Exporter</Bouton>
+        )}
+      </EnTete>
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {donnees && (

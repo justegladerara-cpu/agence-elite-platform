@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDate, MODES_PAIEMENT } from '../../noyau/format.js';
+import { exporterCsv } from '../../ui/communs.jsx';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, ModaleMotif, Onglets, Vide } from '../../ui/composants.jsx';
 
 const CATEGORIES = ['Achats de marchandises', 'Transport', 'Loyer', 'Énergie', 'Salaires', 'Téléphone et Internet', 'Entretien', 'Impôts et taxes', 'Divers'];
@@ -136,6 +137,17 @@ export default function Depenses() {
   return (
     <div className="page">
       <EnTete titre="Dépenses" sousTitre={`${montant(total)} sur la période`}>
+        {donnees?.depenses.length > 0 && (
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`depenses-${dateLocale()}.csv`, [
+            { libelle: 'Date', valeur: (d) => d.date_depense },
+            { libelle: 'Libellé', valeur: (d) => d.libelle },
+            { libelle: 'Fournisseur', valeur: (d) => donnees.noms[d.fournisseur_id] ?? '' },
+            { libelle: 'Catégorie', valeur: (d) => d.categorie ?? '' },
+            { libelle: 'Payée par', valeur: (d) => MODES_PAIEMENT[d.mode] ?? d.mode },
+            { libelle: 'Montant', valeur: (d) => d.montant },
+            { libelle: 'État', valeur: (d) => (d.statut === 'annulee' ? `Annulée : ${d.motif_annulation ?? ''}` : 'Valide') },
+          ], donnees.depenses)}>Exporter</Bouton>
+        )}
         {peut('depenses.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setNouvelle(true)}>Nouvelle dépense</Bouton>}
       </EnTete>
       <div className="filtres">

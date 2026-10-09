@@ -176,6 +176,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       const [telechargement] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: /Exporter la liste/ }).first().click()]);
       if (!/\.csv$/.test(telechargement.suggestedFilename())) throw new Error('Export : fichier inattendu ' + telechargement.suggestedFilename());
     });
+    await etape('export-listes-simples', async () => {
+      for (const [ecran, nom] of [['articles', /^articles-/], ['contacts', /^contacts-/], ['depenses', /^depenses-/], ['clotures', /^tickets-z/]]) {
+        await p.goto(U + '#/' + ecran);
+        const bouton = p.getByRole('button', { name: 'Exporter', exact: true });
+        await bouton.waitFor({ timeout: 60000 });
+        const [telechargement] = await Promise.all([p.waitForEvent('download'), bouton.click()]);
+        if (!nom.test(telechargement.suggestedFilename())) throw new Error(`Export ${ecran} : ${telechargement.suggestedFilename()}`);
+      }
+    });
     await etape('theme-sombre', async () => {
       await p.evaluate(() => localStorage.setItem('ae-affichage', JSON.stringify({ theme: 'sombre' })));
       await p.reload();

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
-import { formatDateHeure } from '../../noyau/format.js';
+import { dateLocale, formatDateHeure } from '../../noyau/format.js';
+import { exporterCsv } from '../../ui/communs.jsx';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { SOURCES } from '../crm/commun.js';
 import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
@@ -164,6 +165,17 @@ export default function Contacts({ naviguer, sousRoute }) {
   return (
     <div className="page">
       <EnTete titre="Contacts" sousTitre={totalDu > 0 ? `${montant(totalDu)} à encaisser auprès des clients` : 'Clients et fournisseurs de l’établissement'}>
+        {contacts.length > 0 && (
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`contacts-${dateLocale()}.csv`, [
+            { libelle: 'Nom', valeur: (c) => c.nom },
+            { libelle: 'Société', valeur: (c) => c.societe ?? '' },
+            { libelle: 'Type', valeur: (c) => TYPES[c.type] ?? c.type },
+            { libelle: 'Téléphone', valeur: (c) => c.telephone ?? '' },
+            { libelle: 'E-mail', valeur: (c) => c.email ?? '' },
+            { libelle: 'Solde dû', valeur: (c) => soldes[c.id] ?? 0 },
+            { libelle: 'Actif', valeur: (c) => (c.actif ? 'oui' : 'non') },
+          ], contacts)}>Exporter</Bouton>
+        )}
         {peut('contacts.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouveau contact</Bouton>}
       </EnTete>
       <div className="filtres">

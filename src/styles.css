@@ -3104,3 +3104,11 @@ kbd {
 }
 .titre-impression { display: none; margin: 0 0 8px; font-size: 16px; }
 .data-table-export { display: inline-flex; gap: 2px; }
+
+/* Téléphone : cibles tactiles d'au moins 36 px (en-têtes triables, liens d'action, périodes, couleurs). */
+@media (max-width: 640px) {
+  .tableau th.triable button { min-height: 36px; }
+  td .lien, .actions-ligne .lien { display: inline-flex; align-items: center; min-height: 36px; padding-inline: 4px; }
+  .cockpit-periodes button { min-height: 36px; }
+  .palette button { width: 36px; height: 36px; }
+}

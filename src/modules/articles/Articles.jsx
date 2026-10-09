@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
-import { formatQuantite } from '../../noyau/format.js';
+import { dateLocale, formatQuantite } from '../../noyau/format.js';
+import { exporterCsv } from '../../ui/communs.jsx';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { VignetteArticle } from '../caisse/Caisse.jsx';
 import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
@@ -387,6 +388,19 @@ export default function Articles() {
   return (
     <div className="page">
       <EnTete titre="Articles" sousTitre={`${donnees?.articles.filter((a) => a.actif).length ?? 0} article(s) en vente · ${ouvertes.length} catégorie(s)`}>
+        {vue !== 'categories' && articles.length > 0 && (
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`articles-${dateLocale()}.csv`, [
+            { libelle: 'Référence', valeur: (a) => a.reference ?? '' },
+            { libelle: 'Article', valeur: (a) => a.nom },
+            { libelle: 'Variante', valeur: (a) => a.variante ?? '' },
+            { libelle: 'Catégorie', valeur: (a) => categories[a.categorie_id] ?? '' },
+            { libelle: 'Prix', valeur: (a) => a.prix_vente },
+            { libelle: 'Coût', valeur: (a) => a.cout_achat ?? '' },
+            { libelle: 'Stock', valeur: (a) => (a.suivi_stock ? donnees.stock[a.id] ?? '' : '') },
+            { libelle: 'Unité', valeur: (a) => a.unite ?? '' },
+            { libelle: 'En vente', valeur: (a) => (a.actif ? 'oui' : 'non') },
+          ], articles)}>Exporter</Bouton>
+        )}
         {peut('articles.gerer') && <Bouton onClick={() => setImporter(true)}>Importer</Bouton>}
         {peut('articles.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouvel article</Bouton>}
       </EnTete>
