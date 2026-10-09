@@ -1070,3 +1070,35 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- Production (Bêta) : un « Panier garni » fictif fabriqué au Magasin principal à partir des articles de la démo.
+do $$
+declare etab uuid; sa uuid; gerante uuid; panier uuid; recette uuid; ordre uuid; hub_mp uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not exists (select 1 from public.modules where id = 'production')
+     or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'production') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'production', true, 'Démo : fabrication de paniers garnis');
+  perform public.definir_module_etablissement(etab, 'production', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  hub_mp := public.hub_principal(etab);
+  panier := public.enregistrer_article(etab, jsonb_build_object('reference', 'PAN-01', 'nom', 'Panier garni (démo)', 'prix_vente', 12500,
+    'unite', 'panier', 'stock_initial', 0));
+  recette := public.enregistrer_nomenclature(etab, jsonb_build_object('article_id', panier, 'quantite_produite', 1, 'composants', jsonb_build_array(
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'HUI-05'), 'quantite', 1),
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'SPA-50'), 'quantite', 2),
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'TOM-40'), 'quantite', 2),
+    jsonb_build_object('article_id', (select id from public.articles where etablissement_id = etab and reference = 'SUC-01'), 'quantite', 1))));
+  ordre := public.creer_ordre_fabrication(etab, jsonb_build_object('nomenclature_id', recette, 'hub_id', hub_mp, 'quantite', 2));
+  perform public.terminer_ordre_fabrication(ordre, 2);
+  perform public.creer_ordre_fabrication(etab, jsonb_build_object('nomenclature_id', recette, 'hub_id', hub_mp, 'quantite', 3,
+    'date_prevue', current_date + 2));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

@@ -70,6 +70,13 @@ export const DOMAINES = {
       { libelle: 'Réceptionner', icone: 'stock', route: 'achats?onglet=en_cours', permission: 'achats.recevoir' },
     ],
   },
+  production: {
+    icone: 'inventaire', sousTitre: 'Ordres de fabrication, recettes et coût des composants',
+    actions: [
+      { libelle: 'Ordres à fabriquer', icone: 'inventaire', route: 'production?statut=planifie', permission: 'production.lire', principal: true },
+      { libelle: 'Recettes', icone: 'document', route: 'production?vue=recettes', permission: 'production.gerer' },
+    ],
+  },
   rh: {
     icone: 'organigramme', sousTitre: 'Effectif, présences, congés et contrats',
     actions: [

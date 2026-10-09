@@ -5,7 +5,7 @@ let db;
 const MODULES_ATTENDUS = {
   abonnements: 'actif', achats: 'actif', agenda: 'actif', articles: 'actif', assistant: 'beta', caisse: 'actif', cloture: 'actif', contacts: 'actif', crm_pipeline: 'actif', depenses: 'actif',
   documents: 'actif', ecommerce_boutique: 'actif', fidelite: 'actif', etablissement: 'actif', facturation: 'actif', hotel_chambres: 'actif',
-  hotel_reservations: 'actif', immo_biens: 'actif', immo_locations: 'actif', immo_maintenance: 'actif', membres: 'actif', paiements: 'actif', projets: 'actif', rapports: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
+  hotel_reservations: 'actif', immo_biens: 'actif', immo_locations: 'actif', immo_maintenance: 'actif', membres: 'actif', paiements: 'actif', production: 'beta', projets: 'actif', rapports: 'actif', recus: 'actif', restaurant_cuisine: 'actif',
   restaurant_salle: 'actif', rh_conges: 'actif', rh_employes: 'actif', rh_presences: 'actif', site_web: 'actif', stock: 'actif', support_tickets: 'actif',
   tableau_de_bord: 'actif', ventes: 'actif',
 };
