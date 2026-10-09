@@ -1,9 +1,13 @@
 # État du projet (mis à jour le 2026-10-09)
 
-## Mission en cours : « Améliorations maximales » (2026-10-09)
-Plan et statuts dans `docs/AMELIORATIONS/`. Lot 1 « Confort transversal » ([CONFORT](CONFORT.md)) : recherche Ctrl+K,
-création rapide, thème sombre, export des listes, application installable. Statut : CODE PRÊT (migration
-`20261010000101` non appliquée).
+## Mission terminée : « Améliorations maximales » (2026-10-09) — vérifiée en production
+12 lots fusionnés (PR #12, #14 à #24), migrations `20261010000101` à `20261010000110` appliquées avant chaque fusion,
+pilote en production réussi sur `main` `a9a1736` (run 37989650607). Nouveaux modules en **Bêta**, désactivés par défaut :
+Assistant, Production, Location, Livraisons, Scolaire, Comptabilité, Marketing. Socle des intégrations en production,
+aucune intégration réelle « Disponible » (fournisseurs à choisir). Bilan : [RAPPORT_FINAL](AMELIORATIONS/RAPPORT_FINAL.md).
+
+## Mission en cours : « 150 fonctions » (demande du 2026-10-09 15:09 UTC)
+Classement honnête : [DEMANDE_150](AMELIORATIONS/DEMANDE_150_2026-10-09.md). Construction par lots A à H, même circuit.
 
 ## Mission terminée : « The Dream en service » (PR #4) — vérifiée en production le 2026-10-08
 
@@ -28,8 +32,8 @@ Préparation actuelle : migration d'import avec dry-run, écran Articles et cata
 ## En production
 | Élément | État |
 |---|---|
-| Site | https://saas.agence-elite.fr (Cloudflare Pages `agence-elite-saas`) et https://agence-elite-platform.justegladerara.workers.dev (Worker), publiés à chaque push sur `main` ; `main` = `c8b40dc` |
-| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3) : **48 migrations appliquées** (dernière `20261005000001_restaurant_service_categories`) = 48 dans Git, rien en attente (vérifié le 2026-10-08) |
+| Site | https://saas.agence-elite.fr (Cloudflare Pages `agence-elite-saas`) et https://agence-elite-platform.justegladerara.workers.dev (Worker), publiés à chaque push sur `main` ; `main` = `a9a1736` (2026-10-09) |
+| Base | Supabase `xrlfedosaqtffraadmgk` (eu-west-3) : **60 migrations appliquées** (dernière `20261010000110_marketing`) = 60 dans Git, rien en attente (vérifié le 2026-10-09) |
 | Socle | comptes (Supabase Auth, identifiant ou e-mail), clients, établissements, Hubs, licences, rôles et permissions, notifications, pièces jointes, journal d'audit |
 | Espace Agence Elite | tableau de bord, clients, établissements, Hubs, catalogue (modules, solutions, catégories, identité), comptes, offres et prix |
 | Personnalisation | identité plateforme → client → établissement (palette contrôlée), écran de connexion `#/connexion/<adresse>` (client ou établissement) |
@@ -65,6 +69,6 @@ Comptes démo : voir [SOP 30](SOP/30_DEMO_COMMERCIALE.md) (`gerante@`, `resto@`,
 
 ## Pas encore fait (voir le rapport final)
 - Nom commercial de la plateforme (à décider par Juste) ; domaine personnalisé.
-- Marketing (SMS, e-mails de campagne) : aucun fournisseur choisi, consentement à définir.
+- Marketing : module en Bêta (segments, accords, campagnes) ; envoi réel bloqué tant qu'aucun fournisseur n'est choisi.
 - Paie : règles (barèmes, cotisations) non définies ; seule la préparation RH existe.
 - Paiement en ligne (boutique, abonnements) : aucun prestataire choisi.

@@ -82,3 +82,9 @@
 - Écrans Salle (filtres, Mes tables, affectation, service en cours), Serveurs, commande (transfert, épuisé, barre mobile), Articles (Catégories, sélection multiple, rapport d'import).
 - Commandes : `npm test` (voir rapport de la PR), `npm run build`, `npm run build:demo`, `node scripts/parcours_navigateur.cjs` et `node scripts/parcours_restaurant.cjs` avec Chromium local (verts, aucune erreur console).
 - Non fait faute d'accès : application en production, vérification de The Dream et de `patrondream`, import réel (procédure prête, voir HANDOFF).
+
+## 2026-10-09 — Mission « Améliorations maximales » terminée
+- Lots 1 à 12 fusionnés (PR #12, #14 à #24) ; migrations 101 à 110 appliquées par « Déploiement de la base » (sauvegarde vérifiée, simulation, application) avant chaque fusion.
+- Lot 11 Comptabilité (M01) et lot 12 Marketing (M03) en Bêta ; 568 tests verts ; parcours navigateur sans erreur console.
+- Pilote en production vert sur `a9a1736` (run 37989650607). Rapport : `docs/AMELIORATIONS/RAPPORT_FINAL.md`.
+- Demande des 150 fonctions classée (`docs/AMELIORATIONS/DEMANDE_150_2026-10-09.md`) ; construction par lots A à H ensuite.
