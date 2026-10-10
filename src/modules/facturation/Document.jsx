@@ -126,14 +126,23 @@ function ModalePaiement({ complet, onFermer, onFait }) {
   const [v, setV] = useState({ montant: String(reste), mode: 'virement', reference: '' });
   const [erreur, setErreur] = useState('');
   const { donnees: sessions } = useDonnees(() => api.lire('sessions_caisse', { eq: { etablissement_id: etablissement.id, statut: 'ouverte' } }).catch(() => []), [etablissement.id]);
+  const excedent = Math.round((Number(v.montant) - reste) * 100) / 100;
+  const tropPercu = excedent > 0 && v.mode !== 'especes';
   const valider = async (e) => {
     e.preventDefault();
     try {
+      if (tropPercu) {
+        await api.rpc('encaisser_avec_trop_percu', {
+          p_document_id: complet.document.id, p_montant_recu: Number(v.montant), p_mode: v.mode, p_reference: v.reference || null,
+        });
+        onFait(`Facture soldée ; ${montant(excedent)} mis en crédit client`);
+        return;
+      }
       await api.rpc('encaisser_facture', {
         p_document_id: complet.document.id, p_montant: Number(v.montant), p_mode: v.mode, p_reference: v.reference || null,
         p_session_id: v.mode === 'especes' ? sessions?.[0]?.id ?? null : null,
       });
-      onFait();
+      onFait('Paiement enregistré');
     } catch (err) {
       setErreur(err.message);
     }
@@ -150,6 +159,13 @@ function ModalePaiement({ complet, onFermer, onFait }) {
             </select>
           </Champ>
         </div>
+        {tropPercu && (
+          <p className="encart" role="status">
+            Le client a versé {montant(excedent)} de plus que le reste dû : la facture sera soldée et l’excédent deviendra un crédit client,
+            utilisable sur une autre de ses factures ou à rembourser.
+          </p>
+        )}
+        {excedent > 0 && v.mode === 'especes' && <p className="encart">En espèces, rendez la monnaie : encaissez seulement le reste dû.</p>}
         {v.mode === 'especes' && !sessions?.length && <p className="encart">Les espèces passent par une caisse ouverte : ouvrez la caisse d’abord.</p>}
         <Champ libelle="Référence (n° de virement, transaction…)"><input value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} maxLength={80} /></Champ>
         <Erreur message={erreur} />
@@ -220,6 +236,86 @@ function ModaleEcheancier({ complet, onFermer, onFait }) {
   );
 }
 
+// Saisie libre obligatoire (issue d'une contestation…), même présentation que ModaleMotif mais sans ton « danger ».
+function ModaleTexte({ titre, libelle, aide, libelleAction, onValider, onFermer }) {
+  const [texte, setTexte] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const valider = async (e) => {
+    e.preventDefault();
+    setEnvoi(true);
+    setErreur('');
+    try {
+      await onValider(texte);
+      onFermer();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  return (
+    <Modale titre={titre} onFermer={onFermer}>
+      <form className="formulaire" onSubmit={valider}>
+        <Champ libelle={libelle} aide={aide}><textarea rows={3} value={texte} onChange={(e) => setTexte(e.target.value)} maxLength={1000} required autoFocus /></Champ>
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Retour</Bouton>
+          <Bouton type="submit" variante="principal" chargement={envoi} disabled={!texte.trim()}>{libelleAction}</Bouton>
+        </div>
+      </form>
+    </Modale>
+  );
+}
+
+// Un crédit client (trop-perçu) règle cette facture, ou son reste est marqué remboursé au client.
+function ModaleCredit({ credit, reste, devise, documentId, onFermer, onFait }) {
+  const { api, peut } = useEspace();
+  const dispo = Math.round((Number(credit.montant) - Number(credit.montant_utilise) - Number(credit.montant_rembourse)) * 100) / 100;
+  const [v, setV] = useState({ montant: String(Math.min(dispo, Math.max(reste, 0))), mode: 'especes', note: '' });
+  const [erreur, setErreur] = useState('');
+  const peutUtiliser = reste > 0 && credit.document_id !== documentId;
+  const executer = async (rpc, params, message) => {
+    setErreur('');
+    try {
+      await api.rpc(rpc, params);
+      onFait(message);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <Modale titre={`Crédit ${credit.numero} · ${formatMontant(dispo, devise)} disponible`} onFermer={onFermer}>
+      <div className="formulaire">
+        {peutUtiliser ? (
+          <form className="formulaire" onSubmit={(e) => { e.preventDefault(); executer('utiliser_credit_client', { p_credit_id: credit.id, p_document_id: documentId, p_montant: Number(v.montant) }, 'Crédit utilisé sur la facture'); }}>
+            <Champ libelle="Montant à utiliser sur cette facture" aide={`Reste dû : ${formatMontant(reste, devise)}`}>
+              <input type="number" min="0" step="any" inputMode="decimal" value={v.montant} onChange={(e) => setV({ ...v, montant: e.target.value })} required />
+            </Champ>
+            <Bouton type="submit" variante="principal">Utiliser le crédit</Bouton>
+          </form>
+        ) : <p className="texte-doux">Le crédit s’utilise depuis une autre facture émise de ce client, qui reste à payer.</p>}
+        {peut('facturation.annuler') && (
+          <form className="formulaire" onSubmit={(e) => { e.preventDefault(); executer('rembourser_credit_client', { p_credit_id: credit.id, p_mode: v.mode, p_note: v.note || null }, 'Crédit marqué remboursé'); }}>
+            <h3>Ou : le reste a été rendu au client</h3>
+            <div className="grille-champs">
+              <Champ libelle="Rendu par">
+                <select value={v.mode} onChange={(e) => setV({ ...v, mode: e.target.value })}>
+                  {Object.entries(MODES_PAIEMENT).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Champ>
+              <Champ libelle="Note"><input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} maxLength={300} /></Champ>
+            </div>
+            <p className="texte-doux">L’argent se rend hors de la plateforme : ce geste note seulement que le crédit est soldé (il ne passe ni en caisse ni en comptabilité).</p>
+            <Bouton type="submit" variante="danger">Marquer {formatMontant(dispo, devise)} remboursé</Bouton>
+          </form>
+        )}
+        <Erreur message={erreur} />
+      </div>
+    </Modale>
+  );
+}
+
 // Comparateur : versions d'une même offre côte à côte, ligne par ligne.
 function ModaleComparaison({ versions, devise, onFermer }) {
   const { api } = useEspace();
@@ -260,15 +356,17 @@ export default function DocumentVente({ documentId, naviguer }) {
     const complet = await api.rpc('document_vente_complet', { p_document_id: documentId });
     const doc = complet.document;
     const racine = doc.version_de ?? doc.id;
-    const [echeances, suivantes, premiere, parametres, contrats] = await Promise.all([
+    const [echeances, suivantes, premiere, parametres, contrats, contestations, credits] = await Promise.all([
       api.lire('echeances_document', { eq: { document_id: doc.id }, ordre: ['ordre'] }).catch(() => []),
       doc.type === 'devis' ? api.lire('documents_vente', { eq: { etablissement_id: doc.etablissement_id, version_de: racine } }).catch(() => []) : [],
       doc.type === 'devis' && doc.version_de ? api.lire('documents_vente', { eq: { id: racine } }).catch(() => []) : [],
       api.lire('etablissement_parametres', { eq: { etablissement_id: doc.etablissement_id, module_id: 'facturation' } }).catch(() => []),
       doc.type === 'devis' && moduleActif('contrats') ? api.lire('contrats', { eq: { document_vente_id: doc.id } }).catch(() => []) : [],
+      doc.type === 'facture' ? api.lire('contestations_facture', { eq: { document_id: doc.id }, ordre: ['ouverte_le', 'desc'] }).catch(() => []) : [],
+      doc.type === 'facture' ? api.lire('credits_client', { eq: { etablissement_id: doc.etablissement_id, contact_id: doc.contact_id }, ordre: ['cree_le'] }).catch(() => []) : [],
     ]);
     const versions = doc.type === 'devis' ? [...(doc.version_de ? premiere : [doc]), ...suivantes].sort((a, b) => a.version - b.version) : [];
-    return { ...complet, echeances, versions, contrats, seuilRemise: Number(parametres[0]?.data?.remise_max_sans_validation ?? 0) };
+    return { ...complet, echeances, versions, contrats, contestations, credits, seuilRemise: Number(parametres[0]?.data?.remise_max_sans_validation ?? 0) };
   }, [documentId]);
   if (chargement && !c) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur || !c) {
@@ -304,13 +402,17 @@ export default function DocumentVente({ documentId, naviguer }) {
     : c.echeances.map((e) => ({ ...e, etat: null }));
   const reste = c.vente ? c.vente.total - c.vente.montant_paye : 0;
   const nom = d.numero ?? 'Brouillon';
+  const contestation = c.contestations.find((k) => !k.close_le);
+  const disponible = (k) => Number(k.montant) - Number(k.montant_utilise) - Number(k.montant_rembourse);
+  const creditsDispo = c.credits.filter((k) => k.statut === 'disponible');
+  const creditsNes = c.credits.filter((k) => k.document_id === d.id);
   return (
     <div className="page">
       <PageHeader
         titre={`${TYPES_DOCUMENT[d.type]} ${nom}`}
         sousTitre={c.contact.societe || c.contact.nom}
         fil={[{ libelle: 'Devis et factures', href: '#/factures' }, { libelle: `${TYPES_DOCUMENT[d.type]} ${nom}` }]}
-        badges={<Badge ton={etat[1]}>{etat[0]}</Badge>}
+        badges={<><Badge ton={etat[1]}>{etat[0]}</Badge>{contestation && <Badge ton="orange">Contestée</Badge>}</>}
         actions={(
           <>
             {modifiable && <Bouton icone="parametres" onClick={() => naviguer(`factures/${d.id}/modifier`)}>Modifier</Bouton>}
@@ -340,12 +442,19 @@ export default function DocumentVente({ documentId, naviguer }) {
                 && { libelle: d.projet_id ? 'Ajouter les tâches au projet' : 'Créer le projet et ses tâches', onClick: () => executer('taches_depuis_devis', { p_document_id: d.id }, 'Tâches créées', (id) => naviguer(`projets/${id}`)) },
               gerer && d.type !== 'avoir' && { libelle: 'Dupliquer', onClick: () => executer('dupliquer_document_vente', { p_document_id: d.id }, 'Copie créée', (id) => naviguer(`factures/${id}/modifier`)) },
               d.statut !== 'emise' && gerer && !['annule', 'converti', 'refuse'].includes(d.statut) && d.type !== 'avoir' && { libelle: 'Annuler', danger: true, onClick: () => setAction('annuler') },
+              gerer && d.statut === 'emise' && d.type === 'facture' && !contestation && { libelle: 'Le client conteste', onClick: () => setAction('contester') },
               d.statut === 'emise' && d.type === 'facture' && peut('facturation.annuler') && { libelle: 'Annuler par un avoir', danger: true, onClick: () => setAction('annuler') },
             ]} />
           </>
         )}
       />
       <Erreur message={erreurAction} />
+      {contestation && (
+        <div className="encart" role="status">
+          <strong>Contestée le {formatDateHeure(contestation.ouverte_le)} :</strong> {contestation.motif}
+          {gerer && <> <button type="button" className="lien" onClick={() => setAction('clore')}>Clore la contestation</button></>}
+        </div>
+      )}
       {remiseAValider && (
         <p className="encart">Remise de {taux} % au-delà du seuil de {c.seuilRemise} % : un responsable doit la valider avant l’envoi, l’accord ou l’émission.</p>
       )}
@@ -360,6 +469,34 @@ export default function DocumentVente({ documentId, naviguer }) {
                   <div key={p.id} className={`liste-ligne ${p.statut === 'annule' ? 'barre' : ''}`}>
                     <span><strong>{formatMontant(p.montant, c.devise)}</strong> · {MODES_PAIEMENT[p.mode]}<small className="texte-doux bloc">{formatDateHeure(p.cree_le)}{p.reference ? ` · ${p.reference}` : ''}</small></span>
                     {p.statut === 'annule' && <Badge>annulé</Badge>}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+          {d.type === 'facture' && (creditsNes.length > 0 || (creditsDispo.length > 0 && d.statut === 'emise')) && (
+            <Section titre="Crédits du client" sousTitre="Trop-perçus à utiliser ou à rembourser">
+              <div className="liste-simple">
+                {[...new Map([...creditsNes, ...creditsDispo].map((k) => [k.id, k])).values()].map((k) => (
+                  <div key={k.id} className="liste-ligne">
+                    <span>
+                      <strong>{k.numero}</strong> · {formatMontant(disponible(k), c.devise)} disponible{k.document_id === d.id ? ' (trop-perçu de cette facture)' : ''}
+                      <small className="texte-doux bloc">{MODES_PAIEMENT[k.mode]} · {formatMontant(k.montant, c.devise)} au départ · {formatDate(k.cree_le)}</small>
+                    </span>
+                    {k.statut === 'disponible'
+                      ? gerer && <Bouton onClick={() => setAction({ credit: k })}>Utiliser</Bouton>
+                      : <Badge>{k.statut === 'utilise' ? 'utilisé' : 'remboursé'}</Badge>}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+          {c.contestations.some((k) => k.close_le) && (
+            <Section titre="Contestations closes">
+              <div className="liste-simple">
+                {c.contestations.filter((k) => k.close_le).map((k) => (
+                  <div key={k.id} className="liste-ligne">
+                    <span>{k.motif}<small className="texte-doux bloc">{formatDate(k.ouverte_le)} → {formatDate(k.close_le)} · {k.issue}</small></span>
                   </div>
                 ))}
               </div>
@@ -441,7 +578,30 @@ export default function DocumentVente({ documentId, naviguer }) {
       <ZoneImpression><FeuilleDocument complet={c} /></ZoneImpression>
       {action === 'echeancier' && <ModaleEcheancier complet={c} onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />}
       {action === 'comparer' && <ModaleComparaison versions={c.versions} devise={c.devise} onFermer={() => setAction(null)} />}
-      {action === 'paiement' && <ModalePaiement complet={c} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Paiement enregistré'); recharger(); }} />}
+      {action === 'paiement' && <ModalePaiement complet={c} onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />}
+      {action === 'contester' && (
+        <ModaleMotif
+          titre="Le client conteste cette facture"
+          texte="La contestation est notée avec la date et son auteur. La facture reste due ; elle n’apparaît plus dans les relances tant que la contestation est ouverte."
+          libelleAction="Noter la contestation"
+          onValider={(motif) => api.rpc('contester_facture', { p_document_id: d.id, p_motif: motif }).then(() => { notifier('Contestation notée'); recharger(); })}
+          onFermer={() => setAction(null)}
+        />
+      )}
+      {action === 'clore' && contestation && (
+        <ModaleTexte
+          titre="Clore la contestation"
+          libelle="Comment s’est-elle terminée ?"
+          aide="Ex. « Bon de livraison signé montré au client », « Avoir émis pour 2 cartons »."
+          libelleAction="Clore la contestation"
+          onValider={(issue) => api.rpc('clore_contestation_facture', { p_contestation_id: contestation.id, p_issue: issue }).then(() => { notifier('Contestation close'); recharger(); })}
+          onFermer={() => setAction(null)}
+        />
+      )}
+      {action?.credit && (
+        <ModaleCredit credit={action.credit} reste={reste} devise={c.devise} documentId={d.id}
+          onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />
+      )}
       {action === 'emettre' && (
         <Modale
           titre="Émettre la facture"

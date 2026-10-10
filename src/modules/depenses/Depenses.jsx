@@ -14,21 +14,33 @@ function debut(periode) {
   return `${dateLocale().slice(0, 8)}01`;
 }
 
-function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnregistre }) {
-  const { api, etablissement, hub, multiHub } = useEspace();
+function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFermer, onEnregistre }) {
+  const { api, etablissement, hub, multiHub, montant } = useEspace();
   const [valeurs, setValeurs] = useState({
     libelle: '', montant: '', categorie: 'Divers', date_depense: dateLocale(), mode: 'especes', fournisseur_id: '', justificatif: '',
     depuis_caisse: sessions.length > 0,
   });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
+  const seuil = Number(reglages?.seuil_validation ?? 0);
+  const depuisCaisse = valeurs.mode === 'especes' && valeurs.depuis_caisse && sessions.length > 0;
+  // Au-dessus du seuil, une dépense hors caisse part en validation (sauf pour qui peut valider).
+  const enValidation = seuil > 0 && !depuisCaisse && !reglages?.peut_valider && Number(valeurs.montant) >= seuil;
   const changer = (champ) => (e) => setValeurs((v) => ({ ...v, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const enregistrer = async (e) => {
     e.preventDefault();
     setChargement(true);
     setErreur('');
     try {
-      const { depuis_caisse: depuisCaisse, ...reste } = valeurs;
+      const { depuis_caisse: _caisse, ...reste } = valeurs;
+      if (enValidation) {
+        await api.rpc('demander_depense', {
+          p_etablissement_id: etablissement.id,
+          p: { ...reste, montant: Number(valeurs.montant), fournisseur_id: valeurs.fournisseur_id || null, ...(multiHub && hub ? { hub_id: hub.id } : {}) },
+        });
+        onEnregistre('Dépense envoyée en validation');
+        return;
+      }
       await api.rpc('enregistrer_depense', {
         p_etablissement_id: etablissement.id,
         p_depense: {
@@ -40,7 +52,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnr
           ...(multiHub && hub ? { hub_id: hub.id } : {}),
         },
       });
-      onEnregistre();
+      onEnregistre('Dépense enregistrée');
     } catch (err) {
       setErreur(err.message);
       setChargement(false);
@@ -99,10 +111,15 @@ function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnr
             Photo du justificatif
           </label>
         </div>
+        {enValidation && (
+          <p className="encart" role="status">
+            À partir de {montant(seuil)}, une dépense hors caisse doit être validée : elle sera comptée seulement après l’accord d’un responsable.
+          </p>
+        )}
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
-          <Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton>
+          <Bouton type="submit" variante="principal" chargement={chargement}>{enValidation ? 'Envoyer en validation' : 'Enregistrer'}</Bouton>
         </div>
       </form>
     </Modale>
@@ -110,7 +127,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, onFermer, onEnr
 }
 
 export default function Depenses() {
-  const { api, etablissement, montant, peut, notifier, hub, multiHub } = useEspace();
+  const { api, etablissement, montant, peut, notifier, hub, multiHub, utilisateur } = useEspace();
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [periode, setPeriode] = useState('mois');
@@ -118,14 +135,20 @@ export default function Depenses() {
   const [nouvelle, setNouvelle] = useState(() => peut('depenses.gerer') && lireParametres().get('nouveau') === '1');
   const [annulation, setAnnulation] = useState(null);
   const [justificatif, setJustificatif] = useState(null);
+  const [refus, setRefus] = useState(null);
+  const [erreurDecision, setErreurDecision] = useState('');
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const depuis = debut(periode);
-    const [depenses, contacts, sessions] = await Promise.all([
+    const [depenses, contacts, sessions, reglages, demandes] = await Promise.all([
       api.lire('depenses', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, gte: depuis ? { date_depense: depuis } : {}, ordre: ['date_depense', 'desc'], limite: 500 }),
       peut('contacts.lire') ? api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }) : [],
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }).catch(() => []),
+      api.rpc('reglages_depenses', { p_etablissement_id: etab }).catch(() => ({ seuil_validation: 0, peut_valider: false })),
+      api.lire('demandes_depense', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, ordre: ['demande_le', 'desc'], limite: 100, colonnes: [
+        'id', 'date_depense', 'categorie', 'libelle', 'montant', 'mode', 'fournisseur_id', 'statut', 'demande_par', 'demande_le', 'decide_le', 'motif_refus',
+      ] }).catch(() => []),
     ]);
-    return { depenses, fournisseurs: contacts.filter((c) => c.type !== 'client'), noms: Object.fromEntries(contacts.map((c) => [c.id, c.nom])), sessions: sessions.filter((x) => !hubFiltre || x.hub_id === hubFiltre) };
+    return { reglages, demandes, depenses, fournisseurs: contacts.filter((c) => c.type !== 'client'), noms: Object.fromEntries(contacts.map((c) => [c.id, c.nom])), sessions: sessions.filter((x) => !hubFiltre || x.hub_id === hubFiltre) };
   }, [etab, periode, hubFiltre]);
 
   const valides = (donnees?.depenses ?? []).filter((d) => d.statut === 'valide');
@@ -133,6 +156,21 @@ export default function Depenses() {
   const parCategorie = {};
   for (const d of valides) parCategorie[d.categorie] = (parCategorie[d.categorie] ?? 0) + d.montant;
   const categories = [...new Set([...CATEGORIES, ...Object.keys(parCategorie)])];
+  // À valider, puis les décisions des 30 derniers jours (pour que la personne qui a demandé voie la réponse).
+  const limiteDecision = dateLocale(-30);
+  // decide_le : texte (Supabase) ou Date (moteur local) ; new Date accepte les deux.
+  const demandes = (donnees?.demandes ?? []).filter((x) => x.statut === 'a_valider' || (x.decide_le && new Date(x.decide_le) >= new Date(`${limiteDecision}T00:00:00`)));
+  const decider = async (x, valider, motif) => {
+    setErreurDecision('');
+    try {
+      await api.rpc('decider_demande_depense', { p_demande_id: x.id, p_valider: valider, p_motif: motif ?? null });
+      notifier(valider ? 'Dépense validée et enregistrée' : 'Dépense refusée');
+      recharger();
+    } catch (err) {
+      setErreurDecision(err.message);
+      throw err;
+    }
+  };
 
   return (
     <div className="page">
@@ -159,6 +197,31 @@ export default function Depenses() {
         <div className="puces statiques">
           {Object.entries(parCategorie).sort((a, b) => b[1] - a[1]).map(([c, m]) => <span key={c}>{c} · <strong>{montant(m)}</strong></span>)}
         </div>
+      )}
+      {demandes.length > 0 && (
+        <section className="section">
+          <h2>Demandes de dépense</h2>
+          <Erreur message={erreurDecision} />
+          <div className="liste-simple">
+            {demandes.map((x) => (
+              <div key={x.id} className="liste-ligne">
+                <span>
+                  <strong>{x.libelle}</strong> · {montant(x.montant)}
+                  <small className="texte-doux bloc">
+                    {formatDate(x.date_depense)} · {x.categorie} · {MODES_PAIEMENT[x.mode]}{x.fournisseur_id ? ` · ${donnees.noms[x.fournisseur_id] ?? ''}` : ''}
+                    {x.motif_refus ? ` · Refusée : ${x.motif_refus}` : ''}
+                  </small>
+                </span>
+                {x.statut === 'a_valider' && donnees.reglages.peut_valider && x.demande_par !== utilisateur?.id ? (
+                  <span className="groupe-boutons">
+                    <Bouton onClick={() => setRefus(x)}>Refuser</Bouton>
+                    <Bouton variante="principal" onClick={() => decider(x, true).catch(() => {})}>Valider</Bouton>
+                  </span>
+                ) : <Badge ton={x.statut === 'validee' ? 'vert' : x.statut === 'refusee' ? 'rouge' : 'orange'}>{{ a_valider: 'À valider', validee: 'Validée', refusee: 'Refusée' }[x.statut]}</Badge>}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
       {donnees && !donnees.depenses.length && <Vide titre="Aucune dépense" texte="Enregistrez vos dépenses pour suivre votre résultat." />}
       {donnees?.depenses.length > 0 && (
@@ -192,10 +255,11 @@ export default function Depenses() {
           fournisseurs={donnees.fournisseurs}
           sessions={donnees.sessions}
           categories={categories}
+          reglages={donnees.reglages}
           onFermer={() => setNouvelle(false)}
-          onEnregistre={() => {
+          onEnregistre={(message) => {
             setNouvelle(false);
-            notifier('Dépense enregistrée');
+            notifier(message);
             recharger();
           }}
         />
@@ -210,6 +274,15 @@ export default function Depenses() {
             recharger();
           })}
           onFermer={() => setAnnulation(null)}
+        />
+      )}
+      {refus && (
+        <ModaleMotif
+          titre={`Refuser « ${refus.libelle} »`}
+          texte="La personne qui a demandé la dépense est prévenue avec ce motif."
+          libelleAction="Refuser la dépense"
+          onValider={(motif) => decider(refus, false, motif)}
+          onFermer={() => setRefus(null)}
         />
       )}
       {justificatif && (

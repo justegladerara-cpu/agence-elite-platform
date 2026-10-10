@@ -345,6 +345,28 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/crm?vue=doublons');
       await p.getByText(/Aucun doublon repéré|groupe\(s\) à vérifier/).first().waitFor();
     });
+    await etape('tresorerie', async () => {
+      await p.goto(U + '#/factures?onglet=retards');
+      await p.getByText('Contesté').first().waitFor();
+      await p.getByRole('tab', { name: /Relevé client/ }).click();
+      await p.getByLabel('Client').selectOption({ label: 'École Démo Les Palmiers' });
+      await p.getByText(/Crédit client disponible/).first().waitFor();
+      await p.goto(U + '#/factures');
+      await p.getByPlaceholder('Numéro, client ou objet').fill('Eau minérale');
+      await p.getByText('Hôtel Démo Côte Sauvage').first().click();
+      await p.getByRole('button', { name: 'Encaisser' }).click();
+      const d = p.getByRole('dialog');
+      const reste = Number(await d.getByLabel('Montant').inputValue());
+      await d.getByLabel('Montant').fill(String(reste + 1000));
+      await d.getByText(/deviendra un crédit client/).waitFor();
+      await d.getByRole('button', { name: 'Enregistrer le paiement' }).click();
+      await p.getByText(/mis en crédit client/).first().waitFor();
+      await p.getByText('Crédits du client').first().waitFor();
+      await p.goto(U + '#/depenses');
+      await p.getByText('Réparation du congélateur').first().waitFor();
+      await p.getByRole('button', { name: 'Valider', exact: true }).click();
+      await p.getByText('Dépense validée et enregistrée').first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

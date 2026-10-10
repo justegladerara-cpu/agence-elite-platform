@@ -53,7 +53,8 @@ export function trancheRetard(jours) {
   return 'plus90';
 }
 
-export function balanceAgee(documents, ventes, aujourdhui) {
+// contestees : ids des factures dont la contestation est ouverte (toujours dues, mais exclues des relances).
+export function balanceAgee(documents, ventes, aujourdhui, contestees = new Set()) {
   const parContact = new Map();
   for (const d of documents) {
     if (d.type !== 'facture' || d.statut !== 'emise') continue;
@@ -70,7 +71,7 @@ export function balanceAgee(documents, ventes, aujourdhui) {
     ligne.tranches[tranche] = Math.round((ligne.tranches[tranche] + reste) * 100) / 100;
     ligne.total = Math.round((ligne.total + reste) * 100) / 100;
     ligne.retard_max = Math.max(ligne.retard_max, jours);
-    ligne.factures.push({ id: d.id, numero: d.numero, echeance: d.echeance ?? d.date_document, reste, jours });
+    ligne.factures.push({ id: d.id, numero: d.numero, echeance: d.echeance ?? d.date_document, reste, jours, contestee: contestees.has(d.id) });
     parContact.set(d.contact_id, ligne);
   }
   return [...parContact.values()].sort((a, b) => b.retard_max - a.retard_max || b.total - a.total);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
-import { Bouton, DataTable, EmptyState, Modale } from '../../ui/composants.jsx';
+import { Badge, Bouton, DataTable, EmptyState, Modale } from '../../ui/composants.jsx';
 import { balanceAgee, messageRelance, TRANCHES_RETARD } from './commun.js';
 
 // Onglet « Retards » de Devis et factures : qui doit combien, depuis quand, et un message de relance prêt à envoyer.
@@ -36,10 +36,12 @@ function ModaleRelance({ client, ligne, onFermer }) {
   );
 }
 
-export default function BalanceAgee({ documents, ventes, contacts, aujourdhui, naviguer }) {
+export default function BalanceAgee({ documents, ventes, contacts, aujourdhui, naviguer, contestees }) {
   const { montant } = useEspace();
   const [relance, setRelance] = useState(null);
-  const lignes = balanceAgee(documents, ventes, aujourdhui);
+  const lignes = balanceAgee(documents, ventes, aujourdhui, contestees);
+  // Une facture contestée reste due mais ne se relance pas tant que la contestation est ouverte.
+  const aRelancer = (l) => l.factures.filter((f) => !f.contestee);
   const nom = (l) => contacts[l.contact_id]?.societe || contacts[l.contact_id]?.nom || '—';
   const total = (k) => lignes.reduce((s, l) => s + l.tranches[k], 0);
   return (
@@ -61,7 +63,12 @@ export default function BalanceAgee({ documents, ventes, contacts, aujourdhui, n
           })),
           { id: 'total', libelle: 'Total dû', classe: 'nombre', tri: (l) => l.total, rendu: (l) => <strong>{montant(l.total)}</strong> },
           { id: 'retard', libelle: 'Retard max.', classe: 'nombre', tri: (l) => l.retard_max, rendu: (l) => (l.retard_max > 0 ? `${l.retard_max} j` : '—') },
-          { id: 'actions', libelle: '', exporter: false, rendu: (l) => <button type="button" className="lien" onClick={(e) => { e.stopPropagation(); setRelance(l); }}>Relancer</button> },
+          { id: 'contestee', libelle: 'Contesté', classe: 'nombre', tri: (l) => l.factures.filter((f) => f.contestee).length,
+            rendu: (l) => (l.factures.some((f) => f.contestee) ? <Badge ton="orange">{montant(l.factures.filter((f) => f.contestee).reduce((s, f) => s + f.reste, 0))}</Badge> : '—'),
+            exporter: (l) => l.factures.filter((f) => f.contestee).reduce((s, f) => s + f.reste, 0) },
+          { id: 'actions', libelle: '', exporter: false, rendu: (l) => (aRelancer(l).length
+            ? <button type="button" className="lien" onClick={(e) => { e.stopPropagation(); setRelance({ ...l, factures: aRelancer(l) }); }}>Relancer</button>
+            : <span className="texte-doux">Contestée</span>) },
         ]}
         lignes={lignes}
         rechercher={nom}

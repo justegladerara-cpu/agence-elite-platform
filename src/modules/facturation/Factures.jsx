@@ -8,8 +8,10 @@ import { etatDocument, TYPES_DOCUMENT } from './commun.js';
 import DocumentVente from './Document.jsx';
 import EditeurDocument from './Editeur.jsx';
 import BalanceAgee from './BalanceAgee.jsx';
+import ReleveClient from './Releve.jsx';
 
-const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs'], ['retards', 'Retards']];
+const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs'], ['retards', 'Retards'], ['releve', 'Relevé client']];
+const SANS_COMPTE = ['retards', 'releve'];
 
 function Liste({ naviguer }) {
   const { api, etablissement, peut, montant } = useEspace();
@@ -28,14 +30,16 @@ function Liste({ naviguer }) {
   });
   const aujourdhui = dateLocale();
   const { donnees, chargement, erreur } = useDonnees(async () => {
-    const [documents, contacts, ventes, tdb] = await Promise.all([
+    const [documents, contacts, ventes, tdb, contestations] = await Promise.all([
       api.lire('documents_vente', { eq: { etablissement_id: etablissement.id }, ordre: ['cree_le', 'desc'], limite: 2000 }),
       api.lire('contacts', { eq: { etablissement_id: etablissement.id }, colonnes: ['id', 'nom', 'societe', 'telephone'] }),
       api.lire('ventes', { eq: { etablissement_id: etablissement.id, origine: 'facture' }, colonnes: ['id', 'total', 'montant_paye', 'statut_paiement', 'statut'] }).catch(() => []),
       api.rpc('tableau_de_bord_facturation', { p_etablissement_id: etablissement.id }),
+      api.lire('contestations_facture', { eq: { etablissement_id: etablissement.id }, colonnes: ['document_id', 'close_le'] }).catch(() => []),
     ]);
     return {
       documents, tdb,
+      contestees: new Set(contestations.filter((k) => !k.close_le).map((k) => k.document_id)),
       contact: Object.fromEntries(contacts.map((c) => [c.id, c])),
       vente: Object.fromEntries(ventes.map((v) => [v.id, v])),
     };
@@ -70,8 +74,9 @@ function Liste({ naviguer }) {
             <StatCard icone="facture" libelle="Facturé ce mois" valeur={montant(donnees.tdb.facture_mois)} />
             <StatCard icone="document" libelle="Devis en cours" valeur={donnees.tdb.devis_ouverts} detail={donnees.tdb.taux_conversion != null ? `${donnees.tdb.taux_conversion} % acceptés` : undefined} />
           </div>
-          <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, k === 'retards' ? undefined : donnees.documents.filter((d) => d.type === k).length])} actif={onglet} onChange={setOnglet} />
-          {onglet === 'retards' && <BalanceAgee documents={donnees.documents} ventes={donnees.vente} contacts={donnees.contact} aujourdhui={aujourdhui} naviguer={naviguer} />}
+          <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, SANS_COMPTE.includes(k) ? undefined : donnees.documents.filter((d) => d.type === k).length])} actif={onglet} onChange={setOnglet} />
+          {onglet === 'retards' && <BalanceAgee documents={donnees.documents} ventes={donnees.vente} contacts={donnees.contact} aujourdhui={aujourdhui} naviguer={naviguer} contestees={donnees.contestees} />}
+          {onglet === 'releve' && <ReleveClient contacts={donnees.contact} documents={donnees.documents} aujourdhui={aujourdhui} />}
           {periode && (
             <div>
               <button type="button" className="puce-filtre" onClick={() => setPeriode(null)} aria-label="Retirer le filtre de période">
@@ -80,7 +85,7 @@ function Liste({ naviguer }) {
               </button>
             </div>
           )}
-          {onglet !== 'retards' && <DataTable exportable={false}
+          {!SANS_COMPTE.includes(onglet) && <DataTable exportable={false}
             key={onglet}
             colonnes={[
               { id: 'numero', libelle: 'Numéro', tri: (d) => d.numero ?? '', rendu: (d) => <strong>{d.numero ?? <span className="texte-faible">Brouillon</span>}</strong> },
@@ -89,7 +94,7 @@ function Liste({ naviguer }) {
               ...(onglet !== 'avoir' ? [{ id: 'echeance', libelle: onglet === 'devis' ? 'Validité' : 'Échéance', tri: (d) => d.echeance ?? '', rendu: (d) => (d.echeance ? formatDate(d.echeance) : '—') }] : []),
               { id: 'total', libelle: 'Total', tri: (d) => Number(d.total_ttc), rendu: (d) => montant(d.total_ttc), classe: 'nombre' },
               ...(onglet === 'facture' ? [{ id: 'reste', libelle: 'Reste dû', tri: reste, rendu: (d) => (reste(d) > 0 ? montant(reste(d)) : '—'), classe: 'nombre' }] : []),
-              { id: 'etat', libelle: 'État', tri: (d) => etat(d)[0], rendu: (d) => <Badge ton={etat(d)[1]}>{etat(d)[0]}</Badge> },
+              { id: 'etat', libelle: 'État', tri: (d) => etat(d)[0], rendu: (d) => <><Badge ton={etat(d)[1]}>{etat(d)[0]}</Badge>{donnees.contestees.has(d.id) && <> <Badge ton="orange">Contestée</Badge></>}</> },
             ]}
             lignes={lignes}
             rechercher={(d) => `${d.numero ?? ''} ${nomClient(d)} ${d.objet ?? ''}`}

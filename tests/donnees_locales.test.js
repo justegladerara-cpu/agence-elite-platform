@@ -87,11 +87,11 @@ describe('moteur de données local', () => {
     const etab = (await api.rpc('mon_contexte')).etablissements[0];
     const aujourdHui = new Date().toISOString().slice(0, 10);
     const tdb = await api.rpc('tableau_de_bord_hub', { p_etablissement_id: etab.id, p_hub_id: null, p_du: '2000-01-01', p_au: aujourdHui });
-    // 8 ventes en caisse + 2 factures émises au dépôt (la 3e est annulée par un avoir).
-    expect(tdb.nombre_ventes).toBe(10);
+    // 8 ventes en caisse + 3 factures émises au dépôt (dont celle soldée avec un trop-perçu ; une autre est annulée par un avoir).
+    expect(tdb.nombre_ventes).toBe(11);
     expect(tdb.creances).toBe(8000 + 24000 + 52000);
     const parHub = Object.fromEntries(tdb.par_hub.map((h) => [h.nom, h.nombre_ventes]));
-    expect(parHub).toEqual({ 'Magasin principal': 5, 'Boutique Marché Total': 3, 'Dépôt principal': 2 });
+    expect(parHub).toEqual({ 'Magasin principal': 5, 'Boutique Marché Total': 3, 'Dépôt principal': 3 });
     const marche = await api.rpc('tableau_de_bord_hub', {
       p_etablissement_id: etab.id, p_hub_id: etab.hubs.find((h) => h.nom === 'Boutique Marché Total').id, p_du: '2000-01-01', p_au: aujourdHui,
     });
@@ -228,6 +228,21 @@ describe('moteur de données local', () => {
     expect([Number(cantine.budget_min), Number(cantine.budget_max)]).toEqual([380000, 450000]);
     const interlocuteurs = await api.lire('contact_interlocuteurs', { eq: { contact_id: cantine.contact_id } });
     expect(interlocuteurs.filter((i) => i.decideur).map((i) => i.nom)).toEqual(['Sœur Marie']);
+  });
+  test('la démo trésorerie : facture contestée, trop-perçu en crédit client, dépense à valider, relevé', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const contestations = await api.lire('contestations_facture', { eq: { etablissement_id: etab } });
+    expect(contestations.map((c) => c.motif)).toEqual(["Le restaurant dit n'avoir reçu qu'un sac de riz sur deux"]);
+    const credits = await api.lire('credits_client', { eq: { etablissement_id: etab } });
+    expect(credits.map((k) => [k.numero, Number(k.montant), k.mode, k.statut])).toEqual([['CR-00001', 5000, 'mobile_money', 'disponible']]);
+    const demandes = await api.lire('demandes_depense', { eq: { etablissement_id: etab } });
+    expect(demandes.map((x) => [x.libelle, x.statut])).toEqual([['Réparation du congélateur', 'a_valider']]);
+    expect(await api.rpc('reglages_depenses', { p_etablissement_id: etab })).toEqual({ seuil_validation: 200000, peut_valider: true });
+    const jour = (await db.query('select date_locale($1)::text j', [etab])).rows[0].j;
+    const releve = await api.rpc('releve_client', { p_etablissement_id: etab, p_contact_id: credits[0].contact_id, p_du: jour, p_au: jour });
+    expect(Number(releve.credits_disponibles)).toBe(5000);
+    expect(releve.lignes.some((l) => /MM-DEMO-ECOLE-1/.test(l.libelle))).toBe(true);
   });
   test('la démo agenda, support et abonnements : rendez-vous, tickets, contrats facturés', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];

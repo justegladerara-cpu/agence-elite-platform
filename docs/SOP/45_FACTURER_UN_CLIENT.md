@@ -17,3 +17,9 @@
 10. **Échéancier** : section « Échéancier » › Définir : répartir en N échéances ou saisir dates et montants (la somme
     doit égaler le total). L'acompte est la première échéance.
 11. **Contrat** : sur un devis accepté, menu ⋯ › Créer le contrat (module Contrats, SOP 68).
+12. **Le client a trop payé** (virement, Mobile Money, carte, chèque) : Encaisser › saisir le montant reçu. La facture est
+    soldée et l'excédent devient un crédit client. Sur sa facture suivante : section « Crédits du client » › Utiliser.
+    S'il veut être remboursé : Utiliser › « Marquer … remboursé » (gérant), après lui avoir rendu l'argent.
+13. **Le client conteste** : menu ⋯ › Le client conteste, noter ce qu'il conteste. Vérifier (bon de livraison, pièces
+    jointes), puis « Clore la contestation » avec l'issue. S'il avait raison : Annuler par un avoir et refaire la facture.
+14. **Relevé de compte** : onglet Relevé client › client et période › Imprimer le relevé (ou Exporter).

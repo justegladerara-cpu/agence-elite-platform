@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { balanceAgee, joursDeRetard, messageRelance, trancheRetard } from '../src/modules/facturation/commun.js';
+import { lignesExportComptable } from '../src/modules/comptabilite/Comptabilite.jsx';
 
 const ventes = {
   v1: { total: 100000, montant_paye: 40000, statut: 'validee' },
@@ -42,5 +43,35 @@ describe('balance âgée', () => {
     expect(ferme).toMatch(/malgré nos précédents rappels/);
     expect(ferme).toMatch(/- F-2 : 1000 F \(en retard de 75 j\)/);
     expect(ferme).toMatch(/Total : 3000 F\./);
+  });
+});
+
+describe('trésorerie (lot E)', () => {
+  test('une facture contestée reste due mais est signalée, pour être exclue des relances', () => {
+    const documents = [
+      { id: 'f1', type: 'facture', statut: 'emise', contact_id: 'c', vente_id: 'v1', numero: 'FA-1', date_document: '2026-01-01', echeance: '2026-01-31' },
+      { id: 'f2', type: 'facture', statut: 'emise', contact_id: 'c', vente_id: 'v2', numero: 'FA-2', date_document: '2026-01-01', echeance: '2026-01-31' },
+    ];
+    const ventes = { v1: { statut: 'validee', total: 100, montant_paye: 0 }, v2: { statut: 'validee', total: 50, montant_paye: 0 } };
+    const [ligne] = balanceAgee(documents, ventes, '2026-02-10', new Set(['f2']));
+    expect(ligne.total).toBe(150);
+    expect(ligne.factures.map((f) => [f.numero, f.contestee])).toEqual([['FA-1', false], ['FA-2', true]]);
+  });
+
+  test('export comptable : une ligne par mouvement, triée par date puis pièce', () => {
+    const r = lignesExportComptable({
+      ecritures: [{ id: 'e2', journal_id: 'j', numero: 'VT-10', date_ecriture: '2026-01-02', libelle: 'Vente' }, { id: 'e1', journal_id: 'j', numero: 'VT-9', date_ecriture: '2026-01-02', libelle: 'Vente' }],
+      lignes: [
+        { ecriture_id: 'e2', compte_id: 'k1', debit: 0, credit: 100, libelle: null },
+        { ecriture_id: 'e1', compte_id: 'k2', debit: 50.5, credit: 0, libelle: 'Encaissement' },
+        { ecriture_id: 'autre', compte_id: 'k2', debit: 1, credit: 0 },
+      ],
+      comptes: [{ id: 'k1', numero: '701', libelle: 'Ventes' }, { id: 'k2', numero: '571', libelle: 'Caisse' }],
+      journaux: [{ id: 'j', code: 'VT' }],
+    });
+    expect(r).toEqual([
+      { journal: 'VT', date: '2026-01-02', piece: 'VT-9', compte: '571', libelle_compte: 'Caisse', libelle: 'Encaissement', debit: 50.5, credit: 0 },
+      { journal: 'VT', date: '2026-01-02', piece: 'VT-10', compte: '701', libelle_compte: 'Ventes', libelle: 'Vente', debit: 0, credit: 100 },
+    ]);
   });
 });

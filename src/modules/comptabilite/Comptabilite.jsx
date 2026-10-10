@@ -3,6 +3,7 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { formatDate, formatMontant } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, ModaleMotif, PageHeader, Section, Tabs } from '../../ui/composants.jsx';
+import { exporterCsv } from '../../ui/communs.jsx';
 
 // Comptabilité (Bêta) : écritures générées depuis l'argent reçu et payé, saisie manuelle équilibrée, extourne,
 // balance, grand livre, plan de comptes réglable. Aucun plan national imposé.
@@ -20,6 +21,28 @@ const AFFECTATIONS = [
 const JOURNAUX_AFFECTES = [['journal_ventes', 'Journal des encaissements'], ['journal_achats', 'Journal des dépenses'], ['journal_divers', 'Journal des saisies']];
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const montant = (v) => (Number(v) ? formatMontant(v) : '');
+
+// Export comptable : une ligne par mouvement (journal, date, pièce, compte, débit, crédit), triée par date puis pièce,
+// au format que la plupart des logiciels comptables savent importer (CSV point-virgule, virgule décimale).
+export function lignesExportComptable({ ecritures, lignes, comptes, journaux }) {
+  const ecriture = new Map(ecritures.map((e) => [e.id, e]));
+  const compte = new Map(comptes.map((c) => [c.id, c]));
+  const journal = new Map(journaux.map((j) => [j.id, j]));
+  return lignes
+    .filter((l) => ecriture.has(l.ecriture_id))
+    .map((l) => {
+      const e = ecriture.get(l.ecriture_id);
+      return {
+        journal: journal.get(e.journal_id)?.code ?? '', date: e.date_ecriture, piece: e.numero, compte: compte.get(l.compte_id)?.numero ?? '',
+        libelle_compte: compte.get(l.compte_id)?.libelle ?? '', libelle: l.libelle || e.libelle, debit: Number(l.debit), credit: Number(l.credit),
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || String(a.piece).localeCompare(String(b.piece), 'fr', { numeric: true }) || b.debit - a.debit);
+}
+const COLONNES_EXPORT = [
+  ['Journal', 'journal'], ['Date', 'date'], ['Pièce', 'piece'], ['Compte', 'compte'], ['Libellé du compte', 'libelle_compte'], ['Libellé', 'libelle'],
+  ['Débit', 'debit'], ['Crédit', 'credit'],
+].map(([libelle, cle]) => ({ libelle, valeur: (l) => (typeof l[cle] === 'number' ? String(l[cle]).replace('.', ',') : l[cle]) }));
 
 function useEnvoi(onFait) {
   const [erreur, setErreur] = useState('');
@@ -268,6 +291,13 @@ export default function Comptabilite() {
               </select>
             </Champ>
           )}
+        </div>
+      )}
+      {onglet === 'ecritures' && donnees?.lignes.length > 0 && (
+        <div className="groupe-boutons">
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`export-comptable-${du}-${au}.csv`, COLONNES_EXPORT, lignesExportComptable(donnees))}>
+            Export comptable (lignes du {formatDate(du)} au {formatDate(au)})
+          </Bouton>
         </div>
       )}
       {onglet === 'ecritures' && pret && attente?.nombre > 0 && (
