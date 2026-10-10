@@ -222,6 +222,12 @@ describe('moteur de données local', () => {
     expect(tdb).toMatchObject({ ouvertes: 3, gagnees_mois: 1, perdues_mois: 1, activites_retard: 1, prospects: 3 });
     const opps = await api.lire('crm_opportunites', { eq: { etablissement_id: etab } });
     expect(opps.filter((o) => o.document_vente_id)).toHaveLength(1);
+    // Lot D : qualification de la cantine (3 « oui » sur 4 questions pondérées), budget en fourchette, interlocuteurs.
+    const cantine = opps.find((o) => o.titre === 'Fournitures de la cantine (trimestre)');
+    expect(await api.rpc('qualification_opportunite', { p_opportunite_id: cantine.id })).toMatchObject({ score: 75, audit_repondus: 2, audit_questions: 4 });
+    expect([Number(cantine.budget_min), Number(cantine.budget_max)]).toEqual([380000, 450000]);
+    const interlocuteurs = await api.lire('contact_interlocuteurs', { eq: { contact_id: cantine.contact_id } });
+    expect(interlocuteurs.filter((i) => i.decideur).map((i) => i.nom)).toEqual(['Sœur Marie']);
   });
   test('la démo agenda, support et abonnements : rendez-vous, tickets, contrats facturés', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];

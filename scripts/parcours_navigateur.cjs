@@ -324,6 +324,27 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('dialog').getByRole('button', { name: 'Valider' }).click();
       await p.getByText('Livrable validé').first().waitFor();
     });
+    await etape('qualification-crm', async () => {
+      await p.goto(U + '#/crm');
+      await p.getByText('Fournitures de la cantine (trimestre)').first().click();
+      await p.getByText('Score 75 %').first().waitFor();
+      await p.getByText('M. Ibara').first().waitFor();
+      await p.getByRole('group', { name: 'Le délai de décision est connu' }).getByRole('button', { name: 'Oui' }).click();
+      await p.getByRole('button', { name: 'Enregistrer les réponses' }).click();
+      await p.getByText('Score 100 %').first().waitFor();
+      await p.goto(U + '#/crm');
+      await p.getByText('Produits d\'hygiène pour le salon').first().click();
+      await p.getByRole('button', { name: 'Plus d’actions' }).click();
+      await p.getByText('Marquer perdue').first().click();
+      const d = p.getByRole('dialog', { name: 'Opportunité perdue' });
+      await d.getByRole('button', { name: 'Pas de budget' }).click();
+      await d.getByRole('combobox').selectOption('90');
+      await d.getByRole('button', { name: 'Marquer perdue' }).click();
+      await p.getByText('Opportunité perdue, relance planifiée').first().waitFor();
+      await p.getByText(/Pas de budget/).first().waitFor();
+      await p.goto(U + '#/crm?vue=doublons');
+      await p.getByText(/Aucun doublon repéré|groupe\(s\) à vérifier/).first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

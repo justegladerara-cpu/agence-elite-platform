@@ -177,10 +177,13 @@ describe('application sur la base locale', () => {
     fireEvent.click(screen.getByText('Fournitures de la cantine (trimestre)'));
     expect(await screen.findByText('Rendez-vous avec l’économe'.replace('’', "'"), {}, { timeout: 10000 })).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Étape du pipeline' })).toBeTruthy();
+    expect(await screen.findByText('Score 75 %', {}, { timeout: 10000 })).toBeTruthy();
+    expect(await screen.findByText('M. Ibara')).toBeTruthy();
     vue.unmount();
     window.location.hash = '#/crm/reglages';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
-    expect(await screen.findByText('Étapes du pipeline', {}, { timeout: 10000 })).toBeTruthy();
+    expect(await screen.findByText('Étapes et questions', {}, { timeout: 10000 })).toBeTruthy();
+    expect(await screen.findByText('Le budget est confirmé', {}, { timeout: 10000 })).toBeTruthy();
   });
 
   test('Projets : liste, fiche avec tâches en colonnes, saisie de temps', async () => {

@@ -45,7 +45,34 @@ au clavier), liste filtrable et exportable, activités à faire / historique, pr
 étapes, activités, devis, documents) ; vue CRM d'un contact ; réglage des étapes ; widget « Commercial ».
 Contacts : type Prospect, origine, onglet Prospects quand le CRM est actif.
 
+## Qualification (lot D, migration `20261010000114_qualification_crm`)
+- **Interlocuteurs** : plusieurs personnes par entreprise (nom, fonction, téléphone, e-mail), une ou plusieurs
+  marquées « décideur » (`contact_interlocuteurs`, `enregistrer_interlocuteur`, droit `contacts.gerer`). Visibles
+  sur la fiche contact, la vue CRM du contact et la fiche opportunité. Un interlocuteur se retire, il ne se supprime pas.
+- **Budget en fourchette** et **démarrage souhaité** sur l'opportunité (`budget_min`, `budget_max`, `demarrage_souhaite`).
+- **Questions de qualification et d'audit** propres à l'établissement (`crm_criteres`, réglées par
+  `crm_pipeline.administrer` dans « Étapes et questions ») : oui/non, choix, nombre ou texte, aide, poids. Une question
+  peut n'être posée que si une autre (oui/non ou à choix, elle-même sans condition) a une réponse donnée. Questions de
+  départ génériques proposées (`crm_criteres_initialiser`). Réponses par opportunité (`repondre_criteres_crm`, même
+  droit que modifier l'opportunité). **Score** (`qualification_opportunite`) : poids des « oui » (ou des réponses
+  données pour les autres types) sur le total des questions de qualification visibles. **Fiche audit** imprimable.
+- **Motifs de perte** : liste réglable (`motifs_perte`, une ligne par motif) ; le motif choisi est enregistré avec la
+  précision écrite après « : ». Répartition « Pourquoi les affaires sont perdues » sous la liste des opportunités.
+  À la perte, « Relancer ce contact plus tard » (1, 3 ou 6 mois) planifie un appel rattaché à l'opportunité.
+- **Compte rendu d'appel** : modèle réglable (`modele_compte_rendu`) prérempli quand on termine un appel, un
+  rendez-vous, une visite ou une démo ; laissé tel quel, rien n'est enregistré.
+- **Coordonnées confirmées** (`confirmer_coordonnees_contact`) : date et auteur ; un changement de téléphone,
+  d'e-mail ou d'adresse les remet « à confirmer ».
+- **Doublons** : onglet « Doublons » (même téléphone sur les 8 derniers chiffres, même e-mail ou même nom) et
+  avertissement à la création d'un contact ou d'un prospect (`contacts_doublons`, `contacts_similaires`). Rien n'est bloqué.
+- Lecture : `crm_pipeline.lire` (questions, réponses, score, réglages), `contacts.lire` (interlocuteurs, doublons).
+
 ## Limites connues
 - Pas d'envoi de message (WhatsApp, e-mail, SMS) depuis la plateforme : l'activité trace l'échange fait ailleurs.
 - Pas d'import de prospects en masse (l'import CSV des contacts reste à faire).
 - Pas de prévision de chiffre d'affaires par mois au-delà du pipeline pondéré.
+- Doublons : pas de fusion automatique (les ventes, factures et opportunités restent sur leur fiche) ; on garde la
+  bonne fiche et on désactive l'autre. Les noms sont comparés sans espaces ni ponctuation, mais avec les accents.
+- Questions conditionnelles sur un seul niveau (une question qui dépend d'une autre ne peut pas en commander une troisième).
+- Le formulaire public du site web ne pose pas ces questions : elles se remplissent dans la plateforme.
+- La fiche audit s'imprime depuis le navigateur (« Enregistrer en PDF ») ; pas d'envoi au client depuis la plateforme.

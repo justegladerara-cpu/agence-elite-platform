@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
-import { Badge, Bouton, EmptyState } from '../../ui/composants.jsx';
-import { TYPES_ACTIVITE } from './commun.js';
+import { Badge, Bouton, Champ, EmptyState } from '../../ui/composants.jsx';
+import { DELAIS_RELANCE, REGLAGES_DEFAUT, relanceDans, TYPES_ACTIVITE } from './commun.js';
 import { ModaleActivite, ModaleTerminer } from './Formulaires.jsx';
 
 // Charge tout ce dont les vues CRM ont besoin (le pipeline par défaut est créé à la première visite).
@@ -10,16 +10,18 @@ export function useCrm(deps = []) {
   const { api, etablissement, peut } = useEspace();
   return useDonnees(async () => {
     if (peut('crm_pipeline.lire')) await api.rpc('crm_initialiser', { p_etablissement_id: etablissement.id }).catch(() => null);
-    const [etapes, opportunites, activites, contacts, equipe, tdb] = await Promise.all([
+    const [etapes, opportunites, activites, contacts, equipe, tdb, reglages] = await Promise.all([
       api.lire('crm_etapes', { eq: { etablissement_id: etablissement.id }, ordre: ['ordre'] }),
       api.lire('crm_opportunites', { eq: { etablissement_id: etablissement.id }, ordre: ['modifie_le', 'desc'], limite: 3000 }),
       api.lire('crm_activites', { eq: { etablissement_id: etablissement.id }, ordre: ['echeance', 'asc'], limite: 3000 }),
       api.lire('contacts', { eq: { etablissement_id: etablissement.id }, ordre: ['nom'] }),
       api.rpc('crm_commerciaux', { p_etablissement_id: etablissement.id }),
       api.rpc('tableau_de_bord_crm', { p_etablissement_id: etablissement.id }),
+      api.rpc('crm_reglages', { p_etablissement_id: etablissement.id }).catch(() => REGLAGES_DEFAUT),
     ]);
     return {
       etapes, opportunites, activites, equipe, tdb,
+      reglages: { ...REGLAGES_DEFAUT, ...reglages, motifs_perte: reglages?.motifs_perte?.length ? reglages.motifs_perte : REGLAGES_DEFAUT.motifs_perte },
       contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       contact: Object.fromEntries(contacts.map((c) => [c.id, c])),
       etape: Object.fromEntries(etapes.map((e) => [e.id, e])),
@@ -30,24 +32,45 @@ export function useCrm(deps = []) {
 
 export const nomContact = (c) => (c ? c.societe || c.nom : '—');
 
-export function ModalePerte({ onFermer, onValider }) {
+// Motif de perte choisi dans la liste de l'établissement (précision facultative), et relance plus tard si besoin.
+export function ModalePerte({ motifs = REGLAGES_DEFAUT.motifs_perte, onFermer, onValider }) {
   const [motif, setMotif] = useState('');
-  const MOTIFS = ['Prix trop élevé', 'Choix d’un concurrent', 'Pas de budget', 'Projet reporté', 'Sans réponse'];
+  const [precision, setPrecision] = useState('');
+  const [relance, setRelance] = useState('');
+  const texte = [motif, precision.trim()].filter(Boolean).join(' : ').slice(0, 500);
   return (
     <div className="voile" onMouseDown={(e) => e.target === e.currentTarget && onFermer()}>
       <div className="modale" role="dialog" aria-modal="true" aria-label="Opportunité perdue">
         <header><h2>Pourquoi est-elle perdue ?</h2></header>
         <div className="modale-corps formulaire">
-          <div className="groupe-boutons">{MOTIFS.map((m) => <Bouton key={m} type="button" onClick={() => setMotif(m)}>{m}</Bouton>)}</div>
-          <textarea rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} aria-label="Motif" maxLength={500} />
+          <div className="groupe-boutons" role="group" aria-label="Motif">
+            {motifs.map((m) => <Bouton key={m} type="button" variante={motif === m ? 'principal' : 'secondaire'} aria-pressed={motif === m} onClick={() => setMotif(m)}>{m}</Bouton>)}
+          </div>
+          <textarea rows={2} value={precision} onChange={(e) => setPrecision(e.target.value)} aria-label={motif ? 'Précision' : 'Motif'} maxLength={400}
+            placeholder={motif ? 'Précision (facultatif)' : 'Ou écrivez le motif'} />
+          <Champ libelle="Relancer ce contact plus tard">
+            <select value={relance} onChange={(e) => setRelance(e.target.value)}>
+              {DELAIS_RELANCE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </Champ>
           <div className="actions">
             <Bouton type="button" onClick={onFermer}>Retour</Bouton>
-            <Bouton type="button" variante="danger" disabled={!motif.trim()} onClick={() => onValider(motif)}>Marquer perdue</Bouton>
+            <Bouton type="button" variante="danger" disabled={!texte.trim()} onClick={() => onValider(texte, relance)}>Marquer perdue</Bouton>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+// Après une perte avec relance : un appel est planifié sur le contact, rattaché à l'opportunité.
+export async function planifierRelancePerte(api, etablissementId, o, jours) {
+  if (!jours) return false;
+  await api.rpc('enregistrer_activite_crm', {
+    p_etablissement_id: etablissementId,
+    p: { opportunite_id: o.id, type: 'appel', sujet: `Relance : ${o.titre}`.slice(0, 200), echeance: relanceDans(jours) },
+  });
+  return true;
 }
 
 export function ListeActivites({ d, recharger, naviguer, filtre = () => true }) {
@@ -89,6 +112,7 @@ export function ListeActivites({ d, recharger, naviguer, filtre = () => true }) 
       {terminer && (
         <ModaleTerminer
           activite={terminer}
+          modele={d.reglages?.modele_compte_rendu}
           onFermer={() => setTerminer(null)}
           onFait={(relancer) => {
             notifier('Activité terminée');
