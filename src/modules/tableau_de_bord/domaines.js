@@ -94,6 +94,14 @@ export const DOMAINES = {
       { libelle: 'Accords des contacts', icone: 'contacts', route: 'marketing?vue=consentements', permission: 'marketing.lire' },
     ],
   },
+  portail: {
+    icone: 'globe', sousTitre: 'Visites des clients, devis acceptés en ligne, messages et fichiers à traiter',
+    actions: [
+      { libelle: 'Ouvrir l’espace d’un client', icone: 'globe', route: 'espace-client', permission: 'portail_client.gerer', principal: true },
+      { libelle: 'Messages non lus', icone: 'message', route: 'espace-client?filtre=messages', permission: 'portail_client.lire' },
+      { libelle: 'Fichiers à traiter', icone: 'telecharger', route: 'espace-client?filtre=depots', permission: 'portail_client.lire' },
+    ],
+  },
   scolaire: {
     icone: 'membres', sousTitre: 'Élèves inscrits, frais encaissés et impayés',
     actions: [

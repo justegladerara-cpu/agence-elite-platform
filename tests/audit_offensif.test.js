@@ -140,9 +140,12 @@ describe("contexte d'appel", () => {
     // la marque d'un écran de connexion personnalisé (nom, logo, couleur : rien d'autre)
     // la boutique en ligne publique (catalogue publié, code promo, commande, suivi par lien aléatoire)
     // le site web publié (pages publiées, formulaire de contact)
-    // et l'ouverture d'un document partagé par lien (jeton aléatoire, expiration, révocation).
+    // l'ouverture d'un document partagé par lien (jeton aléatoire, expiration, révocation)
+    // et l'espace client (même principe de jeton ; chaque geste est limité et tracé).
     expect(executables.map((e) => e.proname).sort()).toEqual([
-      'boutique_publique', 'commander_boutique', 'envoyer_message_site', 'marque_connexion', 'ouvrir_lien_partage', 'pages_connexion', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
+      'boutique_publique', 'commander_boutique', 'envoyer_message_site', 'marque_connexion', 'ouvrir_lien_partage', 'pages_connexion',
+      'portail_decider_livrable', 'portail_deposer_fichier', 'portail_document_vu', 'portail_envoyer_message', 'portail_ouvrir',
+      'portail_repondre_devis', 'portail_telecharger', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
       'verifier_coupon_boutique',
     ]);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);
