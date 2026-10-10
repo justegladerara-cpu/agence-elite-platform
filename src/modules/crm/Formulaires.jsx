@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';
-import { dateHeureLocale, SOURCES, TYPES_ACTIVITE, versIso } from './commun.js';
+import { AVEC_COMPTE_RENDU, dateHeureLocale, SOURCES, TYPES_ACTIVITE, versIso } from './commun.js';
+import { AlerteSimilaires } from '../contacts/Interlocuteurs.jsx';
 
 // Nouvelle opportunité (ou modification), avec création rapide d'un prospect.
 export function ModaleOpportunite({ opportunite, contacts, etapes, equipe, onFermer, onFait }) {
@@ -10,6 +11,8 @@ export function ModaleOpportunite({ opportunite, contacts, etapes, equipe, onFer
     titre: opportunite?.titre ?? '', contact_id: opportunite?.contact_id ?? '', etape_id: opportunite?.etape_id ?? '',
     montant: opportunite ? String(opportunite.montant) : '', cloture_prevue: opportunite?.cloture_prevue ?? '',
     source: opportunite?.source ?? '', responsable_id: opportunite?.responsable_id ?? '', notes: opportunite?.notes ?? '',
+    budget_min: opportunite?.budget_min != null ? String(opportunite.budget_min) : '', budget_max: opportunite?.budget_max != null ? String(opportunite.budget_max) : '',
+    demarrage_souhaite: opportunite?.demarrage_souhaite ?? '',
   }));
   const [nouveau, setNouveau] = useState({ actif: !contacts.length, nom: '', societe: '', telephone: '' });
   const [erreur, setErreur] = useState('');
@@ -29,7 +32,10 @@ export function ModaleOpportunite({ opportunite, contacts, etapes, equipe, onFer
       }
       const id = await api.rpc('enregistrer_opportunite', {
         p_etablissement_id: etablissement.id,
-        p: { ...v, id: opportunite?.id, contact_id: contact, montant: v.montant || 0, responsable_id: v.responsable_id || null, etape_id: v.etape_id || null },
+        p: {
+          ...v, id: opportunite?.id, contact_id: contact, montant: v.montant || 0, responsable_id: v.responsable_id || null, etape_id: v.etape_id || null,
+          budget_min: v.budget_min === '' ? null : v.budget_min, budget_max: v.budget_max === '' ? null : v.budget_max, demarrage_souhaite: v.demarrage_souhaite || null,
+        },
       });
       onFait(id);
     } catch (err) {
@@ -47,6 +53,7 @@ export function ModaleOpportunite({ opportunite, contacts, etapes, equipe, onFer
             <Champ libelle="Société"><input value={nouveau.societe} onChange={(e) => setNouveau({ ...nouveau, societe: e.target.value })} /></Champ>
             <Champ libelle="Téléphone"><input type="tel" value={nouveau.telephone} onChange={(e) => setNouveau({ ...nouveau, telephone: e.target.value })} /></Champ>
             {contacts.length > 0 && <button type="button" className="lien" onClick={() => setNouveau({ ...nouveau, actif: false })}>Choisir un contact existant</button>}
+            <AlerteSimilaires nom={nouveau.societe || nouveau.nom} telephone={nouveau.telephone} />
           </div>
         ) : (
           <Champ libelle="Prospect ou client">
@@ -66,6 +73,9 @@ export function ModaleOpportunite({ opportunite, contacts, etapes, equipe, onFer
             </select>
           </Champ>
           <Champ libelle="Signature prévue"><input type="date" value={v.cloture_prevue} onChange={changer('cloture_prevue')} /></Champ>
+          <Champ libelle="Budget du client : de"><input type="number" min="0" step="any" inputMode="decimal" value={v.budget_min} onChange={changer('budget_min')} /></Champ>
+          <Champ libelle="à"><input type="number" min="0" step="any" inputMode="decimal" value={v.budget_max} onChange={changer('budget_max')} /></Champ>
+          <Champ libelle="Démarrage souhaité"><input type="date" value={v.demarrage_souhaite} onChange={changer('demarrage_souhaite')} /></Champ>
           <Champ libelle="Origine">
             <select value={v.source} onChange={changer('source')}>
               <option value="">— Non précisée</option>
@@ -149,15 +159,18 @@ export function ModaleActivite({ opportuniteId, contactId, equipe, onFermer, onF
 }
 
 // Terminer une activité avec son résultat, et proposer la relance suivante.
-export function ModaleTerminer({ activite, onFermer, onFait }) {
+// Pour un appel, un rendez-vous, une visite ou une démo, le résultat part du modèle de compte rendu réglé.
+export function ModaleTerminer({ activite, modele, onFermer, onFait }) {
   const { api } = useEspace();
-  const [resultat, setResultat] = useState('');
+  const [resultat, setResultat] = useState(() => (AVEC_COMPTE_RENDU.includes(activite.type) && modele ? modele : ''));
   const [relancer, setRelancer] = useState(activite.opportunite_id != null);
   const [erreur, setErreur] = useState('');
   const valider = async (e) => {
     e.preventDefault();
     try {
-      await api.rpc('terminer_activite_crm', { p_activite_id: activite.id, p_resultat: resultat || null, p_annuler: false });
+      // Modèle laissé tel quel : rien n'a été écrit, on n'enregistre pas les intitulés vides.
+      const texte = resultat.trim() === (modele ?? '').trim() ? '' : resultat;
+      await api.rpc('terminer_activite_crm', { p_activite_id: activite.id, p_resultat: texte || null, p_annuler: false });
       onFait(relancer);
     } catch (err) {
       setErreur(err.message);
@@ -166,7 +179,7 @@ export function ModaleTerminer({ activite, onFermer, onFait }) {
   return (
     <Modale titre={`Terminé : ${activite.sujet}`} onFermer={onFermer}>
       <form className="formulaire" onSubmit={valider}>
-        <Champ libelle="Résultat"><textarea rows={3} value={resultat} onChange={(e) => setResultat(e.target.value)} maxLength={1000} placeholder="Ce qui a été dit, la prochaine étape…" autoFocus /></Champ>
+        <Champ libelle="Résultat"><textarea rows={resultat.includes('\n') ? 5 : 3} value={resultat} onChange={(e) => setResultat(e.target.value)} maxLength={1000} placeholder="Ce qui a été dit, la prochaine étape…" autoFocus /></Champ>
         <label className="case"><input type="checkbox" checked={relancer} onChange={(e) => setRelancer(e.target.checked)} /> Planifier la relance suivante</label>
         <Erreur message={erreur} />
         <div className="actions">

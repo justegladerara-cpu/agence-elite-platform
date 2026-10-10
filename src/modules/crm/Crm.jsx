@@ -6,12 +6,12 @@ import { Badge, Bouton, DataTable, EmptyState, Erreur, Icone, PageHeader, Sectio
 import { exporterCsv } from '../../ui/communs.jsx';
 import { SOURCES, STATUTS_OPPORTUNITE, TYPES_ACTIVITE } from './commun.js';
 import { ModaleOpportunite } from './Formulaires.jsx';
-import { ListeActivites, ModalePerte, nomContact, useCrm } from './partage.jsx';
+import { ListeActivites, ModalePerte, nomContact, planifierRelancePerte, useCrm } from './partage.jsx';
 import Opportunite from './Opportunite.jsx';
 import ReglagesPipeline from './Reglages.jsx';
 
 function Pipeline({ d, recharger, naviguer, filtreMoi }) {
-  const { api, montant, notifier, utilisateur, peut } = useEspace();
+  const { api, etablissement, montant, notifier, utilisateur, peut } = useEspace();
   const [survol, setSurvol] = useState(null);
   const [erreur, setErreur] = useState('');
   const [perte, setPerte] = useState(null);
@@ -20,11 +20,12 @@ function Pipeline({ d, recharger, naviguer, filtreMoi }) {
   const perdue = d.etapes.find((e) => e.nature === 'perdue' && e.actif);
   const ouvertes = d.opportunites.filter((o) => o.statut === 'ouverte' && (!filtreMoi || o.responsable_id === utilisateur?.id));
   const peutBouger = (o) => peut('crm_pipeline.administrer') || (peut('crm_pipeline.gerer') && [o.responsable_id, o.cree_par].includes(utilisateur?.id));
-  const deplacer = async (id, etape, motif) => {
+  const deplacer = async (id, etape, motif, relance) => {
     setErreur('');
     try {
       await api.rpc('deplacer_opportunite', { p_opportunite_id: id, p_etape_id: etape.id, p_motif: motif ?? null });
-      notifier(etape.nature === 'gagnee' ? 'Bravo, opportunité gagnée' : `Déplacée vers « ${etape.nom} »`);
+      const relancee = await planifierRelancePerte(api, etablissement.id, d.opportunites.find((o) => o.id === id), relance);
+      notifier(etape.nature === 'gagnee' ? 'Bravo, opportunité gagnée' : relancee ? 'Opportunité perdue, relance planifiée' : `Déplacée vers « ${etape.nom} »`);
       recharger();
     } catch (err) {
       setErreur(err.message);
@@ -113,7 +114,7 @@ function Pipeline({ d, recharger, naviguer, filtreMoi }) {
         )}
       </div>
       {perte && (
-        <ModalePerte onFermer={() => setPerte(null)} onValider={(motif) => { deplacer(perte.id, perte.etape, motif); setPerte(null); }} />
+        <ModalePerte motifs={d.reglages.motifs_perte} onFermer={() => setPerte(null)} onValider={(motif, relance) => { deplacer(perte.id, perte.etape, motif, relance); setPerte(null); }} />
       )}
     </>
   );
@@ -192,7 +193,59 @@ function Prospects({ d, naviguer }) {
   );
 }
 
-const ONGLETS = [['pipeline', 'Pipeline'], ['liste', 'Opportunités'], ['activites', 'Activités'], ['prospects', 'Prospects']];
+// Motifs de perte regroupés (le motif choisi dans la liste, sans la précision écrite après « : »).
+function MotifsPerte({ d }) {
+  const perdues = d.opportunites.filter((o) => o.statut === 'perdue' && o.motif_perte);
+  if (!perdues.length) return null;
+  const compte = {};
+  for (const o of perdues) {
+    const m = o.motif_perte.split(' : ')[0].trim();
+    compte[m] = (compte[m] ?? 0) + 1;
+  }
+  const lignes = Object.entries(compte).sort((a, b) => b[1] - a[1]);
+  return (
+    <Section titre="Pourquoi les affaires sont perdues">
+      <div className="liste-simple">
+        {lignes.map(([m, n]) => (
+          <div key={m} className="liste-ligne"><span>{m}</span><strong>{n} · {Math.round((100 * n) / perdues.length)} %</strong></div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+const RAISONS_DOUBLON = { telephone: 'Même téléphone', email: 'Même e-mail', nom: 'Même nom' };
+
+// Contacts qui se ressemblent : à vérifier, puis désactiver celui en trop depuis sa fiche contact.
+function Doublons({ naviguer }) {
+  const { api, etablissement } = useEspace();
+  const { donnees: groupes, chargement, erreur } = useDonnees(() => api.rpc('contacts_doublons', { p_etablissement_id: etablissement.id }), [etablissement.id]);
+  if (chargement && !groupes) return <Squelette lignes={4} />;
+  if (erreur) return <Erreur message={erreur} />;
+  if (!groupes?.length) return <EmptyState icone="coche" titre="Aucun doublon repéré" texte="Aucun contact actif ne partage un téléphone, un e-mail ou un nom." />;
+  return (
+    <>
+      <p className="texte-doux">{groupes.length} groupe(s) à vérifier. Gardez la bonne fiche et désactivez l’autre depuis la fiche contact : rien n’est supprimé.</p>
+      {groupes.map((g, i) => (
+        <Section key={`${g.raison}-${i}`} titre={RAISONS_DOUBLON[g.raison]}>
+          <div className="liste-simple">
+            {g.contacts.map((c) => (
+              <div key={c.id} className="liste-ligne">
+                <span>
+                  <button type="button" className="lien" onClick={() => naviguer(`contacts/${c.id}`)}><strong>{nomContact(c)}</strong></button>
+                  <small className="texte-doux bloc">{[c.societe && c.nom, c.telephone, c.email, `ajouté le ${formatDate(c.cree_le)}`].filter(Boolean).join(' · ')}</small>
+                </span>
+                <Badge>{c.type === 'prospect' ? 'Prospect' : c.type === 'fournisseur' ? 'Fournisseur' : 'Client'}</Badge>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ))}
+    </>
+  );
+}
+
+const ONGLETS = [['pipeline', 'Pipeline'], ['liste', 'Opportunités'], ['activites', 'Activités'], ['prospects', 'Prospects'], ['doublons', 'Doublons']];
 
 function Accueil({ naviguer }) {
   const { api, etablissement, montant, peut, utilisateur } = useEspace();
@@ -219,7 +272,7 @@ function Accueil({ naviguer }) {
         sousTitre="Du premier contact à la signature"
         actions={(
           <>
-            {peut('crm_pipeline.administrer') && <Bouton icone="parametres" onClick={() => naviguer('crm/reglages')}>Étapes</Bouton>}
+            {peut('crm_pipeline.administrer') && <Bouton icone="parametres" onClick={() => naviguer('crm/reglages')}>Étapes et questions</Bouton>}
             {peut('crm_pipeline.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setNouvelle(true)}>Nouvelle opportunité</Bouton>}
           </>
         )}
@@ -234,7 +287,7 @@ function Accueil({ naviguer }) {
             <StatCard icone="horloge" libelle="Activités en retard" valeur={d.tdb.activites_retard} detail={`${d.tdb.activites_jour} aujourd’hui · ${aFaire} pour moi`} ton={d.tdb.activites_retard ? 'alerte' : undefined} onClick={() => setOnglet('activites')} />
             <StatCard icone="contacts" libelle="Prospects" valeur={d.tdb.prospects} detail={d.tdb.sans_activite ? `${d.tdb.sans_activite} opportunité(s) à relancer` : undefined} onClick={() => setOnglet('prospects')} />
           </div>
-          <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, k === 'activites' ? d.activites.filter((a) => a.statut === 'a_faire').length : undefined])} actif={onglet} onChange={setOnglet} />
+          <Tabs onglets={ONGLETS.filter(([k]) => k !== 'doublons' || peut('contacts.lire')).map(([k, l]) => [k, l, k === 'activites' ? d.activites.filter((a) => a.statut === 'a_faire').length : undefined])} actif={onglet} onChange={setOnglet} />
           {onglet === 'pipeline' && (
             <>
               {d.equipe.length > 1 && (
@@ -246,9 +299,11 @@ function Accueil({ naviguer }) {
             </>
           )}
           {onglet === 'liste' && <ListeOpportunites d={d} naviguer={naviguer} seuil={seuil ?? 14} />}
+          {onglet === 'liste' && <MotifsPerte d={d} />}
           {onglet === 'activites' && filtreActivites && <Bouton icone="fermer" onClick={() => setFiltreActivites(undefined)}>En retard uniquement</Bouton>}
           {onglet === 'activites' && <Section><ListeActivites d={d} recharger={recharger} naviguer={naviguer} filtre={filtreActivites} /></Section>}
           {onglet === 'prospects' && <Prospects d={d} naviguer={naviguer} />}
+          {onglet === 'doublons' && <Doublons naviguer={naviguer} />}
           {nouvelle && (
             <ModaleOpportunite contacts={d.contacts} etapes={d.etapes} equipe={d.equipe} onFermer={() => setNouvelle(false)} onFait={(id) => naviguer(`crm/${id}`)} />
           )}

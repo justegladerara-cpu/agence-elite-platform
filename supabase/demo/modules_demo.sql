@@ -1362,3 +1362,39 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Qualification CRM (lot D) : questions de départ, réponses sur la cantine du collège (budget en fourchette,
+-- interlocuteurs dont la décideuse), coordonnées du snack confirmées. Fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; o uuid; ecole uuid; snack uuid; q jsonb := '{}'::jsonb; ligne record;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id, contact_id into o, ecole from public.crm_opportunites where etablissement_id = etab and titre = 'Fournitures de la cantine (trimestre)';
+  if o is null or exists (select 1 from public.crm_criteres where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into snack from public.contacts where etablissement_id = etab and societe = 'Snack Démo Le Palmier';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.crm_criteres_initialiser(etab);
+  for ligne in select id, libelle from public.crm_criteres where etablissement_id = etab loop
+    q := q || jsonb_build_object(ligne.libelle, ligne.id);
+  end loop;
+  perform public.repondre_criteres_crm(o, jsonb_build_object(
+    q ->> 'Le besoin est clairement exprimé', 'oui', q ->> 'Le budget est confirmé', 'oui', q ->> 'Le décideur est identifié', 'oui',
+    q ->> 'Urgence du besoin', 'Forte', q ->> 'Outils utilisés aujourd''hui', 'Achats au marché, cahier de l''économe',
+    q ->> 'Nombre de personnes concernées', '350'));
+  perform public.enregistrer_opportunite(etab, (select jsonb_build_object('id', id, 'titre', titre, 'contact_id', contact_id, 'montant', montant,
+    'cloture_prevue', cloture_prevue, 'budget_min', 380000, 'budget_max', 450000, 'demarrage_souhaite', public.date_locale(etab) + 30)
+    from public.crm_opportunites where id = o));
+  perform public.enregistrer_interlocuteur(etab, jsonb_build_object('contact_id', ecole, 'nom', 'Sœur Marie', 'fonction', 'Directrice', 'decideur', true));
+  perform public.enregistrer_interlocuteur(etab, jsonb_build_object('contact_id', ecole, 'nom', 'M. Ibara', 'fonction', 'Économe',
+    'telephone', '+242 05 000 00 44'));
+  if snack is not null then
+    perform public.confirmer_coordonnees_contact(snack);
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

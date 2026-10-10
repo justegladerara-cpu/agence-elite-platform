@@ -7,6 +7,7 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Onglets, Rech
 import { SOURCES } from '../crm/commun.js';
 import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
 import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
+import { AlerteSimilaires, CoordonneesConfirmees, Interlocuteurs } from './Interlocuteurs.jsx';
 
 const TYPES = { client: 'Client', prospect: 'Prospect', fournisseur: 'Fournisseur', les_deux: 'Client et fournisseur' };
 const CHAMPS = ['type', 'nom', 'societe', 'identifiant_fiscal', 'telephone', 'email', 'adresse', 'notes', 'actif'];
@@ -55,6 +56,7 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
           <Champ libelle="Téléphone"><input type="tel" value={valeurs.telephone} onChange={changer('telephone')} /></Champ>
           <Champ libelle="E-mail"><input type="email" value={valeurs.email} onChange={changer('email')} /></Champ>
         </div>
+        {!contact && <AlerteSimilaires nom={valeurs.nom} telephone={valeurs.telephone} email={valeurs.email} />}
         <Champ libelle="Adresse"><input value={valeurs.adresse} onChange={changer('adresse')} /></Champ>
         <div className="grille-champs">
           <Champ libelle="Société (facturation)"><input value={valeurs.societe} onChange={changer('societe')} maxLength={120} /></Champ>
@@ -97,6 +99,8 @@ function FicheContact({ contact, ventes, onFermer, onModifier, onChange, navigue
         {contact.societe && <p><strong>{contact.societe}</strong>{contact.identifiant_fiscal ? ` · NIU ${contact.identifiant_fiscal}` : ''}</p>}
         {contact.source && <p className="texte-doux">Origine : {SOURCES[contact.source]}</p>}
         {contact.notes && <p className="texte-doux">{contact.notes}</p>}
+        <CoordonneesConfirmees contact={contact} onChange={onChange} />
+        {contact.type !== 'client' || contact.societe ? <Interlocuteurs contactId={contact.id} /> : null}
         {moduleActif('crm_pipeline') && peut('crm_pipeline.lire') && contact.type !== 'fournisseur' && naviguer && (
           <button type="button" className="lien" onClick={() => naviguer(`crm/contact/${contact.id}`)}>Voir les opportunités et activités</button>
         )}

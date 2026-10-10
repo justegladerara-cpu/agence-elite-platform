@@ -3,14 +3,16 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure } from '../../noyau/format.js';
 import { Badge, Bouton, EmptyState, Erreur, MenuActions, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
-import { SOURCES, STATUTS_OPPORTUNITE } from './commun.js';
-import { ListeActivites, ModalePerte, nomContact, useCrm } from './partage.jsx';
+import { fourchette, SOURCES, STATUTS_OPPORTUNITE } from './commun.js';
+import { ListeActivites, ModalePerte, nomContact, planifierRelancePerte, useCrm } from './partage.jsx';
+import Qualification from './Qualification.jsx';
+import { CoordonneesConfirmees, Interlocuteurs } from '../contacts/Interlocuteurs.jsx';
 import { ModaleActivite, ModaleOpportunite } from './Formulaires.jsx';
 import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
 
 // Fiche d'une opportunité, ou vue CRM d'un contact (« contact/<id> »).
 export default function Opportunite({ opportuniteId, contactId, naviguer }) {
-  const { api, peut, notifier, montant, utilisateur, moduleActif } = useEspace();
+  const { api, etablissement, peut, notifier, montant, utilisateur, moduleActif } = useEspace();
   const { donnees: d, chargement, erreur, recharger } = useCrm([opportuniteId, contactId]);
   const [action, setAction] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
@@ -48,6 +50,12 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
           </div>
         </Section>
         <Section titre="Activités"><ListeActivites d={d} recharger={recharger} naviguer={naviguer} filtre={(a) => a.contact_id === c.id} /></Section>
+        {peut('contacts.lire') && (
+          <Section>
+            <CoordonneesConfirmees contact={c} onChange={recharger} />
+            <Interlocuteurs contactId={c.id} />
+          </Section>
+        )}
         <RendezVousLies contactId={c.id} naviguer={naviguer} />
         {action === 'activite' && <ModaleActivite contactId={c.id} equipe={d.equipe} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Activité enregistrée'); recharger(); }} />}
         {action === 'opportunite' && (
@@ -107,6 +115,10 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
         <StatCard icone="graphique" libelle="Probabilité" valeur={`${o.probabilite} %`} />
         <StatCard icone="calendrier" libelle="Signature prévue" valeur={o.cloture_prevue ? formatDate(o.cloture_prevue) : '—'} />
         <StatCard icone="utilisateur" libelle="Suivie par" valeur={d.membre[o.responsable_id]?.nom ?? '—'} />
+        {(fourchette(o, montant) || o.demarrage_souhaite) && (
+          <StatCard icone="depenses" libelle="Budget du client" valeur={fourchette(o, montant) ?? '—'}
+            detail={o.demarrage_souhaite ? `démarrage souhaité le ${formatDate(o.demarrage_souhaite)}` : undefined} />
+        )}
       </div>
       {o.statut === 'ouverte' && gerer && (
         <nav className="etapes-pipeline" aria-label="Étape du pipeline">
@@ -120,7 +132,10 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
         </nav>
       )}
       <div className="deux-colonnes large-gauche">
-        <Section titre="Activités"><ListeActivites d={d} recharger={recharger} naviguer={naviguer} filtre={(a) => a.opportunite_id === o.id} /></Section>
+        <div className="pile">
+          <Section titre="Activités"><ListeActivites d={d} recharger={recharger} naviguer={naviguer} filtre={(a) => a.opportunite_id === o.id} /></Section>
+          <Qualification opportunite={o} contact={c} gerer={gerer} naviguer={naviguer} />
+        </div>
         <div className="pile">
           <Section titre="Prospect">
             <dl className="details">
@@ -131,6 +146,12 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
               <div><dt>Créée le</dt><dd>{formatDateHeure(o.cree_le)}</dd></div>
             </dl>
             {o.notes && <p className="texte-doux">{o.notes}</p>}
+            {c && peut('contacts.lire') && (
+              <>
+                <CoordonneesConfirmees contact={c} onChange={recharger} />
+                <Interlocuteurs contactId={c.id} />
+              </>
+            )}
           </Section>
           {o.document_vente_id && peut('facturation.lire') && <DevisEtFacture devisId={o.document_vente_id} naviguer={naviguer} />}
           <RendezVousLies contactId={o.contact_id} opportuniteId={o.id} naviguer={naviguer} />
@@ -142,7 +163,15 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
         <ModaleOpportunite opportunite={o} contacts={d.contacts} etapes={d.etapes} equipe={d.equipe} onFermer={() => setAction(null)} onFait={() => { setAction(null); notifier('Opportunité modifiée'); recharger(); }} />
       )}
       {action === 'perdre' && (
-        <ModalePerte onFermer={() => setAction(null)} onValider={(motif) => { setAction(null); executer('deplacer_opportunite', { p_opportunite_id: o.id, p_etape_id: perdue.id, p_motif: motif }, 'Opportunité marquée perdue'); }} />
+        <ModalePerte
+          motifs={d.reglages.motifs_perte}
+          onFermer={() => setAction(null)}
+          onValider={(motif, relance) => {
+            setAction(null);
+            executer('deplacer_opportunite', { p_opportunite_id: o.id, p_etape_id: perdue.id, p_motif: motif }, relance ? 'Opportunité perdue, relance planifiée' : 'Opportunité marquée perdue',
+              async () => { await planifierRelancePerte(api, etablissement.id, o, relance).catch((err) => setErreurAction(err.message)); recharger(); });
+          }}
+        />
       )}
     </div>
   );
