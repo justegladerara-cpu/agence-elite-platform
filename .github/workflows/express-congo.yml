@@ -89,4 +89,4 @@ jobs:
       - name: Publication sautée
         if: steps.jeton.outputs.present != 'true'
         working-directory: .
-        run: echo "Aucun secret CLOUDFLARE_API_TOKEN dans le dépôt : publication sautée."
+        run: "echo 'Aucun secret CLOUDFLARE_API_TOKEN dans le dépôt, publication sautée.'"
