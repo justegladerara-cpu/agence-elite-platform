@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDate, MODES_PAIEMENT } from '../../noyau/format.js';
-import { exporterCsv } from '../../ui/communs.jsx';
+import { BandeauBrouillon, exporterCsv } from '../../ui/communs.jsx';
+import { useBrouillon } from '../../noyau/brouillons.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, ModaleMotif, Onglets, Vide } from '../../ui/composants.jsx';
 
 const CATEGORIES = ['Achats de marchandises', 'Transport', 'Loyer', 'Énergie', 'Salaires', 'Téléphone et Internet', 'Entretien', 'Impôts et taxes', 'Divers'];
@@ -27,6 +28,8 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
   // Au-dessus du seuil, une dépense hors caisse part en validation (sauf pour qui peut valider).
   const enValidation = seuil > 0 && !depuisCaisse && !reglages?.peut_valider && Number(valeurs.montant) >= seuil;
   const changer = (champ) => (e) => setValeurs((v) => ({ ...v, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  // La photo du justificatif est trop lourde pour un brouillon : elle se reprend.
+  const brouillon = useBrouillon('depense', valeurs, setValeurs, { exclure: ['justificatif', 'depuis_caisse'] });
   const enregistrer = async (e) => {
     e.preventDefault();
     setChargement(true);
@@ -38,6 +41,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
           p_etablissement_id: etablissement.id,
           p: { ...reste, montant: Number(valeurs.montant), fournisseur_id: valeurs.fournisseur_id || null, ...(multiHub && hub ? { hub_id: hub.id } : {}) },
         });
+        brouillon.effacer();
         onEnregistre('Dépense envoyée en validation');
         return;
       }
@@ -52,6 +56,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
           ...(multiHub && hub ? { hub_id: hub.id } : {}),
         },
       });
+      brouillon.effacer();
       onEnregistre('Dépense enregistrée');
     } catch (err) {
       setErreur(err.message);
@@ -61,6 +66,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
   return (
     <Modale titre="Nouvelle dépense" onFermer={onFermer}>
       <form className="formulaire" onSubmit={enregistrer}>
+        <BandeauBrouillon brouillon={brouillon} />
         <Champ libelle="Libellé"><input value={valeurs.libelle} onChange={changer('libelle')} required autoFocus placeholder="Ex. : transport de marchandises" /></Champ>
         <div className="grille-champs">
           <Champ libelle="Montant"><input type="number" min="0" step="any" inputMode="decimal" value={valeurs.montant} onChange={changer('montant')} required /></Champ>

@@ -5,3 +5,5 @@
   Permissions-Policy: camera=(self), microphone=(), geolocation=()
   Strict-Transport-Security: max-age=31536000
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://express-congo.justegladerara.workers.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+/version.json
+  Cache-Control: no-store

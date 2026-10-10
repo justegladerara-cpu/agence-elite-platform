@@ -3125,3 +3125,9 @@ kbd {
 .grille-integrations { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .carte.integration h3 { margin: 0; font-size: 15px; }
 .carte.integration p { margin: 8px 0; }
+
+/* Bandeaux d'état : connexion perdue, nouvelle version (lot G). */
+.bandeau-etat { padding: 10px 14px; border-radius: var(--rayon); margin-bottom: 12px; font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bandeau-etat.alerte { background: var(--orange-doux); color: var(--orange); }
+.bandeau-etat.succes { background: var(--vert-doux); color: var(--vert); }
+.bandeau-etat.info { background: var(--accent-doux); color: var(--texte); }

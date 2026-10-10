@@ -54,6 +54,23 @@ depuis le navigateur. Pas de mode hors ligne (aucun service worker) ; l'icône e
 Les écrans des modules sont chargés à la demande (`React.lazy` dans chaque manifeste, `Suspense` dans la coquille) :
 le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
 
+## Mobile et réseau instable (lot G, 2026-10-10, sans migration)
+- **Brouillons automatiques** (`src/noyau/brouillons.js`, `useBrouillon`) : nouvelle dépense, fiche contact, devis et
+  facture (création et modification) sont gardés sur l'appareil pendant la saisie, par personne et par établissement.
+  À la réouverture : « Brouillon du … repris » et « Repartir de zéro ». Effacé à l'enregistrement, après 7 jours et
+  **à la déconnexion** (un brouillon peut contenir des données de clients). Rien n'est envoyé au serveur. La photo du
+  justificatif d'une dépense n'est pas gardée (trop lourde).
+- **Conflit** : si le contact ou le document a été modifié par quelqu'un d'autre depuis le brouillon (`modifie_le`), le
+  brouillon n'est pas appliqué tout seul : « Garder la version enregistrée » ou « Reprendre mon brouillon ».
+- **Stockage plein** : si l'appareil refuse d'écrire, un message demande d'enregistrer tout de suite ou de libérer de la place.
+- **Hors connexion** : bandeau « Hors connexion : rien ne peut être enregistré pour l'instant… », puis « Connexion
+  rétablie ». Il n'y a **pas** de file d'attente hors ligne : un enregistrement tenté sans réseau échoue avec son message
+  habituel et le formulaire reste ouvert (et en brouillon).
+- **Nouvelle version** : chaque construction écrit `version.json` (identifiant du commit Cloudflare Pages, sinon
+  l'heure de construction ; jamais mis en cache, voir `public/_headers`). L'application le relit toutes les 5 minutes
+  et au retour sur l'onglet ; si la version a changé : « Une nouvelle version est disponible… Recharger ». Jamais de
+  rechargement imposé.
+
 ## Limites connues
 - Pas de filtres enregistrés ni de choix des colonnes.
 - Pas d'icône d'application par client (white-label) ni de mode hors ligne.

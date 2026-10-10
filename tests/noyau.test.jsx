@@ -179,6 +179,25 @@ describe('application sur la base locale', () => {
     expect(screen.getByRole('button', { name: 'Anonymiser définitivement' }).disabled).toBe(true);
   });
 
+  test('Mobile : brouillon repris après fermeture, bandeau hors connexion', async () => {
+    window.location.hash = '#/depenses?nouveau=1';
+    const vue = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    fireEvent.change(await screen.findByPlaceholderText('Ex. : transport de marchandises', {}, { timeout: 10000 }), { target: { value: 'Taxi pour le dépôt' } });
+    await new Promise((r) => setTimeout(r, 800));
+    vue.unmount();
+    window.location.hash = '#/depenses?nouveau=1';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    const champ = await screen.findByPlaceholderText('Ex. : transport de marchandises', {}, { timeout: 10000 });
+    await waitFor(() => expect(champ.value).toBe('Taxi pour le dépôt'));
+    expect(screen.getByText(/repris/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Repartir de zéro'));
+    expect(screen.getByPlaceholderText('Ex. : transport de marchandises').value).toBe('');
+    window.dispatchEvent(new Event('offline'));
+    expect(await screen.findByText(/Hors connexion/)).toBeTruthy();
+    window.dispatchEvent(new Event('online'));
+    expect(await screen.findByText('Connexion rétablie.')).toBeTruthy();
+  });
+
   test('Achats : liste, commande et réception', async () => {
     window.location.hash = '#/achats';
     const liste = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
