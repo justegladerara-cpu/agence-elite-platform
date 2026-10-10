@@ -167,3 +167,25 @@ for (const width of [360, 390, 768, 1024, 1440])
       ),
     ).toBe(true);
   });
+test("accueil interactif : modes, prix au kilo, recherche rapide", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const board = page.locator(".xh-board");
+  await expect(board).toContainText("23 kg × 13 € TTC");
+  await page.getByLabel("Poids de l’envoi").fill("10");
+  await expect(board.locator(".sr-only").nth(2)).toHaveText("130 €");
+  await page.getByRole("radio", { name: "Maritime" }).click();
+  await expect(board.locator(".sr-only").nth(2)).toHaveText("800 €");
+  await expect(
+    page.getByRole("link", { name: "Demander un devis maritime" }),
+  ).toHaveAttribute("href", /\/devis\/?\?service=maritime$/);
+  await page.getByRole("tab", { name: "Conteneur complet" }).click();
+  await expect(page.locator(".xs-panel h3")).toHaveText(
+    "Un conteneur rien que pour vous",
+  );
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Rechercher" }).fill("pointe");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/agences\/pointe-noire\/$/);
+});

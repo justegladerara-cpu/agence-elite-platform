@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { environment } from "@/config";
+import { CommandPalette, SearchButton } from "@/components/command-palette";
+import { TabBar } from "@/components/tabbar";
 export function Header() {
   const env = environment();
   return (
@@ -33,6 +35,7 @@ export function Header() {
             <Link href="/suivi">Suivre un envoi</Link>
           </nav>
           <div className="header-actions">
+            <SearchButton />
             <Link className="client-link" href="/espace-client">
               Espace client
             </Link>
@@ -93,7 +96,7 @@ export function Footer() {
             <Link href="/prendre-les-mesures">Mesurer mes colis</Link>
             <Link href="/faq">Questions fréquentes</Link>
             <Link href="/contact">Nous contacter</Link>
-            <Link href="/agences">Paris · Brazzaville · Pointe-Noire</Link>
+            <Link href="/agences">Paris, Brazzaville, Pointe-Noire</Link>
           </div>
           <div>
             <h2>Nous joindre</h2>
@@ -122,12 +125,8 @@ export function Footer() {
           <span>Version de présentation · Agence Élite</span>
         </div>
       </footer>
-      <nav className="mobile-bar" aria-label="Actions rapides">
-        <Link href="/devis">Devis</Link>
-        <Link href="/suivi">Suivi</Link>
-        <Link href="/contact#whatsapp">WhatsApp</Link>
-        <Link href="/contact#appeler">Appeler</Link>
-      </nav>
+      <TabBar />
+      <CommandPalette />
     </>
   );
 }
@@ -136,7 +135,6 @@ export function CTA() {
     <section className="cta">
       <div className="container">
         <div>
-          <span className="eyebrow">Passons à votre projet</span>
           <h2>
             Un carton, une palette,
             <br />
@@ -145,7 +143,7 @@ export function CTA() {
           <p>Décrivez votre besoin. Commencez par une demande de devis.</p>
         </div>
         <Link className="button" href="/devis">
-          Préparer ma demande →
+          Préparer ma demande
         </Link>
       </div>
     </section>

@@ -85,6 +85,12 @@ export function TrackingForm() {
         setCode(c.toUpperCase());
         return look(ref, c);
       });
+    // Référence seule (saisie sur l’accueil) : on la reprend et on attend le code.
+    else if (ref)
+      void Promise.resolve().then(() => {
+        setReference(ref);
+        document.getElementById("suivi-code")?.focus();
+      });
   }, []);
 
   const current = result ? (rank[result.status] ?? -1) : -1;
@@ -115,6 +121,7 @@ export function TrackingForm() {
           <label>
             Code de suivi
             <input
+              id="suivi-code"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="ABCD-EFGH"
