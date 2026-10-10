@@ -551,6 +551,30 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Optimiste : fin de période').first().waitFor();
     });
 
+    await etape('stock-simplifie', async () => {
+      // « J'ai reçu de la marchandise » : une page, une quantité par article, un seul bouton. Pas de code-barres.
+      await p.goto(U + '#/stock');
+      await p.getByRole('button', { name: 'J’ai reçu de la marchandise' }).click({ timeout: 60000 });
+      await p.getByLabel('Chercher un article').fill('sucre');
+      await p.getByLabel('Reçu : Sucre en poudre 1 kg').fill('10');
+      await p.getByRole('button', { name: 'Ajouter au stock' }).click();
+      await p.getByText('Stock ajouté : 1 article(s)').first().waitFor({ timeout: 30000 });
+      // « Je compte mon stock » rempli depuis un fichier au format du modèle (catégorie facultative).
+      await p.getByRole('button', { name: 'Je compte mon stock' }).click();
+      const [modele] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Télécharger le modèle de fichier' }).click()]);
+      if (modele.suggestedFilename() !== 'modele-stock.csv') throw new Error('modèle de fichier de stock absent');
+      await p.getByLabel('Fichier de stock').setInputFiles({ name: 'stock.csv', mimeType: 'text/csv', buffer: Buffer.from('nom;categorie;quantite\nSucre en poudre 1 kg;Épicerie;5\nBougies (paquet de 10);;7\n') });
+      await p.getByText(/2 ligne\(s\) lue\(s\) : 2 article\(s\) existant\(s\) rempli\(s\)/).first().waitFor({ timeout: 30000 });
+      await p.getByRole('button', { name: 'Enregistrer le comptage' }).click();
+      await p.getByText(/Comptage enregistré : 2 article\(s\)/).first().waitFor({ timeout: 30000 });
+      // Perte ou casse : « Retirer », avec une raison.
+      await p.getByRole('row').filter({ hasText: 'Bougies (paquet de 10)' }).getByRole('button', { name: 'Retirer' }).click();
+      await p.getByLabel('Quantité retirée').fill('1');
+      await p.getByLabel('Raison', { exact: true }).fill('Casse');
+      await p.getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText(/Bougies \(paquet de 10\) : 6/).first().waitFor({ timeout: 30000 });
+    });
+
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

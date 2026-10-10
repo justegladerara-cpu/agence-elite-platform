@@ -749,6 +749,10 @@ Lots A à H, P, P2, G2, H2 et E2 fusionnés et vérifiés en production (migrati
 voir `docs/CONFORT.md`. Reste : F2 (attend Juste pour l'authentification de production).
 Lignes 66 et 67 bloquées (aucun canal d'envoi).
 
+**Stock simplifié (2026-10-10, plainte des clients)** : migration `20261010000122` (`saisir_stock`), écrans
+« J'ai reçu de la marchandise » / « Je compte mon stock » / « Retirer », fichier de stock (`docs/modele_stock.csv`,
+catégorie facultative, code-barres facultatif). SOP 75. Suite prévue : rattrapage de ventes d'un jour passé (gérant).
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).
