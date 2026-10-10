@@ -392,6 +392,20 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       const [fichier] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Exporter ses données' }).click()]);
       if (!/^donnees-contact-/.test(fichier.suggestedFilename())) throw new Error('Export contact : ' + fichier.suggestedFilename());
     });
+    await etape('pilotage', async () => {
+      await p.goto(U + '#/pilotage');
+      await p.getByLabel('Période').selectOption('annee');
+      await p.getByRole('heading', { name: 'Rentabilité par client' }).waitFor();
+      await p.locator('tbody tr').first().waitFor();
+      await p.getByRole('tab', { name: 'Par canal' }).click();
+      await p.getByRole('heading', { name: 'Par canal d’acquisition' }).waitFor();
+      await p.getByRole('tab', { name: 'Prévision' }).click();
+      await p.getByRole('columnheader', { name: 'Pondéré' }).waitFor();
+      await p.getByRole('tab', { name: /Charge par personne/ }).click();
+      await p.getByRole('heading', { name: 'Charge par personne' }).waitFor();
+      await p.getByRole('tab', { name: /Engagements à risque/ }).click();
+      await p.getByRole('heading', { name: 'Engagements à risque' }).waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

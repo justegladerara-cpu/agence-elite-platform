@@ -741,6 +741,12 @@ réels (« Vérifier un établissement », « Réconcilier un catalogue »).
 Bruit connu : « Workers Builds » échoue sur les branches de PR (le site est publié par Cloudflare Pages) ;
 `express-congo.yml` échoue à chaque push (autre session).
 
+## 45 quater. DEMANDE DES 150 : AVANCEMENT (2026-10-10)
+
+Suivi lot par lot dans le tableau « Bilan » de `docs/AMELIORATIONS/DEMANDE_150_2026-10-09.md` (PR, migration, statut).
+Lots A à G fusionnés et vérifiés en production (migrations `20261010000111` à `20261010000116` ; G sans migration).
+Lot H (Pilotage, migration `20261010000117`, PR #33) en cours. Restent : P (espace client), puis E2, F2, G2, H2.
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

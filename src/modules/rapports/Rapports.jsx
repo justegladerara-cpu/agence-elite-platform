@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, DataTable, Erreur, GraphiqueBarres, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
+import { bornes, PERIODES } from './commun.js';
 
 const AXES = [
   ['jour', 'Par jour'], ['semaine', 'Par semaine'], ['mois', 'Par mois'], ['article', 'Par article'], ['categorie', 'Par catégorie'],
@@ -9,17 +10,6 @@ const AXES = [
 ];
 const ORIGINES = { caisse: 'Caisse', facture: 'Facture', boutique: 'Boutique en ligne', restaurant: 'Restaurant', hotel: 'Hôtel', abonnement: 'Abonnement' };
 const MODES = { especes: 'Espèces', mobile_money: 'Mobile Money', carte: 'Carte', virement: 'Virement', cheque: 'Chèque' };
-const PERIODES = [['7', '7 derniers jours'], ['30', '30 derniers jours'], ['mois', 'Ce mois-ci'], ['mois-1', 'Mois dernier'], ['annee', 'Cette année'], ['libre', 'Dates choisies']];
-
-const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-function bornes(periode, du, au) {
-  const auj = new Date();
-  if (periode === '7' || periode === '30') return [iso(new Date(auj.getFullYear(), auj.getMonth(), auj.getDate() - Number(periode) + 1)), iso(auj)];
-  if (periode === 'mois') return [iso(new Date(auj.getFullYear(), auj.getMonth(), 1)), iso(auj)];
-  if (periode === 'mois-1') return [iso(new Date(auj.getFullYear(), auj.getMonth() - 1, 1)), iso(new Date(auj.getFullYear(), auj.getMonth(), 0))];
-  if (periode === 'annee') return [iso(new Date(auj.getFullYear(), 0, 1)), iso(auj)];
-  return [du, au];
-}
 
 // Rapports : analyse des ventes validées sur une période, selon un axe ; comparaison à la période précédente ; export CSV.
 export default function Rapports() {
