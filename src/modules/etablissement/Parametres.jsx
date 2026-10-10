@@ -333,8 +333,42 @@ function CarteLicence() {
           <dt>État</dt><dd>{l.valide ? <Badge ton="vert">Active</Badge> : <Badge ton="alerte">{l.statut === 'suspendue' ? 'Suspendue' : 'Expirée'}</Badge>}</dd>
         </dl>
       ) : <p className="texte-doux">Aucune licence en cours.</p>}
-      <p className="texte-doux">Pour changer d’offre ou renouveler, contactez Agence Elite.</p>
+      <p className="texte-doux">Pour changer d’offre ou renouveler, contactez Agence Elite ou votre partenaire Elite Partners.</p>
+      <ActiverCle />
     </div>
+  );
+}
+
+// Clé d'activation reçue d'Agence Elite ou d'un partenaire : elle remplace la licence en cours (l'historique reste).
+function ActiverCle() {
+  const { api, etablissement, peut, notifier, recharger } = useEspace();
+  const [cle, setCle] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  if (!peut('etablissement.modifier')) return null;
+  const activer = async (e) => {
+    e.preventDefault();
+    setErreur('');
+    setEnvoi(true);
+    try {
+      await api.rpc('activer_cle_licence', { p_cle: cle, p_etablissement_id: etablissement.id });
+      setCle('');
+      notifier('Licence activée');
+      await recharger();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  return (
+    <form className="formulaire" onSubmit={activer} aria-label="Activer une clé de licence">
+      <Champ libelle="Activer une clé de licence" aide="Format ELITE-XXX-XXXX-XXXX. Elle remplace la licence en cours.">
+        <input value={cle} onChange={(e) => setCle(e.target.value.toUpperCase())} placeholder="ELITE-COM-XXXX-XXXX" autoComplete="off" />
+      </Champ>
+      <Erreur message={erreur} />
+      <Bouton type="submit" variante="principal" chargement={envoi} disabled={cle.trim().length < 10}>Activer</Bouton>
+    </form>
   );
 }
 

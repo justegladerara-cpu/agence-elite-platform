@@ -3149,3 +3149,12 @@ kbd {
 .recadrage-poignee.hd { right: -12px; top: -12px; cursor: nesw-resize; }
 .recadrage-poignee.bg { left: -12px; bottom: -12px; cursor: nesw-resize; }
 .recadrage-poignee.bd { right: -12px; bottom: -12px; cursor: nwse-resize; }
+
+/* Elite Partners */
+.bloc-code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--surface-douce, rgba(127, 127, 127, 0.08)); font-family: ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; margin: 6px 0; }
+.espace-partenaire { min-height: 100vh; background: var(--fond, transparent); }
+.espace-partenaire-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--bordure, rgba(127, 127, 127, 0.2)); flex-wrap: wrap; }
+.espace-partenaire-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.espace-partenaire > .page { max-width: 1200px; margin: 0 auto; }
+.pile-serree { display: flex; flex-direction: column; gap: 2px; }
+.espace-partenaire a.bouton { text-decoration: none; }
