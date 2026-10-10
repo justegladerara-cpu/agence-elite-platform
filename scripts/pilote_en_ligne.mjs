@@ -32,6 +32,7 @@ function noter(ok, etape, detail = '') {
   resultats.push({ ok, etape, detail });
   if (!ok) echecs += 1;
   console.log(`${ok ? 'OK ' : 'ÉCHEC'} ${etape}${detail ? ` — ${detail}` : ''}`);
+  if (!ok && process.env.GITHUB_ACTIONS) console.log(`::error title=Pilote · ${etape}::${String(detail).split('\n')[0]}`);
 }
 async function etape(nom, fn) {
   try {

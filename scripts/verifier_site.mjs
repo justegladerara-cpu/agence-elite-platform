@@ -14,6 +14,8 @@ const etape = async (nom, fn) => {
   } catch (err) {
     echecs++;
     console.log(`ÉCHEC  ${nom} — ${err.message.split('\n')[0]}`);
+    // Journaux illisibles depuis certains postes : l'erreur devient aussi une annotation GitHub.
+    if (process.env.GITHUB_ACTIONS) console.log(`::error title=Site · ${nom}::${err.message.split('\n')[0]}`);
   }
 };
 
