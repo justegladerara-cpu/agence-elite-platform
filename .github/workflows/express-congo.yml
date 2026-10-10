@@ -7,7 +7,27 @@ on:
 permissions:
   contents: read
 jobs:
+  # Tests du code (types, lint, tests métier) : conditionnent la publication.
   verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sites-clients/express-congo
+    env:
+      APP_ENV: demo
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: sites-clients/express-congo/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+
+  # Parcours navigateur : rapport et captures, sans bloquer la publication.
+  e2e:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,7 +44,6 @@ jobs:
           cache: npm
           cache-dependency-path: sites-clients/express-congo/package-lock.json
       - run: npm ci --ignore-scripts
-      - run: npm run check
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
@@ -50,21 +69,24 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
+      # Le code d'abord : les étapes suivantes travaillent dans sites-clients/express-congo.
+      - uses: actions/checkout@v5
       - name: Jeton Cloudflare présent ?
         id: jeton
+        working-directory: .
         run: echo "present=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v5
-        if: steps.jeton.outputs.present == 'true'
       - uses: actions/setup-node@v5
         if: steps.jeton.outputs.present == 'true'
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: sites-clients/express-congo/package-lock.json
-      - run: npm ci --ignore-scripts
+      # Installation complète : la construction Cloudflare a besoin des binaires installés par les paquets.
+      - run: npm ci
         if: steps.jeton.outputs.present == 'true'
       - run: npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy
         if: steps.jeton.outputs.present == 'true'
       - name: Publication sautée
         if: steps.jeton.outputs.present != 'true'
-        run: echo "Aucun secret CLOUDFLARE_API_TOKEN : publication laissée à Cloudflare Workers Builds (README)."
+        working-directory: .
+        run: echo "Aucun secret CLOUDFLARE_API_TOKEN dans le dépôt : publication sautée."
