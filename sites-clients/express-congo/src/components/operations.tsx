@@ -25,6 +25,10 @@ import {
 import { HBars, Columns } from "./backoffice/charts";
 import { pricedLines } from "@/content/tariffs";
 import { PaymentHub } from "./backoffice/payment-hub";
+import { ClientHome } from "./backoffice/client-home";
+import { WhatsAppHub } from "./backoffice/whatsapp-hub";
+import { useRouter } from "next/navigation";
+import { Illustration } from "./illustrations";
 import type {
   PayInstruction,
   PaymentSettings,
@@ -462,6 +466,28 @@ function Login({ accounts, code }: { accounts: Accounts; code: string }) {
         ok: false,
       });
   }
+  /* Entrée en un clic : mot de passe et code simulé sont publics en démonstration. */
+  async function quick(address: string) {
+    setBusy(true);
+    setMessage(null);
+    const s = await fetch("/api/demo/session")
+      .then((r) => r.json())
+      .catch(() => ({}));
+    const r = await fetch("/api/demo/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: address,
+        password: "DemoExpress!2026",
+        code: s.secondStep,
+      }),
+    });
+    if (r.ok) location.reload();
+    else {
+      setBusy(false);
+      setMessage({ text: "Connexion refusée. Réessayez.", ok: false });
+    }
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -511,10 +537,11 @@ function Login({ accounts, code }: { accounts: Accounts; code: string }) {
             Demandes, colis, départs, propositions et remises réunis dans un
             seul espace, pour les clients comme pour les agences.
           </p>
+          <Illustration name="suivi" className="login-art" />
           <ul className="login-points">
-            <li>Suivi étape par étape de chaque expédition</li>
+            <li>Suivi en direct de chaque expédition</li>
             <li>Propositions détaillées acceptées en ligne</li>
-            <li>Mesures contrôlées et historique conservé</li>
+            <li>WhatsApp relié à la gestion</li>
           </ul>
         </div>
         {demoOpen && (
@@ -541,6 +568,46 @@ function Login({ accounts, code }: { accounts: Accounts; code: string }) {
                 {label}
               </button>
             ))}
+          </div>
+        )}
+        {mode === "demo" && accounts.length > 0 && (
+          <div className="quick-login" aria-label="Entrer en un clic">
+            {(
+              [
+                [
+                  "client-a@example.invalid",
+                  "Entrer comme cliente",
+                  "Mireille Bouanga, 6 envois en cours et terminés",
+                  "famille",
+                ],
+                [
+                  "admin@example.invalid",
+                  "Entrer comme gérante",
+                  "Administration complète, WhatsApp et paiements",
+                  "agence",
+                ],
+                [
+                  "agent-brazzaville@example.invalid",
+                  "Entrer comme agent",
+                  "Agence de Brazzaville, arrivées et remises",
+                  "remise",
+                ],
+              ] as const
+            )
+              .filter(([e]) => accounts.some((a) => a.email === e))
+              .map(([address, title, hint, art]) => (
+                <button
+                  key={address}
+                  type="button"
+                  className="quick-card"
+                  disabled={busy}
+                  onClick={() => void quick(address)}
+                >
+                  <Illustration name={art} animated={false} />
+                  <b>{title}</b>
+                  <span>{hint}</span>
+                </button>
+              ))}
           </div>
         )}
         <form className="login-form" onSubmit={submit}>
@@ -859,6 +926,7 @@ export function Operations({
   code,
   quotes = [],
   audit = [],
+  whatsapp = "+33621933298",
 }: {
   actor: Actor | null;
   entities: Entity[];
@@ -869,9 +937,10 @@ export function Operations({
   code: string;
   quotes?: QuoteView[];
   audit?: AuditView[];
+  whatsapp?: string;
 }) {
   const staff = !!actor && actor.role !== "client";
-  const [view, setView] = useState(staff ? "dashboard" : "shipment"),
+  const [view, setView] = useState(staff ? "dashboard" : "home"),
     [task, setTask] = useState(""),
     [preset, setPreset] = useState<Record<string, string>>({}),
     [search, setSearch] = useState(""),
@@ -879,7 +948,22 @@ export function Operations({
     [agencyFilter, setAgencyFilter] = useState(""),
     [oldestFirst, setOldestFirst] = useState(false),
     [detail, setDetail] = useState<{ kind: string; id: string } | null>(null),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    [resetting, setResetting] = useState(false);
+  const router = useRouter();
+  /* En direct : les données se rechargent toutes les 10 s, sauf pendant une saisie. */
+  useEffect(() => {
+    if (!actor) return;
+    const id = setInterval(() => {
+      const el = document.activeElement;
+      const typing = el?.closest?.(
+        "input, textarea, select, [contenteditable]",
+      );
+      if (document.visibilityState === "visible" && !typing && !task)
+        router.refresh();
+    }, 10000);
+    return () => clearInterval(id);
+  }, [actor, router, task]);
   if (!actor) return <Login accounts={accounts} code={code} />;
 
   async function run(command: string, input: Record<string, unknown>) {
@@ -948,9 +1032,15 @@ export function Operations({
     airtel: "Airtel Money",
     cash: "Espèces en agence",
   };
-  const email = (id: string) => people.find((a) => a.id === id)?.email || "—";
+  const email = (id: string) => {
+    const p = people.find((a) => a.id === id);
+    return p ? p.name || p.email : "—";
+  };
   const clientAccounts = people.filter((a) => a.role === "client");
-  const clients = clientAccounts.map((a) => ({ value: a.id, label: a.email }));
+  const clients = clientAccounts.map((a) => ({
+    value: a.id,
+    label: a.name ? `${a.name} (${a.email})` : a.email,
+  }));
   const myAgencies = Object.entries(agencies)
     .filter(([k]) => actor.role === "admin" || k === actor.agency)
     .map(([value, label]) => ({ value, label }));
@@ -1259,8 +1349,21 @@ export function Operations({
 
   /* ---------- Navigation ---------- */
   type Item = [string, string, number | null];
+  const unreadWhatsApp = (() => {
+    const last = new Map<string, string>();
+    for (const m of of("message")
+      .slice()
+      .sort((a, b) => String(a.payload.at).localeCompare(String(b.payload.at))))
+      last.set(String(m.payload.phone), String(m.payload.direction));
+    return [...last.values()].filter((d) => d === "in").length;
+  })();
   const nav: [string, Item[]][] = [
-    ["", staff ? [["dashboard", "Tableau de bord", null]] : []],
+    [
+      "",
+      staff
+        ? [["dashboard", "Tableau de bord", null]]
+        : [["home", "Accueil", null]],
+    ],
     [
       "Ventes",
       [
@@ -1302,6 +1405,9 @@ export function Operations({
     [
       "Support",
       [
+        ...(can("admin", "manager", "agent")
+          ? ([["whatsapp", "WhatsApp", unreadWhatsApp]] as Item[])
+          : []),
         ["ticket", "Assistance", tickets.length],
         ["document", "Documents privés", of("document").length],
       ],
@@ -1407,7 +1513,7 @@ export function Operations({
               )
               .reduce((s, p) => s + Number(p.payload.totalMinor), 0);
           const v = [
-            a.email,
+            a.name || a.email,
             agencies[a.agency],
             String(own.length),
             String(
@@ -1426,8 +1532,9 @@ export function Operations({
             text: v.join(" "),
             csv: v,
             cells: [
-              <span className="ref" key="r">
-                {a.email}
+              <span className="who" key="r">
+                <b>{a.name || a.email}</b>
+                {a.name && <small>{a.email}</small>}
               </span>,
               ...v.slice(1),
             ],
@@ -2826,9 +2933,7 @@ export function Operations({
                   <tr key={a.id}>
                     <td>{date(a.createdAt)}</td>
                     <td>{actions[a.action] || a.action}</td>
-                    <td>
-                      {people.find((x) => x.id === a.actor)?.email || a.actor}
-                    </td>
+                    <td>{email(a.actor) === "—" ? a.actor : email(a.actor)}</td>
                     <td className="ref">{shortRef(a.objectId)}</td>
                   </tr>
                 ))}
@@ -2917,7 +3022,29 @@ export function Operations({
                 </div>
               </details>
             )}
-            <span className="demo-flag">Démonstration — dossiers fictifs</span>
+            {actor.role === "admin" && view === "dashboard" && (
+              <button
+                type="button"
+                className="button small secondary"
+                disabled={resetting}
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      "Remettre la démonstration à zéro ? Tous les dossiers fictifs sont recréés.",
+                    )
+                  )
+                    return;
+                  setResetting(true);
+                  await run("resetDemo", {});
+                  setResetting(false);
+                }}
+              >
+                {resetting ? "Réinitialisation…" : "Réinitialiser la démo"}
+              </button>
+            )}
+            <span className="demo-flag">
+              <i className="live-dot" aria-hidden /> Démonstration en direct
+            </span>
           </div>
         </div>
         {message && (
@@ -2934,6 +3061,23 @@ export function Operations({
             close={() => setTask("")}
           />
         )}
+        {view === "home" && (
+          <ClientHome
+            name={people.find((p) => p.id === actor.id)?.name || ""}
+            entities={entities}
+            whatsapp={whatsapp}
+            run={run}
+            go={go}
+            paidFor={paidFor}
+          />
+        )}
+        {view === "whatsapp" && (
+          <WhatsAppHub
+            messages={of("message")}
+            people={people}
+            isAdmin={actor.role === "admin"}
+          />
+        )}
         {view === "dashboard" && dashboard()}
         {view === "reports" && reports()}
         {view === "audit" && auditView()}
@@ -2944,8 +3088,9 @@ export function Operations({
             canEdit={actor.role === "admin"}
           />
         )}
-        {!["dashboard", "reports", "audit", "hub"].includes(view) &&
-          listView(view)}
+        {!["dashboard", "reports", "audit", "hub", "home", "whatsapp"].includes(
+          view,
+        ) && listView(view)}
       </section>
       {detailView()}
     </div>

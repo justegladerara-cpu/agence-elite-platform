@@ -32,6 +32,7 @@ export function canRead(
         "ticket",
         "document",
         "payment",
+        "message",
       ].includes(item.kind)
     );
   if (actor.agency !== item.agency) return false;
@@ -57,6 +58,7 @@ export function canWrite(actor: Actor, kind: string) {
     "departure",
     "ticket",
     "document",
+    "message",
   ].includes(kind);
 }
 export const shipmentStates = [

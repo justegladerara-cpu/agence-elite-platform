@@ -86,6 +86,17 @@ jobs:
         if: steps.jeton.outputs.present == 'true'
       - run: npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy
         if: steps.jeton.outputs.present == 'true'
+      # Clé de chiffrement des identifiants WhatsApp : créée une seule fois,
+      # aléatoire, jamais affichée ni écrite ailleurs que dans les secrets du Worker.
+      - name: Clé WhatsApp du Worker
+        if: steps.jeton.outputs.present == 'true'
+        continue-on-error: true
+        run: |
+          if npx wrangler secret list 2>/dev/null | grep -q WHATSAPP_KEY; then
+            echo "Clé WhatsApp déjà présente."
+          else
+            openssl rand -base64 48 | tr -d '\n' | npx wrangler secret put WHATSAPP_KEY
+          fi
       - name: Publication sautée
         if: steps.jeton.outputs.present != 'true'
         working-directory: .

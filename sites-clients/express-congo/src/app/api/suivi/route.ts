@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
-import { rateLimit } from "@/server/database";
+import { rateLimit, rateLimited } from "@/server/database";
 import { sameOrigin } from "@/server/security";
-import { publicTracking, trackingEnabled } from "@/server/tracking";
+import { demoSample, publicTracking, trackingEnabled } from "@/server/tracking";
+
+/** Démonstration : référence et code du dossier qui avance en direct. */
+export async function GET() {
+  if (!trackingEnabled()) return new Response(null, { status: 404 });
+  const sample = await demoSample();
+  return sample
+    ? NextResponse.json(sample, { headers })
+    : new Response(null, { status: 404 });
+}
 
 const headers = { "Cache-Control": "no-store" };
 const notFound =
@@ -25,10 +34,29 @@ export async function POST(request: Request) {
       { message: "Saisissez la référence et le code de suivi." },
       { status: 400, headers },
     );
+  const key = "tracking:" + reference.trim().toUpperCase();
+  // Actualisation en direct d’un suivi déjà ouvert : plafond large, mais
+  // chaque échec compte dans le plafond strict contre l’essai de codes.
+  if (input.live === true) {
+    if (
+      (await rateLimited(key, 8)) ||
+      !(await rateLimit("tracking-live:" + key, 3000, 900)) ||
+      !(await rateLimit("tracking-global-live", 6000, 600))
+    )
+      return NextResponse.json(
+        { message: "Actualisation suspendue quelques minutes." },
+        { status: 429, headers },
+      );
+    const live = await publicTracking(reference, code);
+    if (!live) await rateLimit(key, 8, 900);
+    return live
+      ? NextResponse.json(live, { headers })
+      : NextResponse.json({ message: notFound }, { status: 404, headers });
+  }
   // Plafond global et plafond par référence contre l’essai de codes.
   if (
     !(await rateLimit("tracking-global", 300, 600)) ||
-    !(await rateLimit("tracking:" + reference.trim().toUpperCase(), 8, 900))
+    !(await rateLimit(key, 8, 900))
   )
     return NextResponse.json(
       { message: "Trop de tentatives. Réessayez dans quelques minutes." },

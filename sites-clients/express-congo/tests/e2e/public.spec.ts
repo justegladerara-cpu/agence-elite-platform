@@ -189,3 +189,20 @@ test("accueil interactif : modes, prix au kilo, recherche rapide", async ({
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/agences\/pointe-noire\/$/);
 });
+test("suivi en direct, entrée en un clic et WhatsApp de la gestion", async ({
+  page,
+}) => {
+  await page.goto("/suivi");
+  await page.getByRole("button", { name: /dossier de démonstration/ }).click();
+  await expect(page.locator(".lj")).toBeVisible();
+  await expect(page.locator(".live-line")).toContainText("Suivi en direct");
+  await page.goto("/demo");
+  await page.getByRole("tab", { name: "Comptes de démonstration" }).click();
+  await page.getByRole("button", { name: /Entrer comme cliente/ }).click();
+  await expect(page.locator(".ch-hello")).toContainText("Mireille");
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
+  await page.getByRole("tab", { name: "Comptes de démonstration" }).click();
+  await page.getByRole("button", { name: /Entrer comme gérante/ }).click();
+  await page.getByRole("button", { name: "WhatsApp", exact: true }).click();
+  await expect(page.locator(".wa-thread")).toContainText("Mireille Bouanga");
+});

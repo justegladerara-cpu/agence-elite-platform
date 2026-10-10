@@ -1,0 +1,948 @@
+/* Illustrations Express Congo — animations douces, toutes scopées sous .ill */
+
+.ill {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+
+/* ---------- Shared helpers ---------- */
+
+.ill .i-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ill-twinkle 3.6s ease-in-out infinite;
+}
+.ill .i-spark-b {
+  animation-delay: -1.2s;
+}
+.ill .i-spark-c {
+  animation-delay: -2.4s;
+}
+
+.ill .i-cloud {
+  animation: ill-drift 8s ease-in-out infinite alternate;
+}
+.ill .i-cloud-b {
+  animation-duration: 7s;
+  animation-delay: -3s;
+}
+.ill .i-cloud-c {
+  animation-duration: 6s;
+  animation-delay: -1.5s;
+}
+
+.ill .i-fronds {
+  animation: ill-sway 5s ease-in-out infinite alternate;
+}
+
+/* ---------- colis ---------- */
+.ill-colis .i-items {
+  animation: ill-float 4s ease-in-out infinite;
+}
+
+/* ---------- balance ---------- */
+.ill-balance .i-parcel {
+  animation: ill-scale-parcel 5s ease-in-out infinite;
+}
+.ill-balance .i-needle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ill-needle 5s ease-out infinite;
+}
+.ill-balance .i-digits {
+  animation: ill-digits 5s steps(1, end) infinite;
+}
+
+/* ---------- metre ---------- */
+.ill-metre .i-tape {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: ill-tape 6s ease-in-out infinite;
+}
+.ill-metre .i-dim {
+  animation: ill-pulse 6s ease-in-out infinite;
+}
+.ill-metre .i-dim-h {
+  animation-delay: 0.4s;
+}
+
+/* ---------- avion ---------- */
+.ill-avion .i-plane {
+  animation: ill-climb 5s ease-in-out infinite alternate;
+}
+.ill-avion .i-trail {
+  animation: ill-dash 1.6s linear infinite;
+}
+
+/* ---------- navire ---------- */
+.ill-navire .i-ship {
+  transform-box: fill-box;
+  transform-origin: 50% 80%;
+  animation: ill-bob 4s ease-in-out infinite;
+}
+.ill-navire .i-wave-front {
+  animation: ill-slide-48 5s linear infinite;
+}
+.ill-navire .i-wave-back {
+  animation: ill-slide-40 7s linear infinite reverse;
+}
+
+/* ---------- conteneur ---------- */
+.ill-conteneur .i-load {
+  animation: ill-lift 7s ease-in-out infinite;
+}
+.ill-conteneur .i-cable {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: ill-cable 7s ease-in-out infinite;
+}
+
+/* ---------- agence ---------- */
+.ill-agence .i-agent {
+  animation: ill-breathe 4s ease-in-out infinite;
+}
+.ill-agence .i-parcel {
+  animation: ill-hop 4s ease-in-out infinite;
+}
+.ill-agence .i-glow {
+  animation: ill-glow 4s ease-in-out infinite;
+}
+
+/* ---------- remise ---------- */
+.ill-remise .i-parcel {
+  animation: ill-handover 5s ease-in-out infinite alternate;
+}
+.ill-remise .i-card {
+  animation: ill-float 4.5s ease-in-out infinite;
+}
+
+/* ---------- douane ---------- */
+.ill-douane .i-stamp {
+  transform: translate(20px, -34px);
+  animation: ill-stamp 4.5s ease-in-out infinite;
+}
+.ill-douane .i-imprint {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ill-imprint 4.5s ease-out infinite;
+}
+
+/* ---------- suivi ---------- */
+.ill-suivi .i-pin {
+  animation: ill-pin 7s linear infinite;
+}
+.ill-suivi .i-route {
+  animation: ill-dash-11 1.2s linear infinite;
+}
+.ill-suivi .i-chip {
+  animation: ill-float 4s ease-in-out infinite;
+}
+.ill-suivi .i-chip-b {
+  animation-delay: -2s;
+}
+
+/* ---------- message ---------- */
+.ill-message .i-b {
+  transform-box: fill-box;
+  transform-origin: left bottom;
+  animation: 8s ease-out infinite both;
+}
+.ill-message .i-b2,
+.ill-message .i-b4 {
+  transform-origin: right bottom;
+}
+.ill-message .i-b1 {
+  animation-name: ill-msg-1;
+}
+.ill-message .i-b2 {
+  animation-name: ill-msg-2;
+}
+.ill-message .i-b3 {
+  animation-name: ill-msg-3;
+}
+.ill-message .i-b4 {
+  animation-name: ill-msg-4;
+}
+.ill-message .i-dot {
+  animation: ill-typing 1.2s ease-in-out infinite;
+}
+.ill-message .i-dot-2 {
+  animation-delay: 0.15s;
+}
+.ill-message .i-dot-3 {
+  animation-delay: 0.3s;
+}
+.ill-message .i-float {
+  animation: ill-float 4.5s ease-in-out infinite;
+}
+.ill-message .i-float-b {
+  animation-delay: -1.5s;
+}
+.ill-message .i-float-c {
+  animation-delay: -3s;
+}
+
+/* ---------- paiement ---------- */
+.ill-paiement .i-coin {
+  animation: ill-coin 3.6s ease-in infinite;
+}
+.ill-paiement .i-card {
+  animation: ill-float 5s ease-in-out infinite;
+}
+
+/* ---------- vide ---------- */
+.ill-vide .i-loupe {
+  animation: ill-search 6s ease-in-out infinite;
+}
+.ill-vide .i-dust {
+  animation: ill-dust 4s ease-out infinite;
+}
+.ill-vide .i-dust-b {
+  animation-delay: -2s;
+}
+
+/* ---------- succes ---------- */
+.ill-succes .i-badge {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ill-pop 4s ease-in-out infinite;
+}
+.ill-succes .i-cf {
+  animation: ill-confetti 5s ease-in infinite;
+}
+.ill-succes .i-cf-1 {
+  animation-duration: 5.6s;
+  animation-delay: -1s;
+}
+.ill-succes .i-cf-2 {
+  animation-duration: 4.6s;
+  animation-delay: -2.2s;
+}
+.ill-succes .i-cf-3 {
+  animation-duration: 6s;
+  animation-delay: -3.1s;
+}
+.ill-succes .i-cf-4 {
+  animation-duration: 5.2s;
+  animation-delay: -4s;
+}
+
+/* ---------- paris ---------- */
+.ill-paris .i-ripple {
+  animation: ill-slide-24 4s linear infinite;
+}
+.ill-paris .i-boat {
+  animation: ill-boat 8s ease-in-out infinite alternate;
+}
+
+/* ---------- brazzaville ---------- */
+.ill-brazzaville .i-ripple {
+  animation: ill-slide-26 5s linear infinite;
+}
+.ill-brazzaville .i-pirogue {
+  animation: ill-pirogue 8s ease-in-out infinite alternate;
+}
+
+/* ---------- pointe-noire ---------- */
+.ill-pointe-noire .i-wave {
+  animation: ill-slide-26 5s linear infinite;
+}
+.ill-pointe-noire .i-foam {
+  animation: ill-foam 4s ease-in-out infinite;
+}
+.ill-pointe-noire .i-trolley {
+  animation: ill-trolley 7s ease-in-out infinite;
+}
+.ill-pointe-noire .i-ship {
+  animation: ill-drift 8s ease-in-out infinite alternate;
+}
+
+/* ---------- famille ---------- */
+.ill-famille .i-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ill-heart 4s ease-in-out infinite;
+}
+.ill-famille .i-box {
+  animation: ill-float-xs 4s ease-in-out infinite;
+}
+
+/* ---------- entreprise ---------- */
+.ill-entreprise .i-forks {
+  animation: ill-forks 6s ease-in-out infinite;
+}
+.ill-entreprise .i-beacon {
+  animation: ill-beacon 1.6s ease-in-out infinite;
+}
+
+/* ---------- calendrier ---------- */
+.ill-calendrier .i-circle {
+  animation: ill-draw 5s ease-in-out infinite;
+}
+.ill-calendrier .i-badge {
+  animation: ill-float 4s ease-in-out infinite;
+}
+.ill-calendrier .i-trail {
+  animation: ill-dash 1.6s linear infinite;
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes ill-twinkle {
+  0%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes ill-drift {
+  from {
+    transform: translateX(-6px);
+  }
+  to {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes ill-sway {
+  from {
+    transform: rotate(-3deg);
+  }
+  to {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes ill-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes ill-float-xs {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes ill-scale-parcel {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  10% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  14% {
+    transform: translateY(1.5px);
+  }
+  20%,
+  84% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  94%,
+  100% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+@keyframes ill-needle {
+  0%,
+  9% {
+    transform: rotate(-70deg);
+  }
+  20% {
+    transform: rotate(38deg);
+  }
+  30% {
+    transform: rotate(4deg);
+  }
+  38% {
+    transform: rotate(20deg);
+  }
+  46%,
+  86% {
+    transform: rotate(14deg);
+  }
+  96%,
+  100% {
+    transform: rotate(-70deg);
+  }
+}
+
+@keyframes ill-digits {
+  0%,
+  44% {
+    opacity: 0.25;
+  }
+  48%,
+  52% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  54%,
+  90% {
+    opacity: 1;
+  }
+  94%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes ill-tape {
+  0% {
+    transform: scaleX(0.12);
+  }
+  35%,
+  80% {
+    transform: scaleX(1);
+  }
+  95%,
+  100% {
+    transform: scaleX(0.12);
+  }
+}
+
+@keyframes ill-pulse {
+  0%,
+  30% {
+    opacity: 0.25;
+  }
+  45%,
+  80% {
+    opacity: 1;
+  }
+  95%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes ill-climb {
+  from {
+    transform: translate(-4px, 4px);
+  }
+  to {
+    transform: translate(4px, -6px);
+  }
+}
+
+@keyframes ill-dash {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@keyframes ill-dash-11 {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+
+@keyframes ill-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(1px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-1px) rotate(1deg);
+  }
+}
+
+@keyframes ill-slide-48 {
+  to {
+    transform: translateX(-48px);
+  }
+}
+
+@keyframes ill-slide-40 {
+  to {
+    transform: translateX(-40px);
+  }
+}
+
+@keyframes ill-slide-26 {
+  to {
+    transform: translateX(-26px);
+  }
+}
+
+@keyframes ill-slide-24 {
+  to {
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes ill-lift {
+  0% {
+    transform: translateY(-32px);
+  }
+  32%,
+  62% {
+    transform: translateY(0);
+  }
+  92%,
+  100% {
+    transform: translateY(-32px);
+  }
+}
+
+@keyframes ill-cable {
+  0% {
+    transform: scaleY(0.36);
+  }
+  32%,
+  62% {
+    transform: scaleY(1);
+  }
+  92%,
+  100% {
+    transform: scaleY(0.36);
+  }
+}
+
+@keyframes ill-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes ill-hop {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  70% {
+    transform: translateY(-6px);
+  }
+  80% {
+    transform: translateY(0);
+  }
+  86% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes ill-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ill-handover {
+  from {
+    transform: translate(-5px, 1px);
+  }
+  to {
+    transform: translate(5px, -2px);
+  }
+}
+
+@keyframes ill-stamp {
+  0% {
+    transform: translate(20px, -34px);
+  }
+  28% {
+    transform: translate(0, -28px);
+  }
+  40% {
+    transform: translate(0, 0);
+  }
+  44% {
+    transform: translate(0, 1.5px);
+  }
+  52% {
+    transform: translate(0, 0);
+  }
+  68% {
+    transform: translate(0, -28px);
+  }
+  100% {
+    transform: translate(20px, -34px);
+  }
+}
+
+@keyframes ill-imprint {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  46% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  52%,
+  88% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes ill-pin {
+  0% {
+    transform: translate(100px, 142px);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  17% {
+    transform: translate(100px, 116px);
+  }
+  41% {
+    transform: translate(134px, 100px);
+  }
+  60% {
+    transform: translate(134px, 72px);
+  }
+  75%,
+  92% {
+    transform: translate(114px, 60px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(114px, 60px);
+    opacity: 0;
+  }
+}
+
+@keyframes ill-msg-1 {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  6%,
+  84% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ill-msg-2 {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  18%,
+  84% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ill-msg-3 {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  30%,
+  84% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ill-msg-4 {
+  0%,
+  36% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  42%,
+  84% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ill-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes ill-coin {
+  0% {
+    transform: translateY(-56px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(0);
+  }
+  46% {
+    transform: translateY(-3px);
+  }
+  52%,
+  84% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes ill-search {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30% {
+    transform: translate(-14px, 8px) rotate(-6deg);
+  }
+  60% {
+    transform: translate(-4px, 18px) rotate(4deg);
+  }
+  80% {
+    transform: translate(4px, 6px) rotate(0deg);
+  }
+}
+
+@keyframes ill-dust {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+@keyframes ill-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.12);
+  }
+  22% {
+    transform: scale(0.96);
+  }
+  30% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ill-confetti {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(34px) rotate(200deg);
+    opacity: 0;
+  }
+}
+
+@keyframes ill-boat {
+  from {
+    transform: translateX(-40px);
+  }
+  to {
+    transform: translateX(14px);
+  }
+}
+
+@keyframes ill-pirogue {
+  0% {
+    transform: translate(-10px, 0);
+  }
+  25% {
+    transform: translate(-5px, -1.5px);
+  }
+  50% {
+    transform: translate(0, 0.5px);
+  }
+  75% {
+    transform: translate(5px, -1.5px);
+  }
+  100% {
+    transform: translate(10px, 0);
+  }
+}
+
+@keyframes ill-foam {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(-3px, -3px);
+    opacity: 0.5;
+  }
+}
+
+@keyframes ill-trolley {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  50%,
+  65% {
+    transform: translateX(26px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes ill-heart {
+  0% {
+    transform: translateY(6px) scale(0.7);
+    opacity: 0;
+  }
+  25%,
+  70% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes ill-forks {
+  0%,
+  15% {
+    transform: translateY(0);
+  }
+  45%,
+  70% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes ill-beacon {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ill-draw {
+  0%,
+  8% {
+    stroke-dashoffset: 100;
+  }
+  38%,
+  86% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  96% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+}
+
+/* ---------- Motion preferences ---------- */
+
+.ill.is-static,
+.ill.is-static * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ill,
+  .ill * {
+    animation: none !important;
+  }
+}

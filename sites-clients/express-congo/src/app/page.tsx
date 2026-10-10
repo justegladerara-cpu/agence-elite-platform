@@ -4,6 +4,11 @@ import { CTA } from "@/components/shell";
 import { RouteHero } from "@/components/home/route-hero";
 import { ServicesShowcase } from "@/components/home/services-showcase";
 import { AgenciesLive } from "@/components/home/agencies-live";
+import {
+  Illustration,
+  type IllustrationName,
+} from "@/components/illustrations";
+const STEP_ART: IllustrationName[] = ["colis", "douane", "agence", "suivi"];
 export const metadata = { alternates: { canonical: "/" } };
 
 const STEPS = [
@@ -64,6 +69,7 @@ export default function Home() {
             {STEPS.map(([title, text, href], i) => (
               <li key={title}>
                 <Link href={href}>
+                  <Illustration name={STEP_ART[i]} className="xsteps-art" />
                   <span className="num" aria-hidden>
                     {i + 1}
                   </span>

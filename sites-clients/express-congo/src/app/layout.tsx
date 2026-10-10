@@ -4,6 +4,8 @@ import { production, siteUrl } from "@/config";
 import "./globals.css";
 import "./premium.css";
 import "./experience.css";
+import "./illustrations.css";
+import "./live.css";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {

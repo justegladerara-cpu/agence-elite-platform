@@ -28,6 +28,7 @@ export const schema = [
   "CREATE INDEX IF NOT EXISTS entities_kind ON entities(kind, created_at)",
   "CREATE TABLE IF NOT EXISTS account_status (user_id TEXT PRIMARY KEY REFERENCES demo_users(id), disabled INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS profiles (user_id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '', whatsapp INTEGER NOT NULL DEFAULT 0)",
 ];
 
 type D1Statement = {
@@ -185,4 +186,16 @@ export async function rateLimit(key: string, limit = 10, seconds = 600) {
     now,
   );
   return (row?.count ?? 1) <= limit;
+}
+
+/** Le plafond est-il déjà atteint ? (lecture seule, sans compter d’essai) */
+export async function rateLimited(key: string, limit = 10) {
+  const row = await (
+    await db()
+  ).get<{ count: number }>(
+    "SELECT count FROM rate_limits WHERE key=? AND expires_at>?",
+    key,
+    Date.now(),
+  );
+  return (row?.count ?? 0) > limit;
 }

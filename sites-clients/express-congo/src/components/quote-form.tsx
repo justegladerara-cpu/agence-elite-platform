@@ -4,6 +4,60 @@ import { useEffect, useState, useRef } from "react";
 import { QuoteInput, validateQuote } from "@/domain/quotes";
 import { emptyParcel, volume } from "@/domain/measurements";
 import { ParcelFields } from "./parcel-fields";
+import { Illustration, type IllustrationName } from "./illustrations";
+
+/* Illustration de chaque étape, et choix présentés en cartes. */
+const stepArt: IllustrationName[] = [
+  "colis",
+  "metre",
+  "agence",
+  "message",
+  "douane",
+];
+const kinds: [QuoteInput["kind"], string, IllustrationName][] = [
+  ["particulier", "Un particulier", "famille"],
+  ["professionnel", "Un professionnel", "entreprise"],
+];
+const servicesChoice: [
+  QuoteInput["service"],
+  string,
+  string,
+  IllustrationName,
+][] = [
+  ["aerien", "Fret aérien", "13 € le kilo, avec douane", "avion"],
+  ["maritime", "Fret maritime", "800 € pour 1 m³ en groupage", "navire"],
+  ["conteneur", "Conteneur complet", "Sur devis", "conteneur"],
+  ["conseil", "Aidez-moi à choisir", "Un conseiller vous oriente", "message"],
+];
+const destinations: [QuoteInput["destination"], IllustrationName][] = [
+  ["Brazzaville", "brazzaville"],
+  ["Pointe-Noire", "pointe-noire"],
+];
+const euro = (cents: number) =>
+  new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+
+/** Estimation indicative tirée de la grille, ou null si le prix est sur devis. */
+function estimate(q: QuoteInput, m3: number) {
+  const kg = q.parcels.reduce(
+    (s, p) =>
+      s +
+      (Number(String(p.weight).replace(",", ".")) || 0) *
+        (Number(p.quantity) || 0),
+    0,
+  );
+  if (q.service === "aerien" && kg > 0)
+    return {
+      price: euro(Math.ceil(kg) * 1300),
+      basis: `${Math.ceil(kg)} kg × 13 €`,
+    };
+  if (q.service === "maritime" && m3 > 0 && m3 <= 1)
+    return { price: euro(80000), basis: "groupage jusqu’à 1 m³" };
+  return null;
+}
 const initial: QuoteInput = {
   kind: "particulier",
   service: "conseil",
@@ -44,7 +98,8 @@ export function QuoteForm({
     [errors, setErrors] = useState<Record<string, string>>({}),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
-    [reference, setReference] = useState("");
+    [reference, setReference] = useState(""),
+    [direction, setDirection] = useState<"forward" | "back">("forward");
   const key = useRef("");
   const files = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -121,6 +176,7 @@ export function QuoteForm({
     );
     setErrors(current);
     if (!Object.keys(current).length) {
+      setDirection("forward");
       setStep(step + 1);
       setTimeout(() => heading.current?.focus(), 0);
     }
@@ -186,33 +242,84 @@ export function QuoteForm({
       setBusy(false);
     }
   }
+  let m3 = 0;
+  try {
+    m3 = Number(volume(q.parcels));
+  } catch {
+    m3 = 0;
+  }
+  const guess = estimate(q, m3);
   if (reference)
     return (
-      <div className="card confirmation" role="status">
-        <span className="eyebrow">Démonstration — enregistrement serveur</span>
+      <div className="card confirmation done-card" role="status">
+        <div className="confetti" aria-hidden>
+          {Array.from({ length: 18 }, (_, i) => (
+            <i key={i} style={{ ["--i" as string]: i }} />
+          ))}
+        </div>
+        <Illustration name="succes" className="done-art" />
         <h2>Votre demande est enregistrée</h2>
-        <p>
-          Référence : <strong>{reference}</strong>
+        <p className="done-ref">
+          Référence <strong>{reference}</strong>
         </p>
-        <p>
-          Aucun email ni message n’a été envoyé : les prestataires ne sont pas
-          connectés. Cette demande est fictive et ne constitue pas une
-          réservation.
+        <ol className="done-next">
+          <li>L’équipe étudie votre demande.</li>
+          <li>Vous recevez une proposition écrite et détaillée.</li>
+          <li>
+            Vous déposez vos colis à l’agence, puis suivez l’envoi en direct.
+          </li>
+        </ol>
+        <p className="hint">
+          Aucun email n’a été envoyé : en démonstration, cette demande ne
+          constitue pas une réservation.
         </p>
-        <Link className="button" href="/">
-          Revenir à l’accueil
-        </Link>
+        <div className="actions">
+          <a
+            className="button whatsapp"
+            href={`https://wa.me/33621933298?text=${encodeURIComponent(`Bonjour Express Congo, je viens d’envoyer la demande de devis ${reference}.`)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Prévenir l’agence sur WhatsApp
+          </a>
+          <Link className="button secondary" href="/">
+            Revenir à l’accueil
+          </Link>
+        </div>
       </div>
     );
   return (
     <div className="quote-layout">
       <aside className="quote-aside">
-        <span className="eyebrow">France → République du Congo</span>
+        <div className="quote-art" key={step}>
+          <Illustration name={stepArt[step]} />
+        </div>
         <h2>Un envoi bien préparé commence ici.</h2>
-        <p>
-          Décrivez vos colis. Le volume est calculé automatiquement ; le prix
-          reste sur devis.
-        </p>
+        <div className="quote-summary" aria-live="polite">
+          <p>
+            <span>Solution</span>
+            <b>{servicesChoice.find(([k]) => k === q.service)?.[1] ?? "—"}</b>
+          </p>
+          <p>
+            <span>Trajet</span>
+            <b>France vers {q.destination}</b>
+          </p>
+          <p>
+            <span>Volume</span>
+            <b>
+              {m3 > 0
+                ? `${m3.toLocaleString("fr-FR", { maximumFractionDigits: 3 })} m³`
+                : "—"}
+            </b>
+          </p>
+          <p className="quote-price">
+            <span>Estimation</span>
+            <b key={guess?.price ?? "devis"}>
+              {guess ? guess.price : "Sur devis"}
+            </b>
+            {guess && <small>{guess.basis}, grille Express Congo</small>}
+          </p>
+        </div>
         <ol>
           {steps.map((s, i) => (
             <li key={s} aria-current={step === i ? "step" : undefined}>
@@ -226,7 +333,17 @@ export function QuoteForm({
         </p>
       </aside>
       <section className="card quote-card">
-        <p className="eyebrow">Étape {step + 1} / 5</p>
+        <div
+          className="quote-progress"
+          role="progressbar"
+          aria-label="Progression de la demande"
+          aria-valuemin={1}
+          aria-valuemax={5}
+          aria-valuenow={step + 1}
+        >
+          <i style={{ width: `${((step + 1) / 5) * 100}%` }} />
+        </div>
+        <p className="eyebrow">Étape {step + 1} sur 5</p>
         <h2 ref={heading} tabIndex={-1}>
           {steps[step]}
         </h2>
@@ -237,60 +354,63 @@ export function QuoteForm({
             else void submit();
           }}
           noValidate
+          className={"quote-step " + direction}
+          key={step}
         >
           {step === 0 && (
             <>
-              <label>
-                Vous êtes
-                <select
-                  value={q.kind}
-                  onChange={(e) =>
-                    change("kind", e.target.value as QuoteInput["kind"])
-                  }
-                >
-                  <option value="particulier">Un particulier</option>
-                  <option value="professionnel">Un professionnel</option>
-                </select>
-              </label>
-              <label>
-                Solution recherchée
-                <select
-                  value={q.service}
-                  onChange={(e) =>
-                    change("service", e.target.value as QuoteInput["service"])
-                  }
-                >
-                  <option value="conseil">Aidez-moi à choisir</option>
-                  <option value="aerien">Fret aérien</option>
-                  <option value="maritime">Fret maritime</option>
-                  <option value="conteneur">Conteneur complet</option>
-                </select>
-              </label>
-              <div className="two-col">
-                <label>
-                  Origine
-                  <input readOnly value="France" />
-                </label>
-                <label>
-                  Destination
-                  <select
-                    value={q.destination}
-                    onChange={(e) =>
-                      change(
-                        "destination",
-                        e.target.value as QuoteInput["destination"],
-                      )
-                    }
-                  >
-                    <option>Brazzaville</option>
-                    <option>Pointe-Noire</option>
-                  </select>
-                </label>
-              </div>
-              <p>
-                Destinations proposées pour la préproduction, à confirmer par
-                Express Congo.
-              </p>
+              <fieldset className="choices two">
+                <legend>Vous êtes</legend>
+                {kinds.map(([value, label, art]) => (
+                  <label key={value} className="choice">
+                    <input
+                      type="radio"
+                      name="kind"
+                      value={value}
+                      checked={q.kind === value}
+                      onChange={() => change("kind", value)}
+                    />
+                    <Illustration name={art} animated={q.kind === value} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <fieldset className="choices four">
+                <legend>Solution recherchée</legend>
+                {servicesChoice.map(([value, label, hint, art]) => (
+                  <label key={value} className="choice">
+                    <input
+                      type="radio"
+                      name="service"
+                      value={value}
+                      checked={q.service === value}
+                      onChange={() => change("service", value)}
+                    />
+                    <Illustration name={art} animated={q.service === value} />
+                    <span>{label}</span>
+                    <small>{hint}</small>
+                  </label>
+                ))}
+              </fieldset>
+              <fieldset className="choices two">
+                <legend>Destination, depuis la France</legend>
+                {destinations.map(([value, art]) => (
+                  <label key={value} className="choice">
+                    <input
+                      type="radio"
+                      name="destination"
+                      value={value}
+                      checked={q.destination === value}
+                      onChange={() => change("destination", value)}
+                    />
+                    <Illustration
+                      name={art}
+                      animated={q.destination === value}
+                    />
+                    <span>{value}</span>
+                  </label>
+                ))}
+              </fieldset>
             </>
           )}
           {step === 1 && (
@@ -457,7 +577,10 @@ export function QuoteForm({
               <button
                 type="button"
                 className="button secondary"
-                onClick={() => setStep(step - 1)}
+                onClick={() => {
+                  setDirection("back");
+                  setStep(step - 1);
+                }}
               >
                 Retour
               </button>
@@ -467,7 +590,7 @@ export function QuoteForm({
                 ? "Enregistrement…"
                 : step === 4
                   ? "Enregistrer la demande"
-                  : "Continuer →"}
+                  : "Continuer"}
             </button>
           </div>
           <button type="button" className="text-button" onClick={save}>
