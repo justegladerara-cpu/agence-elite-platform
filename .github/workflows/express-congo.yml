@@ -41,7 +41,7 @@ jobs:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: production
+    # Secret de dépôt (Settings → Secrets → Actions) : pas d'environnement protégé, donc pas d'attente d'approbation.
     defaults:
       run:
         working-directory: sites-clients/express-congo
