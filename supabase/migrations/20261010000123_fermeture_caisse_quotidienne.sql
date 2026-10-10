@@ -374,12 +374,15 @@ grant execute on function public.compter_cloture(uuid, numeric, text) to authent
 --    de la caisse et à l'affichage de la caisse ; le déclencheur du point 6 garantit déjà qu'aucune vente n'est comptée
 --    sur la mauvaise journée.
 -- ---------------------------------------------------------------------------
+-- Si l'extension ne peut pas être installée ici, la migration continue : la fermeture reste faite à l'ouverture.
 do $$
 begin
   if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
     create extension if not exists pg_cron with schema pg_catalog;
     perform cron.schedule('fermer-caisses-echues', '*/5 * * * *', 'select public.fermer_caisses_echues()');
   end if;
+exception when others then
+  raise warning 'Tâche planifiée non installée (%), fermeture faite à l''ouverture de la caisse', sqlerrm;
 end
 $$;
 
