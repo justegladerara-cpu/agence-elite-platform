@@ -48,7 +48,16 @@ tableau de bord et écrans éditeur).
 
 ## Application installable
 `public/manifest.webmanifest` + icônes neutres (`public/icones/`) : « Installer » / « Ajouter à l'écran d'accueil »
-depuis le navigateur. Pas de mode hors ligne (aucun service worker) ; l'icône est la même pour tous les clients.
+depuis le navigateur. L'icône est la même pour tous les clients.
+
+## Ouverture sans réseau (2026-10-10)
+En production, `public/sw.js` (construit depuis `src/noyau/sw.modele.js`, inscrit par `src/noyau/horsLigne.js`) garde
+une copie des fichiers de la version en cours (page, scripts, styles, icônes ; fichiers de plus de 3 Mo exclus).
+Sans réseau, l'application s'ouvre quand même et affiche le bandeau « Hors connexion ». Les **données ne sont jamais
+copiées** : les appels à la base (autre adresse), `/version.json` et tout ce qui n'est pas une lecture passent sans
+lui. Chaque nouvelle version remplace la copie précédente. Pas en démonstration locale ni en développement.
+Limites : sans réseau, rien ne s'affiche au-delà de l'écran (listes vides ou message d'erreur) et rien ne s'enregistre ;
+la consultation et la vente hors ligne ne sont pas faites.
 
 ## Démarrage plus rapide
 Les écrans des modules sont chargés à la demande (`React.lazy` dans chaque manifeste, `Suspense` dans la coquille) :
@@ -89,7 +98,7 @@ le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
   La reprise ne survit pas à la fermeture de la page. L'enregistrement d'une dépense avec sa photo ne reprend pas tout
   seul (le formulaire reste ouvert et en brouillon, la photo doit être rechoisie).
 - Pas de filtres enregistrés ni de choix des colonnes.
-- Pas d'icône d'application par client (white-label) ni de mode hors ligne.
+- Pas d'icône d'application par client (white-label) ; pas de consultation ni de saisie hors ligne (seule l'ouverture de l'application marche sans réseau).
 - La recherche de données ne couvre pas encore les documents, les commandes de la boutique ni les notes.
 - Pas de palette ni de bouton « + » dans l'espace Agence Elite (super admin) : ils servent dans un établissement.
 
