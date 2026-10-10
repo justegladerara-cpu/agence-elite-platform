@@ -590,6 +590,22 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Tickets Z').first().waitFor({ timeout: 60000 });
     });
 
+    await etape('ventes-jour-passe', async () => {
+      // Le gérant saisit après coup deux ventes d'hier ; la caisse de ce jour est fermée avec son ticket Z.
+      await p.goto(U + '#/clotures');
+      await p.getByRole('button', { name: 'Ventes d’un jour passé' }).click({ timeout: 60000 });
+      await p.getByLabel('Article (vente 1)').selectOption({ label: 'Sucre en poudre 1 kg' });
+      await p.getByLabel('Quantité (vente 1)').fill('2');
+      await p.getByRole('button', { name: 'Ajouter une vente' }).click();
+      await p.getByLabel('Article (vente 2)').selectOption({ label: 'Bougies (paquet de 10)' });
+      await p.getByLabel('Paiement (vente 2)').selectOption('mobile_money');
+      await p.getByLabel('Pourquoi après coup ?').fill('Coupure d’électricité');
+      await p.getByRole('button', { name: 'Enregistrer et fermer la caisse de ce jour' }).click();
+      await p.getByText(/2 vente\(s\) enregistrée\(s\), caisse du .* fermée : Z-/).first().waitFor({ timeout: 30000 });
+      await p.locator('.ticket-apercu').getByText(/Saisie après coup du/).waitFor();
+      await p.keyboard.press('Escape');
+    });
+
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

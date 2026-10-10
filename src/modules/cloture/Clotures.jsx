@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
+import { formatDate, formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
+import VentesPassees from './VentesPassees.jsx';
 
 // Ticket X (type « X ») : même contenu, édité pendant que la caisse reste ouverte, sans numéro ni comptage.
 export function TicketZ({ z, identite, nomEtablissement, devise, type = 'Z' }) {
@@ -208,10 +209,11 @@ function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
 }
 
 export default function Clotures() {
-  const { api, etablissement, montant, notifier, hubs, hub, multiHub } = useEspace();
+  const { api, etablissement, montant, notifier, hubs, hub, multiHub, peut } = useEspace();
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [zOuvert, setZOuvert] = useState(null);
+  const [passees, setPassees] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     // Caisses de la veille fermées d'abord (heure de fin de journée, migration 20261010000124).
     await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
@@ -226,12 +228,15 @@ export default function Clotures() {
     const noms = Object.fromEntries(points.map((p) => [p.id, `${p.nom}${multiHub ? ` · ${hubs.find((h) => h.id === p.hub_id)?.nom ?? ''}` : ''}`]));
     const garder = (x) => !hubFiltre || x.hub_id === hubFiltre;
     const attentesParSession = attentes.reduce((n, a) => ({ ...n, [a.session_caisse_id]: (n[a.session_caisse_id] ?? 0) + 1 }), {});
-    return { coupures: lireCoupures(parametres[0]?.data?.coupures), attentesParSession, sessions: sessions.filter(garder), clotures: clotures.filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
+    return { noms, points: points.filter((p) => p.actif && garder(p)), coupures: lireCoupures(parametres[0]?.data?.coupures), attentesParSession, sessions: sessions.filter(garder), clotures: clotures.filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
   }, [etab, hubFiltre]);
 
   return (
     <div className="page">
       <EnTete titre="Clôture de caisse" sousTitre="Ticket Z : le bilan figé de chaque caisse">
+        {peut('caisse.rattraper') && donnees?.points.length > 0 && (
+          <Bouton icone="plus" onClick={() => setPassees(true)}>Ventes d’un jour passé</Bouton>
+        )}
         {donnees?.clotures.length > 0 && (
           <Bouton icone="telecharger" onClick={() => exporterCsv('tickets-z.csv', [
             { libelle: 'N°', valeur: (z) => z.numero },
@@ -283,6 +288,18 @@ export default function Clotures() {
             </div>
           )}
         </>
+      )}
+      {passees && (
+        <VentesPassees
+          pointsDeVente={donnees.points}
+          onFermer={() => setPassees(false)}
+          onFait={(r) => {
+            setPassees(false);
+            notifier(`${r.ventes} vente(s) enregistrée(s), caisse du ${formatDate(`${r.jour}T12:00:00`)} fermée : ${r.cloture.numero}`);
+            setZOuvert({ ...r.cloture, point_de_vente: donnees.noms[r.cloture.point_de_vente_id] });
+            recharger();
+          }}
+        />
       )}
       {zOuvert && <ModaleZ key={zOuvert.id ?? 'x'} z={zOuvert} onFermer={() => setZOuvert(null)} onCompte={() => { notifier('Comptage enregistré'); recharger(); }} />}
     </div>
