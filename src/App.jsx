@@ -14,6 +14,8 @@ import { CHOIX_AFFICHAGE, enregistrerAffichage, lireAffichage } from './noyau/af
 export { verifierNouveauMotDePasse } from './auth/EcransAuth.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
+import { effacerBrouillons } from './noyau/brouillons.js';
+import { AnnonceMiseAJour, BandeauConnexion } from './ui/Etat.jsx';
 import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
 import { SitePublic } from './public/RenduSite.jsx';
 import { PartagePublic } from './public/Partage.jsx';
@@ -597,6 +599,8 @@ function Coquille() {
         <div className="colonne">
           <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} onRecherche={ouvrirRecherche} onCreer={ouvrirCreation} />
           <main className="contenu">
+            <BandeauConnexion />
+            <AnnonceMiseAJour />
             {!surEditeur && <Bandeaux naviguer={aller} />}
             {contexte.invitations.length > 0 && (
               <div className="bandeau-invitations">
@@ -703,6 +707,8 @@ export default function App({ demarrer = demarrerDonnees }) {
   const recharger = useCallback(() => chargerContexte(donnees), [chargerContexte, donnees]);
   const deconnecter = useCallback(async () => {
     ecrireStockage(CLE_SESSION, null);
+    // Les brouillons de formulaires peuvent contenir des données de clients : ils ne restent pas après la déconnexion.
+    try { effacerBrouillons(window.localStorage); } catch { /* stockage indisponible */ }
     await donnees.deconnecter();
     setContexte(null);
     setAvis(null);

@@ -352,3 +352,31 @@ export function Cloche({ naviguer }) {
     </div>
   );
 }
+
+// Bandeau d'un formulaire gardé en brouillon sur l'appareil (voir noyau/brouillons.js).
+export function BandeauBrouillon({ brouillon }) {
+  if (brouillon.conflit) {
+    return (
+      <div className="encart" role="status">
+        <p>Un brouillon du {formatDateHeure(new Date(Number(brouillon.conflit.le)))} existe, mais ce document a été modifié depuis par quelqu’un d’autre.</p>
+        <div className="groupe-boutons">
+          <Bouton type="button" onClick={brouillon.abandonner}>Garder la version enregistrée</Bouton>
+          <Bouton type="button" onClick={brouillon.reprendre}>Reprendre mon brouillon</Bouton>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <>
+      {brouillon.restaure && (
+        <p className="encart" role="status">
+          Brouillon du {formatDateHeure(brouillon.restaure)} repris.{' '}
+          <button type="button" className="lien" onClick={brouillon.abandonner}>Repartir de zéro</button>
+        </p>
+      )}
+      {brouillon.stockage === 'plein' && (
+        <p className="encart" role="alert">Le stockage de cet appareil est plein : ce formulaire n’est plus gardé en brouillon. Libérez de la place ou enregistrez-le maintenant.</p>
+      )}
+    </>
+  );
+}

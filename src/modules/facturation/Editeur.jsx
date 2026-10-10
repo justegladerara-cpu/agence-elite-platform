@@ -3,6 +3,8 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale } from '../../noyau/format.js';
 import { Bouton, Champ, Erreur, Icone, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
 import { calculerLigne, totaux, TYPES_DOCUMENT, vrai } from './commun.js';
+import { BandeauBrouillon } from '../../ui/communs.jsx';
+import { useBrouillon } from '../../noyau/brouillons.js';
 
 const ligneVide = (tva) => ({ cle: Math.random().toString(36).slice(2), article_id: '', libelle: '', description: '', quantite: '1', unite: '', prix_unitaire: '', remise: '', taux_tva: String(tva ?? 0), optionnelle: false, retenue: false });
 
@@ -33,8 +35,9 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
       lignes: [ligneVide(tva)],
     };
     setV(initial);
-    return { contacts: contacts.filter((c) => c.type !== 'fournisseur'), articles, tva, statut: complet?.document.statut, numero: complet?.document.numero };
+    return { contacts: contacts.filter((c) => c.type !== 'fournisseur'), articles, tva, statut: complet?.document.statut, numero: complet?.document.numero, version: complet?.document.modifie_le ?? null };
   }, [documentId, typeNouveau]);
+  const brouillon = useBrouillon(`document:${documentId ?? `nouveau-${typeNouveau}`}`, v, setV, { pret: Boolean(v && donnees), version: donnees?.version ?? null });
   const articleDe = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
   if (erreurChargement) return <div className="page"><Erreur message={erreurChargement} /></div>;
   if (!donnees || !v) return <div className="page"><Squelette lignes={8} /></div>;
@@ -69,6 +72,7 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
           lignes: v.lignes.map(({ cle, id: _id, ...l }) => ({ ...l, article_id: l.article_id || null, optionnelle: v.type === 'devis' && l.optionnelle, retenue: v.type === 'devis' && l.optionnelle && l.retenue })),
         },
       });
+      brouillon.effacer();
       naviguer(`factures/${id}`);
     } catch (err) {
       setErreur(err.message);
@@ -80,6 +84,7 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
     <div className="page">
       <PageHeader titre={titre} fil={[{ libelle: 'Devis et factures', href: '#/factures' }, { libelle: titre }]} />
       <form className="formulaire" onSubmit={enregistrer}>
+        <BandeauBrouillon brouillon={brouillon} />
         <Section>
           <div className="grille-champs">
             <Champ libelle="Client">

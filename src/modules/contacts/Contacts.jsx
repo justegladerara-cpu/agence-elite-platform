@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDateHeure } from '../../noyau/format.js';
-import { exporterCsv } from '../../ui/communs.jsx';
+import { BandeauBrouillon, exporterCsv } from '../../ui/communs.jsx';
+import { useBrouillon } from '../../noyau/brouillons.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { SOURCES } from '../crm/commun.js';
 import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
@@ -23,6 +24,7 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const changer = (champ) => (e) => setValeurs((v) => ({ ...v, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const brouillon = useBrouillon(`contact:${contact?.id ?? 'nouveau'}`, valeurs, setValeurs, { version: contact?.modifie_le ?? null });
   const enregistrer = async (e) => {
     e.preventDefault();
     setChargement(true);
@@ -30,6 +32,7 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
     try {
       const p = Object.fromEntries([...CHAMPS, ...(crm ? ['source'] : [])].map((k) => [k, valeurs[k]]));
       await api.rpc('enregistrer_contact', { p_etablissement_id: etablissement.id, p_contact: { ...p, id: contact?.id } });
+      brouillon.effacer();
       onEnregistre(contact ? 'Contact modifié' : 'Contact créé');
     } catch (err) {
       setErreur(err.message);
@@ -39,6 +42,7 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
   return (
     <Modale titre={contact ? 'Modifier le contact' : 'Nouveau contact'} onFermer={onFermer}>
       <form className="formulaire" onSubmit={enregistrer}>
+        <BandeauBrouillon brouillon={brouillon} />
         <Champ libelle="Type">
           <select value={valeurs.type} onChange={changer('type')}>
             {Object.entries(TYPES).filter(([id]) => crm || id !== 'prospect' || valeurs.type === 'prospect').map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
