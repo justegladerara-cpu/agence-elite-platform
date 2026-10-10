@@ -744,8 +744,9 @@ Bruit connu : « Workers Builds » échoue sur les branches de PR (le site est p
 ## 45 quater. DEMANDE DES 150 : AVANCEMENT (2026-10-10)
 
 Suivi lot par lot dans le tableau « Bilan » de `docs/AMELIORATIONS/DEMANDE_150_2026-10-09.md` (PR, migration, statut).
-Lots A à G fusionnés et vérifiés en production (migrations `20261010000111` à `20261010000116` ; G sans migration).
-Lot H (Pilotage, migration `20261010000117`, PR #33) en cours. Restent : P (espace client), puis E2, F2, G2, H2.
+Lots A à H fusionnés et vérifiés en production (migrations `20261010000111` à `20261010000117` ; G sans migration).
+Lot P (Espace client, module `portail_client`, migration `20261010000118`, PR #34) en cours : voir
+[`ESPACE_CLIENT.md`](ESPACE_CLIENT.md). Restent : E2, F2, G2, H2, P2.
 
 ## 46–47. Prompt pour la nouvelle session
 

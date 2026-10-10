@@ -1450,3 +1450,36 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Espace client (lot P, Bêta) : activé dans Commerce Démo ; la mini-boutique de l'hôtel est partagée avec l'hôtel,
+-- qui a ouvert son espace, consulté un document et écrit un message. Fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; sa uuid; gerante uuid; hotel uuid; acces jsonb; doc uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage' limit 1;
+  if hotel is null or exists (select 1 from public.etablissement_modules where etablissement_id = etab and module_id = 'portail_client') then
+    return;
+  end if;
+  select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
+  where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform public.accorder_module(etab, 'portail_client', true, 'Démo : espace client');
+  perform public.definir_module_etablissement(etab, 'portail_client', true);
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.partager_projet_client(p.id, true) from public.projets p where p.etablissement_id = etab and p.contact_id = hotel;
+  acces := public.creer_acces_portail(etab, hotel, 'Économe de l''hôtel (démo)', 30);
+  perform set_config('request.jwt.claims', '', true);
+  perform public.portail_ouvrir(acces ->> 'jeton');
+  select d.id into doc from public.documents_vente d
+  where d.etablissement_id = etab and d.contact_id = hotel and ((d.type = 'devis' and d.statut in ('envoye', 'accepte', 'converti')) or (d.type = 'facture' and d.statut = 'emise'))
+  order by d.date_document desc limit 1;
+  if doc is not null then
+    perform public.portail_document_vu(acces ->> 'jeton', doc);
+  end if;
+  perform public.portail_envoyer_message(acces ->> 'jeton', 'Bonjour, pouvez-vous ajouter un deuxième présentoir pour les boissons fraîches ? Merci.');
+end
+$$;

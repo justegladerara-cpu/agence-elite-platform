@@ -3131,3 +3131,8 @@ kbd {
 .bandeau-etat.alerte { background: var(--orange-doux); color: var(--orange); }
 .bandeau-etat.succes { background: var(--vert-doux); color: var(--vert); }
 .bandeau-etat.info { background: var(--accent-doux); color: var(--texte); }
+
+/* Espace client (lien public) : page lisible sur téléphone, messages du client à droite. */
+.espace-client { max-width: 900px; margin: 0 auto; padding: 16px; }
+.espace-client progress { width: 100%; height: 10px; }
+.espace-client .message-client { margin-left: 15%; border-color: var(--accent, #2563eb); }
