@@ -169,6 +169,16 @@ describe('application sur la base locale', () => {
     expect(screen.getByRole('button', { name: 'Valider' })).toBeTruthy();
   });
 
+  test('Données personnelles : export et anonymisation proposés au gérant, contact anonymisé signalé', async () => {
+    window.location.hash = '#/contacts';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    fireEvent.click(await screen.findByText('M. Ibara (économat)', {}, { timeout: 10000 }));
+    expect(await screen.findByRole('button', { name: 'Exporter ses données' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Anonymiser' }));
+    expect(await screen.findByText(/Tapez ANONYMISER pour confirmer/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Anonymiser définitivement' }).disabled).toBe(true);
+  });
+
   test('Achats : liste, commande et réception', async () => {
     window.location.hash = '#/achats';
     const liste = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);

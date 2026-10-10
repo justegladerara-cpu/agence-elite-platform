@@ -80,6 +80,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Tenir la comptabilité (plan, écritures générées, balance, grand livre) | [66](66_TENIR_LA_COMPTABILITE.md) | Gérant + comptable |
 | Mener une campagne (accords, segments, préparation, envoi déclaré) | [67](67_MENER_UNE_CAMPAGNE.md) | Gérant + commercial |
 | Gérer un contrat (depuis un devis, avenants, préavis, registre des engagements) | [68](68_GERER_UN_CONTRAT.md) | Gérant + commercial |
+| Données personnelles d’un contact (export, anonymisation) et partage de documents par lien | [69](69_DONNEES_PERSONNELLES_ET_PARTAGE.md) | Gérant + équipe |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

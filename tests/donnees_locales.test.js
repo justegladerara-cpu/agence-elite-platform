@@ -244,6 +244,19 @@ describe('moteur de données local', () => {
     expect(Number(releve.credits_disponibles)).toBe(5000);
     expect(releve.lignes.some((l) => /MM-DEMO-ECOLE-1/.test(l.libelle))).toBe(true);
   });
+  test('la démo données personnelles : ancien client anonymisé, document joint à partager', async () => {
+    utilisateur = comptes['gerante@demo.agence-elite.fr'];
+    const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
+    const [a] = await api.lire('anonymisations', { eq: { etablissement_id: etab } });
+    expect(a.motif).toMatch(/fictive/);
+    const [k] = await api.lire('contacts', { eq: { id: a.contact_id } });
+    expect(k).toMatchObject({ nom: 'Contact anonymisé', telephone: null, actif: false });
+    const pieces = await api.lire('pieces_jointes', { eq: { etablissement_id: etab, nom: 'Bon de livraison signé.pdf' } });
+    expect(pieces).toHaveLength(1);
+    const lien = await api.rpc('creer_lien_partage', { p_piece_id: pieces[0].id, p_duree_heures: 24 });
+    utilisateur = null;
+    expect((await api.rpc('ouvrir_lien_partage', { p_jeton: lien.jeton })).nom).toBe('Bon de livraison signé.pdf');
+  });
   test('la démo agenda, support et abonnements : rendez-vous, tickets, contrats facturés', async () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
