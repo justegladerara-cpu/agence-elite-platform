@@ -754,6 +754,7 @@ Lignes 66 et 67 bloquées (aucun canal d'envoi).
 catégorie facultative, code-barres facultatif). SOP 75. Suite prévue : rattrapage de ventes d'un jour passé (gérant).
 **Fermeture de caisse quotidienne (2026-10-10)** : migration `20261010000124`, réglage Clôture `fermeture_automatique`
 (00:00 par défaut), tâche pg_cron `fermer-caisses-echues`, ticket Z automatique « espèces à compter ». SOP 76.
+**Ventes d'un jour passé (2026-10-10)** : migration `20261010000125`, `saisir_ventes_passees` (gérant), SOP 77.
 
 ## 46–47. Prompt pour la nouvelle session
 

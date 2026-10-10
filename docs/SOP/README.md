@@ -88,6 +88,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Devise du client et taux de change, rapprochement des relevés de banque ou de Mobile Money, trésorerie prévue par scénario | [74](74_DEVISE_RAPPROCHEMENT_TRESORERIE.md) | Gérant, responsable, comptable |
 | Enregistrer son stock simplement : marchandise reçue, comptage, fichier de stock (code-barres facultatif), retrait | [75](75_STOCK_SIMPLIFIE.md) | Gérant, responsable, gestionnaire de dépôt |
 | Fermeture automatique de la caisse chaque jour (minuit par défaut, heure réglable), espèces comptées après coup | [76](76_FERMETURE_CAISSE_QUOTIDIENNE.md) | Gérant, responsable |
+| Saisir après coup les ventes d'un jour passé et fermer la caisse de ce jour (gérant) | [77](77_VENTES_JOUR_PASSE.md) | Gérant, responsable |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
