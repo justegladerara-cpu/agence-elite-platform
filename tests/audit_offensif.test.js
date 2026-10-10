@@ -144,9 +144,9 @@ describe("contexte d'appel", () => {
     // et l'espace client (même principe de jeton ; chaque geste est limité et tracé).
     expect(executables.map((e) => e.proname).sort()).toEqual([
       'boutique_publique', 'commander_boutique', 'envoyer_message_site', 'marque_connexion', 'ouvrir_lien_partage', 'pages_connexion',
-      'portail_agenda', 'portail_aide', 'portail_annuler_rdv', 'portail_confirmer_rdv', 'portail_decider_livrable', 'portail_demander_rdv',
+      'portail_agenda', 'portail_aide', 'portail_annuler_rdv', 'portail_bilan_vu', 'portail_confirmer_rdv', 'portail_decider_livrable', 'portail_demander_rdv',
       'portail_deplacer_rdv', 'portail_deposer_fichier', 'portail_document_vu', 'portail_envoyer_message', 'portail_ouvrir',
-      'portail_repondre_devis', 'portail_telecharger', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
+      'portail_recommander', 'portail_repondre_devis', 'portail_suivi', 'portail_telecharger', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
       'verifier_coupon_boutique',
     ]);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);

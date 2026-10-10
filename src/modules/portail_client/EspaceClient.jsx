@@ -4,6 +4,7 @@ import { lireParametres } from '../../noyau/routes.js';
 import { formatDate, formatDateHeure } from '../../noyau/format.js';
 import { tailleLisible, telecharger } from '../../ui/communs.jsx';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
+import Bilans from './Bilans.jsx';
 
 // Espace client (Bêta), côté équipe : liens d'accès des clients, leurs messages, fichiers déposés, réponses aux
 // devis et décisions sur les livrables, projets partagés. Le client, lui, ouvre #/espace/<jeton> sans compte.
@@ -11,7 +12,8 @@ export const EVENEMENTS = {
   ouverture: 'A ouvert son espace', document_vu: 'A consulté un document', devis_accepte: 'A accepté un devis', devis_refuse: 'A refusé un devis',
   devis_modification: 'A demandé une modification de devis', livrable_valide: 'A validé un livrable', livrable_a_corriger: 'A demandé une correction',
   message: 'A envoyé un message', depot: 'A déposé un fichier', rdv_demande: 'A pris rendez-vous', rdv_confirme: 'A confirmé un rendez-vous',
-  rdv_annule: 'A annulé un rendez-vous', rdv_deplace: 'A déplacé un rendez-vous',
+  rdv_annule: 'A annulé un rendez-vous', rdv_deplace: 'A déplacé un rendez-vous', aide_vue: 'A lu un article d’aide', bilan_vu: 'A lu un bilan',
+  recommandation: 'A recommandé quelqu’un',
 };
 export const lienEspace = (jeton) => `${window.location.origin}${window.location.pathname}#/espace/${jeton}`;
 const nomContact = (c) => (c ? c.societe || c.nom : 'Contact');
@@ -72,7 +74,7 @@ function FicheClient({ contact, naviguer }) {
   const { api, etablissement, peut, notifier } = useEspace();
   const etab = etablissement.id;
   const gerer = peut('portail_client.gerer');
-  const [onglet, setOnglet] = useState('messages');
+  const [onglet, setOnglet] = useState(() => (lireParametres().get('vue') === 'bilans' ? 'bilans' : 'messages'));
   const [reponse, setReponse] = useState('');
   const [nouveau, setNouveau] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -109,7 +111,7 @@ function FicheClient({ contact, naviguer }) {
       <Tabs actif={onglet} onChange={setOnglet} onglets={[
         ['messages', 'Messages', d.messages.length || null], ['fichiers', 'Fichiers déposés', recus || null],
         ['acces', 'Liens d’accès', d.acces.filter((a) => etatAcces(a)[0] === 'Actif').length || null],
-        ...(d.projets.length ? [['projets', 'Projets partagés']] : []), ['journal', 'Journal'],
+        ...(d.projets.length ? [['projets', 'Projets partagés']] : []), ['bilans', 'Bilans'], ['journal', 'Journal'],
       ]} />
       <Erreur message={erreur} />
       {onglet === 'messages' && (
@@ -169,6 +171,7 @@ function FicheClient({ contact, naviguer }) {
           ) },
         ]} />
       )}
+      {onglet === 'bilans' && <Bilans contact={contact} />}
       {onglet === 'journal' && (
         <DataTable lignes={d.evenements} exportable titreExport={`Journal espace client ${nomContact(contact)}`} vide={<p className="texte-doux">Le client n’a encore rien fait dans son espace.</p>} colonnes={[
           { id: 'cree_le', libelle: 'Quand', rendu: (e) => formatDateHeure(e.cree_le), tri: (e) => e.cree_le },
@@ -189,13 +192,14 @@ function Liste({ naviguer }) {
   const [filtre, setFiltre] = useState(() => lireParametres().get('filtre') ?? '');
   const { donnees: d, chargement, erreur: erreurChargement, recharger } = useDonnees(async () => {
     const eq = { etablissement_id: etab };
-    const [contacts, acces, messages, depots] = await Promise.all([
+    const [contacts, acces, messages, depots, aPreparer] = await Promise.all([
       api.lire('contacts', { eq, ordre: ['nom'], colonnes: ['id', 'nom', 'societe', 'type', 'actif', 'anonymise_le'] }),
       api.lire('portail_acces', { eq, colonnes: ['id', 'contact_id', 'expire_le', 'revoque_le', 'derniere_ouverture'] }),
       api.lire('portail_messages', { eq, colonnes: ['id', 'contact_id', 'auteur', 'lu_le', 'cree_le'] }),
       api.lire('portail_depots', { eq, colonnes: ['id', 'contact_id', 'statut'] }),
+      api.rpc('bilans_a_preparer', { p_etablissement_id: etab }).catch(() => []),
     ]);
-    return { contacts, acces, messages, depots };
+    return { contacts, acces, messages, depots, aPreparer };
   }, [etab]);
   const lignes = useMemo(() => {
     if (!d) return [];
@@ -216,10 +220,11 @@ function Liste({ naviguer }) {
     }
     for (const x of d.depots) if (x.statut === 'recu') ligne(x.contact_id).recus += 1;
     const contacts = new Map(d.contacts.map((c) => [c.id, c]));
-    return [...parContact.values()].map((l) => ({ ...l, contact: contacts.get(l.id) })).filter((l) => l.contact);
+    const bilan = new Set(d.aPreparer.map((x) => x.contact_id));
+    return [...parContact.values()].map((l) => ({ ...l, bilan: bilan.has(l.id), contact: contacts.get(l.id) })).filter((l) => l.contact);
   }, [d]);
   if (!d) return <div className="page">{chargement ? <Squelette lignes={6} /> : <Erreur message={erreurChargement} />}</div>;
-  const visibles = lignes.filter((l) => (filtre === 'messages' ? l.non_lus > 0 : filtre === 'depots' ? l.recus > 0 : true));
+  const visibles = lignes.filter((l) => (filtre === 'messages' ? l.non_lus > 0 : filtre === 'depots' ? l.recus > 0 : filtre === 'bilans' ? l.bilan : true));
   const proposables = d.contacts.filter((c) => c.actif && !c.anonymise_le && c.type !== 'fournisseur');
   return (
     <div className="page page-large">
@@ -230,19 +235,21 @@ function Liste({ naviguer }) {
           <option value="">Tous les clients avec un espace</option>
           <option value="messages">Messages non lus</option>
           <option value="depots">Fichiers à traiter</option>
+          <option value="bilans">Bilan à préparer</option>
         </select>
       </div>
       {visibles.length === 0 ? (
         <EmptyState titre={filtre ? 'Rien à traiter' : 'Aucun espace client ouvert'} icone="globe"
           texte="Créez un lien pour un client : il pourra accepter ses devis, suivre ses projets et vous écrire sans créer de compte." />
       ) : (
-        <DataTable lignes={visibles} titreExport="Espaces clients" rechercher={(l) => nomContact(l.contact)} onLigne={(l) => naviguer(`espace-client/${l.id}`)}
+        <DataTable lignes={visibles} titreExport="Espaces clients" rechercher={(l) => nomContact(l.contact)} onLigne={(l) => naviguer(`espace-client/${l.id}${filtre === 'bilans' ? '?vue=bilans' : ''}`)}
           triInitial={{ id: 'non_lus', sens: 'desc' }} colonnes={[
             { id: 'nom', libelle: 'Client', rendu: (l) => nomContact(l.contact), tri: (l) => nomContact(l.contact) },
             { id: 'liens', libelle: 'Liens actifs', classe: 'nombre', rendu: (l) => l.liens, tri: (l) => l.liens },
             { id: 'derniere', libelle: 'Dernière visite', rendu: (l) => (l.derniere ? formatDateHeure(l.derniere) : 'jamais'), tri: (l) => l.derniere ?? '' },
             { id: 'non_lus', libelle: 'Messages non lus', classe: 'nombre', rendu: (l) => (l.non_lus ? <Badge ton="orange">{l.non_lus}</Badge> : 0), tri: (l) => l.non_lus },
             { id: 'recus', libelle: 'Fichiers à traiter', classe: 'nombre', rendu: (l) => (l.recus ? <Badge ton="orange">{l.recus}</Badge> : 0), tri: (l) => l.recus },
+            { id: 'bilan', libelle: 'Bilan', rendu: (l) => (l.bilan ? <Badge ton="orange">À préparer</Badge> : ''), tri: (l) => (l.bilan ? 1 : 0) },
           ]} />
       )}
       {nouveau && <ModaleAcces contacts={proposables} onFermer={() => setNouveau(false)} onFait={recharger} />}

@@ -4,6 +4,7 @@ import { formatDateHeure } from '../../noyau/format.js';
 import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, ModaleMotif, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
+import Maintenances, { BandeauMaintenance } from './Maintenances.jsx';
 
 export const STATUTS_TICKET = {
   ouvert: ['Ouvert', 'bleu'], en_cours: ['En cours', 'violet'], attente_client: ['En attente du client', 'orange'], resolu: ['Résolu', 'vert'], ferme: ['Fermé', 'neutre'],
@@ -30,13 +31,14 @@ export default function Support({ naviguer, sousRoute }) {
   const { api, etablissement, peut, utilisateur } = useEspace();
   const etab = etablissement.id;
   const { donnees: d, chargement, erreur, recharger } = useDonnees(async () => {
-    const [tickets, equipe, contacts, bibliotheque] = await Promise.all([
+    const [tickets, equipe, contacts, bibliotheque, maintenances] = await Promise.all([
       api.lire('support_tickets', { eq: { etablissement_id: etab }, ordre: ['cree_le', 'desc'], limite: 3000 }),
       api.rpc('support_equipe', { p_etablissement_id: etab }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
       api.lire('support_bibliotheque', { eq: { etablissement_id: etab }, ordre: ['titre'] }).catch(() => []),
+      api.lire('support_maintenances', { eq: { etablissement_id: etab }, ordre: ['debut', 'desc'], limite: 200 }).catch(() => []),
     ]);
-    return { tickets, equipe, bibliotheque, contacts: contacts.filter((c) => c.type !== 'fournisseur'), membre: Object.fromEntries(equipe.map((m) => [m.user_id, m])) };
+    return { tickets, equipe, bibliotheque, maintenances, contacts: contacts.filter((c) => c.type !== 'fournisseur'), membre: Object.fromEntries(equipe.map((m) => [m.user_id, m])) };
   }, [etab]);
   // #/support?etat=…&priorite=…&nouveau=1 (tableau de bord).
   const [nouveau, setNouveau] = useState(() => lireParametres().get('nouveau') === '1' && peut('support_tickets.traiter'));
@@ -53,6 +55,7 @@ export default function Support({ naviguer, sousRoute }) {
           <Bouton onClick={() => naviguer('support/bibliotheque')}>Réponses et aide</Bouton>
           {peut('support_tickets.traiter') && <Bouton variante="principal" icone="plus" onClick={() => setNouveau(true)}>Ticket</Bouton>}
         </>} />
+      <BandeauMaintenance maintenances={d.maintenances} />
       <Section>
         <DataTable lignes={d.tickets} onLigne={(t) => naviguer(`support/${t.id}`)}
           rechercher={(t) => `${t.numero} ${t.sujet} ${t.nom_client} ${t.telephone ?? ''}`} placeholder="Numéro, sujet, client…"
@@ -72,6 +75,7 @@ export default function Support({ naviguer, sousRoute }) {
             { id: 'statut', libelle: 'Statut', rendu: (t) => <Badge ton={STATUTS_TICKET[t.statut][1]}>{STATUTS_TICKET[t.statut][0]}</Badge> },
           ]} />
       </Section>
+      <Maintenances maintenances={d.maintenances} onChange={recharger} />
       {nouveau && <ModaleTicket d={d} onFermer={() => setNouveau(false)} onFait={(id) => { setNouveau(false); recharger(); naviguer(`support/${id}`); }} />}
     </div>
   );
@@ -253,6 +257,7 @@ function ModaleTicket({ d, onFermer, onFait }) {
   return (
     <Modale titre="Nouveau ticket" onFermer={onFermer}>
       <form className="formulaire" onSubmit={valider}>
+        <BandeauMaintenance maintenances={d.maintenances} />
         <Champ libelle="Sujet"><input value={v.sujet} onChange={changer('sujet')} required maxLength={200} autoFocus placeholder="Ex. Imprimante de caisse muette" /></Champ>
         <div className="grille-champs">
           <Champ libelle="Client enregistré">

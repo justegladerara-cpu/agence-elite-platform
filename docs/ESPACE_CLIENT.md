@@ -56,6 +56,20 @@ Fonctions appelables sans connexion (rôle anon), toutes protégées par le jeto
 `portail_annuler_rdv`, `portail_deplacer_rdv`, `portail_aide`. Internes : `portail_rdv_reglages`, `portail_creneaux`,
 `portail_rdv_du_client`. Un jeton expiré, révoqué ou inconnu reçoit la même erreur.
 
+## Bilans, maintenances, recommandations (lot H2)
+- **Bilans de collaboration** (`bilans_client`, droit `portail_client.gerer`) : brouillon chiffré par la base
+  (`calculer_bilan_client` : factures, paiements, reste à payer, devis acceptés, projets, livrables validés, tickets,
+  rendez-vous tenus, messages ; seulement les modules actifs), synthèse et prochaines actions écrites par l'équipe,
+  publication (`publier_bilan_client`), accusé de lecture (`portail_bilan_vu`), retrait. Un bilan publié ne se modifie
+  plus. Réglage `bilan_periodicite_mois` (3 par défaut, 0 = aucun rappel) : filtre « Bilan à préparer »
+  (`bilans_a_preparer`).
+- **Maintenances annoncées** (module Support) : en cours ou à venir dans les 30 jours, annulées depuis moins de 7 jours
+  avec leur motif, dans le fuseau de l'établissement.
+- **Recommander** (module Fidélité, réglage `parrainage_espace_client`) : le client recommande une personne (nom et
+  téléphone ou e-mail) et suit ses recommandations. La réponse est la même que la personne soit connue ou non ; 5 par
+  jour et par lien. Voir docs/FIDELITE.md.
+- Fonctions anon ajoutées : `portail_suivi`, `portail_bilan_vu`, `portail_recommander`.
+
 ## Sécurité
 - Le jeton n'est jamais stocké en clair ; la colonne `jeton_empreinte` et le contenu des dépôts ne sont pas lisibles par
   l'interface (droits par colonne).
@@ -74,9 +88,12 @@ Fonctions appelables sans connexion (rôle anon), toutes protégées par le jeto
   pas de fermetures exceptionnelles ni de pause de midi : réduire les heures ou bloquer le créneau par un rendez-vous).
 - Aucun rappel de rendez-vous envoyé au client, pas de réglage de fréquence ni d'envoi selon son fuseau : il faut d'abord
   un canal d'envoi (e-mail ou SMS) branché (lignes 66 et 67 de la demande des 150, bloquées).
+- Bilan : chiffres d'un seul établissement, sans comparaison avec la période précédente ni graphique ; le client réagit
+  par « Messages » (pas de commentaire sur le bilan lui-même). Aucun envoi du bilan par e-mail.
+- Maintenance : annonce pour tous les clients de l'établissement (pas de ciblage par client ou par service).
 
 ## Tests
 `tests/espace_client.test.js` (droits, isolation entre établissements, jeton expiré ou révoqué, limites, dépôts
 refusés, anonymisation), `tests/espace_client_rdv.test.js` (créneaux, fuseau, double réservation, report, délai,
-isolation, aide publiée), `tests/audit_offensif.test.js` (liste des fonctions anon), parcours navigateur étapes
-`espace-client` et `espace-client-rdv`.
+isolation, aide publiée), `tests/parrainage_bilan_maintenance.test.js` (bilans, maintenances, recommandations), `tests/audit_offensif.test.js` (liste des fonctions anon), parcours navigateur étapes
+`espace-client`, `espace-client-rdv` et `propositions-parrainage-bilan`.

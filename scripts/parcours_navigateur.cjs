@@ -480,6 +480,55 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
         .catch(async () => { throw new Error('Recadrage inattendu : largeur ' + await d.getByRole('img', { name: 'Justificatif' }).evaluate((i) => i.naturalWidth)); });
       await d.getByRole('button', { name: 'Annuler', exact: true }).last().click();
     });
+    await etape('propositions-parrainage-bilan', async () => {
+      // Proposition adaptée au besoin : le modèle « Fournitures de collectivité » est proposé pour la cantine du collège.
+      await p.goto(U + '#/crm');
+      await p.getByText('Fournitures de la cantine (trimestre)').first().click();
+      const propositions = p.locator('section', { has: p.getByRole('heading', { name: 'Propositions adaptées' }) });
+      const ligne = propositions.locator('.liste-ligne', { hasText: 'Fournitures de collectivité' });
+      await ligne.getByText(/besoin : cantine, fournitures/).waitFor({ timeout: 60000 });
+      await ligne.getByRole('button', { name: 'Créer le devis' }).click();
+      await p.waitForURL(/#\/factures\/[0-9a-f-]+\/modifier/, { timeout: 60000 });
+      await p.waitForFunction(() => [...document.querySelectorAll('input, textarea')].some((e) => e.value.includes('Denrées de cantine')), null, { timeout: 30000 })
+        .catch(() => { throw new Error('Lignes du modèle absentes du devis'); });
+      // Parrainage : la recommandation de l'hôtel est suivie dans Fidélité.
+      await p.goto(U + '#/fidelite');
+      const parrainage = p.locator('section', { has: p.getByRole('heading', { name: 'Parrainage' }) });
+      await parrainage.getByText('Collège Démo Saint-Joseph').first().waitFor({ timeout: 60000 });
+      await parrainage.getByText('En attente').first().waitFor();
+      // Maintenance planifiée annoncée sur la page Support.
+      await p.goto(U + '#/support');
+      await p.getByText('Inventaire annuel : magasin fermé').first().waitFor({ timeout: 60000 });
+      // Espace du client : annonce de maintenance, bilan publié (lu), recommandation.
+      await p.goto(U + '#/espace-client');
+      await p.getByText('Hôtel Démo Côte Sauvage').first().click();
+      await p.getByRole('tab', { name: 'Bilans' }).click();
+      await p.getByText(/pas encore lu/).first().waitFor();
+      await p.getByRole('button', { name: 'Nouveau lien' }).click();
+      const d = p.getByRole('dialog');
+      await d.getByRole('button', { name: 'Créer le lien' }).click();
+      const adresse = await d.getByLabel('Lien de l’espace client').inputValue();
+      await p.keyboard.press('Escape');
+      const fiche = p.url();
+      await p.goto(adresse);
+      await p.getByRole('heading', { name: /Espace de Hôtel Démo Côte Sauvage/ }).waitFor({ timeout: 60000 });
+      await p.getByText(/Maintenance prévue .* Inventaire annuel : magasin fermé/).first().waitFor();
+      await p.getByText(/1 bilan à lire/).first().waitFor();
+      await p.getByRole('tab', { name: 'Bilans' }).click();
+      await p.getByRole('button', { name: /^Bilan du / }).first().click();
+      await p.getByText(/Ajouter un deuxième présentoir/).first().waitFor();
+      await p.getByRole('tab', { name: 'Recommander' }).click();
+      await p.getByText(/Livraison offerte sur la prochaine commande/).first().waitFor();
+      await p.getByText('Collège Démo Saint-Joseph').first().waitFor();
+      await p.getByLabel('Nom de la personne ou de l’entreprise').fill('Pharmacie Démo du Port');
+      await p.getByLabel('Téléphone').fill('+242 06 000 00 99');
+      await p.getByRole('button', { name: 'Recommander' }).click();
+      await p.getByText('Merci : votre recommandation est transmise à l’équipe.').waitFor();
+      await p.getByText('Pharmacie Démo du Port').first().waitFor();
+      await p.goto(fiche);
+      await p.getByRole('tab', { name: 'Bilans' }).click({ timeout: 60000 });
+      await p.getByText(/lu par le client le/).first().waitFor();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
