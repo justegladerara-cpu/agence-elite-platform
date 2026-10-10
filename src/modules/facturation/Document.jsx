@@ -6,7 +6,7 @@ import {
   Badge, Bouton, Champ, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette,
 } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
-import { etatDocument, etatEcheances, ligneComptee, repartirEcheances, tauxRemise, TYPES_DOCUMENT, vrai } from './commun.js';
+import { contreValeur, etatDocument, etatEcheances, ligneComptee, repartirEcheances, tauxRemise, TYPES_DOCUMENT, vrai } from './commun.js';
 
 // Rendu A4 d'un devis, d'une facture ou d'un avoir : le même à l'écran et à l'impression.
 export function FeuilleDocument({ complet }) {
@@ -85,6 +85,12 @@ export function FeuilleDocument({ complet }) {
         {avecTva && <div><span>Total HT</span><span>{m(d.total_ht)}</span></div>}
         {avecTva && <div><span>TVA</span><span>{m(d.total_tva)}</span></div>}
         <div className="feuille-total"><span>{avecTva ? 'Total TTC' : 'Total'}</span><span>{m(d.total_ttc)}</span></div>
+        {d.devise_document && (
+          <div className="feuille-petit">
+            <span>Soit {formatMontant(contreValeur(d.total_ttc, d.taux_document), d.devise_document)}</span>
+            <span>1 {d.devise_document} = {m(d.taux_document)}{complet.tauxDocument ? ` au ${formatDate(complet.tauxDocument.jour)}` : ''}{complet.tauxDocument?.source ? ` (${complet.tauxDocument.source})` : ''}</span>
+          </div>
+        )}
         {vente && d.type === 'facture' && Number(vente.montant_paye) > 0 && (
           <>
             <div><span>Déjà payé</span><span>{m(vente.montant_paye)}</span></div>
@@ -236,6 +242,56 @@ function ModaleEcheancier({ complet, onFermer, onFait }) {
   );
 }
 
+// Présenter le document dans la devise du client (taux le plus récent à la date du document, ou un taux choisi), ou revenir
+// à la seule devise de l'établissement. Les montants comptés ne changent pas.
+function ModaleDevise({ complet, onFermer, onFait }) {
+  const { api } = useEspace();
+  const d = complet.document;
+  const [taux, setTaux] = useState(null);
+  const [choix, setChoix] = useState(d.taux_change_id ?? '');
+  const [erreur, setErreur] = useState('');
+  useEffect(() => {
+    api.lire('taux_change', { eq: { etablissement_id: d.etablissement_id }, ordre: ['jour', 'desc'], limite: 500 })
+      .then((liste) => setTaux(liste.filter((t) => t.jour <= d.date_document)))
+      .catch((err) => setErreur(err.message));
+  }, [api, d.etablissement_id, d.date_document]);
+  const valider = async (e) => {
+    e.preventDefault();
+    setErreur('');
+    const t = taux.find((x) => x.id === choix);
+    try {
+      await api.rpc('definir_devise_document', { p_document_id: d.id, p_devise: t?.devise ?? null, p_taux_id: t?.id ?? null });
+      onFait(t ? `Document présenté aussi en ${t.devise}` : 'Document présenté dans la seule devise de l’établissement');
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <Modale titre="Devise du client" onFermer={onFermer}>
+      <form className="formulaire" onSubmit={valider}>
+        <p className="texte-doux">
+          Le document reste compté en {complet.devise} ; le total est aussi affiché dans la devise choisie, au taux figé sur le document
+          (repris sur la facture et l’avoir).
+        </p>
+        {taux && !taux.length && <p className="encart">Aucun taux saisi à la date du document : saisissez-le dans Devis et factures, onglet « Taux de change ».</p>}
+        {taux && (
+          <Champ libelle="Taux à appliquer">
+            <select value={choix} onChange={(e) => setChoix(e.target.value)}>
+              <option value="">Seulement en {complet.devise}</option>
+              {taux.map((t) => <option key={t.id} value={t.id}>{`${t.devise} · 1 ${t.devise} = ${formatMontant(t.taux, complet.devise)} au ${formatDate(t.jour)}${t.source ? ` (${t.source})` : ''}`}</option>)}
+            </select>
+          </Champ>
+        )}
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal" disabled={!taux}>Appliquer</Bouton>
+        </div>
+      </form>
+    </Modale>
+  );
+}
+
 // Saisie libre obligatoire (issue d'une contestation…), même présentation que ModaleMotif mais sans ton « danger ».
 function ModaleTexte({ titre, libelle, aide, libelleAction, onValider, onFermer }) {
   const [texte, setTexte] = useState('');
@@ -356,7 +412,7 @@ export default function DocumentVente({ documentId, naviguer }) {
     const complet = await api.rpc('document_vente_complet', { p_document_id: documentId });
     const doc = complet.document;
     const racine = doc.version_de ?? doc.id;
-    const [echeances, suivantes, premiere, parametres, contrats, contestations, credits] = await Promise.all([
+    const [echeances, suivantes, premiere, parametres, contrats, contestations, credits, tauxDocument] = await Promise.all([
       api.lire('echeances_document', { eq: { document_id: doc.id }, ordre: ['ordre'] }).catch(() => []),
       doc.type === 'devis' ? api.lire('documents_vente', { eq: { etablissement_id: doc.etablissement_id, version_de: racine } }).catch(() => []) : [],
       doc.type === 'devis' && doc.version_de ? api.lire('documents_vente', { eq: { id: racine } }).catch(() => []) : [],
@@ -364,9 +420,10 @@ export default function DocumentVente({ documentId, naviguer }) {
       doc.type === 'devis' && moduleActif('contrats') ? api.lire('contrats', { eq: { document_vente_id: doc.id } }).catch(() => []) : [],
       doc.type === 'facture' ? api.lire('contestations_facture', { eq: { document_id: doc.id }, ordre: ['ouverte_le', 'desc'] }).catch(() => []) : [],
       doc.type === 'facture' ? api.lire('credits_client', { eq: { etablissement_id: doc.etablissement_id, contact_id: doc.contact_id }, ordre: ['cree_le'] }).catch(() => []) : [],
+      doc.taux_change_id ? api.lire('taux_change', { eq: { id: doc.taux_change_id } }).then((x) => x[0] ?? null).catch(() => null) : null,
     ]);
     const versions = doc.type === 'devis' ? [...(doc.version_de ? premiere : [doc]), ...suivantes].sort((a, b) => a.version - b.version) : [];
-    return { ...complet, echeances, versions, contrats, contestations, credits, seuilRemise: Number(parametres[0]?.data?.remise_max_sans_validation ?? 0) };
+    return { ...complet, echeances, versions, contrats, contestations, credits, tauxDocument, seuilRemise: Number(parametres[0]?.data?.remise_max_sans_validation ?? 0) };
   }, [documentId]);
   if (chargement && !c) return <div className="page"><Squelette lignes={8} /></div>;
   if (erreur || !c) {
@@ -440,6 +497,7 @@ export default function DocumentVente({ documentId, naviguer }) {
                 && { libelle: 'Créer le contrat', onClick: () => executer('contrat_depuis_devis', { p_document_id: d.id }, 'Contrat créé', (id) => naviguer(`contrats/${id}`)) },
               d.type === 'devis' && ['accepte', 'converti'].includes(d.statut) && moduleActif('projets') && peut('projets.gerer')
                 && { libelle: d.projet_id ? 'Ajouter les tâches au projet' : 'Créer le projet et ses tâches', onClick: () => executer('taches_depuis_devis', { p_document_id: d.id }, 'Tâches créées', (id) => naviguer(`projets/${id}`)) },
+              modifiable && d.type !== 'avoir' && { libelle: d.devise_document ? `Devise du client (${d.devise_document})` : 'Devise du client…', onClick: () => setAction('devise') },
               gerer && d.type !== 'avoir' && { libelle: 'Dupliquer', onClick: () => executer('dupliquer_document_vente', { p_document_id: d.id }, 'Copie créée', (id) => naviguer(`factures/${id}/modifier`)) },
               d.statut !== 'emise' && gerer && !['annule', 'converti', 'refuse'].includes(d.statut) && d.type !== 'avoir' && { libelle: 'Annuler', danger: true, onClick: () => setAction('annuler') },
               gerer && d.statut === 'emise' && d.type === 'facture' && !contestation && { libelle: 'Le client conteste', onClick: () => setAction('contester') },
@@ -577,6 +635,7 @@ export default function DocumentVente({ documentId, naviguer }) {
       </div>
       <ZoneImpression><FeuilleDocument complet={c} /></ZoneImpression>
       {action === 'echeancier' && <ModaleEcheancier complet={c} onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />}
+      {action === 'devise' && <ModaleDevise complet={c} onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />}
       {action === 'comparer' && <ModaleComparaison versions={c.versions} devise={c.devise} onFermer={() => setAction(null)} />}
       {action === 'paiement' && <ModalePaiement complet={c} onFermer={() => setAction(null)} onFait={(m) => { setAction(null); notifier(m); recharger(); }} />}
       {action === 'contester' && (

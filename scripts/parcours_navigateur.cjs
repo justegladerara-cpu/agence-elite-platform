@@ -529,6 +529,28 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Bilans' }).click({ timeout: 60000 });
       await p.getByText(/lu par le client le/).first().waitFor();
     });
+    await etape('devise-rapprochement-tresorerie', async () => {
+      // Taux de change saisis : historique visible dans Devis et factures.
+      await p.goto(U + '#/factures?onglet=taux');
+      await p.getByText('Taux de démonstration').first().waitFor({ timeout: 60000 });
+      // Devis présenté aussi dans la devise du client, au taux figé sur le document.
+      await p.goto(U + '#/factures?onglet=devis');
+      await p.getByText('DE-00001-V2').first().click();
+      await p.getByText(/^Soit .+/).first().waitFor({ timeout: 60000 });
+      await p.getByText(/au .*\(Taux de démonstration\)/).first().waitFor();
+      // Rapprochement : la ligne du relevé retrouve le paiement Mobile Money par sa référence.
+      await p.goto(U + '#/rapprochement');
+      const ligneReleve = p.locator('section').filter({ hasText: 'MM-DEMO-001' }).last();
+      await ligneReleve.getByText('Référence retrouvée').first().waitFor({ timeout: 60000 });
+      await ligneReleve.getByRole('button', { name: 'Rapprocher' }).first().click();
+      await p.getByText('Ligne rapprochée').first().waitFor({ timeout: 30000 });
+      await p.locator('section').filter({ hasText: 'MM-DEMO-001' }).first().waitFor({ state: 'detached', timeout: 30000 });
+      // Trésorerie prévue : trois scénarios dans le Pilotage.
+      await p.goto(U + '#/pilotage?vue=tresorerie');
+      await p.getByText('Prudent : fin de période').first().waitFor({ timeout: 60000 });
+      await p.getByText('Optimiste : fin de période').first().waitFor();
+    });
+
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

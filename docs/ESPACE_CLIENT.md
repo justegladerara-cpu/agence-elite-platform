@@ -22,6 +22,9 @@ Aucun compte n'est créé pour le client.
 En haut de l'espace, un encadré résume ce qui attend le client : messages de l'équipe depuis sa visite précédente,
 documents jamais ouverts, livrables à valider.
 
+Lot E2 : un devis ou une facture présenté dans la devise du client affiche aussi « Soit … » avec le taux et sa date ;
+le montant à régler reste celui de l'établissement.
+
 ## Rendez-vous en ligne (lot P2)
 Réglages du module (Paramètres › Modules › Espace client) : `rdv_en_ligne` (non par défaut), `rdv_duree_minutes` (60),
 `rdv_jours` (`1,2,3,4,5` : 1 = lundi … 7 = dimanche), `rdv_heure_debut` (09:00), `rdv_heure_fin` (18:00),

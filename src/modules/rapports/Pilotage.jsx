@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate } from '../../noyau/format.js';
+import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Champ, DataTable, Erreur, Onglets, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { SOURCES } from '../crm/commun.js';
 import { bornes, libellePrevision, PERIODES, RAISONS_RISQUE, totauxPrevision } from './commun.js';
+import Tresorerie from './Tresorerie.jsx';
 
 const nombre = (n) => (n == null ? '—' : Number(n).toLocaleString('fr-FR'));
 const canal = (c) => (c === 'non_renseigne' ? 'Origine non renseignée' : SOURCES[c] ?? c);
@@ -15,7 +17,7 @@ export default function Pilotage({ naviguer }) {
   const [periode, setPeriode] = useState('30');
   const [libre, setLibre] = useState(() => bornes('30'));
   const [du, au] = bornes(periode, libre[0], libre[1]);
-  const [onglet, setOnglet] = useState('clients');
+  const [onglet, setOnglet] = useState(() => (lireParametres().get('vue') === 'tresorerie' ? 'tresorerie' : 'clients'));
   const { donnees: r, chargement, erreur } = useDonnees(
     () => api.rpc('rapport_pilotage', { p_etablissement_id: etablissement.id, p_du: du, p_au: au }),
     [etablissement.id, du, au],
@@ -24,6 +26,7 @@ export default function Pilotage({ naviguer }) {
     ['clients', 'Rentabilité client'], ['canaux', 'Par canal'],
     r.prevision && ['prevision', 'Prévision'], r.sans_action && ['sans_action', `Sans prochaine action (${r.sans_action.length})`],
     r.charge && ['charge', 'Charge par personne'], r.engagements && ['engagements', `Engagements à risque (${r.engagements.length})`],
+    ['tresorerie', 'Trésorerie prévue'],
   ].filter(Boolean) : [];
   const actif = onglets.some(([id]) => id === onglet) ? onglet : 'clients';
   const prev = totauxPrevision(r?.prevision ?? []);
@@ -54,6 +57,7 @@ export default function Pilotage({ naviguer }) {
             {r.engagements && <StatCard icone="alerte" libelle="Engagements à risque" valeur={r.engagements.length} ton={r.engagements.length ? 'attention' : undefined} onClick={() => setOnglet('engagements')} />}
           </div>
           <Onglets onglets={onglets} actif={actif} onChange={setOnglet} />
+          {actif === 'tresorerie' && <Tresorerie />}
           {actif === 'clients' && (
             <Section titre="Rentabilité par client" sousTitre="Ventes validées de la période. Marge = prix moins coût d’achat, sur les lignes dont le coût est connu.">
               <DataTable lignes={r.clients} cle="contact_id" titreExport={`Rentabilité client ${du} ${au}`} rechercher={(c) => c.nom}

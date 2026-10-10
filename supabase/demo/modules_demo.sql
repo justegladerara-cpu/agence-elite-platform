@@ -1567,3 +1567,43 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Lot E2 : taux de change saisis (historique), un devis présenté aussi dans une autre devise, un relevé bancaire importé
+-- (un paiement retrouvé, des frais à écarter). La prévision de trésorerie se calcule à l'affichage. Tout est fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; jour date; v_devise text; autre text; devis uuid; p record; lignes jsonb := '[]'::jsonb;
+begin
+  select id, devise into etab, v_devise from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.taux_change where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  jour := public.date_locale(etab);
+  autre := case when v_devise = 'EUR' then 'USD' else 'EUR' end;
+  if public.module_actif(etab, 'facturation') then
+    perform public.enregistrer_taux_change(etab, autre, jour - 30, case when v_devise = 'EUR' then 0.92 else 650 end, 'Taux de démonstration');
+    perform public.enregistrer_taux_change(etab, autre, jour - 2, case when v_devise = 'EUR' then 0.93 else 655.957 end, 'Taux de démonstration');
+    select d.id into devis from public.documents_vente d
+    where d.etablissement_id = etab and d.type = 'devis' and d.statut in ('brouillon', 'envoye') and d.date_document >= jour - 2
+    order by d.statut = 'envoye' desc, d.date_document desc limit 1;
+    if devis is not null then
+      perform public.definir_devise_document(devis, autre);
+    end if;
+  end if;
+  if public.module_actif(etab, 'paiements') then
+    for p in select x.montant, x.reference, public.date_locale(etab, x.cree_le) j from public.paiements x
+             where x.etablissement_id = etab and x.statut = 'valide' and x.mode <> 'especes' and x.cree_le > now() - interval '20 days'
+             order by x.cree_le desc limit 3 loop
+      lignes := lignes || jsonb_build_array(jsonb_build_object('jour', p.j, 'libelle', 'Versement reçu', 'reference', p.reference, 'montant', p.montant));
+    end loop;
+    lignes := lignes || jsonb_build_array(
+      jsonb_build_object('jour', jour - 1, 'libelle', 'Frais de tenue de compte', 'montant', -2500),
+      jsonb_build_object('jour', jour - 3, 'libelle', 'Virement interne vers la caisse', 'reference', 'INT-0001', 'montant', -50000));
+    perform public.importer_releve(etab, 'Banque principale (démo)', lignes);
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
