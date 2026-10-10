@@ -20,6 +20,8 @@ import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
 import { SitePublic } from './public/RenduSite.jsx';
 import { PartagePublic } from './public/Partage.jsx';
 import { EspaceClientPublic } from './public/EspaceClient.jsx';
+import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
+import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import {
@@ -615,7 +617,7 @@ function Coquille() {
               </GardeErreur>
             )}
             {!surEditeur && (Page
-              ? <GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Suspense fallback={<Chargement texte="Ouverture de l’écran…" />}><Page naviguer={aller} sousRoute={sousRoute} /></Suspense></GardeErreur>
+              ? <GardeAppareil key={etablissement.id}><GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Suspense fallback={<Chargement texte="Ouverture de l’écran…" />}><Page naviguer={aller} sousRoute={sousRoute} /></Suspense></GardeErreur></GardeAppareil>
               : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
           </main>
         </div>
@@ -725,17 +727,34 @@ export default function App({ demarrer = demarrerDonnees }) {
   if (publique === 'suivi' && cle) return <SuiviCommande key={cle} donnees={donnees} suivi={cle} />;
   if (publique === 'partage' && cle) return <PartagePublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'espace' && cle) return <EspaceClientPublic key={cle} donnees={donnees} jeton={cle} />;
+  if (publique === 'partenaire' && cle === 'demande' && sousPage) return <DemandePartenaire key={sousPage} donnees={donnees} code={sousPage} />;
+  // Elite Partners : espace partenaire (#/partenaire) et activation d'une clé (#/activer), avec ou sans compte.
+  const pagePartenaire = publique === 'partenaire' || publique === 'activer';
   let ecran;
   if (etape === 'reinitialisation') {
     ecran = <Reinitialisation config={config} donnees={donnees} onFait={recharger} onDeconnexion={deconnecter} />;
+  } else if (etape === 'connexion' && pagePartenaire) {
+    ecran = <ConnexionPartenaire config={config} donnees={donnees} mode={publique} onConnecte={() => chargerContexte(donnees)} />;
   } else if (etape === 'connexion') {
     ecran = donnees.mode === 'local'
       ? <ConnexionLocale config={config} donnees={donnees} avis={avis} onConnecte={() => chargerContexte(donnees)} />
       : <ConnexionSupabase config={config} donnees={donnees} avis={avis} onConnecte={() => chargerContexte(donnees)} />;
   } else if (contexte.compte?.doit_changer_mot_de_passe) {
     ecran = <NouveauMotDePasse config={config} donnees={donnees} contexte={contexte} onFait={recharger} onDeconnexion={deconnecter} />;
+  } else if (publique === 'activer') {
+    ecran = <ActivationCle donnees={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />;
+  } else if (publique === 'partenaire') {
+    ecran = <EspacePartenaire donnees={donnees} contexte={contexte} onDeconnexion={deconnecter} />;
   } else if (!contexte.etablissements.length && !contexte.editeur) {
-    ecran = <Accueil config={config} api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />;
+    // Sans établissement : l'espace Elite Partners si la personne est partenaire, sinon l'accueil habituel.
+    ecran = (
+      <EspacePartenaire
+        donnees={donnees}
+        contexte={contexte}
+        onDeconnexion={deconnecter}
+        sinon={<Accueil config={config} api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />}
+      />
+    );
   } else {
     ecran = (
       <FournisseurEspace api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter}>

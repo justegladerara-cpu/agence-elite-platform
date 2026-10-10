@@ -1,5 +1,10 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-10 — Elite Partners (réseau de partenaires, clés de licence, commissions)
+- Demande de Juste (fil « Système d'affiliation ») : affiliés avec leurs licences, liens et espace de connexion ; clés d'activation générées par le super admin (ex. essai 1 mois après installation payée) ; commissions façon MLM : 20 % / 5 % / 2 %, rangs, pas de prime sur l'installation ; nom « Elite Partners ».
+- Migration `20261010000123_elite_partners.sql` (9 tables, RLS lecture équipe Agence Elite, écriture par RPC, journal), écran `#/editeur/partenaires`, espace `#/partenaire`, activation `#/activer`, page prospect `#/partenaire/demande/CODE`, garde par ordinateur.
+- Vérifié : `npm test` 82 fichiers (dont 18 tests Elite Partners), builds, `parcours_navigateur`, parcours Elite Partners dans Chromium (super admin → partenaire → clés → activation → espace partenaire, bureau et téléphone).
+
 ## 2026-10-10 — Publication automatique des sites clients
 - Demande de Juste : tout faire sans action de sa part. Aucun accès direct à Cloudflare depuis la session (API bloquée, connecteur sans publication).
 - `wrangler.jsonc` : `build.command` → `scripts/publier_sites_clients.mjs`, qui publie `sites-clients/*` avec le jeton de Workers Builds (main uniquement), sans jamais faire échouer la plateforme.
