@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
-import { formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';
-import { quantiteHub } from './quantites.js';
+import { formatEnCasiers, nomCasier, quantiteHub } from './quantites.js';
 import { lireFichierStock, telechargerModeleStock } from './fichierStock.js';
 
 export const MODES_SAISIE = {
@@ -25,6 +24,15 @@ const nombreSaisi = (v) => {
   return String(v ?? '').trim() !== '' && Number.isFinite(n) ? n : null;
 };
 
+// Quantité d'une ligne en unités : casiers × unités par casier + unités. null si rien n'est tapé ; NaN si illisible.
+const quantiteLigne = (unites, casiers, parCasier) => {
+  const vide = (v) => String(v ?? '').trim() === '';
+  if (vide(unites) && (vide(casiers) || !parCasier)) return null;
+  const u = vide(unites) ? 0 : nombreSaisi(unites);
+  const c = vide(casiers) || !parCasier ? 0 : nombreSaisi(casiers);
+  return u === null || c === null ? NaN : c * parCasier + u;
+};
+
 // Saisie du stock sur une seule page : tous les articles, une quantité par ligne, un seul bouton. Un fichier de stock
 // (modèle téléchargeable) remplit la page ; les articles inconnus du fichier sont créés à l'enregistrement.
 export default function SaisieStock({ mode, articles, donnees, hubsStock, hubInitial, categories, onFermer, onFait }) {
@@ -32,6 +40,7 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
   const config = MODES_SAISIE[mode];
   const [hubId, setHubId] = useState(hubInitial ?? hubsStock[0]?.id);
   const [quantites, setQuantites] = useState({});
+  const [casiers, setCasiers] = useState({});
   const [nouveaux, setNouveaux] = useState([]);
   const [filtre, setFiltre] = useState('');
   const [categorie, setCategorie] = useState('');
@@ -43,9 +52,13 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
   const texte = filtre.trim().toLowerCase();
   const visibles = useMemo(() => articles.filter((a) => (!categorie || a.categorie_id === categorie)
     && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.code_barres ?? '') === texte)), [articles, categorie, texte]);
-  const saisies = Object.entries(quantites).map(([id, v]) => [id, nombreSaisi(v)])
-    .filter(([, n]) => n !== null && (mode === 'comptage' ? n >= 0 : n > 0));
-  const invalides = Object.values(quantites).filter((v) => String(v ?? '').trim() !== '' && (nombreSaisi(v) === null || nombreSaisi(v) < 0 || (mode === 'reception' && nombreSaisi(v) === 0)));
+  const parCasier = useMemo(() => Object.fromEntries(articles.map((a) => [a.id, a.unites_par_lot || null])), [articles]);
+  const lignes = [...new Set([...Object.keys(quantites), ...Object.keys(casiers)])]
+    .map((id) => [id, quantiteLigne(quantites[id], casiers[id], parCasier[id])])
+    .filter(([, n]) => n !== null);
+  const estFaux = (n) => Number.isNaN(n) || n < 0 || (mode === 'reception' && n === 0);
+  const saisies = lignes.filter(([, n]) => !estFaux(n));
+  const invalides = lignes.filter(([, n]) => estFaux(n));
   const total = saisies.length + nouveaux.length;
 
   // Code-barres facultatif : si la recherche correspond exactement à un code ou une référence, Entrée ajoute 1 (réception).
@@ -63,16 +76,17 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
     setInfoFichier('');
     try {
       const lignes = lireFichierStock(await fichier.text())
-        .filter((l) => mode === 'comptage' || Number(String(l.quantite).replace(',', '.')) !== 0);
+        .filter((l) => mode === 'comptage' || l.lots !== undefined || Number(String(l.quantite).replace(',', '.')) !== 0);
       if (!lignes.length) throw new Error('Aucune quantité dans le fichier.');
       const apercu = await api.rpc('saisir_stock', { p_hub_id: hubId, p_mode: mode, p_lignes: lignes, p_motif: null, p_simulation: true });
       const remplis = {};
       const crees = [];
       apercu.details.forEach((d) => {
-        if (d.article_id) remplis[d.article_id] = String(d.quantite);
+        if (d.article_id) remplis[d.article_id] = String(d.quantite); // Le fichier est converti en unités par la base.
         else crees.push({ ...lignes[d.ligne - 1], quantite: String(d.quantite) });
       });
       setQuantites((q) => ({ ...q, ...remplis }));
+      setCasiers((c) => Object.fromEntries(Object.entries(c).filter(([id]) => !(id in remplis))));
       setNouveaux(crees);
       setInfoFichier(`${lignes.length} ligne(s) lue(s) : ${Object.keys(remplis).length} article(s) existant(s) rempli(s)${crees.length ? `, ${crees.length} nouvel(s) article(s) créé(s) à l’enregistrement` : ''}. Vérifiez puis enregistrez.`);
     } catch (err) {
@@ -158,18 +172,28 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
               {visibles.map((a) => {
                 const actuel = quantiteHub(donnees, a.id, hubId, []);
                 const v = quantites[a.id] ?? '';
-                const n = nombreSaisi(v);
-                const apres = n === null ? null : mode === 'reception' ? actuel + n : n;
-                const faux = String(v).trim() !== '' && (n === null || n < 0 || (mode === 'reception' && n === 0));
+                const n = quantiteLigne(v, casiers[a.id], a.unites_par_lot);
+                const faux = n !== null && estFaux(n);
+                const apres = n === null || Number.isNaN(n) ? null : mode === 'reception' ? actuel + n : n;
                 return (
                   <tr key={a.id}>
                     <td><strong>{a.nom}</strong>{a.reference && <small className="texte-doux bloc">{a.reference}</small>}{!a.suivi_stock && <small className="bloc"><Badge ton="neutre">stock pas encore suivi</Badge></small>}</td>
-                    <td className="nombre">{a.suivi_stock ? formatQuantite(actuel, a.unite) : '—'}</td>
+                    <td className="nombre">{a.suivi_stock ? formatEnCasiers(actuel, a) : '—'}</td>
                     <td className="nombre">
-                      <input className="saisie-quantite" aria-invalid={faux || undefined} inputMode="decimal" aria-label={`${config.colonne} : ${a.nom}`}
-                        value={v} onChange={(e) => setQuantites((q) => ({ ...q, [a.id]: e.target.value }))} />
+                      {a.unites_par_lot ? (
+                        <span className="saisie-casiers">
+                          <input className="saisie-quantite" aria-invalid={faux || undefined} inputMode="decimal" aria-label={`${config.colonne} en ${nomCasier(a)} de ${a.unites_par_lot} : ${a.nom}`}
+                            value={casiers[a.id] ?? ''} onChange={(e) => setCasiers((c) => ({ ...c, [a.id]: e.target.value }))} />
+                          <small>{nomCasier(a)} +</small>
+                          <input className="saisie-quantite" aria-invalid={faux || undefined} inputMode="decimal" aria-label={`${config.colonne} à l’unité : ${a.nom}`}
+                            value={v} onChange={(e) => setQuantites((q) => ({ ...q, [a.id]: e.target.value }))} />
+                        </span>
+                      ) : (
+                        <input className="saisie-quantite" aria-invalid={faux || undefined} inputMode="decimal" aria-label={`${config.colonne} : ${a.nom}`}
+                          value={v} onChange={(e) => setQuantites((q) => ({ ...q, [a.id]: e.target.value }))} />
+                      )}
                     </td>
-                    <td className={`nombre ${apres != null && apres < actuel ? 'texte-alerte' : ''}`}>{apres == null ? '' : formatQuantite(apres, a.unite)}</td>
+                    <td className={`nombre ${apres != null && apres < actuel ? 'texte-alerte' : ''}`}>{apres == null ? '' : formatEnCasiers(apres, a)}</td>
                   </tr>
                 );
               })}

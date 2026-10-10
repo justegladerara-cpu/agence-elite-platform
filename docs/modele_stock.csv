@@ -1,5 +1,6 @@
-﻿nom;categorie;quantite;prix_vente;reference
-Riz parfumé 5 kg;Épicerie;20;5000;
-Huile 1 L;Épicerie;12;1500;
-Savon de Marseille;Hygiène;30;750;
-Sac cabas;;50;200;
+﻿nom;categorie;quantite;prix_vente;reference;casiers;par_casier
+Riz parfumé 5 kg;Épicerie;20;5000;;;
+Huile 1 L;Épicerie;12;1500;;;
+Savon de Marseille;Hygiène;30;750;;;
+Sac cabas;;50;200;;;
+Bière 33 cl;Boissons;3;1000;;5;24

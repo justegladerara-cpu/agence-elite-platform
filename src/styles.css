@@ -2398,6 +2398,8 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 /* Stock, inventaire, transferts */
 .saisie-quantite { width: 110px; min-height: 34px; padding: 4px 8px; text-align: right; }
 .saisie-quantite[aria-invalid="true"] { border-color: var(--rouge); }
+.saisie-casiers { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.saisie-casiers .saisie-quantite { width: 64px; }
 .transfert-sens { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; }
 .transfert-sens > .icone { margin-bottom: 11px; color: var(--texte-doux); }
 .lignes-transfert { display: grid; gap: 8px; }

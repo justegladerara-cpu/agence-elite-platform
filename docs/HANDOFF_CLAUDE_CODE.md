@@ -756,6 +756,8 @@ catégorie facultative, code-barres facultatif). SOP 75. Suite prévue : rattrap
 (00:00 par défaut), tâche pg_cron `fermer-caisses-echues`, ticket Z automatique « espèces à compter ». SOP 76.
 **Ventes d'un jour passé (2026-10-10)** : migration `20261010000125`, `saisir_ventes_passees` (gérant), SOP 77.
 
+**Casiers de boissons (2026-10-10)** : migration `20261010000126`, `regler_lot_article`, `saisir_stock` en casiers + unités, affichage « 5 casiers + 3 », SOP 78.
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

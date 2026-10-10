@@ -1,6 +1,7 @@
 // Fichier de stock (CSV, séparateur ; ou ,) : une ligne par article, avec sa quantité.
 // Colonnes : nom et quantite obligatoires ; categorie, reference et prix_vente facultatifs (le prix ne sert qu'à créer
-// un article qui n'existe pas encore). Une ligne sans quantité est ignorée. La correspondance avec les articles existants est faite par la base.
+// un article qui n'existe pas encore). Casiers facultatifs : « casiers » (nombre de casiers, cartons, packs) et
+// « par_casier » (unités par casier) ; la quantité devient casiers × par_casier + quantite. Une ligne sans quantité est ignorée. La correspondance avec les articles existants est faite par la base.
 import { decouper, normaliser } from '../articles/importCsv.js';
 
 const COLONNES = {
@@ -9,14 +10,18 @@ const COLONNES = {
   categorie: ['categorie', 'famille', 'rayon'],
   reference: ['reference', 'ref', 'code'],
   prix_vente: ['prix_vente', 'prix', 'prix_de_vente'],
+  lots: ['casiers', 'casier', 'cartons', 'carton', 'packs', 'pack', 'lots'],
+  par_lot: ['par_casier', 'unites_par_casier', 'par_carton', 'par_pack', 'par_lot'],
 };
+const NOMBRES = ['quantite', 'prix_vente', 'lots', 'par_lot'];
 
 // Point-virgule (Excel en français) ; marque BOM pour que les accents s'ouvrent bien dans Excel.
-export const MODELE_STOCK = '﻿nom;categorie;quantite;prix_vente;reference\n'
-  + 'Riz parfumé 5 kg;Épicerie;20;5000;\n'
-  + 'Huile 1 L;Épicerie;12;1500;\n'
-  + 'Savon de Marseille;Hygiène;30;750;\n'
-  + 'Sac cabas;;50;200;\n';
+export const MODELE_STOCK = '﻿nom;categorie;quantite;prix_vente;reference;casiers;par_casier\n'
+  + 'Riz parfumé 5 kg;Épicerie;20;5000;;;\n'
+  + 'Huile 1 L;Épicerie;12;1500;;;\n'
+  + 'Savon de Marseille;Hygiène;30;750;;;\n'
+  + 'Sac cabas;;50;200;;;\n'
+  + 'Bière 33 cl;Boissons;3;1000;;5;24\n';
 
 export function lireFichierStock(texte) {
   const lignes = String(texte ?? '').replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim() !== '');
@@ -28,7 +33,7 @@ export function lireFichierStock(texte) {
     const position = entetes.findIndex((e) => alias.includes(e));
     if (position >= 0) index[cle] = position;
   }
-  if (index.nom === undefined || index.quantite === undefined) {
+  if (index.nom === undefined || (index.quantite === undefined && index.lots === undefined)) {
     throw new Error('Colonnes « nom » et « quantite » obligatoires : téléchargez le modèle.');
   }
   return lignes.slice(1).map((ligne) => {
@@ -36,10 +41,10 @@ export function lireFichierStock(texte) {
     const article = {};
     for (const [cle, position] of Object.entries(index)) {
       const valeur = (champs[position] ?? '').trim();
-      if (valeur !== '') article[cle] = cle === 'quantite' || cle === 'prix_vente' ? valeur.replace(/[\s  ]/g, '') : valeur;
+      if (valeur !== '') article[cle] = NOMBRES.includes(cle) ? valeur.replace(/[\s  ]/g, '') : valeur;
     }
     return article;
-  }).filter((a) => (a.nom || a.reference) && a.quantite !== undefined); // Ligne sans quantité : article non touché.
+  }).filter((a) => (a.nom || a.reference) && (a.quantite !== undefined || a.lots !== undefined)); // Ligne sans quantité : article non touché.
 }
 
 export function telechargerModeleStock() {
