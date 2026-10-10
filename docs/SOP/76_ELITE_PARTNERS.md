@@ -1,4 +1,4 @@
-# SOP 75 · Elite Partners (partenaires, clés, commissions)
+# SOP 76 · Elite Partners (partenaires, clés, commissions)
 
 Détail : [`../ELITE_PARTNERS.md`](../ELITE_PARTNERS.md).
 

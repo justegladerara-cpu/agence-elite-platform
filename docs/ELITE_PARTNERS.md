@@ -1,6 +1,6 @@
 # Elite Partners : réseau de partenaires, clés de licence et commissions
 
-Décidé par Juste le 2026-10-10. Migration `20261010000122_elite_partners.sql`, tests `tests/elite_partners.test.js`.
+Décidé par Juste le 2026-10-10. Migration `20261010000123_elite_partners.sql`, tests `tests/elite_partners.test.js`.
 
 ## En une phrase
 Des partenaires vendent et installent les licences chez leurs clients avec des **clés d'activation** ; ils touchent une

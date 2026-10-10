@@ -86,7 +86,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Espace client : ouvrir un lien, répondre aux messages, traiter les dépôts, révoquer, rendez-vous en ligne, aide publiée | [71](71_OUVRIR_UN_ESPACE_CLIENT.md) | Gérant, responsable, commercial |
 | Propositions types du CRM, parrainage, bilan de collaboration publié au client, maintenance annoncée | [73](73_PARRAINAGE_BILAN_MAINTENANCE.md) | Gérant, responsable, commercial |
 | Devise du client et taux de change, rapprochement des relevés de banque ou de Mobile Money, trésorerie prévue par scénario | [74](74_DEVISE_RAPPROCHEMENT_TRESORERIE.md) | Gérant, responsable, comptable |
-| Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [75](75_ELITE_PARTNERS.md) | Agence Elite + partenaires |
+| Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).
