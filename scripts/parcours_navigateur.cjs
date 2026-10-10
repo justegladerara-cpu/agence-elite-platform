@@ -474,9 +474,10 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       for (let k = 0; k < 5; k += 1) await p.keyboard.press('ArrowRight');
       await d.getByText('Zone gardée : 90 % × 100 % de la photo.').waitFor();
       await d.getByRole('button', { name: 'Valider le recadrage' }).click();
-      await d.getByRole('img', { name: 'Justificatif' }).waitFor();
-      const largeur = await d.getByRole('img', { name: 'Justificatif' }).evaluate((i) => i.naturalWidth);
-      if (largeur !== 360) throw new Error('Recadrage inattendu : largeur ' + largeur);
+      await d.getByRole('group', { name: 'Recadrer la photo' }).waitFor({ state: 'detached' });
+      // La vignette non recadrée (400 px) est déjà affichée : attendre que l'image recadrée (360 px) la remplace.
+      await p.waitForFunction(() => document.querySelector('img[alt="Justificatif"]')?.naturalWidth === 360, null, { timeout: 15000 })
+        .catch(async () => { throw new Error('Recadrage inattendu : largeur ' + await d.getByRole('img', { name: 'Justificatif' }).evaluate((i) => i.naturalWidth)); });
       await d.getByRole('button', { name: 'Annuler', exact: true }).last().click();
     });
     await etape('connexions', async () => {
