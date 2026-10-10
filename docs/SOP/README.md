@@ -81,6 +81,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Mener une campagne (accords, segments, préparation, envoi déclaré) | [67](67_MENER_UNE_CAMPAGNE.md) | Gérant + commercial |
 | Gérer un contrat (depuis un devis, avenants, préavis, registre des engagements) | [68](68_GERER_UN_CONTRAT.md) | Gérant + commercial |
 | Données personnelles d’un contact (export, anonymisation) et partage de documents par lien | [69](69_DONNEES_PERSONNELLES_ET_PARTAGE.md) | Gérant + équipe |
+| Pilotage : rentabilité client et par canal, prévision pondérée, charge par personne, engagements à risque | [70](70_PILOTER_L_ACTIVITE.md) | Gérant, responsable |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
 [MISSIONS_SIMULEES.md](MISSIONS_SIMULEES.md).

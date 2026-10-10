@@ -121,6 +121,6 @@ Chaque module a sa documentation (colonnes, règles, fonctions) ; ici, la carte 
 | Agenda ([AGENDA](AGENDA.md)) | `agenda_rendez_vous` |
 | Support ([SUPPORT](SUPPORT.md)) | `support_tickets`, `support_messages` |
 | Abonnements ([ABONNEMENTS](ABONNEMENTS.md)) | `abo_formules`, `abonnements`, `abonnement_periodes` |
-| Rapports ([RAPPORTS](RAPPORTS.md)) | aucune (fonction `rapport_ventes`) |
+| Rapports ([RAPPORTS](RAPPORTS.md)) | aucune (fonctions `rapport_ventes`, `rapport_pilotage`) |
 | Fidélité ([FIDELITE](FIDELITE.md)) | `fidelite_mouvements` |
 `ventes.origine` ∈ `caisse, facture, boutique, restaurant, hotel, abonnement`.
