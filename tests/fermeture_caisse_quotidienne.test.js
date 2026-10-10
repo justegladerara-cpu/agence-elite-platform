@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Fermeture automatique de la caisse chaque jour (migration 20261010000123).
+// Fermeture automatique de la caisse chaque jour (migration 20261010000124).
 let db;
 let gerant;
 let caissier;

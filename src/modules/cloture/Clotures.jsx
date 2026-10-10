@@ -213,7 +213,7 @@ export default function Clotures() {
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [zOuvert, setZOuvert] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    // Caisses de la veille fermées d'abord (heure de fin de journée, migration 20261010000123).
+    // Caisses de la veille fermées d'abord (heure de fin de journée, migration 20261010000124).
     await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
     const [sessions, clotures, points, parametres, attentes] = await Promise.all([
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }),

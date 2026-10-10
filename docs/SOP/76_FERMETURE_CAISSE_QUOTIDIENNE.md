@@ -24,5 +24,5 @@
 - Compter les espèces « au jugé » : compter le tiroir réel.
 
 Fonctions : `fin_journee_caisse`, `fermer_caisses_du_jour`, `compter_cloture`
-(`supabase/migrations/20261010000123_fermeture_caisse_quotidienne.sql`). En production, une tâche planifiée (pg_cron)
+(`supabase/migrations/20261010000124_fermeture_caisse_quotidienne.sql`). En production, une tâche planifiée (pg_cron)
 passe toutes les 5 minutes ; la caisse et l'écran Clôture font aussi la fermeture à l'ouverture.
