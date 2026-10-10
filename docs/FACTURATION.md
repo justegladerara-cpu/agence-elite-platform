@@ -59,6 +59,29 @@ Limites connues : l'échéancier est informatif (pas de relance automatique par 
 d'acompte séparée (règles fiscales selon le pays, à décider) ; le seuil de remise s'applique aussi aux factures
 créées par d'autres modules (abonnements, hôtel, agenda, projets) quand il est réglé.
 
+## Trésorerie (lot E, migration `20261010000115_tresorerie.sql`)
+- **Relevé client** : onglet « Relevé client » de Devis et factures. On choisit un client et une période ;
+  `releve_client` renvoie le solde d'ouverture (tout ce qui précède la période), chaque mouvement (débit : ventes et
+  factures validées, remboursements de retours rendus ; crédit : encaissements valides, retours), les totaux, le
+  solde de clôture et les crédits client disponibles. Imprimable et exportable en CSV. Lisible avec
+  `facturation.lire` ou `ventes.lire`, limité aux hubs de la personne.
+- **Trop-perçus** : dans « Encaisser », un montant supérieur au reste dû par virement, Mobile Money, carte ou chèque
+  solde la facture (`encaisser_avec_trop_percu`) et crée un **crédit client** `CR-00001` (`credits_client`) avec le
+  mode et la référence d'origine. En espèces on rend la monnaie : refusé. Le crédit se voit dans la section
+  « Crédits du client » de chaque facture de ce client : **Utiliser** (`utiliser_credit_client`, même client
+  uniquement, paiement au même mode avec la référence « Crédit client CR-… ») ou **Marquer remboursé**
+  (`rembourser_credit_client`, droit `facturation.annuler`). Chaque usage est figé dans `credits_client_usages`.
+- **Facture contestée** : menu ⋯ › « Le client conteste » (motif obligatoire, `contester_facture`, une seule ouverte
+  à la fois, les personnes avec `facturation.annuler` sont prévenues). Badge « Contestée » sur la facture et dans la
+  liste ; la facture **reste due** (elle compte dans « À encaisser » et la balance âgée, colonne « Contesté ») mais
+  sort des messages de relance. « Clore la contestation » note l'issue (`clore_contestation_facture`). Si le client
+  avait raison : annuler par un avoir comme d'habitude.
+
+Limites connues : le trop-perçu n'entre en caisse et en comptabilité qu'au moment où le crédit est **utilisé** sur
+une facture (paiement au même mode) ; le remboursement d'un crédit se fait hors plateforme et n'est ni en caisse ni
+en comptabilité ; le relevé ne montre pas les avoirs comme lignes (une facture annulée par avoir disparaît du relevé
+avec ses paiements) ; une seule devise par établissement (lignes 19 et 97 de la demande, lot E2).
+
 ## Pas encore fait
 Avoir partiel (retour d'une partie seulement), facture d'acompte séparée, factures récurrentes (voir module Abonnements),
 envoi par e-mail depuis la plateforme (pas de service d'envoi configuré), relances automatiques programmées

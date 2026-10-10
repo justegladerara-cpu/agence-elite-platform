@@ -1398,3 +1398,33 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Trésorerie (lot E) : facture en retard contestée par le restaurant, trop-perçu de l'école devenu crédit client,
+-- seuil de validation des dépenses et une demande du comptable en attente. Fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; compta uuid; ecole uuid; retard uuid; f uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id into retard from public.documents_vente where etablissement_id = etab and objet = 'Approvisionnement du mois dernier' and statut = 'emise';
+  select id into ecole from public.contacts where etablissement_id = etab and societe = 'École Démo Les Palmiers';
+  if retard is null or ecole is null or exists (select 1 from public.contestations_facture where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into compta from auth.users where email = 'compta@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.contester_facture(retard, 'Le restaurant dit n''avoir reçu qu''un sac de riz sur deux');
+  f := public.enregistrer_document_vente(etab, jsonb_build_object('type', 'facture', 'contact_id', ecole, 'objet', 'Produits d''entretien',
+    'hub_id', (select hub_id from public.documents_vente where id = retard),
+    'lignes', jsonb_build_array(jsonb_build_object('libelle', 'Kit de nettoyage', 'quantite', 3, 'prix_unitaire', 5000, 'taux_tva', 0))));
+  perform public.emettre_facture(f);
+  perform public.encaisser_avec_trop_percu(f, 20000, 'mobile_money', 'MM-DEMO-ECOLE-1');
+  perform public.enregistrer_parametres_module(etab, 'depenses', '{"seuil_validation": 200000}'::jsonb);
+  perform set_config('request.jwt.claims', json_build_object('sub', compta, 'role', 'authenticated')::text, true);
+  perform public.demander_depense(etab, jsonb_build_object('libelle', 'Réparation du congélateur', 'montant', 250000, 'mode', 'virement',
+    'categorie', 'Entretien'));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

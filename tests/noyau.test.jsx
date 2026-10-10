@@ -154,6 +154,21 @@ describe('application sur la base locale', () => {
     expect(screen.getByText('Enregistrer le brouillon')).toBeTruthy();
   });
 
+  test('Trésorerie : facture contestée, relevé client, crédit client, dépense à valider, export comptable', async () => {
+    window.location.hash = '#/factures?onglet=retards';
+    const liste = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Contesté', {}, { timeout: 10000 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /Relevé client/ }));
+    fireEvent.change(await screen.findByLabelText('Client'), { target: { value: screen.getByRole('option', { name: 'École Démo Les Palmiers' }).value } });
+    expect(await screen.findByText(/Crédit client disponible/, {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText('Solde d’ouverture')).toBeTruthy();
+    liste.unmount();
+    window.location.hash = '#/depenses';
+    render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
+    expect(await screen.findByText('Réparation du congélateur', {}, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Valider' })).toBeTruthy();
+  });
+
   test('Achats : liste, commande et réception', async () => {
     window.location.hash = '#/achats';
     const liste = render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);

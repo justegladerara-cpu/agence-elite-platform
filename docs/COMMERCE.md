@@ -16,7 +16,7 @@ Créer un article → enregistrer du stock → ouvrir la caisse → vendre → s
 | recus | reçu 80 mm imprimable | `recus.lire` |
 | cloture | Clôtures et tickets Z | `cloture.lire`, `cloture.effectuer` |
 | contacts | Contacts (clients, fournisseurs, dettes) | `contacts.lire`, `contacts.gerer` |
-| depenses | Dépenses (justificatif photo) | `depenses.lire`, `depenses.gerer` |
+| depenses | Dépenses (justificatif photo, validation au-dessus d'un seuil) | `depenses.lire`, `depenses.gerer`, `depenses.valider` |
 | tableau_de_bord | Tableau de bord | `tableau_de_bord.lire` |
 
 Rôles par défaut : gérant et responsable ont tout ; employé (caissier) vend, encaisse et gère les contacts ; comptable lit tout et gère les dépenses ; lecteur lit. Le détail est dans `supabase/migrations/20261002000002_commerce_catalogue.sql`.
@@ -86,3 +86,14 @@ caisse ouverte du Hub et est déduit du ticket Z. **Avoir / échange** trace la 
 - Migration `20261010000102_caisse_attente_remise.sql` ; tests `tests/caisse_confort.test.js`,
   `tests/caisse_ecrans.test.jsx`, parcours navigateur `caisse-attente`, `cloture`, `ticket-x`.
 
+## Validation des dépenses (lot E, migration `20261010000115_tresorerie.sql`)
+Réglage du module Dépenses « Dépense hors caisse à faire valider à partir de » (`seuil_validation`, 0 = jamais, par
+défaut). Au-delà, une personne sans `depenses.valider` (donné au gérant et au responsable) **envoie la dépense en
+validation** (`demander_depense`, table `demandes_depense`) : elle n'est pas comptée, ni dans les rapports ni en
+comptabilité. Les personnes habilitées sont prévenues et voient « Demandes de dépense » en haut de l'écran
+Dépenses : **Valider** crée la vraie dépense à la date demandée (`decider_demande_depense`), **Refuser** demande un
+motif ; la personne qui a demandé est prévenue. On ne valide jamais sa propre demande. Une dépense prise dans le
+tiroir d'une caisse ouverte n'est pas concernée (l'argent est déjà sorti, le ticket Z la compte).
+
+Limites connues : un seul niveau de validation et un seul seuil par établissement (pas par catégorie) ; une
+demande refusée ne se modifie pas, on en refait une.

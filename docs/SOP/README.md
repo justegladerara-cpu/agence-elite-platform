@@ -56,7 +56,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Développer, tester, déployer un module (statuts) | [42](42_CYCLE_DE_VIE_D_UN_MODULE.md) | Dev, Agence Elite |
 | Joindre des fichiers, bibliothèque Documents | [43](43_PIECES_JOINTES_ET_DOCUMENTS.md) | Dev |
 | Envoyer une notification (cloche) | [44](44_ENVOYER_UNE_NOTIFICATION.md) | Dev |
-| Devis, facture, paiement, avoir | [45](45_FACTURER_UN_CLIENT.md) | Client, Agence Elite |
+| Devis, facture, paiement, avoir, trop-perçu, contestation, relevé client | [45](45_FACTURER_UN_CLIENT.md) | Client, Agence Elite |
 | Demande d’achat, commande fournisseur, réception, paiement | [46](46_ACHETER_A_UN_FOURNISSEUR.md) | Client, Agence Elite |
 | Prospect, opportunité, relance, devis lié, gagné / perdu, qualification, audit, doublons | [47](47_SUIVRE_UN_PROSPECT.md) | Client, Agence Elite |
 | Projet, tâches, temps passé, facturation du temps | [48](48_PILOTER_UN_PROJET.md) | Client, Agence Elite |

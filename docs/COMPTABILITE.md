@@ -57,4 +57,8 @@ La comptabilité couvre **tout l'établissement** (tous les hubs) : elle n'est d
 - Les encaissements des immobilisations, de la paie (non disponible) et des commandes en ligne non encaissées en
   caisse ne sont pas repris.
 - Le modèle de plan proposé n'est conforme à **aucune norme nationale** : à faire valider par un comptable.
-- L'export vers un logiciel comptable (intégration I07) n'existe pas encore : export CSV seulement.
+- L'export vers un logiciel comptable (intégration I07) n'existe pas encore. Onglet Écritures › **Export comptable** :
+  CSV (point-virgule, virgule décimale) d'une ligne par mouvement de la période : journal, date, pièce, compte,
+  libellé du compte, libellé, débit, crédit (lot E). Aucun format d'un logiciel précis n'est imposé ; 2 000
+  écritures au plus par export (réduire la période au-delà).
+- Un trop-perçu (crédit client, voir Facturation) n'est écrit qu'au moment où il est utilisé sur une facture.

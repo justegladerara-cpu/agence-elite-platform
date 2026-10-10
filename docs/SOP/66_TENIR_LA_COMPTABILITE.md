@@ -21,4 +21,6 @@
 Ouvrir l'écriture › **Extourner** avec un motif, puis saisir la bonne. Rien ne s'efface.
 
 ## À transmettre au comptable
-Exporter la balance et le grand livre (bouton d'export du tableau, CSV).
+Exporter la balance et le grand livre (bouton d'export du tableau, CSV), et le fichier **Export comptable** de
+l'onglet Écritures (une ligne par mouvement : journal, date, pièce, compte, débit, crédit) pour l'import dans son
+logiciel.
