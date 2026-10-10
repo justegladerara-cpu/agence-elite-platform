@@ -25,11 +25,11 @@ export const MODELE_CSV = 'nom;prix_vente;cout_achat;categorie;reference;code_ba
   + 'Gants de protection;3500;2000;EPI;EPI-001;;unité;40;10\n'
   + 'Câble électrique;800;450;Consommables;CON-003;;m;200;50\n';
 
-function normaliser(texte) {
+export function normaliser(texte) {
   return texte.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
-function decouper(ligne, separateur) {
+export function decouper(ligne, separateur) {
   const champs = [];
   let courant = '';
   let guillemets = false;
