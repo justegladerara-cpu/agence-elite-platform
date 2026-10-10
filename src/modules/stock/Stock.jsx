@@ -3,6 +3,10 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
+import SaisieStock from './SaisieStock.jsx';
+import { quantiteHub } from './quantites.js';
+
+export { quantiteHub };
 
 export const TYPES_MOUVEMENT = {
   entree: ['Entrée', 'vert'],
@@ -19,8 +23,7 @@ export const TYPES_MOUVEMENT = {
 };
 
 const ACTIONS = {
-  entree: { titre: 'Entrée de stock', libelle: 'Quantité reçue', aide: 'Réception fournisseur, retour…' },
-  ajustement: { titre: 'Ajustement', libelle: 'Quantité à ajouter (ou retirer avec un signe −)', aide: 'Casse, perte, erreur… Le motif est obligatoire.' },
+  retrait: { titre: 'Retirer du stock', libelle: 'Quantité retirée', aide: 'Casse, perte, produit périmé, consommation… La raison est obligatoire.' },
 };
 
 // Stock par Hub, calculé à partir des mouvements (vue stock_hubs, filtrée par la base selon les Hubs autorisés).
@@ -38,18 +41,11 @@ export function useStockHubs() {
   }, [etab]);
 }
 
-export function quantiteHub(donnees, articleId, hubId, hubsVisibles) {
-  const parHub = donnees?.parArticle[articleId] ?? {};
-  if (hubId) return parHub[hubId] ?? 0;
-  return hubsVisibles.reduce((s, h) => s + (parHub[h.id] ?? 0), 0);
-}
-
 function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onFermer, onFait }) {
   const { api } = useEspace();
   const [hubId, setHubId] = useState(hubInitial ?? hubsStock[0]?.id);
   const [quantite, setQuantite] = useState('');
   const [motif, setMotif] = useState('');
-  const [cout, setCout] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const config = ACTIONS[type];
@@ -58,8 +54,10 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
     setChargement(true);
     setErreur('');
     try {
+      const n = Number(String(quantite).replace(',', '.'));
+      if (!(n > 0)) throw new Error('Indiquez une quantité supérieure à 0');
       const nouveau = await api.rpc('ajuster_stock_hub', {
-        p_hub_id: hubId, p_article_id: article.id, p_type: type, p_quantite: Number(quantite), p_motif: motif || null, p_cout_unitaire: cout === '' ? null : Number(cout),
+        p_hub_id: hubId, p_article_id: article.id, p_type: 'ajustement', p_quantite: -n, p_motif: motif || null, p_cout_unitaire: null,
       });
       onFait(`${article.nom} : ${formatQuantite(nouveau, article.unite)} en stock${hubsStock.length > 1 ? ` (${hubsStock.find((h) => h.id === hubId)?.nom})` : ''}`);
     } catch (err) {
@@ -79,13 +77,10 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
         )}
         <p className="texte-doux">Stock actuel : <strong>{formatQuantite(quantiteDe(hubId), article.unite)}</strong></p>
         <Champ libelle={config.libelle} aide={config.aide}>
-          <input type="number" step="any" inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} required autoFocus />
+          <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} required autoFocus />
         </Champ>
-        {type === 'entree' && (
-          <Champ libelle="Coût unitaire d’achat (facultatif)"><input type="number" min="0" step="any" value={cout} onChange={(e) => setCout(e.target.value)} /></Champ>
-        )}
-        <Champ libelle={type === 'ajustement' ? 'Motif' : 'Motif (facultatif)'}>
-          <input value={motif} onChange={(e) => setMotif(e.target.value)} required={type === 'ajustement'} />
+        <Champ libelle="Raison">
+          <input value={motif} onChange={(e) => setMotif(e.target.value)} required placeholder="Ex. : casse, périmé" />
         </Champ>
         <Erreur message={erreur} />
         <div className="actions">
@@ -93,101 +88,6 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
           <Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton>
         </div>
       </form>
-    </Modale>
-  );
-}
-
-// Inventaire complet d'un Hub : on saisit ce qui est compté, la base calcule et trace les écarts.
-function ModaleInventaire({ hubsStock, hubInitial, donnees, onFermer, onFait }) {
-  const { api } = useEspace();
-  const [hubId, setHubId] = useState(hubInitial ?? hubsStock[0]?.id);
-  const [comptes, setComptes] = useState({});
-  const [selection, setSelection] = useState([]);
-  const [motif, setMotif] = useState('');
-  const [filtre, setFiltre] = useState('');
-  const [erreur, setErreur] = useState('');
-  const [chargement, setChargement] = useState(false);
-  const lignes = donnees.suivis.filter((a) => !filtre || a.nom.toLowerCase().includes(filtre.toLowerCase()));
-  const saisis = Object.entries(comptes).filter(([id, v]) => selection.includes(id) && v !== '' && Number.isFinite(Number(v)) && Number(v) >= 0);
-  const toutSelectionne = lignes.length > 0 && lignes.every((a) => selection.includes(a.id));
-  const selectionnerVisibles = (oui) => setSelection((precedent) => oui ? [...new Set([...precedent, ...lignes.map((a) => a.id)])] : precedent.filter((id) => !lignes.some((a) => a.id === id)));
-  const valider = async () => {
-    setChargement(true);
-    setErreur('');
-    try {
-      const r = await api.rpc('enregistrer_inventaire', {
-        p_hub_id: hubId, p_lignes: saisis.map(([article_id, v]) => ({ article_id, quantite_comptee: Number(v) })), p_motif: motif || null,
-      });
-      onFait(`Inventaire ${r.numero} : ${r.articles} article(s), ${r.ecarts} écart(s)`);
-    } catch (err) {
-      setErreur(err.message);
-      setChargement(false);
-    }
-  };
-  return (
-    <Modale
-      titre="Nouvel inventaire"
-      onFermer={onFermer}
-      large
-      pied={(
-        <>
-          <span className="texte-doux">{saisis.length} article(s) compté(s)</span>
-          <Bouton onClick={onFermer}>Annuler</Bouton>
-          <Bouton variante="principal" chargement={chargement} disabled={!saisis.length || selection.some((id) => comptes[id] === '' || comptes[id] == null || Number(comptes[id]) < 0)} onClick={valider}>Valider l’inventaire</Bouton>
-        </>
-      )}
-    >
-      <div className="formulaire">
-        <div className="grille-champs">
-          {hubsStock.length > 1 && (
-            <Champ libelle="Hub inventorié">
-              <select value={hubId} onChange={(e) => { setHubId(e.target.value); setComptes({}); setSelection([]); }}>
-                {hubsStock.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
-              </select>
-            </Champ>
-          )}
-          <Champ libelle="Motif (facultatif)"><input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Ex. : inventaire de fin de mois" /></Champ>
-          <Champ libelle="Filtrer"><input type="search" value={filtre} onChange={(e) => setFiltre(e.target.value)} placeholder="Article" /></Champ>
-        </div>
-        <p className="texte-doux">Cochez plusieurs articles, puis indiquez leur quantité réelle. Les articles non cochés ne changent pas. Chaque écart est tracé.</p>
-        <div className="actions"><Bouton onClick={() => selectionnerVisibles(true)}>Sélectionner les articles affichés</Bouton><Bouton onClick={() => { setSelection([]); setComptes({}); }}>Tout désélectionner</Bouton></div>
-        <div className="tableau-conteneur">
-          <table className="tableau">
-            <thead><tr><th><input type="checkbox" aria-label="Tout sélectionner dans le filtre" checked={toutSelectionne} onChange={(e) => selectionnerVisibles(e.target.checked)} /></th><th>Article</th><th className="nombre">Théorique</th><th className="nombre">Compté</th><th className="nombre">Écart</th></tr></thead>
-            <tbody>
-              {lignes.map((a) => {
-                const theorique = quantiteHub(donnees, a.id, hubId, []);
-                const v = comptes[a.id] ?? '';
-                const ecart = v === '' ? null : Number(v) - theorique;
-                return (
-                  <tr key={a.id}>
-                    <td><input type="checkbox" aria-label={`Sélectionner ${a.nom}`} checked={selection.includes(a.id)} onChange={(e) => setSelection((prev) => e.target.checked ? [...new Set([...prev, a.id])] : prev.filter((id) => id !== a.id))} /></td>
-                    <td><strong>{a.nom}</strong>{a.reference && <small className="texte-doux bloc">{a.reference}</small>}</td>
-                    <td className="nombre">{formatQuantite(theorique, a.unite)}</td>
-                    <td className="nombre">
-                      <input
-                        className="saisie-quantite"
-                        type="number"
-                        min="0"
-                        step="any"
-                        inputMode="decimal"
-                        aria-label={`Quantité comptée de ${a.nom}`}
-                        disabled={!selection.includes(a.id)}
-                        value={v}
-                        onChange={(e) => setComptes((c) => ({ ...c, [a.id]: e.target.value }))}
-                      />
-                    </td>
-                    <td className={`nombre ${ecart == null ? '' : ecart < 0 ? 'texte-alerte' : ecart > 0 ? 'texte-vert' : ''}`}>
-                      {ecart == null ? '—' : `${ecart > 0 ? '+' : ''}${formatQuantite(ecart)}`}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <Erreur message={erreur} />
-      </div>
     </Modale>
   );
 }
@@ -254,8 +154,12 @@ export default function Stock({ naviguer }) {
     return v === 'inventaire' ? 'inventaires' : ['mouvements', 'inventaires'].includes(v) ? v : 'niveaux';
   });
   const [action, setAction] = useState(() => (
-    lireParametres().get('vue') === 'inventaire' && peut('stock.ajuster') && etablissement.ecriture ? { type: 'inventaire' } : null
+    lireParametres().get('vue') === 'inventaire' && peut('stock.ajuster') && etablissement.ecriture ? { type: 'comptage' } : null
   ));
+  const { donnees: categories } = useDonnees(
+    () => api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
+    [etab]
+  );
   const [version, setVersion] = useState(0);
   const { donnees, chargement, erreur, recharger } = useStockHubs();
   const { donnees: mouvements } = useDonnees(
@@ -295,7 +199,8 @@ export default function Stock({ naviguer }) {
         actions={(
           <>
             {multiHub && peut('stock.transferer') && <Bouton icone="transfert" onClick={() => naviguer('transferts')}>Transférer</Bouton>}
-            {ajuster && <Bouton variante="principal" icone="inventaire" onClick={() => setAction({ type: 'inventaire' })} disabled={!donnees}>Inventaire</Bouton>}
+            {ajuster && <Bouton icone="inventaire" onClick={() => setAction({ type: 'comptage' })} disabled={!donnees}>Je compte mon stock</Bouton>}
+            {ajuster && <Bouton variante="principal" icone="plus" onClick={() => setAction({ type: 'reception' })} disabled={!donnees}>J’ai reçu de la marchandise</Bouton>}
           </>
         )}
       />
@@ -320,8 +225,7 @@ export default function Stock({ naviguer }) {
               id: 'actions', libelle: '', classe: 'cellule-actions',
               rendu: (n) => (
                 <span className="actions-ligne">
-                  <Bouton onClick={(e) => { e.stopPropagation(); setAction({ type: 'entree', article: n }); }}>Entrée</Bouton>
-                  <Bouton onClick={(e) => { e.stopPropagation(); setAction({ type: 'ajustement', article: n }); }}>Ajuster</Bouton>
+                  <Bouton onClick={(e) => { e.stopPropagation(); setAction({ type: 'retrait', article: n }); }}>Retirer</Bouton>
                 </span>
               ),
             },
@@ -368,7 +272,19 @@ export default function Stock({ naviguer }) {
         />
       ))}
       {vue === 'inventaires' && <Inventaires key={version} hubsParId={hubsParId} />}
-      {action && action.type !== 'inventaire' && (
+      {action && ['reception', 'comptage'].includes(action.type) && donnees && (
+        <SaisieStock
+          mode={action.type}
+          articles={[...donnees.articles].sort((x, y) => Number(y.suivi_stock) - Number(x.suivi_stock) || x.nom.localeCompare(y.nom, 'fr'))}
+          donnees={donnees}
+          hubsStock={hubsStock}
+          hubInitial={hub?.id}
+          categories={categories ?? []}
+          onFermer={() => setAction(null)}
+          onFait={fait}
+        />
+      )}
+      {action?.type === 'retrait' && (
         <ModaleMouvement
           article={action.article}
           type={action.type}
@@ -378,9 +294,6 @@ export default function Stock({ naviguer }) {
           onFermer={() => setAction(null)}
           onFait={fait}
         />
-      )}
-      {action?.type === 'inventaire' && donnees && (
-        <ModaleInventaire hubsStock={hubsStock} hubInitial={hub?.id} donnees={donnees} onFermer={() => setAction(null)} onFait={(m) => { fait(m); setVue('inventaires'); }} />
       )}
     </div>
   );

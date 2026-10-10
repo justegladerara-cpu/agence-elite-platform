@@ -8,7 +8,7 @@ puis **Rejoindre** l'établissement.
 - **Paramètres** : nom sur les reçus, adresse, téléphone, logo, caisses.
 - **Équipe** : inviter, changer un rôle, ajuster un droit, désactiver un accès.
 - **Articles** : créer, modifier, importer un tableur (modèle fourni).
-- **Stock** : entrée de marchandise, ajustement avec motif, inventaire.
+- **Stock** : « J'ai reçu de la marchandise » et « Je compte mon stock » sur une seule page (ou depuis un fichier, modèle fourni) ; « Retirer » pour une casse ou une perte (SOP 75).
 - **Ventes** : annuler une vente (motif obligatoire, caisse encore ouverte).
 - **Clôtures** : compter la caisse et éditer le ticket Z (définitif).
 - **Tableau de bord** : chiffre d'affaires, marge, encaissements, stock bas.

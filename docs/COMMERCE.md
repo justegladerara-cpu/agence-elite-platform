@@ -9,7 +9,7 @@ Créer un article → enregistrer du stock → ouvrir la caisse → vendre → s
 | Module | Écran | Permissions |
 |---|---|---|
 | articles | Articles | `articles.lire`, `articles.gerer` |
-| stock | Stock (niveaux, mouvements, entrée, ajustement, inventaire) | `stock.lire`, `stock.ajuster` |
+| stock | Stock (niveaux, mouvements, « J'ai reçu de la marchandise », « Je compte mon stock », fichier de stock, retrait) | `stock.lire`, `stock.ajuster` |
 | caisse | Caisse (POS plein écran) | `caisse.utiliser` |
 | ventes | Ventes (liste, détail, annulation) | `ventes.lire`, `ventes.annuler` |
 | paiements | dans Caisse et Ventes | `paiements.lire`, `paiements.encaisser`, `paiements.annuler` |
@@ -24,6 +24,7 @@ Rôles par défaut : gérant et responsable ont tout ; employé (caissier) vend,
 ## Règles métier
 - **Écriture uniquement par fonctions RPC** (`security definer`, `search_path` vide). Les tables n'ont que des politiques de lecture pour `authenticated`. Chaque RPC vérifie la permission, le module actif, l'établissement et son client actifs, et l'appartenance de chaque objet cité au même établissement.
 - **Stock = somme des mouvements** (`entree`, `sortie_vente`, `retour_annulation`, `ajustement`, `inventaire`). On ne modifie jamais un stock directement. Le stock négatif est refusé sauf réglage `stock_negatif` de la caisse.
+- **Saisie du stock en lot** (`saisir_stock`, SOP 75) : réception (mouvements `entree`) ou comptage (inventaire) sur plusieurs articles en une fois, tout ou rien ; une ligne désigne un article par id, référence ou nom (code-barres facultatif) ; un article inconnu d'un fichier est créé (prix de vente obligatoire, catégorie créée au besoin, droit `articles.gerer`). Modèle : `docs/modele_stock.csv`.
 - **Vente atomique** : lignes, sortie de stock, paiements et numéro `V-00001` dans une seule transaction.
 - **Rien n'est effacé ni modifié en silence** : suppression interdite sur toutes les tables commerce ; une vente validée ne change que par annulation (motif obligatoire) ou encaissement ; paiements et dépenses ne s'annulent qu'avec un motif ; lignes, mouvements et tickets Z sont figés. Tout passe dans `journal_audit`.
 - **Annulation d'une vente** seulement tant que sa session de caisse est ouverte : le ticket Z déjà édité reste juste. Elle remet le stock (mouvement `retour_annulation`) et annule les paiements.
@@ -50,7 +51,7 @@ Avec `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` (Supabase local uniquement 
 
 ## Exploitation par Agence Elite
 - Espace éditeur (clients, établissements, licences, modules, équipe, mise en service, support) : `docs/PROCESSUS_CLIENT.md`.
-- Prise en main par rôle : `docs/GUIDE_UTILISATEUR.md` ; modèle d'import : `docs/modele_import_articles.csv`.
+- Prise en main par rôle : `docs/GUIDE_UTILISATEUR.md` ; modèle d'import : `docs/modele_import_articles.csv` ; modèle de stock : `docs/modele_stock.csv`.
 - Mise en ligne, sauvegardes, retour arrière : `docs/PRODUCTION.md`.
 
 ## Pas encore fait
