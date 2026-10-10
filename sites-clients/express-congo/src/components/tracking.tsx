@@ -1,6 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PublicTracking } from "@/server/tracking";
+import { LiveJourney } from "./live-journey";
+
+const POLL_MS = 5000;
+const AGENCY_WHATSAPP = "33621933298";
+const ago = (ms: number) => {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? `il y a ${s} s` : `il y a ${Math.floor(s / 60)} min`;
+};
 
 /* Étapes affichées au public, dans l’ordre du parcours. */
 const steps = [
@@ -55,7 +63,19 @@ export function TrackingForm() {
     [code, setCode] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [result, setResult] = useState<PublicTracking | null>(null);
+    [result, setResult] = useState<PublicTracking | null>(null),
+    [fresh, setFresh] = useState<string[]>([]),
+    [toast, setToast] = useState(""),
+    [checkedAt, setCheckedAt] = useState(0),
+    [clock, setClock] = useState(0),
+    [sample, setSample] = useState<{ reference: string; code: string } | null>(
+      null,
+    );
+  const query = useRef({ reference: "", code: "" });
+  const shownRef = useRef<PublicTracking | null>(null);
+  useEffect(() => {
+    shownRef.current = result;
+  }, [result]);
 
   async function look(ref: string, c: string) {
     setBusy(true);
@@ -67,8 +87,12 @@ export function TrackingForm() {
     });
     const data = await r.json().catch(() => ({}));
     setBusy(false);
-    if (r.ok) setResult(data as PublicTracking);
-    else {
+    if (r.ok) {
+      query.current = { reference: ref, code: c };
+      setFresh([]);
+      setResult(data as PublicTracking);
+      setCheckedAt(Date.now());
+    } else {
       setResult(null);
       setError(data.message || "La recherche n’a pas abouti.");
     }
@@ -92,6 +116,56 @@ export function TrackingForm() {
         document.getElementById("suivi-code")?.focus();
       });
   }, []);
+
+  /* Dossier de démonstration proposé quand on n’a pas de référence. */
+  useEffect(() => {
+    void fetch("/api/suivi")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setSample(d))
+      .catch(() => {});
+  }, []);
+
+  /* Suivi en direct : nouvelle lecture toutes les 5 s quand la page est visible. */
+  const version = result?.version;
+  useEffect(() => {
+    if (!version) return;
+    let stopped = false;
+    const tick = async () => {
+      if (document.visibilityState !== "visible") return;
+      const r = await fetch("/api/suivi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...query.current, live: true }),
+      }).catch(() => null);
+      if (!r?.ok || stopped) return;
+      const next = (await r.json()) as PublicTracking;
+      setCheckedAt(Date.now());
+      const prev = shownRef.current;
+      if (!prev || prev.version === next.version) return;
+      const known = new Set(prev.events.map((e) => e.status + e.at));
+      const added = next.events.filter((e) => !known.has(e.status + e.at));
+      setFresh(added.map((e) => e.status + e.at));
+      if (added.length)
+        setToast(
+          "Nouvelle étape : " +
+            (labels[added[added.length - 1].status] ||
+              added[added.length - 1].status),
+        );
+      setResult(next);
+    };
+    const id = setInterval(() => void tick(), POLL_MS);
+    const clockId = setInterval(() => setClock(Date.now()), 1000);
+    return () => {
+      stopped = true;
+      clearInterval(id);
+      clearInterval(clockId);
+    };
+  }, [version]);
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(""), 5000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   const current = result ? (rank[result.status] ?? -1) : -1;
   const off =
@@ -139,6 +213,21 @@ export function TrackingForm() {
           La référence et le code figurent sur le récapitulatif remis par votre
           agence. Aucune donnée personnelle n’est affichée sur cette page.
         </p>
+        {sample && !result && (
+          <button
+            type="button"
+            className="sample-button"
+            onClick={() => {
+              setReference(sample.reference);
+              setCode(sample.code);
+              void look(sample.reference, sample.code);
+            }}
+          >
+            <span className="lj-live">En direct</span>
+            Essayer avec un dossier de démonstration qui avance toutes les
+            minutes
+          </button>
+        )}
         {error && (
           <p role="alert" className="error">
             {error}
@@ -154,8 +243,15 @@ export function TrackingForm() {
                 {services[result.service] || result.service} · France →{" "}
                 {result.destination}
               </span>
-              <h2>{labels[result.status] || result.status}</h2>
+              <h2 key={result.status} className="status-flip">
+                {labels[result.status] || result.status}
+              </h2>
               <p className="ref">{result.reference}</p>
+              <p className="live-line" aria-live="off">
+                <span className="live-dot" aria-hidden />
+                Suivi en direct, actualisé{" "}
+                {ago((clock || checkedAt) - checkedAt)}
+              </p>
             </div>
             <dl className="tracking-facts">
               <div>
@@ -178,7 +274,20 @@ export function TrackingForm() {
               pour la suite du dossier.
             </p>
           )}
-          <ol className="stepper" aria-label="Avancement">
+          <LiveJourney
+            service={result.service}
+            destination={result.destination}
+            status={result.status}
+            transit={result.transit}
+            live={result.live}
+          />
+          <ol
+            className="stepper animated"
+            aria-label="Avancement"
+            style={{
+              ["--progress" as string]: `${Math.max(0, current) / (steps.length - 1)}`,
+            }}
+          >
             {steps.map(([key, label], i) => (
               <li
                 key={key}
@@ -197,19 +306,56 @@ export function TrackingForm() {
             {result.events
               .slice()
               .reverse()
-              .map((e, i) => (
-                <li key={i}>
+              .map((e) => (
+                <li
+                  key={e.status + e.at}
+                  className={fresh.includes(e.status + e.at) ? "fresh" : ""}
+                >
                   <b>{labels[e.status] || e.status}</b>
                   <span>{when(e.at)}</span>
                   {e.location && <small>{e.location}</small>}
                 </li>
               ))}
           </ol>
+          <div className="tracking-actions">
+            <a
+              className="button small whatsapp"
+              href={`https://wa.me/${AGENCY_WHATSAPP}?text=${encodeURIComponent(`Bonjour Express Congo, j’ai une question sur mon envoi ${result.reference}.`)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Écrire à l’agence sur WhatsApp
+            </a>
+            <button
+              type="button"
+              className="button small secondary"
+              onClick={() => {
+                const url = `${location.origin}/suivi/?ref=${encodeURIComponent(result.reference)}&code=${encodeURIComponent(query.current.code)}`;
+                if (navigator.share)
+                  void navigator
+                    .share({ title: "Suivi Express Congo", url })
+                    .catch(() => {});
+                else
+                  void navigator.clipboard
+                    ?.writeText(url)
+                    .then(() => setToast("Lien de suivi copié"));
+              }}
+            >
+              Partager le suivi
+            </button>
+          </div>
           <p className="hint">
             Heures affichées à l’heure du Congo. Les dates de départ restent
             indicatives tant qu’elles ne sont pas confirmées.
+            {result.live &&
+              " Ce dossier de démonstration avance tout seul d’une étape par minute environ."}
           </p>
         </section>
+      )}
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
       )}
     </div>
   );

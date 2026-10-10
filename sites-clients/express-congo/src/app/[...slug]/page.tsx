@@ -16,6 +16,10 @@ import { TariffEstimator } from "@/components/tariff-estimator";
 import { tariffSource, fromPrice } from "@/content/tariffs";
 import { CTA } from "@/components/shell";
 import { TrackingForm } from "@/components/tracking";
+import {
+  Illustration,
+  type IllustrationName,
+} from "@/components/illustrations";
 import { trackingEnabled } from "@/server/tracking";
 import { production } from "@/config";
 import { db } from "@/server/database";
@@ -40,6 +44,29 @@ const subtitles: Record<string, string> = {
   contact:
     "Une agence à Paris, deux au Congo : appelez, écrivez ou décrivez votre envoi en ligne.",
   agences: "Paris pour le départ, Brazzaville et Pointe-Noire pour l’arrivée.",
+};
+/* Illustration d’en-tête de chaque page. */
+const art: Record<string, IllustrationName> = {
+  services: "conteneur",
+  "services/fret-aerien": "avion",
+  "services/fret-maritime": "navire",
+  "services/conteneurs-complets": "conteneur",
+  agences: "agence",
+  "agences/paris": "paris",
+  "agences/brazzaville": "brazzaville",
+  "agences/pointe-noire": "pointe-noire",
+  "preparer-mon-envoi": "colis",
+  "prendre-les-mesures": "metre",
+  "emballage-et-documents": "douane",
+  "marchandises-reglementees": "colis",
+  suivi: "suivi",
+  tarifs: "balance",
+  devis: "calendrier",
+  contact: "message",
+  faq: "remise",
+  "a-propos": "famille",
+  "espace-client": "paiement",
+  professionnels: "entreprise",
 };
 function titleFor(path: string) {
   return (
@@ -91,22 +118,26 @@ export default async function Page({
   return (
     <>
       <section className="page-heading">
-        <div className="container">
-          <Link className="breadcrumb" href="/">
-            Accueil
-          </Link>
-          <span aria-hidden> / </span>
-          <span>{titleFor(path)}</span>
-          <span className="eyebrow">
-            Express Congo · France → République du Congo
-          </span>
-          <h1>{titleFor(path)}</h1>
-          <p>
-            {page?.description ||
-              service?.intro ||
-              subtitles[path] ||
-              "Préparez votre besoin, puis faites confirmer les conditions de votre envoi."}
-          </p>
+        <div className={"container" + (art[path] ? " has-art" : "")}>
+          <div className="page-heading-text">
+            <Link className="breadcrumb" href="/">
+              Accueil
+            </Link>
+            <span aria-hidden> / </span>
+            <span>{titleFor(path)}</span>
+            <h1>{titleFor(path)}</h1>
+            <p>
+              {page?.description ||
+                service?.intro ||
+                subtitles[path] ||
+                "Préparez votre besoin, puis faites confirmer les conditions de votre envoi."}
+            </p>
+          </div>
+          {art[path] && (
+            <div className="page-art">
+              <Illustration name={art[path]} />
+            </div>
+          )}
         </div>
       </section>
       <div className="container section">

@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "./database";
 import { isDemo, feature, production } from "@/config";
+import { advanceLive } from "./live";
+import { ensureDemoDataset } from "./demo-seed";
 
 /**
  * Suivi public limité : une référence d’expédition ET son code de suivi.
@@ -40,7 +42,30 @@ export type PublicTracking = {
   parcels: number;
   departure: { scheduledAt: string; confirmed: boolean } | null;
   events: { status: string; location: string; at: string }[];
+  /** Dossier de démonstration qui avance seul (démo uniquement). */
+  live: boolean;
+  /** En route : heure de départ et durée habituelle, pour une position estimée. */
+  transit: { departedAt: string; expectedMs: number } | null;
+  /** Empreinte de l’état : change dès qu’une étape est enregistrée. */
+  version: string;
 };
+
+/** Dossier de démonstration en direct, avec son code (démo uniquement). */
+export async function demoSample() {
+  if (!isDemo()) return null;
+  await ensureDemoDataset();
+  await advanceLive();
+  const row = await (
+    await db()
+  ).get<{ id: string; payload: string }>(
+    "SELECT id,payload FROM entities WHERE kind='shipment' AND json_extract(payload,'$.demoLive')=1",
+  );
+  if (!row) return null;
+  return {
+    reference: String(JSON.parse(row.payload).reference),
+    code: trackingCode(row.id),
+  };
+}
 
 type Row = { id: string; payload: string; created_at: string; agency: string };
 
@@ -51,6 +76,10 @@ export async function publicTracking(
   const ref = reference.trim().toUpperCase();
   if (!/^[A-Z0-9-]{6,60}$/.test(ref) || normalize(code).length !== 8)
     return null;
+  if (isDemo()) {
+    await ensureDemoDataset();
+    await advanceLive();
+  }
   const database = await db();
   const row = await database.get<Row>(
     "SELECT id,payload,created_at,agency FROM entities WHERE kind='shipment' AND upper(json_extract(payload,'$.reference'))=?",
@@ -79,6 +108,19 @@ export async function publicTracking(
   // Un événement corrigé est remplacé par sa correction.
   const corrected = new Set(events.map((e) => e.p.corrects).filter(Boolean));
   const departure = items.find((i) => i.id === shipment.departure);
+  const visible = events.filter(
+    (e) => e.p.public !== false && !corrected.has(e.id),
+  );
+  const shipped = visible
+    .filter((e) => e.p.status === "expedie")
+    .map((e) => String(e.p.occurredAt))
+    .sort()
+    .pop();
+  const last =
+    visible
+      .map((e) => String(e.p.occurredAt))
+      .sort()
+      .pop() ?? "";
   return {
     reference: String(shipment.reference),
     service: String(shipment.service),
@@ -95,15 +137,23 @@ export async function publicTracking(
           confirmed: !!departure.p.confirmedAt,
         }
       : null,
+    live: shipment.demoLive === true,
+    transit:
+      shipment.status === "expedie" && shipped
+        ? {
+            departedAt: shipped,
+            expectedMs:
+              shipment.service === "aerien" ? 9 * 3600000 : 24 * 86400000,
+          }
+        : null,
+    version: `${shipment.status}:${visible.length}:${last}`,
     events: [
       { status: "cree", location: "", at: row.created_at },
-      ...events
-        .filter((e) => e.p.public !== false && !corrected.has(e.id))
-        .map((e) => ({
-          status: String(e.p.status),
-          location: String(e.p.location ?? ""),
-          at: String(e.p.occurredAt),
-        })),
+      ...visible.map((e) => ({
+        status: String(e.p.status),
+        location: String(e.p.location ?? ""),
+        at: String(e.p.occurredAt),
+      })),
     ].sort((a, b) => a.at.localeCompare(b.at)),
   };
 }

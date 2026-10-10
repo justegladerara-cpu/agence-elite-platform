@@ -17,6 +17,8 @@ import {
   onlineProviders,
 } from "@/server/payments";
 import { agencies } from "@/components/backoffice/labels";
+import { advanceLive } from "@/server/live";
+import { getWhatsApp } from "@/server/whatsapp";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Gestion des expéditions — Démonstration",
@@ -27,6 +29,7 @@ export const metadata = {
 export default async function Demo() {
   if (!isDemo()) notFound();
   const actor = await currentActor();
+  if (actor) await advanceLive();
   // Le code de suivi n’est calculé que pour les expéditions déjà visibles.
   const entities = actor
     ? (await listEntities(actor)).map((e) =>
@@ -57,6 +60,7 @@ export default async function Demo() {
       code={demoPublic ? demoMfa() : ""}
       quotes={actor ? await visibleQuotes(actor) : []}
       audit={actor ? await recentAudit(actor) : []}
+      whatsapp={actor ? (await getWhatsApp()).displayNumber : undefined}
     />
   );
 }

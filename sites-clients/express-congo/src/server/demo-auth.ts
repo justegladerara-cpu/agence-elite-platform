@@ -11,6 +11,7 @@ import { Actor, Role } from "@/domain/operations";
 import { db } from "./database";
 import { isDemo } from "@/config";
 import { secureCookies } from "./security";
+import { ensureDemoDataset } from "./demo-seed";
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 export const demoAccounts = [
@@ -37,6 +38,18 @@ export const demoAccounts = [
     email: "agent-brazzaville@example.invalid",
     role: "agent",
     agency: "brazzaville",
+  },
+  {
+    id: "agent-pointe-noire",
+    email: "agent-pointe-noire@example.invalid",
+    role: "agent",
+    agency: "pointe-noire",
+  },
+  {
+    id: "finance-demo",
+    email: "finance@example.invalid",
+    role: "finance",
+    agency: "paris",
   },
   {
     id: "admin-demo",
@@ -67,6 +80,7 @@ export async function seedAccounts() {
     }),
   );
   seeded = true;
+  await ensureDemoDataset();
 }
 type User = {
   id: string;
@@ -113,6 +127,8 @@ async function blocked(userId: string) {
   return publicDemoIds.has(userId) && !(await accessSettings()).demoPublic;
 }
 const publicDemoIds = new Set<string>(demoAccounts.map((a) => a.id));
+/** Compte public de démonstration (mot de passe affiché sur la page). */
+export const isPublicDemoAccount = (id: string) => publicDemoIds.has(id);
 
 async function openSession(row: {
   id: string;
@@ -211,7 +227,16 @@ export type Mailbox = {
   body: string;
   link: string;
 };
-export type Person = { id: string; email: string; role: Role; agency: string };
+export type Person = {
+  id: string;
+  email: string;
+  role: Role;
+  agency: string;
+  name?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  whatsapp?: number | null;
+};
 
 const reserved = new Set<string>(demoAccounts.map((a) => a.id));
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[a-z]{2,24}$/i;
@@ -397,7 +422,7 @@ export async function people(actor: Actor | null): Promise<Person[]> {
   const rows = await (
     await db()
   ).all<Person>(
-    "SELECT id,email,role,agency FROM demo_users WHERE verified=1 ORDER BY role,email",
+    "SELECT u.id,u.email,u.role,u.agency,p.name,p.phone,p.city,p.whatsapp FROM demo_users u LEFT JOIN profiles p ON p.user_id=u.id WHERE u.verified=1 ORDER BY u.role,coalesce(p.name,u.email)",
   );
   return actor.role === "client" ? rows.filter((r) => r.id === actor.id) : rows;
 }

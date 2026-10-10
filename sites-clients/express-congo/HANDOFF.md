@@ -92,7 +92,7 @@ Secret `CLOUDFLARE_API_TOKEN` ajouté au dépôt de la plateforme : le job `depl
 
 ## Dernières vérifications
 
-`npm run check` : types, lint et **34 tests métier/intégration locaux réussis**. `npm run test:e2e` : build optimisé de démonstration et **15 scénarios navigateur réussis**, dont réception → départ → remise, accès inter-clients/inter-agences, PDF, QR et manifeste. Voir TEST_REPORT.md pour les commandes, corrections et limites.
+`npm run check` : types, lint et **40 tests métier/intégration locaux réussis**. `npm run test:e2e` : build optimisé de démonstration et **17 scénarios navigateur réussis**, dont réception → départ → remise, accès inter-clients/inter-agences, PDF, QR et manifeste. Voir TEST_REPORT.md pour les commandes, corrections et limites.
 
 ## Prochaines étapes ordonnées
 
@@ -112,3 +112,11 @@ Secret `CLOUDFLARE_API_TOKEN` ajouté au dépôt de la plateforme : le job `depl
 - Les mots de passe d’exemple, données fictives et mots de passe Docker locaux ne sont pas des secrets de production.
 - Audit npm : 0 vulnérabilité dans les dépendances de production (wrangler passé en 4.149.0 le 9 octobre 2026 pour corriger sharp).
 - Les captures sont des artefacts documentés, les bases et sauvegardes sont ignorées. Les fichiers .lockfile/.pnpm_modules sont des outils temporaires locaux ignorés, inutiles sur une machine possédant npm standard.
+
+## Démonstration vivante, suivi en direct et WhatsApp (11 octobre 2026)
+
+- **Jeu de démonstration** : `src/server/demo-seed.ts`, version `DATASET_VERSION`. Chargé automatiquement une fois par version (verrou `settings.demo_dataset`), ou par l’administratrice (bouton « Réinitialiser la démo », commande `resetDemo`). Remplace entités, devis et journal métier ; garde comptes, profils, réglages d’accès, de paiement et WhatsApp. 13 personnes fictives (table `profiles`), 26 expéditions à toutes les étapes, propositions au tarif de la grille (montants « démonstration » quand la grille dit « sur devis »), encaissements, assistance, messages WhatsApp simulés. Insertions regroupées (100 paramètres maximum par requête D1).
+- **Comptes publics** ajoutés : `agent-pointe-noire@example.invalid`, `finance@example.invalid`. Entrée en un clic sur /demo (cliente, gérante, agent).
+- **Dossier en direct** : la cliente A a un envoi marqué `demoLive` qui avance d’une étape toutes les 70 s puis repart (`src/server/live.ts`, calcul au moment des lectures, aucune tâche planifiée).
+- **Suivi en direct** : la page /suivi relit toutes les 5 s (`live: true`, plafond large ; chaque échec compte dans le plafond strict anti-essais), carte de trajet animée (position indicative en route, jamais d’heure d’arrivée promise), nouvelles étapes animées, bouton « dossier de démonstration ». Gestion et espace client se rafraîchissent toutes les 10 s hors saisie.
+- **WhatsApp** (`src/server/whatsapp.ts`, hub dans la gestion) : mode lien direct (wa.me, numéro réglable) ou WhatsApp Business Platform (API Cloud Meta, version par défaut v23.0). Jeton et clé secrète Meta chiffrés AES-256-GCM avec le secret `WHATSAPP_KEY` du Worker, créé une seule fois par le workflow. Messages automatiques par étape (modèle `suivi_etape` à faire approuver), webhook `/api/whatsapp/webhook/` signé (X-Hub-Signature-256), conversations et réponses. **Connexion réelle refusée tant que la démo publique est ouverte** ou depuis un compte public : sinon tout visiteur lirait les vrais messages. Pour relier le vrai numéro : fermer la démo publique depuis la plateforme, se connecter avec le compte personnel de la gérante.

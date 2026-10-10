@@ -10,6 +10,8 @@ import {
 import { ParcelInput, validateParcel } from "@/domain/measurements";
 import { proposalLines, toMinor } from "@/domain/proposals";
 import { getPaymentSettings, enabledMethods } from "./payments";
+import { notifyStatus } from "./whatsapp";
+import { loadDataset, DATASET_VERSION } from "./demo-seed";
 type Row = {
   id: string;
   kind: string;
@@ -117,6 +119,13 @@ export async function operation(
 ) {
   return perform(actor, command, input);
 }
+/** Référence lisible : EC-2610-K7QM (année, mois, 4 caractères sans 0/O ni 1/I). */
+const READABLE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function reference(prefix: string, length = 4) {
+  const bytes = randomBytes(length);
+  const yymm = new Date().toISOString().slice(2, 7).replace("-", "");
+  return `${prefix}-${yymm}-${[...bytes].map((b) => READABLE[b % READABLE.length]).join("")}`;
+}
 function text(value: unknown, max = 2000) {
   if (typeof value !== "string" || !value.trim() || value.length > max)
     throw new Error("INVALID_INPUT");
@@ -173,7 +182,7 @@ async function perform(
       route: "FR-CG",
       destination: text(input.destination, 100),
       status: "cree",
-      reference: "DEMO-EC-" + randomBytes(12).toString("hex"),
+      reference: reference("EC"),
       departure: null,
     });
   }
@@ -190,7 +199,7 @@ async function perform(
     )
       throw new Error("INVALID_MEASUREMENTS");
     const parcel = await put(actor, "parcel", shipment.owner, shipment.agency, {
-      reference: "DEMO-P-" + randomBytes(10).toString("hex"),
+      reference: reference("COL", 5),
       shipmentId: shipment.id,
       description: text(input.description),
       declared,
@@ -334,6 +343,7 @@ async function perform(
         public: false,
       });
     await replace(actor, shipment, { ...shipment.payload, status });
+    await notifyStatus(shipment, status);
     return event;
   }
   if (command === "correctEvent") {
@@ -375,7 +385,7 @@ async function perform(
     return await put(actor, "proposal", shipment.owner, shipment.agency, {
       shipmentId: shipment.id,
       version,
-      number: "DEMO-DEV-" + randomBytes(8).toString("hex"),
+      number: reference("DEV", 5),
       totalMinor,
       currency,
       lines: detailed?.lines ?? [],
@@ -545,6 +555,19 @@ async function perform(
       ],
     ]);
     return { ok: true };
+  }
+  if (command === "resetDemo") {
+    if (actor.role !== "admin") throw new Error("ACCESS_DENIED");
+    const result = await loadDataset(actor.id);
+    await (
+      await db()
+    ).run(
+      "INSERT INTO settings(key,value,updated_at,updated_by) VALUES('demo_dataset',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by",
+      DATASET_VERSION,
+      new Date().toISOString(),
+      actor.id,
+    );
+    return result;
   }
   if (command === "ticket")
     return await put(actor, "ticket", actor.id, actor.agency, {
