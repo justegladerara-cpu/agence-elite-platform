@@ -261,8 +261,10 @@ describe('moteur de données local', () => {
     utilisateur = comptes['gerante@demo.agence-elite.fr'];
     const etab = (await db.query("select id from etablissements where nom = 'Commerce Démo'")).rows[0].id;
     const agenda = await api.rpc('tableau_de_bord_agenda', { p_etablissement_id: etab });
-    expect(agenda).toMatchObject({ semaine: 3, a_confirmer: 2 });
+    // + 1 rendez-vous pris en ligne par l'hôtel (espace client, lot P2), dans plus de 7 jours : à confirmer.
+    expect(agenda).toMatchObject({ semaine: 3, a_confirmer: 3 });
     const rdv = await api.lire('agenda_rendez_vous', { eq: { etablissement_id: etab } });
+    expect(rdv.filter((r) => r.origine === 'espace_client')).toHaveLength(1);
     expect(rdv.filter((r) => r.statut === 'honore' && r.document_id)).toHaveLength(1);
     const support = await api.rpc('tableau_de_bord_support', { p_etablissement_id: etab });
     expect(support).toMatchObject({ ouverts: 2, non_assignes: 1, mes_tickets: 1, resolus_mois: 1 });

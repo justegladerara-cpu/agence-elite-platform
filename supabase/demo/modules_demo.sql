@@ -1483,3 +1483,35 @@ begin
   perform public.portail_envoyer_message(acces ->> 'jeton', 'Bonjour, pouvez-vous ajouter un deuxième présentoir pour les boissons fraîches ? Merci.');
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Espace client, suite (lot P2) : prise de rendez-vous en ligne ouverte (lundi à vendredi, 9 h à 18 h, 24 h à
+-- l'avance), un article d'aide publié aux clients, et un rendez-vous pris en ligne par l'hôtel. Fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; hotel uuid; acces jsonb; creneau timestamptz;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage' limit 1;
+  if hotel is null or not public.module_actif(etab, 'portail_client')
+     or exists (select 1 from public.agenda_rendez_vous where etablissement_id = etab and origine = 'espace_client') then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.enregistrer_parametres_module(etab, 'portail_client', jsonb_build_object('rdv_en_ligne', true,
+    'message_accueil', 'Bienvenue ! Retrouvez ici vos devis, vos factures, vos rendez-vous et l''avancement de vos projets.'));
+  if public.module_actif(etab, 'support_tickets') then
+    perform public.enregistrer_element_support(etab, jsonb_build_object('genre', 'article', 'public', true, 'categorie', 'Livraison',
+      'titre', 'Délais de livraison et d''installation',
+      'texte', 'Les présentoirs sont livrés et installés sous 5 jours ouvrés après acceptation du devis. Un rendez-vous d''installation vous est proposé dans votre espace.'));
+  end if;
+  acces := public.creer_acces_portail(etab, hotel, 'Réception de l''hôtel (démo)', 30);
+  perform set_config('request.jwt.claims', '', true);
+  -- Au-delà des 7 prochains jours : les chiffres « cette semaine » de la démo ne dépendent pas du jour de chargement.
+  select c into creneau from public.portail_creneaux(etab) c where c >= now() + interval '8 days' limit 1;
+  if creneau is not null then
+    perform public.portail_demander_rdv(acces ->> 'jeton', creneau, 'Mesures pour le deuxième présentoir');
+  end if;
+end
+$$;

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { formatDate, formatDateHeure, formatMontant, formatQuantite } from '../noyau/format.js';
+import { enFuseau, formatDate, formatDateHeure, formatMontant, formatQuantite } from '../noyau/format.js';
 import { lireFichier, tailleLisible, telecharger, TYPES_ACCEPTES } from '../ui/communs.jsx';
 import { Badge, Bouton, Champ, Chargement, Erreur, Modale, Onglets } from '../ui/composants.jsx';
 
@@ -20,6 +20,166 @@ export const peutRepondre = (d) => d.type === 'devis' && d.statut === 'envoye';
 const STATUTS_TACHE = { a_faire: 'À faire', en_cours: 'En cours', en_revue: 'En relecture', terminee: 'Terminée' };
 const STATUTS_LIVRABLE = { soumis: ['À valider', 'orange'], valide: ['Validé', 'vert'], a_corriger: ['En correction', 'rouge'] };
 const STATUTS_PROJET = { a_venir: 'À venir', en_cours: 'En cours', en_pause: 'En pause', termine: 'Terminé' };
+export const STATUTS_RDV_CLIENT = {
+  prevu: ['À confirmer', 'orange'], confirme: ['Confirmé', 'vert'], honore: ['Passé', 'neutre'], annule: ['Annulé', 'neutre'], absent: ['Manqué', 'rouge'],
+};
+
+// Ce qui attend le client : messages de l'équipe depuis sa visite précédente, documents jamais ouverts, livrables à valider.
+export function nouveautes(espace) {
+  const depuis = espace.precedente_ouverture ? new Date(espace.precedente_ouverture) : null;
+  const messages = depuis ? (espace.messages ?? []).filter((m) => m.auteur === 'equipe' && new Date(m.cree_le) > depuis).length : 0;
+  const documents = (espace.documents ?? []).filter((d) => !d.vu_le).length;
+  const livrables = (espace.projets ?? []).reduce((n, p) => n + p.livrables.filter((l) => l.statut === 'soumis').length, 0);
+  const morceaux = [
+    messages && `${messages} message${messages > 1 ? 's' : ''} de l’équipe`,
+    documents && `${documents} document${documents > 1 ? 's' : ''} à consulter`,
+    livrables && `${livrables} livrable${livrables > 1 ? 's' : ''} à valider`,
+  ].filter(Boolean);
+  return morceaux;
+}
+
+// Créneaux regroupés par jour, dans le fuseau de l'établissement.
+export function parJour(creneaux, fuseau) {
+  const jours = [];
+  for (const c of creneaux) {
+    const f = enFuseau(c, fuseau);
+    const dernier = jours[jours.length - 1];
+    if (dernier && dernier.cle === f.cle) dernier.creneaux.push({ debut: c, heure: f.heure });
+    else jours.push({ cle: f.cle, jour: f.jour, creneaux: [{ debut: c, heure: f.heure }] });
+  }
+  return jours;
+}
+
+function ChoixCreneau({ agenda, titre, onChoisir, onFermer }) {
+  const jours = parJour(agenda.creneaux, agenda.fuseau);
+  const [jour, setJour] = useState(jours[0]?.cle ?? '');
+  const [note, setNote] = useState('');
+  const [erreur, setErreur] = useState('');
+  const choisi = jours.find((j) => j.cle === jour);
+  return (
+    <Modale titre={titre} onFermer={onFermer}>
+      <div className="pile">
+        {jours.length === 0 ? <p className="texte-doux">Aucun créneau libre pour l’instant. Écrivez-nous dans « Messages ».</p> : (
+          <>
+            <p className="texte-doux">Heures de l’établissement ({agenda.fuseau}). Rendez-vous de {agenda.duree} minutes.</p>
+            <Champ libelle="Jour">
+              <select value={jour} onChange={(e) => setJour(e.target.value)}>{jours.map((j) => <option key={j.cle} value={j.cle}>{j.jour}</option>)}</select>
+            </Champ>
+            {onChoisir.avecNote && <Champ libelle="Motif du rendez-vous (facultatif)"><textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} /></Champ>}
+            <div className="creneaux" role="group" aria-label="Heures libres">
+              {choisi?.creneaux.map((c) => (
+                <Bouton key={c.debut} onClick={async () => {
+                  setErreur('');
+                  try {
+                    await onChoisir.faire(c.debut, note);
+                  } catch (err) {
+                    setErreur(err.message);
+                  }
+                }}>{c.heure}</Bouton>
+              ))}
+            </div>
+          </>
+        )}
+        <Erreur message={erreur} />
+      </div>
+    </Modale>
+  );
+}
+
+function RendezVous({ jeton, donnees }) {
+  const [agenda, setAgenda] = useState(null);
+  const [choix, setChoix] = useState(null);
+  const [annulation, setAnnulation] = useState(null);
+  const [motif, setMotif] = useState('');
+  const [retour, setRetour] = useState('');
+  const charger = useCallback(() => donnees.rpc('portail_agenda', { p_jeton: jeton }).then(setAgenda).catch((e) => setRetour(e.message)), [donnees, jeton]);
+  useEffect(() => { charger(); }, [charger]);
+  if (!agenda) return retour ? <Erreur message={retour} /> : <Chargement />;
+  const agir = async (appel, texte) => {
+    setRetour('');
+    try {
+      await appel();
+      setRetour(texte);
+      setChoix(null);
+      setAnnulation(null);
+      charger();
+    } catch (err) {
+      setRetour(err.message);
+      throw err;
+    }
+  };
+  const quand = (r) => {
+    const f = enFuseau(r.debut, agenda.fuseau);
+    return `${f.jour} à ${f.heure}`;
+  };
+  const avenir = agenda.rendez_vous.filter((r) => r.modifiable);
+  const passes = agenda.rendez_vous.filter((r) => !r.modifiable);
+  return (
+    <div className="pile">
+      {agenda.en_ligne && (
+        <div><Bouton variante="principal" icone="plus" onClick={() => setChoix({ titre: 'Prendre rendez-vous', avecNote: true,
+          faire: (debut, note) => agir(() => donnees.rpc('portail_demander_rdv', { p_jeton: jeton, p_debut: debut, p_note: note || null }), 'Rendez-vous demandé : l’équipe est prévenue.') })}>Prendre rendez-vous</Bouton></div>
+      )}
+      {retour && <p role="status">{retour}</p>}
+      {agenda.rendez_vous.length === 0 && <p className="texte-doux">Aucun rendez-vous.{agenda.en_ligne ? '' : ' Pour en prendre un, écrivez-nous dans « Messages ».'}</p>}
+      {avenir.map((r) => {
+        const [libelle, ton] = STATUTS_RDV_CLIENT[r.statut] ?? [r.statut, 'neutre'];
+        return (
+          <section key={r.id} className="carte pile">
+            <h2>{quand(r)} <Badge ton={ton}>{libelle}</Badge></h2>
+            <p className="texte-doux">{r.titre}{r.lieu ? ` · ${r.lieu}` : ''}</p>
+            <div className="actions">
+              {r.statut === 'prevu' && <Bouton variante="principal" onClick={() => agir(() => donnees.rpc('portail_confirmer_rdv', { p_jeton: jeton, p_rdv_id: r.id }), 'Merci, votre présence est confirmée.').catch(() => {})}>Je confirme</Bouton>}
+              {agenda.en_ligne && <Bouton onClick={() => setChoix({ titre: 'Déplacer le rendez-vous',
+                faire: (debut) => agir(() => donnees.rpc('portail_deplacer_rdv', { p_jeton: jeton, p_rdv_id: r.id, p_debut: debut }), 'Rendez-vous déplacé : l’équipe va le confirmer.') })}>Déplacer</Bouton>}
+              <Bouton variante="danger" onClick={() => { setMotif(''); setAnnulation(r); }}>Annuler</Bouton>
+            </div>
+          </section>
+        );
+      })}
+      {passes.length > 0 && (
+        <>
+          <h3>Rendez-vous passés ou annulés</h3>
+          <ul>{passes.map((r) => <li key={r.id}>{quand(r)} · {r.titre} · <span className="texte-doux">{(STATUTS_RDV_CLIENT[r.statut] ?? [r.statut])[0]}</span></li>)}</ul>
+        </>
+      )}
+      {choix && <ChoixCreneau agenda={agenda} titre={choix.titre} onChoisir={choix} onFermer={() => setChoix(null)} />}
+      {annulation && (
+        <Modale titre="Annuler le rendez-vous" onFermer={() => setAnnulation(null)}>
+          <div className="pile">
+            <p>{quand(annulation)} · {annulation.titre}</p>
+            <Champ libelle="Motif (facultatif)"><textarea rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} maxLength={500} /></Champ>
+            <div className="actions">
+              <Bouton onClick={() => setAnnulation(null)}>Garder le rendez-vous</Bouton>
+              <Bouton variante="danger" onClick={() => agir(() => donnees.rpc('portail_annuler_rdv', { p_jeton: jeton, p_rdv_id: annulation.id, p_motif: motif || null }), 'Rendez-vous annulé : l’équipe est prévenue.').catch(() => {})}>Annuler le rendez-vous</Bouton>
+            </div>
+          </div>
+        </Modale>
+      )}
+    </div>
+  );
+}
+
+function Aide({ jeton, donnees }) {
+  const [articles, setArticles] = useState(null);
+  const [recherche, setRecherche] = useState('');
+  useEffect(() => { donnees.rpc('portail_aide', { p_jeton: jeton }).then(setArticles).catch(() => setArticles([])); }, [donnees, jeton]);
+  if (!articles) return <Chargement />;
+  const mot = recherche.trim().toLowerCase();
+  const vus = articles.filter((a) => !mot || `${a.titre} ${a.texte} ${a.categorie ?? ''}`.toLowerCase().includes(mot));
+  return (
+    <div className="pile">
+      <Champ libelle="Chercher dans l’aide"><input type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} /></Champ>
+      {vus.length === 0 && <p className="texte-doux">Aucun article. Posez votre question dans « Messages ».</p>}
+      {vus.map((a) => (
+        <details key={a.id} className="carte">
+          <summary><strong>{a.titre}</strong>{a.categorie ? <span className="texte-doux"> · {a.categorie}</span> : null}</summary>
+          <p className="texte-multiligne">{a.texte}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
 
 function Fiche({ d, devise, jeton, donnees, onFait }) {
   const [action, setAction] = useState(null);
@@ -203,9 +363,12 @@ export function EspaceClientPublic({ donnees, jeton }) {
   const onglets = [
     ['documents', `Devis et factures${attente ? ` (${attente} à répondre)` : ''}`],
     projets.length > 0 && ['projets', 'Projets'],
+    espace.agenda && ['rdv', 'Rendez-vous'],
     ['messages', 'Messages'],
     espace.depot_fichiers && ['fichiers', 'Envoyer un fichier'],
+    espace.aide && ['aide', 'Aide'],
   ].filter(Boolean);
+  const aVoir = nouveautes(espace);
   return (
     <div className="page espace-client">
       <header className="pile">
@@ -213,6 +376,7 @@ export function EspaceClientPublic({ donnees, jeton }) {
         <h1>Espace de {espace.contact.societe || espace.contact.nom}</h1>
         {espace.message_accueil && <p>{espace.message_accueil}</p>}
         <p className="texte-doux">Lien personnel, valable jusqu’au {formatDate(espace.expire_le)}. Ne le transférez pas.</p>
+        {aVoir.length > 0 && <p className="encart" role="status">{espace.precedente_ouverture ? 'Depuis votre dernière visite' : 'À voir'} : {aVoir.join(', ')}.</p>}
       </header>
       <Onglets onglets={onglets} actif={onglet} onChange={(o) => { setOnglet(o); setOuvert(null); }} />
       {onglet === 'documents' && !fiche && (
@@ -276,6 +440,8 @@ export function EspaceClientPublic({ donnees, jeton }) {
           <Bouton variante="principal" icone="message" onClick={envoyer} disabled={!message.trim()}>Envoyer</Bouton>
         </div>
       )}
+      {onglet === 'rdv' && <RendezVous jeton={jeton} donnees={donnees} />}
+      {onglet === 'aide' && <Aide jeton={jeton} donnees={donnees} />}
       {onglet === 'fichiers' && (
         <div className="pile">
           <p className="texte-doux">Images, PDF, Word, Excel ou PowerPoint, 3 Mo au plus. L’équipe est prévenue à chaque envoi.</p>

@@ -355,7 +355,7 @@ function Bibliotheque({ d, onRetour, onChange }) {
   const gerer = peut('support_tickets.gerer');
   return (
     <div className="page page-large">
-      <PageHeader titre="Réponses et aide" sousTitre="Réponses types à insérer dans les tickets et articles d'aide pour l'équipe."
+      <PageHeader titre="Réponses et aide" sousTitre="Réponses types à insérer dans les tickets, articles d'aide pour l'équipe ou publiés aux clients (espace client)."
         actions={<>
           <Bouton onClick={onRetour}>Retour</Bouton>
           {gerer && <Bouton variante="principal" icone="plus" onClick={() => setEdition({ genre: 'reponse', titre: '', texte: '', categorie: '', actif: true })}>Ajouter</Bouton>}
@@ -370,7 +370,7 @@ function Bibliotheque({ d, onRetour, onChange }) {
           vide={<p className="texte-doux">Aucune réponse type ni article. {gerer ? 'Ajoutez les réponses que vous donnez souvent.' : ''}</p>}
           colonnes={[
             { id: 'titre', libelle: 'Titre', rendu: (b) => <><strong>{b.titre}</strong><br /><small className="texte-doux texte-multiligne">{b.texte.slice(0, 160)}{b.texte.length > 160 ? '…' : ''}</small></> },
-            { id: 'genre', libelle: 'Type', rendu: (b) => GENRES[b.genre] },
+            { id: 'genre', libelle: 'Type', rendu: (b) => <>{GENRES[b.genre]}{b.public && <> <Badge ton="bleu">Publié aux clients</Badge></>}</> },
             { id: 'categorie', libelle: 'Catégorie', rendu: (b) => b.categorie ?? '—' },
             { id: 'actif', libelle: 'État', rendu: (b) => (b.actif ? <Badge ton="vert">En service</Badge> : <Badge ton="neutre">Archivé</Badge>) },
           ]} />
@@ -391,7 +391,7 @@ function ModaleElement({ element, onFermer, onFait }) {
         e.preventDefault();
         setErreur('');
         try {
-          await api.rpc('enregistrer_element_support', { p_etablissement_id: etablissement.id, p: { id: v.id, genre: v.genre, titre: v.titre, texte: v.texte, categorie: v.categorie, actif: v.actif } });
+          await api.rpc('enregistrer_element_support', { p_etablissement_id: etablissement.id, p: { id: v.id, genre: v.genre, titre: v.titre, texte: v.texte, categorie: v.categorie, actif: v.actif, public: v.genre === 'article' && Boolean(v.public) } });
           notifier('Enregistré');
           onFait();
         } catch (err) {
@@ -406,6 +406,7 @@ function ModaleElement({ element, onFermer, onFait }) {
         </div>
         <Champ libelle="Titre"><input value={v.titre} onChange={changer('titre')} required maxLength={160} autoFocus /></Champ>
         <Champ libelle="Texte"><textarea rows={8} value={v.texte} onChange={changer('texte')} required maxLength={8000} /></Champ>
+        {v.genre === 'article' && <label className="case"><input type="checkbox" checked={Boolean(v.public)} onChange={changer('public')} /> Publier aux clients (rubrique « Aide » de l’espace client)</label>}
         {element.id && <label className="case"><input type="checkbox" checked={v.actif} onChange={changer('actif')} /> En service (décocher pour archiver)</label>}
         <Erreur message={erreur} />
         <div className="actions">

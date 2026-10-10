@@ -31,5 +31,10 @@ Lecteur, comptable : lecture.
 ## Démo
 « Commerce Démo » (accordé comme supplément) : un conseil honoré et facturé ce matin, trois rendez-vous à venir.
 
+## Rendez-vous pris par le client (lot P2)
+Avec le module Espace client (Bêta) et son réglage « rdv_en_ligne », le client prend, confirme, annule ou déplace ses
+rendez-vous depuis son espace : colonne `origine` = `espace_client`, badge « Pris en ligne ». Voir
+[ESPACE_CLIENT.md](ESPACE_CLIENT.md).
+
 ## Hors périmètre
-Réservation en ligne par le client lui-même, rappels SMS (fournisseur SMS non choisi), synchronisation Google Agenda.
+Rappels SMS (fournisseur SMS non choisi), synchronisation Google Agenda, choix de la personne par le client.

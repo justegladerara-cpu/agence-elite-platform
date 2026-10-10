@@ -76,3 +76,21 @@ export const STATUTS_MODULE = {
   futur: ['Prévu', 'neutre'],
   retire: ['Indisponible', 'neutre'],
 };
+
+// Jour et heure dans un fuseau donné (ex. créneaux de rendez-vous dans le fuseau de l'établissement) ;
+// fuseau inconnu : celui de l'appareil.
+export function enFuseau(valeur, fuseau) {
+  const date = new Date(valeur);
+  const options = (o) => {
+    try {
+      return new Intl.DateTimeFormat('fr-FR', { ...o, timeZone: fuseau || undefined }).format(date);
+    } catch {
+      return new Intl.DateTimeFormat('fr-FR', o).format(date);
+    }
+  };
+  return {
+    cle: options({ year: 'numeric', month: '2-digit', day: '2-digit' }),
+    jour: options({ weekday: 'long', day: 'numeric', month: 'long' }),
+    heure: options({ hour: '2-digit', minute: '2-digit' }),
+  };
+}
