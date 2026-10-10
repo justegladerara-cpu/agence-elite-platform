@@ -62,11 +62,12 @@ export function ModaleProjet({ projet, contacts, membres, onFermer, onFait }) {
   );
 }
 
-export function ModaleTache({ projetId, tache, membres, onFermer, onFait }) {
+export function ModaleTache({ projetId, tache, membres, taches = [], onFermer, onFait }) {
   const { api, etablissement, peut } = useEspace();
   const [v, setV] = useState(() => ({
     titre: tache?.titre ?? '', description: tache?.description ?? '', priorite: tache?.priorite ?? 'normale',
     assigne_a: tache?.assigne_a ?? '', echeance: tache?.echeance ?? '', estimation_heures: tache?.estimation_heures ?? '',
+    depend_de: tache?.depend_de ?? '',
   }));
   const [erreur, setErreur] = useState('');
   const changer = (c) => (e) => setV({ ...v, [c]: e.target.value });
@@ -74,9 +75,12 @@ export function ModaleTache({ projetId, tache, membres, onFermer, onFait }) {
   const valider = async (e) => {
     e.preventDefault();
     try {
-      const p = { ...v, id: tache?.id, projet_id: projetId };
+      const { depend_de: dependDe, ...p } = { ...v, id: tache?.id, projet_id: projetId };
       if (!gerer) delete p.assigne_a;
-      await api.rpc('enregistrer_tache_projet', { p_etablissement_id: etablissement.id, p: { ...p, assigne_a: gerer ? v.assigne_a || null : undefined } });
+      const id = await api.rpc('enregistrer_tache_projet', { p_etablissement_id: etablissement.id, p: { ...p, assigne_a: gerer ? v.assigne_a || null : undefined } });
+      if (gerer && dependDe !== (tache?.depend_de ?? '')) {
+        await api.rpc('definir_dependance_tache', { p_tache_id: id, p_depend_de: dependDe || null });
+      }
       onFait();
     } catch (err) {
       setErreur(err.message);
@@ -102,6 +106,14 @@ export function ModaleTache({ projetId, tache, membres, onFermer, onFait }) {
           </Champ>
           <Champ libelle="Échéance"><input type="date" value={v.echeance} onChange={changer('echeance')} /></Champ>
           <Champ libelle="Estimation (heures)"><input type="number" min="0" step="any" value={v.estimation_heures} onChange={changer('estimation_heures')} /></Champ>
+          {gerer && taches.length > 0 && (
+            <Champ libelle="Attend la fin de" aide="La tâche ne pourra pas démarrer avant.">
+              <select value={v.depend_de} onChange={changer('depend_de')}>
+                <option value="">Aucune tâche</option>
+                {taches.filter((t) => t.id !== tache?.id && t.statut !== 'annulee').map((t) => <option key={t.id} value={t.id}>{t.titre}</option>)}
+              </select>
+            </Champ>
+          )}
         </div>
         <Champ libelle="Détails"><textarea rows={3} value={v.description} onChange={changer('description')} maxLength={4000} /></Champ>
         <Erreur message={erreur} />

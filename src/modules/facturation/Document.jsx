@@ -336,6 +336,8 @@ export default function DocumentVente({ documentId, naviguer }) {
               gerer && d.type === 'devis' && derniereVersion && ['brouillon', 'envoye', 'accepte', 'refuse'].includes(d.statut) && { libelle: 'Nouvelle version', onClick: () => executer('nouvelle_version_devis', { p_document_id: d.id }, 'Nouvelle version créée', (id) => naviguer(`factures/${id}/modifier`)) },
               d.type === 'devis' && ['accepte', 'converti'].includes(d.statut) && moduleActif('contrats') && peut('contrats.gerer') && !c.contrats.some((k) => k.statut !== 'annule')
                 && { libelle: 'Créer le contrat', onClick: () => executer('contrat_depuis_devis', { p_document_id: d.id }, 'Contrat créé', (id) => naviguer(`contrats/${id}`)) },
+              d.type === 'devis' && ['accepte', 'converti'].includes(d.statut) && moduleActif('projets') && peut('projets.gerer')
+                && { libelle: d.projet_id ? 'Ajouter les tâches au projet' : 'Créer le projet et ses tâches', onClick: () => executer('taches_depuis_devis', { p_document_id: d.id }, 'Tâches créées', (id) => naviguer(`projets/${id}`)) },
               gerer && d.type !== 'avoir' && { libelle: 'Dupliquer', onClick: () => executer('dupliquer_document_vente', { p_document_id: d.id }, 'Copie créée', (id) => naviguer(`factures/${id}/modifier`)) },
               d.statut !== 'emise' && gerer && !['annule', 'converti', 'refuse'].includes(d.statut) && d.type !== 'avoir' && { libelle: 'Annuler', danger: true, onClick: () => setAction('annuler') },
               d.statut === 'emise' && d.type === 'facture' && peut('facturation.annuler') && { libelle: 'Annuler par un avoir', danger: true, onClick: () => setAction('annuler') },
