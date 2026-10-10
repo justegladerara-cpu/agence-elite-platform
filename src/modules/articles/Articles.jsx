@@ -34,7 +34,7 @@ const FILTRES_STOCK = [
 const VIDE = {
   nom: '', reference: '', code_barres: '', categorie_id: '', prix_vente: '', cout_achat: '', unite: 'unité',
   suivi_stock: false, stock_minimum: '0', stock_initial: '', description: '', photo: '', actif: true,
-  disponible: true, epuise: false,
+  disponible: true, epuise: false, unites_par_lot: '', nom_lot: '',
 };
 
 function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
@@ -77,6 +77,11 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
         stock_initial: article ? undefined : Number(valeurs.stock_initial || 0),
       };
       const id = await api.rpc('enregistrer_article', { p_etablissement_id: etablissement.id, p_article: donnees });
+      const parLot = valeurs.unites_par_lot === '' ? null : Number(valeurs.unites_par_lot);
+      const nomLot = parLot ? String(valeurs.nom_lot || '').trim() || null : null;
+      if (parLot !== (article?.unites_par_lot ?? null) || nomLot !== (article?.nom_lot ?? null)) {
+        await api.rpc('regler_lot_article', { p_article_id: id ?? article.id, p_unites_par_lot: parLot, p_nom_lot: nomLot });
+      }
       if (Boolean(valeurs.disponible) !== (article?.disponible ?? true) || Boolean(valeurs.epuise) !== (article?.epuise ?? false)) {
         await api.rpc('definir_disponibilite_article', { p_article_id: id ?? article.id, p_disponible: Boolean(valeurs.disponible), p_epuise: Boolean(valeurs.epuise) });
       }
@@ -127,6 +132,12 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
             <Champ libelle="Alerte stock bas à"><input type="number" min="0" step="any" value={valeurs.stock_minimum} onChange={changer('stock_minimum')} /></Champ>
             {!article && peut('stock.ajuster') && (
               <Champ libelle="Stock initial" aide="Crée une entrée de stock tracée."><input type="number" min="0" step="any" value={valeurs.stock_initial} onChange={changer('stock_initial')} /></Champ>
+            )}
+            <Champ libelle="Unités par casier (facultatif)" aide="Ex. : 24 bouteilles. Vous recevez et comptez en casiers, vous vendez à l’unité.">
+              <input type="number" min="2" max="10000" step="1" inputMode="numeric" value={valeurs.unites_par_lot} onChange={changer('unites_par_lot')} />
+            </Champ>
+            {valeurs.unites_par_lot !== '' && (
+              <Champ libelle="Nom du casier" aide="Casier, carton, pack…"><input value={valeurs.nom_lot} maxLength={30} onChange={changer('nom_lot')} placeholder="casier" /></Champ>
             )}
           </div>
         )}

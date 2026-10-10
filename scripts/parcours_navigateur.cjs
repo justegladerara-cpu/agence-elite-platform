@@ -575,6 +575,27 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/Bougies \(paquet de 10\) : 6/).first().waitFor({ timeout: 30000 });
     });
 
+    await etape('stock-casiers', async () => {
+      // Boissons en casiers : l'article déclare son casier ; on reçoit en casiers + unités, le stock s'affiche pareil.
+      await p.goto(U + '#/articles');
+      await p.getByRole('button', { name: 'Nouvel article' }).click({ timeout: 60000 });
+      await p.getByLabel('Nom de l’article').fill('Bière test 33 cl');
+      await p.getByLabel('Prix de vente').fill('1000');
+      await p.getByLabel(/Suivre les quantités de cet article/).check();
+      await p.getByLabel(/Unités par casier/).fill('24');
+      await p.getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText('Bière test 33 cl').first().waitFor({ timeout: 30000 });
+      await p.goto(U + '#/stock');
+      await p.getByRole('button', { name: 'J’ai reçu de la marchandise' }).click({ timeout: 60000 });
+      await p.getByLabel('Chercher un article').fill('Bière test');
+      await p.getByLabel('Reçu en casiers de 24 : Bière test 33 cl').fill('2');
+      await p.getByLabel('Reçu à l’unité : Bière test 33 cl').fill('3');
+      await p.getByRole('row').filter({ hasText: 'Bière test 33 cl' }).getByText('2 casiers + 3').waitFor({ timeout: 10000 });
+      await p.getByRole('button', { name: 'Ajouter au stock' }).click();
+      await p.getByText('Stock ajouté : 1 article(s)').first().waitFor({ timeout: 30000 });
+      await p.getByRole('row').filter({ hasText: 'Bière test 33 cl' }).getByText('2 casiers + 3').first().waitFor({ timeout: 30000 });
+    });
+
     await etape('fermeture-caisse-reglage', async () => {
       // Heure de fin de journée de la caisse : minuit par défaut, réglable (bar de nuit), heure invalide refusée.
       await p.goto(U + '#/parametres?onglet=reglages');

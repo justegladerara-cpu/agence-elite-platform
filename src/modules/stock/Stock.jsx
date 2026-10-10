@@ -4,7 +4,7 @@ import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
 import SaisieStock from './SaisieStock.jsx';
-import { quantiteHub } from './quantites.js';
+import { formatEnCasiers, quantiteHub } from './quantites.js';
 
 export { quantiteHub };
 
@@ -75,7 +75,7 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
             </select>
           </Champ>
         )}
-        <p className="texte-doux">Stock actuel : <strong>{formatQuantite(quantiteDe(hubId), article.unite)}</strong></p>
+        <p className="texte-doux">Stock actuel : <strong>{formatEnCasiers(quantiteDe(hubId), article)}</strong></p>
         <Champ libelle={config.libelle} aide={config.aide}>
           <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} required autoFocus />
         </Champ>
@@ -218,7 +218,7 @@ export default function Stock({ naviguer }) {
           vide={<EmptyState icone="stock" titre="Aucun article suivi en stock" />}
           colonnes={[
             { id: 'nom', libelle: 'Article', tri: (n) => n.nom, rendu: (n) => <><strong>{n.nom}</strong>{n.reference && <small className="texte-doux bloc">{n.reference}</small>}</> },
-            { id: 'quantite', libelle: 'En stock', classe: 'nombre', tri: (n) => n.quantite, rendu: (n) => <strong>{formatQuantite(n.quantite, n.unite)}</strong> },
+            { id: 'quantite', libelle: 'En stock', classe: 'nombre', tri: (n) => n.quantite, rendu: (n) => <strong>{formatEnCasiers(n.quantite, n)}</strong> },
             { id: 'stock_minimum', libelle: 'Alerte', classe: 'nombre', tri: (n) => n.stock_minimum, rendu: (n) => formatQuantite(n.stock_minimum) },
             { id: 'etat', libelle: 'État', tri: (n) => n.quantite - n.stock_minimum, rendu: (n) => (n.quantite <= 0 ? <Badge ton="rouge">Épuisé</Badge> : n.quantite <= n.stock_minimum ? <Badge ton="orange">Bas</Badge> : <Badge ton="vert">OK</Badge>) },
             ajuster && {
@@ -246,7 +246,7 @@ export default function Stock({ naviguer }) {
                     const q = quantiteHub(donnees, a.id, h.id, []);
                     return <td key={h.id} className={`nombre ${q <= 0 ? 'texte-faible' : ''}`}>{formatQuantite(q)}</td>;
                   })}
-                  <td className="nombre"><strong>{formatQuantite(quantiteHub(donnees, a.id, null, visibles), a.unite)}</strong></td>
+                  <td className="nombre"><strong>{formatEnCasiers(quantiteHub(donnees, a.id, null, visibles), a)}</strong></td>
                 </tr>
               ))}
             </tbody>
