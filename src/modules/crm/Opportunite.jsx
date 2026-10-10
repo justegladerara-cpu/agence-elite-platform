@@ -9,6 +9,7 @@ import Qualification from './Qualification.jsx';
 import { CoordonneesConfirmees, Interlocuteurs } from '../contacts/Interlocuteurs.jsx';
 import { ModaleActivite, ModaleOpportunite } from './Formulaires.jsx';
 import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
+import { PropositionsAdaptees } from './Propositions.jsx';
 
 // Fiche d'une opportunité, ou vue CRM d'un contact (« contact/<id> »).
 export default function Opportunite({ opportuniteId, contactId, naviguer }) {
@@ -153,6 +154,9 @@ export default function Opportunite({ opportuniteId, contactId, naviguer }) {
               </>
             )}
           </Section>
+          {o.statut === 'ouverte' && !o.document_vente_id && gerer && moduleActif('facturation') && peut('facturation.gerer') && (
+            <PropositionsAdaptees opportunite={o} naviguer={naviguer} />
+          )}
           {o.document_vente_id && peut('facturation.lire') && <DevisEtFacture devisId={o.document_vente_id} naviguer={naviguer} />}
           <RendezVousLies contactId={o.contact_id} opportuniteId={o.id} naviguer={naviguer} />
           <PiecesJointes objetType="crm_opportunite" objetId={o.id} titre="Documents" peutAjouter={gerer} peutArchiver={gerer} />

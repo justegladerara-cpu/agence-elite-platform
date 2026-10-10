@@ -3,6 +3,7 @@ import { enFuseau, formatDate, formatDateHeure, formatMontant, formatQuantite } 
 import { envoyerAvecReprise } from '../noyau/envoi.js';
 import { lireFichier, tailleLisible, telecharger, TYPES_ACCEPTES } from '../ui/communs.jsx';
 import { Badge, Bouton, Champ, Chargement, Erreur, Modale, Onglets } from '../ui/composants.jsx';
+import ChiffresBilan from '../ui/ChiffresBilan.jsx';
 
 // Espace client (#/espace/<jeton>) : sans compte, par le lien personnel envoyé par l'établissement.
 // La base contrôle tout (jeton, expiration, document du bon client, limites) ; cet écran ne fait qu'afficher.
@@ -182,6 +183,92 @@ function Aide({ jeton, donnees }) {
   );
 }
 
+const IMPACTS_CLIENT = { interruption: 'Service interrompu', partiel: 'Service en partie indisponible', ralentissement: 'Service ralenti' };
+export const STATUTS_RECOMMANDATION = { en_attente: ['Transmise', 'orange'], converti: ['Devenue cliente', 'bleu'], recompense: ['Récompense accordée', 'vert'] };
+
+// Annonces de maintenance : en cours, à venir dans les 30 jours, ou annulées récemment (dans le fuseau de l'établissement).
+export function texteMaintenance(m, fuseau) {
+  const debut = enFuseau(m.debut, fuseau);
+  const fin = enFuseau(m.fin, fuseau);
+  const quand = debut.cle === fin.cle ? `${debut.jour}, de ${debut.heure} à ${fin.heure}` : `du ${debut.jour} ${debut.heure} au ${fin.jour} ${fin.heure}`;
+  if (m.statut === 'annulee') return `Maintenance annulée (${quand}) : ${m.titre}${m.motif_annulation ? `. ${m.motif_annulation}` : ''}`;
+  return `${m.en_cours ? 'Maintenance en cours' : 'Maintenance prévue'} ${quand} : ${m.titre} (${IMPACTS_CLIENT[m.impact] ?? m.impact})${m.description ? `. ${m.description}` : ''}`;
+}
+
+function BilansClient({ jeton, donnees, bilans }) {
+  const [ouvert, setOuvert] = useState(null);
+  const ouvrir = (b) => {
+    setOuvert(ouvert === b.id ? null : b.id);
+    if (!b.vu_le) donnees.rpc('portail_bilan_vu', { p_jeton: jeton, p_bilan_id: b.id }).catch(() => {});
+  };
+  return (
+    <div className="pile">
+      {bilans.map((b) => (
+        <section key={b.id} className="carte pile">
+          <h2><button type="button" className="lien" onClick={() => ouvrir(b)} aria-expanded={ouvert === b.id}>{b.titre}</button> {!b.vu_le && <Badge ton="orange">Nouveau</Badge>}</h2>
+          <p className="texte-doux">Du {formatDate(b.du)} au {formatDate(b.au)} · {b.numero}</p>
+          {ouvert === b.id && (
+            <div className="pile a-imprimer">
+              <ChiffresBilan chiffres={b.chiffres} />
+              {b.synthese && <><h3>Synthèse</h3><p className="texte-multiligne">{b.synthese}</p></>}
+              {b.prochaines_actions && <><h3>Prochaines actions</h3><p className="texte-multiligne">{b.prochaines_actions}</p></>}
+              <p className="texte-doux">Une question ou une remarque sur ce bilan ? Écrivez-nous dans « Messages ».</p>
+              <div><Bouton icone="imprimer" onClick={() => window.print()}>Imprimer</Bouton></div>
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function Recommander({ jeton, donnees, parrainage, onFait }) {
+  const [v, setV] = useState({ nom: '', telephone: '', email: '', note: '' });
+  const [retour, setRetour] = useState('');
+  const [erreur, setErreur] = useState('');
+  const changer = (c) => (e) => setV({ ...v, [c]: e.target.value });
+  const envoyer = async (e) => {
+    e.preventDefault();
+    setErreur('');
+    setRetour('');
+    try {
+      await donnees.rpc('portail_recommander', { p_jeton: jeton, p_nom: v.nom, p_telephone: v.telephone || null, p_email: v.email || null, p_note: v.note || null });
+      setV({ nom: '', telephone: '', email: '', note: '' });
+      setRetour('Merci : votre recommandation est transmise à l’équipe.');
+      onFait();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <div className="pile">
+      {parrainage.actif && (
+        <form className="formulaire carte" onSubmit={envoyer}>
+          <p>Vous connaissez quelqu’un à qui nous pourrions être utiles ? Recommandez-le : l’équipe le contactera de votre part.</p>
+          {parrainage.recompense && <p><strong>Votre récompense quand cette personne devient cliente : {parrainage.recompense}</strong></p>}
+          <Champ libelle="Nom de la personne ou de l’entreprise"><input value={v.nom} onChange={changer('nom')} maxLength={120} required /></Champ>
+          <Champ libelle="Téléphone"><input type="tel" value={v.telephone} onChange={changer('telephone')} maxLength={40} /></Champ>
+          <Champ libelle="E-mail"><input type="email" value={v.email} onChange={changer('email')} maxLength={160} /></Champ>
+          <Champ libelle="Son besoin, en quelques mots (facultatif)"><textarea rows={2} value={v.note} onChange={changer('note')} maxLength={1000} /></Champ>
+          <p className="texte-doux">Prévenez la personne avant : nous la contacterons de votre part.</p>
+          <Erreur message={erreur} />
+          {retour && <p role="status">{retour}</p>}
+          <div><Bouton type="submit" variante="principal" disabled={v.nom.trim().length < 2 || (!v.telephone.trim() && !v.email.trim())}>Recommander</Bouton></div>
+        </form>
+      )}
+      {parrainage.recommandations.length > 0 && (
+        <>
+          <h2>Vos recommandations</h2>
+          <ul>{parrainage.recommandations.map((r, i) => {
+            const [libelle, ton] = STATUTS_RECOMMANDATION[r.statut] ?? [r.statut, 'neutre'];
+            return <li key={i}>{r.nom} · {formatDate(r.cree_le)} <Badge ton={ton}>{libelle}</Badge>{r.statut === 'recompense' && (r.recompense || r.points) ? ` ${[r.recompense, r.points && `${r.points} points de fidélité`].filter(Boolean).join(' · ')}` : ''}</li>;
+          })}</ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Fiche({ d, devise, jeton, donnees, onFait }) {
   const [action, setAction] = useState(null);
   const [nom, setNom] = useState('');
@@ -327,6 +414,9 @@ export function EspaceClientPublic({ donnees, jeton }) {
   const charger = useCallback(() => donnees.rpc('portail_ouvrir', { p_jeton: jeton }).then(setEspace)
     .catch(() => setErreur('Ce lien n’existe pas ou a expiré. Demandez un nouveau lien à l’établissement qui vous l’a envoyé.')), [donnees, jeton]);
   useEffect(() => { charger(); }, [charger]);
+  const [suivi, setSuivi] = useState(null);
+  const chargerSuivi = useCallback(() => donnees.rpc('portail_suivi', { p_jeton: jeton }).then(setSuivi).catch(() => {}), [donnees, jeton]);
+  useEffect(() => { chargerSuivi(); }, [chargerSuivi]);
   if (erreur) return <div className="ecran-centre"><div className="connexion-carte"><h1>Espace client</h1><p className="texte-doux">{erreur}</p></div></div>;
   if (!espace) return <div className="ecran-centre"><Chargement /></div>;
   const devise = espace.emetteur.devise;
@@ -373,8 +463,12 @@ export function EspaceClientPublic({ donnees, jeton }) {
     ['messages', 'Messages'],
     espace.depot_fichiers && ['fichiers', 'Envoyer un fichier'],
     espace.aide && ['aide', 'Aide'],
+    suivi?.bilans.length > 0 && ['bilans', 'Bilans'],
+    (suivi?.parrainage.actif || suivi?.parrainage.recommandations.length > 0) && ['recommander', 'Recommander'],
   ].filter(Boolean);
   const aVoir = nouveautes(espace);
+  const bilansNonLus = (suivi?.bilans ?? []).filter((b) => !b.vu_le).length;
+  if (bilansNonLus) aVoir.push(`${bilansNonLus} bilan${bilansNonLus > 1 ? 's' : ''} à lire`);
   return (
     <div className="page espace-client">
       <header className="pile">
@@ -382,6 +476,7 @@ export function EspaceClientPublic({ donnees, jeton }) {
         <h1>Espace de {espace.contact.societe || espace.contact.nom}</h1>
         {espace.message_accueil && <p>{espace.message_accueil}</p>}
         <p className="texte-doux">Lien personnel, valable jusqu’au {formatDate(espace.expire_le)}. Ne le transférez pas.</p>
+        {(suivi?.maintenances ?? []).map((m) => <p key={m.id} className="encart" role="status">{texteMaintenance(m, suivi.fuseau)}</p>)}
         {aVoir.length > 0 && <p className="encart" role="status">{espace.precedente_ouverture ? 'Depuis votre dernière visite' : 'À voir'} : {aVoir.join(', ')}.</p>}
       </header>
       <Onglets onglets={onglets} actif={onglet} onChange={(o) => { setOnglet(o); setOuvert(null); }} />
@@ -448,6 +543,8 @@ export function EspaceClientPublic({ donnees, jeton }) {
       )}
       {onglet === 'rdv' && <RendezVous jeton={jeton} donnees={donnees} />}
       {onglet === 'aide' && <Aide jeton={jeton} donnees={donnees} />}
+      {onglet === 'bilans' && suivi && <BilansClient jeton={jeton} donnees={donnees} bilans={suivi.bilans} />}
+      {onglet === 'recommander' && suivi && <Recommander jeton={jeton} donnees={donnees} parrainage={suivi.parrainage} onFait={chargerSuivi} />}
       {onglet === 'fichiers' && (
         <div className="pile">
           <p className="texte-doux">Images, PDF, Word, Excel ou PowerPoint, 3 Mo au plus. L’équipe est prévenue à chaque envoi.</p>

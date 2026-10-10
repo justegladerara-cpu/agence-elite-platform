@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure } from '../../noyau/format.js';
+import Parrainage from './Parrainage.jsx';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 
 const TYPES = { gain: ['Achat', 'vert'], annulation: ['Annulation', 'orange'], utilisation: ['Récompense', 'bleu'], ajustement: ['Ajustement', 'neutre'] };
@@ -59,6 +60,7 @@ export default function Fidelite() {
           { id: 'actif', libelle: 'État', rendu: (r) => <Badge ton={r.actif ? 'vert' : 'neutre'}>{r.actif ? 'Disponible' : 'Retirée'}</Badge> },
         ]} />
       </Section></div>
+      <Parrainage contacts={d.contacts} />
       {ouvert && <FicheClient s={ouvert} tdb={d.tdb} recompenses={d.recompenses.filter((r) => r.actif)} onFermer={() => setOuvert(null)} onChange={() => { setOuvert(null); recharger(); }} />}
       {ajout && <ModaleAjustement contacts={d.contacts} onFermer={() => setAjout(false)} onFait={() => { setAjout(false); recharger(); }} />}
       {recompense && <ModaleRecompense onFermer={() => setRecompense(false)} onFait={() => { setRecompense(false); recharger(); }} />}

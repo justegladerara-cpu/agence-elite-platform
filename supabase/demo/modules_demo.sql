@@ -1515,3 +1515,55 @@ begin
   end if;
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Lot H2 : modèles de proposition du CRM, parrainage (l'hôtel a recommandé le collège), bilan de collaboration publié
+-- dans l'espace de l'hôtel, maintenance planifiée annoncée aux clients (dans 10 jours). Tout est fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; hotel uuid; ecole uuid; jour date; bilan uuid; debut timestamptz;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage' limit 1;
+  select id into ecole from public.contacts where etablissement_id = etab and societe = 'Collège Démo Saint-Joseph' limit 1;
+  if etab is null or hotel is null or exists (select 1 from public.crm_modeles_proposition where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  jour := public.date_locale(etab);
+  if public.module_actif(etab, 'crm_pipeline') then
+    perform public.enregistrer_modele_proposition(etab, jsonb_build_object('nom', 'Approvisionnement boissons', 'mots_cles', 'boissons, épicerie, approvisionnement, snack',
+      'description', 'Livraison mensuelle de boissons et d''épicerie sèche pour la restauration.',
+      'lignes', jsonb_build_array(
+        jsonb_build_object('libelle', 'Boissons (carton de 24)', 'quantite', 10, 'prix_unitaire', 9000, 'unite', 'carton'),
+        jsonb_build_object('libelle', 'Épicerie sèche (lot)', 'quantite', 4, 'prix_unitaire', 15000, 'unite', 'lot'),
+        jsonb_build_object('libelle', 'Livraison mensuelle', 'quantite', 1, 'prix_unitaire', 5000),
+        jsonb_build_object('libelle', 'Présentoir réfrigéré en prêt', 'quantite', 1, 'prix_unitaire', 20000, 'optionnelle', true))));
+    perform public.enregistrer_modele_proposition(etab, jsonb_build_object('nom', 'Fournitures de collectivité', 'mots_cles', 'cantine, fournitures, collège, école, trimestre',
+      'description', 'Fournitures d''entretien et de cantine livrées chaque trimestre.',
+      'lignes', jsonb_build_array(
+        jsonb_build_object('libelle', 'Produits d''entretien (lot trimestriel)', 'quantite', 3, 'prix_unitaire', 25000, 'unite', 'lot'),
+        jsonb_build_object('libelle', 'Denrées de cantine (lot trimestriel)', 'quantite', 3, 'prix_unitaire', 60000, 'unite', 'lot'))));
+  end if;
+  if public.module_actif(etab, 'fidelite') then
+    perform public.enregistrer_parametres_module(etab, 'fidelite', coalesce((select data from public.etablissement_parametres where etablissement_id = etab and module_id = 'fidelite'), '{}'::jsonb)
+      || jsonb_build_object('parrainage_recompense', 'Livraison offerte sur la prochaine commande', 'parrainage_points', 30, 'parrainage_espace_client', true));
+    if ecole is not null and not exists (select 1 from public.ventes where contact_id = ecole and statut = 'validee') then
+      perform public.enregistrer_parrainage(etab, hotel, ecole, 'L''économe de l''hôtel connaît l''intendante du collège.');
+    end if;
+  end if;
+  if public.module_actif(etab, 'portail_client') then
+    bilan := public.enregistrer_bilan_client(etab, jsonb_build_object('contact_id', hotel, 'du', jour - 90, 'au', jour,
+      'synthese', 'Trois mois de collaboration : présentoir installé, livraisons régulières et réassort sans rupture.',
+      'prochaines_actions', 'Ajouter un deuxième présentoir pour les boissons fraîches. Prévoir le réassort de la haute saison.'));
+    perform public.publier_bilan_client(bilan);
+  end if;
+  if public.module_actif(etab, 'support_tickets') then
+    debut := (jour + 10)::timestamp at time zone (select fuseau from public.etablissements where id = etab) + interval '7 hours';
+    perform public.enregistrer_maintenance(etab, jsonb_build_object('titre', 'Inventaire annuel : magasin fermé', 'impact', 'interruption',
+      'description', 'Les commandes passées pendant l''inventaire seront livrées le lendemain.', 'debut', debut, 'fin', debut + interval '4 hours'));
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, Champ, Erreur, Modale, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
 import { GROUPES_CRITERE, TYPES_CRITERE } from './commun.js';
+import { ModelesProposition } from './Propositions.jsx';
 
 // Étapes du pipeline : nom, ordre, probabilité ; ajout et désactivation (administrateur du CRM).
 export default function ReglagesPipeline({ naviguer }) {
@@ -35,7 +36,7 @@ export default function ReglagesPipeline({ naviguer }) {
   };
   return (
     <div className="page">
-      <PageHeader titre="Étapes et questions" sousTitre="Adaptez le parcours de vente et la qualification à votre métier" fil={[{ libelle: 'Prospects et opportunités', href: '#/crm' }, { libelle: 'Étapes' }]} />
+      <PageHeader titre="Étapes et questions" sousTitre="Adaptez le parcours de vente, la qualification et les propositions à votre métier" fil={[{ libelle: 'Prospects et opportunités', href: '#/crm' }, { libelle: 'Étapes' }]} />
       <Erreur message={erreur} />
       <Section>
         <div className="tableau-conteneur">
@@ -79,6 +80,7 @@ export default function ReglagesPipeline({ naviguer }) {
         </form>
       </Section>
       <QuestionsQualification />
+      <ModelesProposition />
       <p className="texte-doux">Les motifs de perte et le modèle de compte rendu d’appel se règlent dans Paramètres, module « Prospects et opportunités ».</p>
       <Bouton onClick={() => naviguer('crm')}>Retour au pipeline</Bouton>
     </div>

@@ -30,10 +30,20 @@ comme **module accordé** par Agence Elite. Aucune offre payante n'a été modif
 - **WhatsApp prérempli** : bouton « Ouvrir dans WhatsApp » (lien `wa.me`, aucun fournisseur) avec le texte saisi ; la
   réponse s'enregistre ensuite dans le ticket. Un numéro sans indicatif international est signalé.
 
+## Maintenances planifiées (lot H2)
+- `support_maintenances` (droit `support_tickets.gerer`) : titre visible par les clients, début, fin (14 jours au
+  plus), impact (interrompu, en partie indisponible, ralenti), description. Changer les horaires vaut nouvelle annonce.
+- Préavis réglable (`maintenance_preavis_heures`, 48 h par défaut) : l'écran signale une annonce trop tardive, sans
+  la bloquer (une urgence reste annonçable).
+- L'équipe (droit `traiter`) est prévenue ; l'annonce s'affiche en haut de la page Support et à l'ouverture d'un ticket
+  (en cours ou dans les 48 heures), et dans l'espace de chaque client (30 jours avant au plus).
+- Annulation avec motif, affiché aux clients pendant 7 jours. Rien ne se supprime.
+
 ## Limites connues
 - L'avis et la satisfaction sont saisis par l'équipe (le client n'a pas encore d'espace : lot P « Espace client »).
 - Aucune réception automatique des e-mails ou WhatsApp et aucun envoi automatique : fournisseurs non choisis.
 - Les tickets proches se trouvent par mots du sujet (pas de recherche « intelligente »).
+- Maintenance : pas de page publique d'état du service ni d'envoi aux clients ; annonce visible dans l'espace client seulement.
 
 ## Écrans
 Support › liste (filtres À traiter, En retard, Mes tickets, Escaladés, statut, priorité, nature), Réponses et aide, fiche du ticket (échanges, suivi,

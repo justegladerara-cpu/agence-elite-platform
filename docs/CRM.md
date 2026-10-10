@@ -67,6 +67,17 @@ Contacts : type Prospect, origine, onglet Prospects quand le CRM est actif.
   avertissement à la création d'un contact ou d'un prospect (`contacts_doublons`, `contacts_similaires`). Rien n'est bloqué.
 - Lecture : `crm_pipeline.lire` (questions, réponses, score, réglages), `contacts.lire` (interlocuteurs, doublons).
 
+## Propositions adaptées au besoin (lot H2)
+- **Modèles de proposition** (`crm_modeles_proposition`, droit `crm_pipeline.administrer`) : nom, mots du besoin
+  (minuscules, sans accents), lignes de devis types (article ou désignation, quantité, prix, TVA, option). Rien ne se
+  supprime : un modèle se retire (`activer_modele_proposition`).
+- **Classement** (`propositions_adaptees`) : 10 points par mot du besoin retrouvé dans le titre, les notes et les
+  réponses de qualification ; +5 si le montant hors options est dans le budget du client (fourchette ou montant de
+  l'opportunité, jusqu'à 10 % au-dessus), −5 au-dessus ; jusqu'à +5 selon les ventes gagnées avec le modèle (à partir de
+  2 utilisations). Chaque modèle affiche ses raisons.
+- **Créer le devis** (`creer_devis_depuis_modele`) : mêmes contrôles que « Créer le devis » ; le modèle utilisé est
+  retenu sur l'opportunité (`modele_proposition_id`), ce qui alimente le taux de réussite.
+
 ## Limites connues
 - Pas d'envoi de message (WhatsApp, e-mail, SMS) depuis la plateforme : l'activité trace l'échange fait ailleurs.
 - Pas d'import de prospects en masse (l'import CSV des contacts reste à faire).
@@ -75,4 +86,6 @@ Contacts : type Prospect, origine, onglet Prospects quand le CRM est actif.
   bonne fiche et on désactive l'autre. Les noms sont comparés sans espaces ni ponctuation, mais avec les accents.
 - Questions conditionnelles sur un seul niveau (une question qui dépend d'une autre ne peut pas en commander une troisième).
 - Le formulaire public du site web ne pose pas ces questions : elles se remplissent dans la plateforme.
+- Propositions : correspondance par mots exacts (pas de synonymes ni de pluriels) ; le modèle ne porte pas les
+  conditions du devis (elles viennent des réglages de la facturation).
 - La fiche audit s'imprime depuis le navigateur (« Enregistrer en PDF ») ; pas d'envoi au client depuis la plateforme.
