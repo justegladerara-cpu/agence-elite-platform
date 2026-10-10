@@ -752,6 +752,8 @@ Lignes 66 et 67 bloquées (aucun canal d'envoi).
 **Stock simplifié (2026-10-10, plainte des clients)** : migration `20261010000122` (`saisir_stock`), écrans
 « J'ai reçu de la marchandise » / « Je compte mon stock » / « Retirer », fichier de stock (`docs/modele_stock.csv`,
 catégorie facultative, code-barres facultatif). SOP 75. Suite prévue : rattrapage de ventes d'un jour passé (gérant).
+**Fermeture de caisse quotidienne (2026-10-10)** : migration `20261010000123`, réglage Clôture `fermeture_automatique`
+(00:00 par défaut), tâche pg_cron `fermer-caisses-echues`, ticket Z automatique « espèces à compter ». SOP 76.
 
 ## 46–47. Prompt pour la nouvelle session
 

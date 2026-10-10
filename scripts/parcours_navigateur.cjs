@@ -575,6 +575,21 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/Bougies \(paquet de 10\) : 6/).first().waitFor({ timeout: 30000 });
     });
 
+    await etape('fermeture-caisse-reglage', async () => {
+      // Heure de fin de journée de la caisse : minuit par défaut, réglable (bar de nuit), heure invalide refusée.
+      await p.goto(U + '#/parametres?onglet=reglages');
+      const champ = p.getByLabel(/Fermeture automatique de la caisse chaque jour/);
+      await champ.waitFor({ timeout: 60000 });
+      if ((await champ.inputValue()) !== '00:00') throw new Error('minuit attendu par défaut');
+      await champ.fill('04:00');
+      await champ.locator('xpath=ancestor::form').getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText(/Réglages .* enregistrés/).first().waitFor({ timeout: 30000 });
+      await champ.fill('00:00');
+      await champ.locator('xpath=ancestor::form').getByRole('button', { name: 'Enregistrer' }).click();
+      await p.goto(U + '#/clotures');
+      await p.getByText('Tickets Z').first().waitFor({ timeout: 60000 });
+    });
+
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

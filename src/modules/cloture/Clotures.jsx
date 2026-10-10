@@ -33,6 +33,7 @@ export function TicketZ({ z, identite, nomEtablissement, devise, type = 'Z' }) {
       <div className="ticket-ligne"><span>+ Encaissées</span><span>{m(z.encaissements?.especes ?? 0)}</span></div>
       <div className="ticket-ligne"><span>− Dépenses payées en caisse</span><span>{m(z.depenses_especes)}</span></div>
       <div className="ticket-ligne"><span>Attendues</span><strong>{m(z.especes_attendues)}</strong></div>
+      {type === 'Z' && z.especes_comptees == null && <div className="ticket-ligne"><span>Comptées</span><span>à compter</span></div>}
       {z.especes_comptees != null && (
         <>
           <div className="ticket-ligne"><span>Comptées</span><strong>{m(z.especes_comptees)}</strong></div>
@@ -58,8 +59,42 @@ export function TicketZ({ z, identite, nomEtablissement, devise, type = 'Z' }) {
   );
 }
 
-function ModaleZ({ z, onFermer, type = 'Z' }) {
-  const { etablissement, devise } = useEspace();
+// Ticket Z fermé automatiquement (heure de fin de journée) : les espèces se comptent ensuite, une seule fois.
+function ComptageApres({ z, onCompte }) {
+  const { api, montant } = useEspace();
+  const [comptees, setComptees] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const valeur = Number(String(comptees).replace(/\s/g, '').replace(',', '.'));
+  const ecart = comptees === '' || !Number.isFinite(valeur) ? null : valeur - Number(z.especes_attendues);
+  const valider = async (e) => {
+    e.preventDefault();
+    setChargement(true);
+    setErreur('');
+    try {
+      onCompte(await api.rpc('compter_cloture', { p_cloture_id: z.id, p_especes_comptees: valeur, p_commentaire: null }));
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setChargement(false);
+    }
+  };
+  return (
+    <form className="formulaire encart" onSubmit={valider}>
+      <strong>Caisse fermée automatiquement : comptez les espèces du tiroir</strong>
+      <Champ libelle="Espèces comptées" aide={`Attendues : ${montant(z.especes_attendues)}`}>
+        <input inputMode="decimal" value={comptees} onChange={(e) => setComptees(e.target.value)} required />
+      </Champ>
+      {ecart !== null && <p className={ecart === 0 ? 'texte-vert' : 'texte-alerte'}>{ecart === 0 ? 'Caisse juste.' : `Écart de ${ecart > 0 ? '+' : ''}${montant(ecart)}.`}</p>}
+      <Erreur message={erreur} />
+      <Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer le comptage</Bouton>
+    </form>
+  );
+}
+
+function ModaleZ({ z: zInitial, onFermer, onCompte, type = 'Z' }) {
+  const { etablissement, devise, peut } = useEspace();
+  const [z, setZ] = useState(zInitial);
   useEffect(() => {
     document.body.classList.add('impression-ticket');
     return () => document.body.classList.remove('impression-ticket');
@@ -67,6 +102,9 @@ function ModaleZ({ z, onFermer, type = 'Z' }) {
   const ticket = <TicketZ z={z} identite={etablissement.identite} nomEtablissement={etablissement.nom} devise={devise} type={type} />;
   return (
     <Modale titre={type === 'X' ? 'Ticket X (caisse toujours ouverte)' : `Ticket ${z.numero}`} onFermer={onFermer} pied={<Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>}>
+      {type === 'Z' && z.automatique && z.especes_comptees == null && peut('cloture.cloturer') && etablissement.ecriture && (
+        <ComptageApres z={z} onCompte={(maj) => { setZ({ ...z, ...maj }); onCompte?.(); }} />
+      )}
       <div className="ticket-apercu">{ticket}</div>
       {createPortal(<div className="zone-impression">{ticket}</div>, document.body)}
     </Modale>
@@ -175,6 +213,8 @@ export default function Clotures() {
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const [zOuvert, setZOuvert] = useState(null);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
+    // Caisses de la veille fermées d'abord (heure de fin de journée, migration 20261010000123).
+    await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
     const [sessions, clotures, points, parametres, attentes] = await Promise.all([
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }),
       api.lire('clotures', { eq: { etablissement_id: etab }, ordre: ['cloturee_le', 'desc'], limite: 100 }),
@@ -198,7 +238,7 @@ export default function Clotures() {
             { libelle: 'Clôture', valeur: (z) => formatDateHeure(z.cloturee_le) },
             { libelle: 'Caisse', valeur: (z) => z.point_de_vente ?? '' },
             { libelle: 'Ventes', valeur: (z) => z.total_ventes },
-            { libelle: 'Écart', valeur: (z) => z.ecart },
+            { libelle: 'Écart', valeur: (z) => z.ecart ?? '' },
           ], donnees.clotures)}>Exporter</Bouton>
         )}
       </EnTete>
@@ -233,7 +273,9 @@ export default function Clotures() {
                       <td>{formatDateHeure(z.cloturee_le)}</td>
                       <td>{z.point_de_vente}</td>
                       <td className="nombre">{montant(z.total_ventes)}</td>
-                      <td className={`nombre ${z.ecart === 0 ? '' : 'texte-alerte'}`}>{z.ecart > 0 ? '+' : ''}{montant(z.ecart)}</td>
+                      <td className={`nombre ${z.ecart === 0 ? '' : 'texte-alerte'}`}>
+                        {z.ecart == null ? <Badge ton="orange">Espèces à compter</Badge> : `${z.ecart > 0 ? '+' : ''}${montant(z.ecart)}`}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -242,7 +284,7 @@ export default function Clotures() {
           )}
         </>
       )}
-      {zOuvert && <ModaleZ z={zOuvert} onFermer={() => setZOuvert(null)} />}
+      {zOuvert && <ModaleZ key={zOuvert.id ?? 'x'} z={zOuvert} onFermer={() => setZOuvert(null)} onCompte={() => { notifier('Comptage enregistré'); recharger(); }} />}
     </div>
   );
 }
