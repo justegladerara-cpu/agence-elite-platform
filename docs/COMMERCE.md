@@ -30,6 +30,7 @@ Rôles par défaut : gérant et responsable ont tout ; employé (caissier) vend,
 - **Annulation d'une vente** seulement tant que sa session de caisse est ouverte : le ticket Z déjà édité reste juste. Elle remet le stock (mouvement `retour_annulation`) et annule les paiements.
 - **Espèces** : le paiement est enregistré net de la monnaie rendue. Un encaissement en espèces exige une session ouverte.
 - **Crédit** : une vente non soldée exige un contact ; le reste se règle plus tard depuis Ventes.
+- **Fin de journée de caisse** (SOP 76, migration `20261010000124`) : réglage Clôture `fermeture_automatique` (HH:MM locale, `00:00` par défaut, vide = jamais). Une caisse ouverte avant la dernière heure de fin est fermée par `fermer_caisses_echues` (pg_cron toutes les 5 min en production, et à l'ouverture de la caisse ou de l'écran Clôture) avec un ticket Z `automatique`, espèces comptées ensuite une fois (`compter_cloture`). Un déclencheur refuse toute vente, paiement, dépense ou retour sur une caisse échue.
 - **Ticket Z** (`Z-00001`) : espèces attendues = fond + espèces encaissées − dépenses payées en caisse ; l'écart avec le comptage est figé.
 - **Tableau de bord** : chiffre d'affaires, panier moyen, encaissé par mode, dépenses, marge brute (prix − coût d'achat, coût inconnu = 0), résultat estimé, crédits à encaisser, ventes par jour, meilleures ventes, stock bas.
 

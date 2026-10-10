@@ -309,7 +309,9 @@ function FormulaireReglages({ module, valeurs, modifiable, enregistrer }) {
         <Champ key={c.cle} libelle={c.libelle}>
           {c.type === 'nombre'
             ? <input type="number" min="0" step="any" disabled={!modifiable} value={v[c.cle]} onChange={(e) => setV({ ...v, [c.cle]: e.target.value })} />
-            : <textarea rows={2} maxLength={2000} disabled={!modifiable} value={v[c.cle]} onChange={(e) => setV({ ...v, [c.cle]: e.target.value })} />}
+            : c.motif
+              ? <input pattern={c.motif.replace(/^\^|\$$/g, '')} disabled={!modifiable} value={v[c.cle]} onChange={(e) => setV({ ...v, [c.cle]: e.target.value })} />
+              : <textarea rows={2} maxLength={2000} disabled={!modifiable} value={v[c.cle]} onChange={(e) => setV({ ...v, [c.cle]: e.target.value })} />}
         </Champ>
       )))}
       {modifiable ? <Bouton type="submit" variante="principal" disabled={envoi}>Enregistrer</Bouton> : <p className="texte-faible">Réservé aux responsables.</p>}

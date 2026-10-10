@@ -21,7 +21,7 @@ export function VignetteArticle({ article, taille = 'normale' }) {
   return <span className={`vignette ${taille}`} style={{ background: couleurDe(article.nom) }}>{initiales(article.nom)}</span>;
 }
 
-function OuvertureCaisse({ pointsDeVente, onOuvrir }) {
+function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0 }) {
   const { hubs, multiHub } = useEspace();
   const [fond, setFond] = useState('');
   const [pdv, setPdv] = useState(pointsDeVente[0]?.id ?? '');
@@ -50,6 +50,9 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir }) {
     <div className="ouverture-caisse">
       <form className="carte formulaire" onSubmit={valider}>
         <h2>Ouvrir la caisse</h2>
+        {fermees > 0 && (
+          <p className="encart" role="status">La caisse précédente a été fermée automatiquement (fin de journée). Ses espèces se comptent dans Clôture de caisse.</p>
+        )}
         <p className="texte-doux">Comptez les espèces présentes dans le tiroir avant la première vente.</p>
         {pointsDeVente.length === 1 && multiHub && <p><strong>{pointsDeVente[0].nom}</strong>{nomHub(pointsDeVente[0])}</p>}
         {pointsDeVente.length > 1 && (
@@ -279,6 +282,8 @@ export default function Caisse({ naviguer }) {
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
+    // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
+    const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
     const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
@@ -294,7 +299,7 @@ export default function Caisse({ naviguer }) {
       articles, stock, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
-      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes,
+      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees,
     };
   }, [etab, hubsCaisse.join()]);
   const [pdvChoisi, setPdvChoisi] = useState(null);
@@ -323,6 +328,7 @@ export default function Caisse({ naviguer }) {
     return (
       <OuvertureCaisse
         pointsDeVente={donnees.pointsDeVente}
+        fermees={donnees.fermees}
         onOuvrir={async (pdv, fond) => {
           await api.rpc('ouvrir_caisse', { p_etablissement_id: etab, p_point_de_vente_id: pdv, p_fond_initial: fond });
           notifier('Caisse ouverte');
@@ -355,14 +361,24 @@ export default function Caisse({ naviguer }) {
   };
 
   const validerVente = async (paiements) => {
-    const resultat = await api.rpc('enregistrer_vente', {
-      p_etablissement_id: etab,
-      p_session_id: session.id,
-      p_lignes: lignes,
-      p_paiements: paiements,
-      p_contact_id: contactId,
-      p_remise: Number(remise || 0),
-    });
+    let resultat;
+    try {
+      resultat = await api.rpc('enregistrer_vente', {
+        p_etablissement_id: etab,
+        p_session_id: session.id,
+        p_lignes: lignes,
+        p_paiements: paiements,
+        p_contact_id: contactId,
+        p_remise: Number(remise || 0),
+      });
+    } catch (err) {
+      // Heure de fin de journée passée : la caisse se ferme, le panier reste pour la caisse du jour.
+      if (/Journée de caisse terminée|déjà clôturée/.test(err.message)) {
+        setPaiement(null);
+        recharger();
+      }
+      throw err;
+    }
     setPaiement(null);
     setPanierMobile(false);
     vider();
