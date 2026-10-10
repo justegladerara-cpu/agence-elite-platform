@@ -122,7 +122,7 @@ export default function Agenda({ naviguer, sousRoute }) {
               { id: 'client', libelle: 'Client', rendu: (r) => <><strong>{r.nom_client}</strong><br /><small className="texte-doux">{r.telephone}</small></> },
               { id: 'titre', libelle: 'Objet', rendu: (r) => r.titre },
               { id: 'qui', libelle: 'Avec', rendu: (r) => d.membre[r.responsable]?.nom ?? '—' },
-              { id: 'statut', libelle: 'Statut', rendu: (r) => <Badge ton={STATUTS_RDV[r.statut][1]}>{STATUTS_RDV[r.statut][0]}</Badge> },
+              { id: 'statut', libelle: 'Statut', rendu: (r) => <><Badge ton={STATUTS_RDV[r.statut][1]}>{STATUTS_RDV[r.statut][0]}</Badge>{r.origine === 'espace_client' && <> <Badge ton="bleu">Pris en ligne</Badge></>}</> },
             ]} />
         </Section>
       )}
@@ -158,7 +158,7 @@ function DetailRdv({ r, d, onFermer, onModifier, onChange, naviguer }) {
   return (
     <Modale titre={`${r.numero} · ${r.titre}`} onFermer={onFermer}>
       <div className="detail">
-        <p><Badge ton={STATUTS_RDV[r.statut][1]}>{STATUTS_RDV[r.statut][0]}</Badge> {formatDateHeure(r.debut)} – {heure(r.fin)}</p>
+        <p><Badge ton={STATUTS_RDV[r.statut][1]}>{STATUTS_RDV[r.statut][0]}</Badge>{r.origine === 'espace_client' && <> <Badge ton="bleu">Pris en ligne par le client</Badge></>} {formatDateHeure(r.debut)} – {heure(r.fin)}</p>
         <dl className="fiche">
           <dt>Client</dt><dd>{r.nom_client}{r.telephone ? ` · ${r.telephone}` : ''}</dd>
           <dt>Avec</dt><dd>{d.membre[r.responsable]?.nom ?? 'Non attribué'}</dd>

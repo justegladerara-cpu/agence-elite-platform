@@ -17,6 +17,17 @@
    Devis accepté : le passer en commande comme d'habitude (Ventes › Devis).
 4. Le Journal de la fiche montre quand le client a ouvert l'espace et quels documents il a lus.
 
+## Ouvrir la prise de rendez-vous en ligne (lot P2)
+1. Paramètres › Modules › Espace client : cocher « Le client peut prendre rendez-vous en ligne », régler les jours, les
+   heures, la durée et le délai minimum. Le module Agenda doit être actif.
+2. Les rendez-vous pris en ligne arrivent dans l'Agenda, marqués « Pris en ligne », sans personne attribuée : ouvrir le
+   rendez-vous, attribuer la personne, puis **Confirmer**. Un rendez-vous déplacé par le client est à reconfirmer.
+3. Pour fermer un créneau (congé, réunion), y créer un rendez-vous dans l'Agenda : il n'est plus proposé.
+
+## Publier un article d'aide (lot P2)
+Support › Réponses et aide › un article d'aide › cocher « Publier aux clients ». Il apparaît dans l'onglet « Aide » de
+l'espace client. Archiver l'article le retire.
+
 ## Fermer un accès
 Fiche client › Liens d'accès › **Révoquer**. Le lien cesse de fonctionner immédiatement.
 
@@ -24,3 +35,4 @@ Fiche client › Liens d'accès › **Révoquer**. Le lien cesse de fonctionner 
 - Envoyer le lien à quelqu'un d'autre que le client : tout porteur du lien voit l'espace.
 - Partager un projet dont les tâches contiennent des informations internes : le client voit le titre des tâches.
 - Présenter l'acceptation en ligne comme une signature électronique.
+- Publier aux clients un article qui contient des procédures internes.

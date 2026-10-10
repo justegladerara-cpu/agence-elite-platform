@@ -10,7 +10,8 @@ import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader
 export const EVENEMENTS = {
   ouverture: 'A ouvert son espace', document_vu: 'A consulté un document', devis_accepte: 'A accepté un devis', devis_refuse: 'A refusé un devis',
   devis_modification: 'A demandé une modification de devis', livrable_valide: 'A validé un livrable', livrable_a_corriger: 'A demandé une correction',
-  message: 'A envoyé un message', depot: 'A déposé un fichier',
+  message: 'A envoyé un message', depot: 'A déposé un fichier', rdv_demande: 'A pris rendez-vous', rdv_confirme: 'A confirmé un rendez-vous',
+  rdv_annule: 'A annulé un rendez-vous', rdv_deplace: 'A déplacé un rendez-vous',
 };
 export const lienEspace = (jeton) => `${window.location.origin}${window.location.pathname}#/espace/${jeton}`;
 const nomContact = (c) => (c ? c.societe || c.nom : 'Contact');
