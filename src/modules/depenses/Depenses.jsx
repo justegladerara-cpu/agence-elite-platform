@@ -4,6 +4,7 @@ import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatDate, MODES_PAIEMENT } from '../../noyau/format.js';
 import { BandeauBrouillon, exporterCsv } from '../../ui/communs.jsx';
 import { useBrouillon } from '../../noyau/brouillons.js';
+import { Recadrage } from '../../ui/Recadrage.jsx';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, ModaleMotif, Onglets, Vide } from '../../ui/composants.jsx';
 
 const CATEGORIES = ['Achats de marchandises', 'Transport', 'Loyer', 'Énergie', 'Salaires', 'Téléphone et Internet', 'Entretien', 'Impôts et taxes', 'Divers'];
@@ -23,6 +24,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
   });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
+  const [aRecadrer, setARecadrer] = useState(null);
   const seuil = Number(reglages?.seuil_validation ?? 0);
   const depuisCaisse = valeurs.mode === 'especes' && valeurs.depuis_caisse && sessions.length > 0;
   // Au-dessus du seuil, une dépense hors caisse part en validation (sauf pour qui peut valider).
@@ -95,8 +97,13 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
             {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
           </select>
         </Champ>
-        <div className="article-photo">
+        {aRecadrer && (
+          <Recadrage source={aRecadrer} taille={1000} onAnnuler={() => setARecadrer(null)}
+            onValider={(image) => { setValeurs((v) => ({ ...v, justificatif: image })); setARecadrer(null); }} />
+        )}
+        <div className="article-photo" hidden={Boolean(aRecadrer)}>
           {valeurs.justificatif && <img className="vignette grande" src={valeurs.justificatif} alt="Justificatif" />}
+          {valeurs.justificatif && <Bouton type="button" onClick={() => setARecadrer(valeurs.justificatif)}>Recadrer</Bouton>}
           <label className="bouton secondaire">
             <input
               type="file"
@@ -105,10 +112,13 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
               hidden
               onChange={async (e) => {
                 const fichier = e.target.files?.[0];
+                e.target.value = '';
                 if (!fichier) return;
                 try {
-                  const image = await lireImageReduite(fichier, 1000);
-                  setValeurs((v) => ({ ...v, justificatif: image }));
+                  // Photo réduite à 2000 px pour le recadrage ; l'image gardée fait 1000 px au plus.
+                  const [image, reduite] = await Promise.all([lireImageReduite(fichier, 2000), lireImageReduite(fichier, 1000)]);
+                  setValeurs((v) => ({ ...v, justificatif: reduite }));
+                  setARecadrer(image);
                 } catch (err) {
                   setErreur(err.message);
                 }

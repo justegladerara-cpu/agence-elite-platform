@@ -3,7 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDonnees, useEspace } from '../noyau/espace.jsx';
 import { formatDate, formatDateHeure } from '../noyau/format.js';
-import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, Modale, ModaleMotif } from './composants.jsx';
+import { envoyerAvecReprise } from '../noyau/envoi.js';
+import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, lireImageReduite, Modale, ModaleMotif } from './composants.jsx';
+import { Recadrage } from './Recadrage.jsx';
 
 export const TAILLE_MAX_FICHIER = 3 * 1024 * 1024;
 export const TYPES_ACCEPTES = 'image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx,.pptx';
@@ -85,18 +87,34 @@ function AjoutPiece({ objetType, objetId, categories = [], confidentialite, onFe
   const [confidentiel, setConfidentiel] = useState(false);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
+  const [reprise, setReprise] = useState('');
+  const [recadree, setRecadree] = useState(null);
+  const [aRecadrer, setARecadrer] = useState(null);
+  const annulation = useRef(null);
+  const image = fichier?.type?.startsWith('image/');
   const envoyer = async (e) => {
     e.preventDefault();
     setChargement(true);
     setErreur('');
+    setReprise('');
+    annulation.current = new AbortController();
     try {
-      const contenu = await lireFichier(fichier);
-      await api.rpc('ajouter_piece_jointe', {
+      const contenu = recadree ?? await lireFichier(fichier);
+      const base = nom.trim() || fichier.name;
+      const nomFinal = recadree ? `${base.replace(/\.(png|gif|webp|jpe?g)$/i, '')}.jpg` : base;
+      // Pièces du même nom déjà là avant l'envoi : après une coupure, une pièce nouvelle de ce nom veut dire « déjà reçu ».
+      const avant = new Set((await api.lire('pieces_jointes', { eq: { objet_type: objetType, objet_id: objetId, nom: nomFinal } }).catch(() => [])).map((p) => p.id));
+      await envoyerAvecReprise(() => api.rpc('ajouter_piece_jointe', {
         p_etablissement_id: etablissement.id,
-        p_piece: { objet_type: objetType, objet_id: objetId, nom: nom.trim() || fichier.name, contenu, categorie, confidentiel },
+        p_piece: { objet_type: objetType, objet_id: objetId, nom: nomFinal, contenu, categorie, confidentiel },
+      }), {
+        signal: annulation.current.signal,
+        surAttente: (essai, total) => setReprise(`Connexion perdue : l’envoi reprendra tout seul dès le retour du réseau (essai ${essai} sur ${total}).`),
+        dejaRecu: async () => (await api.lire('pieces_jointes', { eq: { objet_type: objetType, objet_id: objetId, nom: nomFinal } })).some((p) => !avant.has(p.id)),
       });
       onAjoute();
     } catch (err) {
+      setReprise('');
       setErreur(err.message);
       setChargement(false);
     }
@@ -108,9 +126,25 @@ function AjoutPiece({ objetType, objetId, categories = [], confidentialite, onFe
           <input type="file" accept={TYPES_ACCEPTES} required onChange={(e) => {
             const f = e.target.files?.[0] ?? null;
             setFichier(f);
+            setRecadree(null);
+            setARecadrer(null);
             if (f && !nom) setNom(f.name.replace(/[<>/\\]/g, '-'));
           }} />
         </Champ>
+        {image && !aRecadrer && (
+          <div className="actions">
+            {recadree && <img className="vignette grande" src={recadree} alt="Photo recadrée" />}
+            <Bouton type="button" onClick={async () => {
+              setErreur('');
+              try {
+                setARecadrer(await lireImageReduite(fichier, 2000));
+              } catch (err) {
+                setErreur(err.message);
+              }
+            }}>{recadree ? 'Recadrer à nouveau' : 'Recadrer la photo'}</Bouton>
+          </div>
+        )}
+        {aRecadrer && <Recadrage source={aRecadrer} taille={1600} onAnnuler={() => setARecadrer(null)} onValider={(r) => { setRecadree(r); setARecadrer(null); }} />}
         <Champ libelle="Nom affiché"><input value={nom} onChange={(e) => setNom(e.target.value)} maxLength={160} /></Champ>
         <Champ libelle="Catégorie (facultatif)">
           <input list={`categories-${objetType}`} value={categorie} onChange={(e) => setCategorie(e.target.value)} maxLength={60} />
@@ -122,10 +156,11 @@ function AjoutPiece({ objetType, objetId, categories = [], confidentialite, onFe
             Confidentiel (invisible pour la personne concernée)
           </label>
         )}
+        {reprise && <p className="encart" role="status">{reprise}</p>}
         <Erreur message={erreur} />
         <div className="actions">
-          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
-          <Bouton type="submit" variante="principal" chargement={chargement} disabled={!fichier}>Ajouter</Bouton>
+          <Bouton type="button" onClick={() => { annulation.current?.abort(); onFermer(); }}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal" chargement={chargement} disabled={!fichier || Boolean(aRecadrer)}>Ajouter</Bouton>
         </div>
       </form>
     </Modale>

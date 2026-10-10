@@ -71,7 +71,23 @@ le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
   et au retour sur l'onglet ; si la version a changé : « Une nouvelle version est disponible… Recharger ». Jamais de
   rechargement imposé.
 
+## Photos et envois de fichiers (lot G2, 2026-10-10, sans migration)
+- **Recadrage** (`src/ui/Recadrage.jsx`) : la photo du justificatif d'une dépense (Nouvelle dépense › Photo du
+  justificatif, ou « Recadrer » ensuite) et une photo jointe à une fiche (Ajouter un document › « Recadrer la photo »)
+  se recadrent avant l'envoi : quatre coins à faire glisser (souris, doigt, ou flèches du clavier sur un coin), zone
+  déplaçable, « Pivoter » par quart de tour, « Tout garder ». Tout se fait sur l'appareil ; seule l'image recadrée et
+  réduite est envoyée (1000 px pour une dépense, 1600 px pour une pièce jointe, en JPEG).
+- **Reprise après coupure** (`src/noyau/envoi.js`) : une pièce jointe (Ajouter un document) et un fichier déposé par un
+  client dans son espace se renvoient tout seuls quand le réseau revient (« Connexion perdue : l'envoi reprendra tout
+  seul… », 4 essais, bouton Annuler). Avant chaque nouvel essai, l'écran vérifie que le serveur n'a pas déjà reçu le
+  fichier (réponse perdue) : pas de doublon. Une erreur de la base (type refusé, fichier trop lourd) n'est jamais
+  renvoyée.
+
 ## Limites connues
+- Pas de détection automatique des bords du document ni de redressement de perspective : le recadrage est manuel.
+- Un fichier part en un seul envoi (3 Mo au plus) : la reprise renvoie le fichier entier, pas la partie manquante.
+  La reprise ne survit pas à la fermeture de la page. L'enregistrement d'une dépense avec sa photo ne reprend pas tout
+  seul (le formulaire reste ouvert et en brouillon, la photo doit être rechoisie).
 - Pas de filtres enregistrés ni de choix des colonnes.
 - Pas d'icône d'application par client (white-label) ni de mode hors ligne.
 - La recherche de données ne couvre pas encore les documents, les commandes de la boutique ni les notes.
@@ -80,4 +96,5 @@ le fichier principal passe de 897 ko à 433 ko (build du 2026-10-09).
 ## Tests
 `tests/recherche_universelle.test.js` (droits, isolement, saisie, anonyme), `tests/confort.test.jsx` (actions, affichage,
 export, découpage du code), parcours navigateur (`palette-ecran`, `palette-donnee`, `creation-rapide`, `liste-export`,
-`theme-sombre`, `export-listes-simples`) et parcours éditeur (`scripts/parcours_editeur.cjs`, lancé en CI).
+`theme-sombre`, `export-listes-simples`, `recadrage-photo`), `tests/recadrage_envoi.test.js` (zone de recadrage,
+reprise, absence de doublon, annulation) et parcours éditeur (`scripts/parcours_editeur.cjs`, lancé en CI).

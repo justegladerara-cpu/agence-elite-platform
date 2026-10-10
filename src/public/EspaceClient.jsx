@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { enFuseau, formatDate, formatDateHeure, formatMontant, formatQuantite } from '../noyau/format.js';
+import { envoyerAvecReprise } from '../noyau/envoi.js';
 import { lireFichier, tailleLisible, telecharger, TYPES_ACCEPTES } from '../ui/communs.jsx';
 import { Badge, Bouton, Champ, Chargement, Erreur, Modale, Onglets } from '../ui/composants.jsx';
 
@@ -352,8 +353,13 @@ export function EspaceClientPublic({ donnees, jeton }) {
     setRetour('');
     try {
       const contenu = await lireFichier(fichier);
-      await donnees.rpc('portail_deposer_fichier', { p_jeton: jeton, p_nom: fichier.name.replace(/[<>/\\]/g, '_').slice(0, 160), p_contenu: contenu, p_note: null });
-      setRetour('Fichier envoyé.');
+      const nom = fichier.name.replace(/[<>/\\]/g, '_').slice(0, 160);
+      const avant = espace.depots.filter((d) => d.nom === nom).length;
+      const resultat = await envoyerAvecReprise(() => donnees.rpc('portail_deposer_fichier', { p_jeton: jeton, p_nom: nom, p_contenu: contenu, p_note: null }), {
+        surAttente: (essai, total) => setRetour(`Connexion perdue : l’envoi reprendra tout seul dès le retour du réseau (essai ${essai} sur ${total}).`),
+        dejaRecu: async () => (await donnees.rpc('portail_ouvrir', { p_jeton: jeton })).depots.filter((d) => d.nom === nom).length > avant,
+      });
+      setRetour(resultat?.dejaRecu ? 'Fichier bien reçu (après la coupure de réseau).' : 'Fichier envoyé.');
       charger();
     } catch (err) {
       setRetour(err.message);
