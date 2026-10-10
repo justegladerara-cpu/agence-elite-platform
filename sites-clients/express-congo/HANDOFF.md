@@ -86,6 +86,10 @@ Vérifié : 31 tests métier, 15 scénarios navigateur, build Next et OpenNext, 
 
 Le projet vit désormais dans `justegladerara-cpu/agence-elite-platform`, dossier `sites-clients/express-congo` (historique antérieur : dépôt `agenceelite`). Le dépôt de la plateforme est déjà relié à Cloudflare : à l’import du Worker, il apparaît directement. Les tests de la plateforme excluent `sites-clients/**` ; ceux d’Express Congo tournent dans `.github/workflows/express-congo.yml`.
 
+## Publication par GitHub Actions (10 octobre 2026)
+
+Secret `CLOUDFLARE_API_TOKEN` ajouté au dépôt de la plateforme : le job `deploy` de `.github/workflows/express-congo.yml` publie le Worker `express-congo` après chaque vérification verte sur `main`.
+
 ## Dernières vérifications
 
 `npm run check` : types, lint et **34 tests métier/intégration locaux réussis**. `npm run test:e2e` : build optimisé de démonstration et **15 scénarios navigateur réussis**, dont réception → départ → remise, accès inter-clients/inter-agences, PDF, QR et manifeste. Voir TEST_REPORT.md pour les commandes, corrections et limites.
