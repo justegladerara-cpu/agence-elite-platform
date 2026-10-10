@@ -97,6 +97,23 @@ jobs:
           else
             openssl rand -base64 48 | tr -d '\n' | npx wrangler secret put WHATSAPP_KEY
           fi
+      # Contrôle en ligne après publication : pages, jeu de démonstration et suivi en direct.
+      - name: Vérification en ligne
+        if: steps.jeton.outputs.present == 'true'
+        env:
+          SITE: https://express-congo.justegladerara.workers.dev
+        run: |
+          sleep 15
+          curl -fsS --retry 5 --retry-delay 5 "$SITE/" | grep -q "De Paris"
+          sample=$(curl -fsS --retry 5 --retry-delay 5 "$SITE/api/suivi/")
+          echo "Dossier de démonstration en direct : $(echo "$sample" | node -pe 'JSON.parse(require("fs").readFileSync(0)).reference')"
+          ref=$(echo "$sample" | node -pe 'JSON.parse(require("fs").readFileSync(0)).reference')
+          code=$(echo "$sample" | node -pe 'JSON.parse(require("fs").readFileSync(0)).code')
+          curl -fsS -X POST "$SITE/api/suivi/" -H "Origin: $SITE" -H "Content-Type: application/json" \
+            -d "{\"reference\":\"$ref\",\"code\":\"$code\",\"live\":true}" | grep -q '"live":true'
+          curl -fsS -o /dev/null -w "Espace de gestion : %{http_code}\n" "$SITE/demo/"
+          curl -fsS -o /dev/null -w "Demande de devis : %{http_code}\n" "$SITE/devis/"
+          echo "Production vérifiée."
       - name: Publication sautée
         if: steps.jeton.outputs.present != 'true'
         working-directory: .
