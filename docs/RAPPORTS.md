@@ -27,7 +27,17 @@ lisible par l'utilisateur ; sinon elle vaut `null` et l'onglet n'apparaît pas.
 soldée (fonction interne `impayes_echus`). Fonctions internes non appelables depuis l'interface : `nom_membre`,
 `impayes_echus`, `ventes_rapport`.
 
+## Trésorerie prévue (lot E2, `prevision_tresorerie`, droit `rapports.pilotage`)
+Onglet « Trésorerie prévue » du Pilotage (lien direct `#/pilotage?vue=tresorerie`). À partir de la trésorerie saisie
+pour aujourd'hui, semaine par semaine (1 à 52) : entrées attendues (factures émises non soldées, à leur échéance ou par
+échéancier ; échéances des abonnements actifs) et sorties (reste à payer des commandes d'achat envoyées ou reçues ;
+dépenses courantes = moyenne des 90 derniers jours). Une échéance passée compte pour la semaine en cours. Trois
+scénarios : prudent (70 % encaissé, 30 jours de retard, dépenses 110 %), central (90 %, 10 j, 100 %), optimiste
+(100 %, 0 j, 95 %), réglables (bornes 0–100 %, 0–180 j, 0–200 %). Chaque source ne compte que si son module est actif.
+Lecture seule : rien n'est enregistré.
+
 ## Limites connues
+- Trésorerie prévue : les ventes au comptoir à venir, la paie et les impôts ne sont pas prévus ; la trésorerie de départ est saisie à la main.
 - La marge ne compte que le coût d'achat des articles : pas de coût du temps de l'équipe, pas de frais généraux.
   Le « chiffre par heure » rapporte le chiffre de la période aux heures saisies sur la même période.
 - Une vente sans client identifié (ticket de caisse anonyme) n'entre pas dans la rentabilité client ni par canal.

@@ -80,7 +80,40 @@ créées par d'autres modules (abonnements, hôtel, agenda, projets) quand il es
 Limites connues : le trop-perçu n'entre en caisse et en comptabilité qu'au moment où le crédit est **utilisé** sur
 une facture (paiement au même mode) ; le remboursement d'un crédit se fait hors plateforme et n'est ni en caisse ni
 en comptabilité ; le relevé ne montre pas les avoirs comme lignes (une facture annulée par avoir disparaît du relevé
-avec ses paiements) ; une seule devise par établissement (lignes 19 et 97 de la demande, lot E2).
+avec ses paiements).
+
+## Devise du client et taux de change (lot E2, migration `20261010000121_devise_rapprochement_prevision.sql`)
+- **Taux** (`taux_change`, onglet « Taux de change ») : devise ISO à 3 lettres, date, valeur d'une unité dans la devise
+  de l'établissement, source. Saisie par `enregistrer_taux_change` (droit `facturation.gerer`) ; aucune modification ni
+  suppression (une correction = une nouvelle saisie) ; lecture avec `facturation.lire`.
+- **Devise d'un document** (`definir_devise_document`, menu ⋯ « Devise du client… ») : seulement avant l'émission
+  (brouillon ou devis envoyé). Le taux retenu (le plus récent à la date du document, ou celui choisi) est figé dans
+  `devise_document`, `taux_change_id`, `taux_document`, et repris par la facture née du devis, la nouvelle version et
+  l'avoir (déclencheur `heriter_devise_document`). Affichage « Soit … » sur la feuille, à l'impression et dans
+  l'espace client (`portail_ouvrir` renvoie `devise_document`, `taux_document`, `taux_jour`).
+- Le montant compté reste dans la devise de l'établissement : ventes, paiements, rapports et comptabilité ne changent
+  pas. La contre-valeur est une information pour le client.
+
+Limites connues (devise) : les paiements se saisissent dans la devise de l'établissement (un client qui paie en devise
+est converti à la main) ; pas d'écart de change calculé ; pas de récupération automatique des taux.
+
+## Rapprochement des relevés (lot E2, page « Rapprochement », module Paiements, droit `paiements.rapprocher`)
+- Droit donné aux rôles gérant, responsable et comptable. Aucune connexion bancaire : le relevé (CSV de la banque ou de
+  l'opérateur Mobile Money) est lu dans le navigateur (`src/modules/paiements/lireReleve.js` : séparateur ; , ou
+  tabulation, montant signé ou débit / crédit, dates AAAA-MM-JJ, JJ/MM/AAAA ou MM/JJ/AAAA) puis envoyé à
+  `importer_releve` (2000 lignes au plus ; une ligne invalide refuse tout l'import ; empreinte par compte, date,
+  montant, libellé, référence et rang : réimporter le même fichier n'ajoute rien).
+- `rapprochement` : lignes à rapprocher avec jusqu'à 5 propositions (même montant, hors espèces, à 10 jours près ;
+  paiements reçus pour une entrée, paiements fournisseurs et dépenses pour une sortie ; score 100 si la référence ou
+  le numéro est retrouvé dans le libellé), paiements reçus hors espèces des 60 derniers jours sans ligne de relevé,
+  total des lignes par compte, 100 dernières lignes traitées.
+- `rapprocher_ligne_releve` (montants identiques exigés ; un mouvement ne se rapproche qu'une fois),
+  `traiter_ligne_releve` (`ignorer` avec une raison, `defaire`). Lignes de `releve_lignes` jamais supprimées, tout
+  est tracé dans le journal.
+
+Limites connues (rapprochement) : pas de rapprochement d'un paiement en plusieurs lignes ni de plusieurs paiements
+en une ligne ; le total par compte est la somme des lignes importées, pas le solde réel de la banque ; les espèces ne
+se rapprochent pas (elles passent par la clôture de caisse).
 
 ## Pas encore fait
 Avoir partiel (retour d'une partie seulement), facture d'acompte séparée, factures récurrentes (voir module Abonnements),
@@ -88,5 +121,5 @@ envoi par e-mail depuis la plateforme (pas de service d'envoi configuré), relan
 (les relances se préparent à la main depuis l'onglet Retards).
 
 ## Tests
-`tests/facturation.test.js` (12 tests : calculs, cycle devis, émission, stock, numérotation, figement, paiements,
+`tests/devise_rapprochement_prevision.test.js` (devise, taux, rapprochement, prévision), `tests/facturation.test.js` (12 tests : calculs, cycle devis, émission, stock, numérotation, figement, paiements,
 avoir, isolation, droits, anonyme), démo `supabase/demo/modules_demo.sql`, parcours écran `tests/noyau.test.jsx`.

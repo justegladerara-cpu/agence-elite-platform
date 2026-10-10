@@ -123,3 +123,11 @@ export function repartirEcheances(total, n, premiere) {
     return { date_echeance: d.toISOString().slice(0, 10), montant: String((i === n - 1 ? t - part * (n - 1) : part) / 100), libelle: i === 0 && n > 1 ? 'Acompte' : i === n - 1 && n > 1 ? 'Solde' : '' };
   });
 }
+
+// Contre-valeur d'un montant dans la devise du client : le taux est le prix d'une unité de cette devise dans la devise
+// de l'établissement (figé sur le document). La comptabilité reste dans la devise de l'établissement.
+export function contreValeur(montant, taux) {
+  const t = Number(taux);
+  if (!(t > 0)) return null;
+  return Math.round((Number(montant ?? 0) / t) * 100) / 100;
+}

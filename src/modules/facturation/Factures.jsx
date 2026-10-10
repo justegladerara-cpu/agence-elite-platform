@@ -9,9 +9,10 @@ import DocumentVente from './Document.jsx';
 import EditeurDocument from './Editeur.jsx';
 import BalanceAgee from './BalanceAgee.jsx';
 import ReleveClient from './Releve.jsx';
+import TauxChange from './TauxChange.jsx';
 
-const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs'], ['retards', 'Retards'], ['releve', 'Relevé client']];
-const SANS_COMPTE = ['retards', 'releve'];
+const ONGLETS = [['facture', 'Factures'], ['devis', 'Devis'], ['avoir', 'Avoirs'], ['retards', 'Retards'], ['releve', 'Relevé client'], ['taux', 'Taux de change']];
+const SANS_COMPTE = ['retards', 'releve', 'taux'];
 
 function Liste({ naviguer }) {
   const { api, etablissement, peut, montant } = useEspace();
@@ -76,6 +77,7 @@ function Liste({ naviguer }) {
           </div>
           <Tabs onglets={ONGLETS.map(([k, l]) => [k, l, SANS_COMPTE.includes(k) ? undefined : donnees.documents.filter((d) => d.type === k).length])} actif={onglet} onChange={setOnglet} />
           {onglet === 'retards' && <BalanceAgee documents={donnees.documents} ventes={donnees.vente} contacts={donnees.contact} aujourdhui={aujourdhui} naviguer={naviguer} contestees={donnees.contestees} />}
+          {onglet === 'taux' && <TauxChange />}
           {onglet === 'releve' && <ReleveClient contacts={donnees.contact} documents={donnees.documents} aujourdhui={aujourdhui} />}
           {periode && (
             <div>

@@ -320,6 +320,12 @@ function Fiche({ d, devise, jeton, donnees, onFait }) {
           </table>
         </div>
         <p className="nombre">Total HT {montant(d.total_ht)}{Number(d.total_tva) > 0 ? ` · TVA ${montant(d.total_tva)}` : ''} · <strong>Total {montant(d.total_ttc)}</strong></p>
+        {d.devise_document && Number(d.taux_document) > 0 && (
+          <p className="nombre texte-doux">
+            Soit {formatMontant(Math.round((Number(d.total_ttc) / Number(d.taux_document)) * 100) / 100, d.devise_document)} (1 {d.devise_document} = {montant(d.taux_document)}
+            {d.taux_jour ? ` au ${formatDate(d.taux_jour)}` : ''}). Le montant à régler est le total en {devise}.
+          </p>
+        )}
         {d.reste != null && Number(d.reste) > 0 && <p><strong>Reste à payer : {montant(d.reste)}</strong></p>}
         {d.notes && <p>{d.notes}</p>}
         {d.conditions && <p className="texte-doux"><strong>Conditions :</strong> {d.conditions}</p>}

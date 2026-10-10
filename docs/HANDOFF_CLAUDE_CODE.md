@@ -744,9 +744,10 @@ Bruit connu : « Workers Builds » échoue sur les branches de PR (le site est p
 ## 45 quater. DEMANDE DES 150 : AVANCEMENT (2026-10-10)
 
 Suivi lot par lot dans le tableau « Bilan » de `docs/AMELIORATIONS/DEMANDE_150_2026-10-09.md` (PR, migration, statut).
-Lots A à H, P, P2 et G2 fusionnés et vérifiés en production (migrations `20261010000111` à `20261010000119` ; G et
-G2 sans migration). Lot H2 (propositions types du CRM, parrainage, bilan de collaboration, maintenances annoncées,
-migration `20261010000120`, SOP 73) en cours. Restent : E2, F2. Lignes 66 et 67 bloquées (aucun canal d'envoi).
+Lots A à H, P, P2, G2 et H2 fusionnés et vérifiés en production (migrations `20261010000111` à `20261010000120` ;
+G et G2 sans migration). Lot E2 (devise du client et taux de change, rapprochement des relevés, trésorerie prévue,
+migration `20261010000121`, SOP 74) en cours. Reste : F2 (attend Juste pour l'authentification de production).
+Lignes 66 et 67 bloquées (aucun canal d'envoi).
 
 ## 46–47. Prompt pour la nouvelle session
 
