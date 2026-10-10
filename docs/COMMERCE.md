@@ -97,3 +97,8 @@ tiroir d'une caisse ouverte n'est pas concernée (l'argent est déjà sorti, le 
 
 Limites connues : un seul niveau de validation et un seul seuil par établissement (pas par catégorie) ; une
 demande refusée ne se modifie pas, on en refait une.
+
+## Données personnelles (lot F)
+Sur la fiche d'un contact, le gérant voit **Exporter ses données** (fichier JSON de tout ce qui le concerne) et
+**Anonymiser** (sur demande de la personne, irréversible, refusé tant que quelque chose est en cours avec elle).
+Détail et limites : `docs/SECURITE.md` (section lot F) et SOP 69.

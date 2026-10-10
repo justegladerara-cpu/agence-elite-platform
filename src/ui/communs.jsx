@@ -134,11 +134,94 @@ function AjoutPiece({ objetType, objetId, categories = [], confidentialite, onFe
 
 // Liste des pièces d'un objet. peutAjouter : l'écran ne propose l'ajout qu'aux personnes autorisées
 // (la base vérifie de toute façon). pieces : liste fournie (ex. espace employé), sinon lue par RLS.
+const DUREES_LIEN = [[24, '24 heures'], [72, '3 jours'], [168, '7 jours'], [720, '30 jours'], [1, '1 heure']];
+
+// Lien d'accès sans compte à un document, valable une durée choisie ; révocable. Le lien n'est montré qu'une fois.
+export function ModalePartage({ piece, onFermer }) {
+  const { api } = useEspace();
+  const [duree, setDuree] = useState(24);
+  const [cree, setCree] = useState(null);
+  const [copie, setCopie] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const { donnees: liens, recharger } = useDonnees(
+    () => api.lire('liens_partage', { eq: { piece_jointe_id: piece.id }, ordre: ['cree_le', 'desc'] }).catch(() => []),
+    [piece.id]
+  );
+  const adresse = cree ? `${window.location.origin}${window.location.pathname}#/partage/${cree.jeton}` : '';
+  const creer = async () => {
+    setErreur('');
+    try {
+      setCree(await api.rpc('creer_lien_partage', { p_piece_id: piece.id, p_duree_heures: Number(duree) }));
+      setCopie(false);
+      recharger();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  const revoquer = async (id) => {
+    setErreur('');
+    try {
+      await api.rpc('revoquer_lien_partage', { p_lien_id: id });
+      if (cree?.id === id) setCree(null);
+      recharger();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  const copier = async () => {
+    try {
+      await navigator.clipboard.writeText(adresse);
+      setCopie(true);
+    } catch {
+      setCopie(false);
+    }
+  };
+  const actifs = (liens ?? []).filter((l) => !l.revoque_le && new Date(l.expire_le) > new Date());
+  return (
+    <Modale titre={`Partager « ${piece.nom} »`} onFermer={onFermer}>
+      <div className="formulaire">
+        <p className="texte-doux">Toute personne qui a le lien peut ouvrir ce document, sans compte, jusqu’à l’expiration. Envoyez-le seulement à la bonne personne.</p>
+        <Champ libelle="Valable pendant">
+          <select value={duree} onChange={(e) => setDuree(e.target.value)}>
+            {DUREES_LIEN.map(([h, l]) => <option key={h} value={h}>{l}</option>)}
+          </select>
+        </Champ>
+        <Bouton variante="principal" icone="globe" onClick={creer}>Créer le lien</Bouton>
+        {cree && (
+          <div className="encart" role="status">
+            <p>Lien valable jusqu’au {formatDateHeure(cree.expire_le)}. Copiez-le maintenant : il ne sera plus affiché.</p>
+            <input readOnly value={adresse} aria-label="Lien de partage" onFocus={(e) => e.target.select()} />
+            <div className="groupe-boutons">
+              <Bouton onClick={copier}>{copie ? 'Copié' : 'Copier le lien'}</Bouton>
+              <a className="bouton" href={`https://wa.me/?text=${encodeURIComponent(adresse)}`} target="_blank" rel="noreferrer">Envoyer par WhatsApp</a>
+            </div>
+          </div>
+        )}
+        <Erreur message={erreur} />
+        {actifs.length > 0 && (
+          <>
+            <h3>Liens actifs</h3>
+            <div className="liste-simple">
+              {actifs.map((l) => (
+                <div key={l.id} className="liste-ligne">
+                  <span>Jusqu’au {formatDateHeure(l.expire_le)}<small className="texte-doux bloc">Créé le {formatDateHeure(l.cree_le)} · ouvert {l.ouvertures} fois</small></span>
+                  <button type="button" className="lien danger" onClick={() => revoquer(l.id)}>Révoquer</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </Modale>
+  );
+}
+
 export function PiecesJointes({ objetType, objetId, peutAjouter, peutArchiver, categories, confidentialite, pieces: fournies, titre = 'Documents', onChange }) {
   const { api, etablissement, notifier } = useEspace();
   const [ajout, setAjout] = useState(false);
   const [apercu, setApercu] = useState(null);
   const [archivage, setArchivage] = useState(null);
+  const [partage, setPartage] = useState(null);
   const { donnees, erreur, recharger } = useDonnees(
     () => (fournies ? Promise.resolve(fournies) : api.lire('pieces_jointes', {
       eq: { etablissement_id: etablissement.id, objet_type: objetType, objet_id: objetId, statut: 'active' },
@@ -169,6 +252,7 @@ export function PiecesJointes({ objetType, objetId, peutAjouter, peutArchiver, c
                 <small className="texte-doux bloc">{[p.categorie, tailleLisible(p.taille), formatDate(p.ajoute_le)].filter(Boolean).join(' · ')}</small>
               </span>
               {p.confidentiel && <Badge ton="orange">Confidentiel</Badge>}
+              {peutAjouter && !p.confidentiel && <button type="button" className="lien" onClick={() => setPartage(p)}>Partager</button>}
               {peutArchiver && <button type="button" className="lien danger" onClick={() => setArchivage(p)}>Archiver</button>}
             </div>
           ))}
@@ -189,6 +273,7 @@ export function PiecesJointes({ objetType, objetId, peutAjouter, peutArchiver, c
         />
       )}
       {apercu && <ApercuPiece piece={apercu} onFermer={() => setApercu(null)} />}
+      {partage && <ModalePartage piece={partage} onFermer={() => setPartage(null)} />}
       {archivage && (
         <ModaleMotif
           titre={`Archiver « ${archivage.nom} »`}

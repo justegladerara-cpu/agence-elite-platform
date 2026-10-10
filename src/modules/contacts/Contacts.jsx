@@ -8,6 +8,7 @@ import { SOURCES } from '../crm/commun.js';
 import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
 import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
 import { AlerteSimilaires, CoordonneesConfirmees, Interlocuteurs } from './Interlocuteurs.jsx';
+import { ActionsDonneesPersonnelles } from './DonneesPersonnelles.jsx';
 
 const TYPES = { client: 'Client', prospect: 'Prospect', fournisseur: 'Fournisseur', les_deux: 'Client et fournisseur' };
 const CHAMPS = ['type', 'nom', 'societe', 'identifiant_fiscal', 'telephone', 'email', 'adresse', 'notes', 'actif'];
@@ -87,11 +88,17 @@ function FicheContact({ contact, ventes, onFermer, onModifier, onChange, navigue
       titre={contact.nom}
       onFermer={onFermer}
       large
-      pied={peut('contacts.gerer') && <Bouton onClick={onModifier}>Modifier</Bouton>}
+      pied={(
+        <>
+          <ActionsDonneesPersonnelles contact={contact} onChange={() => { onChange?.(); onFermer(); }} />
+          {peut('contacts.gerer') && !contact.anonymise_le && <Bouton onClick={onModifier}>Modifier</Bouton>}
+        </>
+      )}
     >
       <div className="fiche">
         <div className="fiche-infos">
           <Badge>{TYPES[contact.type]}</Badge>
+          {contact.anonymise_le && <Badge ton="orange">Anonymisé</Badge>}
           {contact.telephone && <span>{contact.telephone}</span>}
           {contact.email && <span>{contact.email}</span>}
           {contact.adresse && <span>{contact.adresse}</span>}

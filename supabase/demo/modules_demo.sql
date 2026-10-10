@@ -1428,3 +1428,25 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Données personnelles (lot F) : bon de livraison joint à la facture contestée (à partager par lien),
+-- ancien client anonymisé à sa demande. Fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; retard uuid; ancien uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  select id into retard from public.documents_vente where etablissement_id = etab and objet = 'Approvisionnement du mois dernier' and statut = 'emise';
+  if retard is null or exists (select 1 from public.anonymisations where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.ajouter_piece_jointe(etab, jsonb_build_object('objet_type', 'document_vente', 'objet_id', retard,
+    'nom', 'Bon de livraison signé.pdf', 'categorie', 'Bon de livraison', 'contenu', 'data:application/pdf;base64,JVBERi0xLjQKJURlbW8K'));
+  ancien := public.enregistrer_contact(etab, jsonb_build_object('nom', 'M. Ancien Client Démo', 'type', 'client', 'telephone', '+242 05 000 00 99'));
+  perform public.anonymiser_contact(ancien, 'Demande fictive de démonstration (par téléphone)');
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;

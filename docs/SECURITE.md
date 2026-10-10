@@ -82,3 +82,28 @@ Pour avoir la permission P (`module.action`) dans l'établissement E, il faut :
 - `serveurs_restaurant` expose nom affiché ou identifiant, jamais l'e-mail.
 - Import de catalogue : `articles.gerer` sur l'établissement visé, rapport nommant l'établissement de destination,
   confirmation explicite à l'écran, événement `articles.import_catalogue` ; jamais de stock.
+
+## Données personnelles et liens de partage (lot F, 2026-10-10, migration `20261010000116_donnees_personnelles.sql`)
+- **Export d'un contact** (`exporter_donnees_contact`) : droit `contacts.donnees_personnelles` (gérant seulement). Les
+  tables exportées sont trouvées dans le catalogue (colonnes `contact_id` ou `fournisseur_id` et `etablissement_id`),
+  filtrées sur l'établissement du contact ; justificatifs exclus. Chaque export écrit un événement `contact.export`.
+- **Anonymisation** (`anonymiser_contact`) : même droit, motif obligatoire, refusée tant qu'une facture reste à payer
+  ou qu'un crédit, un abonnement, un contrat ou une location est en cours. Champs effacés : liste fermée
+  `champs_personnels(table)` (interne) ; ailleurs, `nom` ou `adresse` désignent autre chose et ne sont pas touchés.
+  Registre `anonymisations` (immuable, sans donnée personnelle).
+- **Journal d'audit** : toujours en ajout seul. Seule exception : pendant `anonymiser_contact` (réglage de
+  transaction `app.anonymisation_en_cours`, posé uniquement par cette fonction et invisible pour un client de l'API),
+  les clés personnelles de `avant`/`apres` des lignes touchées sont retirées ; table, opération, ligne, acteur et date
+  ne peuvent pas changer. Même règle pour `mkt_destinataires` (figés sauf `nom` et `coordonnee` dans ce cas).
+- **Liens de partage** (`liens_partage`) : jeton de 64 caractères hexadécimaux (deux `gen_random_uuid`), renvoyé une
+  seule fois ; seule l'empreinte SHA-256 est stockée. Création et révocation : droit d'écriture du type d'objet de la
+  pièce. Durée 1 h à 30 jours. Refusé pour un document confidentiel. `ouvrir_lien_partage` (anonyme) donne le même
+  message pour un lien inconnu, expiré, révoqué, un document archivé ou un établissement suspendu ; il compte les
+  ouvertures.
+
+Limites connues : le texte libre (notes d'activités CRM, messages de tickets, notifications déjà envoyées) peut encore
+citer la personne ; il n'est pas réécrit. Les locataires du module Immobilier (`immo_locataires`) ont leur propre
+fiche, non couverte. Les sauvegardes déjà faites gardent les anciennes données jusqu'à leur rotation. Pas de limite
+du nombre d'ouvertures d'un lien. Double authentification des administrateurs, liste des appareils connectés et
+révocation des sessions : pas encore faits (lot F2), ils dépendent des réglages d'authentification de la base de
+production, à vérifier avec Juste.
