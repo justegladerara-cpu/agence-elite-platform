@@ -456,6 +456,30 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/agenda?vue=liste');
       await p.getByText('Pris en ligne').first().waitFor({ timeout: 60000 });
     });
+    await etape('recadrage-photo', async () => {
+      // Photo fictive 400 × 300 (PNG fabriqué ici) : le justificatif d'une dépense se recadre avant l'enregistrement.
+      const zlib = require('node:zlib');
+      const crc = (b) => { let c = ~0; for (const o of b) { c ^= o; for (let k = 0; k < 8; k += 1) c = (c >>> 1) ^ (0xedb88320 & -(c & 1)); } return ~c >>> 0; };
+      const bloc = (type, data) => { const t = Buffer.from(type); const l = Buffer.alloc(4); l.writeUInt32BE(data.length); const c = Buffer.alloc(4); c.writeUInt32BE(crc(Buffer.concat([t, data]))); return Buffer.concat([l, t, data, c]); };
+      const L = 400; const H = 300; const brut = Buffer.alloc((L * 3 + 1) * H);
+      for (let y = 0; y < H; y += 1) for (let x = 0; x < L; x += 1) { const o = y * (L * 3 + 1) + 1 + x * 3; brut[o] = x % 256; brut[o + 1] = y % 256; brut[o + 2] = 160; }
+      const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(L, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
+      const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', zlib.deflateSync(brut)), bloc('IEND', Buffer.alloc(0))]);
+      await p.goto(U + '#/depenses');
+      await p.getByRole('button', { name: 'Nouvelle dépense' }).click();
+      const d = p.getByRole('dialog');
+      await d.locator('input[type=file]').setInputFiles({ name: 'ticket.png', mimeType: 'image/png', buffer: png });
+      await d.getByRole('group', { name: 'Recadrer la photo' }).waitFor();
+      await d.getByRole('button', { name: 'Coin haut gauche' }).focus();
+      for (let k = 0; k < 5; k += 1) await p.keyboard.press('ArrowRight');
+      await d.getByText('Zone gardée : 90 % × 100 % de la photo.').waitFor();
+      await d.getByRole('button', { name: 'Valider le recadrage' }).click();
+      await d.getByRole('group', { name: 'Recadrer la photo' }).waitFor({ state: 'detached' });
+      // La vignette non recadrée (400 px) est déjà affichée : attendre que l'image recadrée (360 px) la remplace.
+      await p.waitForFunction(() => document.querySelector('img[alt="Justificatif"]')?.naturalWidth === 360, null, { timeout: 15000 })
+        .catch(async () => { throw new Error('Recadrage inattendu : largeur ' + await d.getByRole('img', { name: 'Justificatif' }).evaluate((i) => i.naturalWidth)); });
+      await d.getByRole('button', { name: 'Annuler', exact: true }).last().click();
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
@@ -487,6 +511,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     erreurs.push(`PARCOURS ${erreur.message}`);
   }
   console.log(erreurs.join('\n') || 'aucune erreur console');
+  // En CI, chaque erreur devient une annotation GitHub (lisible sans télécharger le journal).
+  if (process.env.GITHUB_ACTIONS) for (const e of erreurs) console.log(`::error title=Parcours navigateur::${e.replace(/[\r\n]+/g, ' ').slice(0, 900)}`);
   await b.close();
   if (erreurs.length) process.exitCode = 1;
 })();

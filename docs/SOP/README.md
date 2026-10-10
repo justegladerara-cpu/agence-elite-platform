@@ -82,6 +82,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Gérer un contrat (depuis un devis, avenants, préavis, registre des engagements) | [68](68_GERER_UN_CONTRAT.md) | Gérant + commercial |
 | Données personnelles d’un contact (export, anonymisation) et partage de documents par lien | [69](69_DONNEES_PERSONNELLES_ET_PARTAGE.md) | Gérant + équipe |
 | Pilotage : rentabilité client et par canal, prévision pondérée, charge par personne, engagements à risque | [70](70_PILOTER_L_ACTIVITE.md) | Gérant, responsable |
+| Photographier et recadrer un document, envoi qui reprend après une coupure de réseau | [72](72_PHOTOGRAPHIER_UN_DOCUMENT.md) | Toute l'équipe |
 | Espace client : ouvrir un lien, répondre aux messages, traiter les dépôts, révoquer, rendez-vous en ligne, aide publiée | [71](71_OUVRIR_UN_ESPACE_CLIENT.md) | Gérant, responsable, commercial |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :

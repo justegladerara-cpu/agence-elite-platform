@@ -166,6 +166,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     erreurs.push(`PARCOURS ${erreur.message}`);
   }
   console.log(erreurs.join('\n') || 'aucune erreur console');
+  // En CI, chaque erreur devient une annotation GitHub (lisible sans télécharger le journal).
+  if (process.env.GITHUB_ACTIONS) for (const e of erreurs) console.log(`::error title=Parcours restaurant::${e.replace(/[\r\n]+/g, ' ').slice(0, 900)}`);
   await b.close();
   if (erreurs.length) process.exitCode = 1;
 })();

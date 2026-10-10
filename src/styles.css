@@ -3137,3 +3137,15 @@ kbd {
 .espace-client progress { width: 100%; height: 10px; }
 .espace-client .message-client { margin-left: 15%; border-color: var(--accent, #2563eb); }
 .creneaux { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Recadrage d'une photo (lot G2) */
+.recadrage-cadre { position: relative; display: inline-block; max-width: 100%; touch-action: none; user-select: none; line-height: 0; }
+.recadrage-cadre img { display: block; max-width: 100%; max-height: 60vh; }
+.recadrage-zone { position: absolute; box-shadow: 0 0 0 9999px rgb(0 0 0 / 45%); outline: 2px solid #fff; cursor: move; }
+.recadrage-cadre { overflow: hidden; }
+.recadrage-zone:focus-visible, .recadrage-poignee:focus-visible { outline: 3px solid var(--accent, #2563eb); }
+.recadrage-poignee { position: absolute; width: 24px; height: 24px; background: #fff; border: 2px solid var(--accent, #2563eb); border-radius: 50%; }
+.recadrage-poignee.hg { left: -12px; top: -12px; cursor: nwse-resize; }
+.recadrage-poignee.hd { right: -12px; top: -12px; cursor: nesw-resize; }
+.recadrage-poignee.bg { left: -12px; bottom: -12px; cursor: nesw-resize; }
+.recadrage-poignee.bd { right: -12px; bottom: -12px; cursor: nwse-resize; }

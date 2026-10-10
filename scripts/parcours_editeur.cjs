@@ -110,6 +110,8 @@ fs.mkdirSync('captures-parcours', { recursive: true });
     process.exitCode = 1;
   }
   console.log(erreurs.join('\n') || 'aucune erreur console');
+  // En CI, chaque erreur devient une annotation GitHub (lisible sans télécharger le journal).
+  if (process.env.GITHUB_ACTIONS) for (const e of erreurs) console.log(`::error title=Parcours éditeur::${e.replace(/[\r\n]+/g, ' ').slice(0, 900)}`);
   await b.close();
   if (erreurs.length) process.exitCode = 1;
 })();
