@@ -63,7 +63,9 @@ await etape('stock lu par Hub', async () => {
   return 'page Stock chargée (vue stock_hubs)';
 });
 await etape('aucune erreur dans la console', async () => {
-  const graves = erreurs.filter((e) => !/400|Invalid login|identifiants/i.test(e));
+  // Le script de mesure d'audience que Cloudflare ajoute de lui-même (Web Analytics) est bloqué par notre CSP :
+  // c'est voulu, ce n'est pas une erreur du site.
+  const graves = erreurs.filter((e) => !/400|Invalid login|identifiants/i.test(e) && !/static\.cloudflareinsights\.com/.test(e));
   if (graves.length) throw new Error(graves.slice(0, 3).join(' | '));
 });
 await navigateur.close();
