@@ -1,0 +1,45 @@
+/* Reçu : envoi WhatsApp et « Oups, annuler » (gros boutons, utilisables au téléphone). */
+.modale footer:has(.bouton-whatsapp) {
+  flex-wrap: wrap;
+}
+
+.modale footer .bouton-whatsapp {
+  border-color: #25d366;
+  color: #128c4a;
+}
+
+.modale footer:has(.bouton-whatsapp) .bouton {
+  min-height: 48px;
+}
+
+.annulation-rapide {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--rouge);
+  border-radius: var(--rayon);
+  background: var(--rouge-doux);
+}
+
+.annulation-rapide p {
+  margin: 0;
+}
+
+.annulation-rapide .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.annulation-rapide .bouton {
+  min-height: 48px;
+  flex: 1 1 180px;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .modale footer:has(.bouton-whatsapp) .bouton {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

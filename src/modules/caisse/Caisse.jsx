@@ -1,8 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, Erreur, Icone, Modale, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
+import {
+  arrondirQuantite, classerFavoris, compterVente, enregistrerFavoris, estVenteAuPoids, FRACTIONS, lireFavoris, MIN_FAVORIS_AUTO,
+  quantitePourMontant,
+} from './poids.js';
+import './caisse.css';
+
+// Puce « Favoris » : valeur spéciale du filtre de catégorie.
+const FAVORIS = '__favoris__';
 
 const COULEURS = ['#1F6FEB', '#0E9F6E', '#C2410C', '#7C3AED', '#B91C1C', '#0F766E', '#A16207', '#BE185D'];
 
@@ -72,8 +80,62 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0 }) {
   );
 }
 
-export function ModalePaiement({ total, contacts, contactId, onContact, onValider, onFermer, libelleRetour = 'Retour au panier' }) {
-  const { montant, devise } = useEspace();
+// Nouveau client en deux secondes : un numéro de téléphone suffit (le nom est facultatif).
+// enregistrer_contact vérifie contacts.gerer dans la base ; le bouton n'est montré qu'à qui a ce droit.
+export function ClientRapide({ onCree }) {
+  const { api, etablissement } = useEspace();
+  const [ouvert, setOuvert] = useState(false);
+  const [telephone, setTelephone] = useState('');
+  const [nom, setNom] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [enCours, setEnCours] = useState(false);
+  if (!ouvert) {
+    return <Bouton icone="plus" className="bouton secondaire client-rapide-ouvrir" onClick={() => setOuvert(true)}>Nouveau client</Bouton>;
+  }
+  const creer = async () => {
+    const tel = telephone.trim();
+    if (tel.replace(/\D/g, '').length < 6) {
+      setErreur('Tapez le numéro de téléphone du client.');
+      return;
+    }
+    setEnCours(true);
+    setErreur('');
+    try {
+      const contact = { type: 'client', nom: nom.trim() || tel, telephone: tel };
+      const id = await api.rpc('enregistrer_contact', { p_etablissement_id: etablissement.id, p_contact: contact });
+      onCree({ id, ...contact });
+      setOuvert(false);
+      setTelephone('');
+      setNom('');
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnCours(false);
+    }
+  };
+  return (
+    <div className="client-rapide">
+      <strong>Nouveau client</strong>
+      <Champ libelle="Téléphone">
+        <input type="tel" inputMode="tel" value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="06 123 45 67" autoFocus />
+      </Champ>
+      <Champ libelle="Nom (facultatif)" aide="Sans nom, le numéro sert de nom.">
+        <input value={nom} maxLength={120} onChange={(e) => setNom(e.target.value)} />
+      </Champ>
+      <Erreur message={erreur} />
+      <div className="actions">
+        <Bouton onClick={() => setOuvert(false)} disabled={enCours}>Annuler</Bouton>
+        <Bouton variante="principal" onClick={creer} chargement={enCours}>Créer et choisir</Bouton>
+      </div>
+    </div>
+  );
+}
+
+export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier' }) {
+  const { montant, devise, peut } = useEspace();
+  // Clients créés dans cette fenêtre : visibles tout de suite, avant le rechargement des données.
+  const [nouveaux, setNouveaux] = useState([]);
+  const tousContacts = [...contacts, ...nouveaux.filter((n) => !contacts.some((c) => c.id === n.id))];
   const [paiements, setPaiements] = useState([{ mode: 'especes', montant: String(total), reference: '' }]);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
@@ -142,15 +204,26 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onValide
       <div className="paiement-resume">
         <div><span>Versé</span><strong>{montant(verse)}</strong></div>
         {monnaie > 0 && <div className="vert"><span>Monnaie à rendre</span><strong>{montant(monnaie)}</strong></div>}
-        {reste > 0 && <div className="orange"><span>Reste dû (crédit)</span><strong>{montant(reste)}</strong></div>}
+        {reste > 0 && <div className="orange"><span>Il paiera plus tard (reste dû)</span><strong>{montant(reste)}</strong></div>}
       </div>
       {reste > 0 && (
-        <Champ libelle="Contact qui doit le reste" aide="Obligatoire pour une vente à crédit.">
-          <select value={contactId ?? ''} onChange={(e) => onContact(e.target.value || null)}>
-            <option value="">— Choisir —</option>
-            {contacts.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
-        </Champ>
+        <>
+          <Champ libelle="Qui paiera plus tard ?" aide="Obligatoire : choisissez le client qui doit le reste.">
+            <select value={contactId ?? ''} onChange={(e) => onContact(e.target.value || null)}>
+              <option value="">— Choisir —</option>
+              {tousContacts.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+            </select>
+          </Champ>
+          {peut('contacts.gerer') && (
+            <ClientRapide
+              onCree={(contact) => {
+                setNouveaux((liste) => [...liste, contact]);
+                onContact(contact.id);
+                onContactCree?.(contact);
+              }}
+            />
+          )}
+        </>
       )}
       <Erreur message={erreur} />
     </Modale>
@@ -175,7 +248,10 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
             <div key={l.article_id} className="panier-ligne">
               <div className="panier-libelle">
                 <strong>{a.nom}</strong>
-                <small>{montant(a.prix_vente)}{a.unite !== 'unité' ? ` / ${a.unite}` : ''}</small>
+                <small>
+                  {estVenteAuPoids(a.unite) && <span className="panier-poids">{formatQuantite(l.quantite, a.unite)} × </span>}
+                  {montant(a.prix_vente)}{a.unite !== 'unité' ? ` / ${a.unite}` : ''}
+                </small>
               </div>
               <div className="quantite">
                 <button onClick={() => onQuantite(l.article_id, l.quantite - 1)} aria-label="Moins"><Icone nom="moins" taille={14} /></button>
@@ -209,6 +285,55 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
         </Bouton>
       </div>
     </aside>
+  );
+}
+
+// « Combien ? » : article vendu au poids (kg, litre, mètre…). Gros boutons, autre poids, ou « pour un montant ».
+export function ModaleCombien({ article, onValider, onFermer }) {
+  const { montant } = useEspace();
+  const [autre, setAutre] = useState('');
+  const [somme, setSomme] = useState('');
+  const unite = article.unite;
+  const parMontant = quantitePourMontant(somme, article.prix_vente);
+  const autrePoids = arrondirQuantite(autre);
+  const quantite = parMontant > 0 ? parMontant : autrePoids;
+  const valider = (e) => {
+    e.preventDefault();
+    if (quantite > 0) onValider(quantite);
+  };
+  return (
+    <Modale titre="Combien ?" onFermer={onFermer}>
+      <div className="combien">
+        <p className="combien-article"><strong>{article.nom}</strong> · {montant(article.prix_vente)} / {unite}</p>
+        <div className="combien-boutons">
+          {FRACTIONS.map((f) => (
+            <button key={f.valeur} type="button" onClick={() => onValider(f.valeur)}>
+              <strong>{f.libelle} {unite}</strong>
+              <small>{montant(article.prix_vente * f.valeur)}</small>
+            </button>
+          ))}
+        </div>
+        <form className="formulaire" onSubmit={valider}>
+          <Champ libelle={`Autre poids (en ${unite})`}>
+            <input type="number" min="0" step="any" inputMode="decimal" value={autre}
+              onChange={(e) => { setAutre(e.target.value); setSomme(''); }} placeholder="Ex. 1,5" />
+          </Champ>
+          <Champ libelle="Pour un montant" aide="Le client veut pour une somme précise : la quantité se calcule toute seule.">
+            <input type="number" min="0" step="any" inputMode="decimal" value={somme}
+              onChange={(e) => { setSomme(e.target.value); setAutre(''); }} placeholder="Ex. 500" />
+          </Champ>
+          {quantite > 0 && (
+            <p className="combien-resultat" role="status">
+              = <strong>{formatQuantite(quantite, unite)}</strong> · {montant(article.prix_vente * quantite)}
+            </p>
+          )}
+          <div className="actions">
+            <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+            <Bouton type="submit" variante="principal" disabled={!(quantite > 0)}>Ajouter au panier</Bouton>
+          </div>
+        </form>
+      </div>
+    </Modale>
   );
 }
 
@@ -307,7 +432,20 @@ export default function Caisse({ naviguer }) {
   const [remise, setRemise] = useState('');
   const [contactId, setContactId] = useState(null);
   const [recherche, setRecherche] = useState('');
-  const [categorie, setCategorie] = useState('');
+  // null = choix automatique : « Favoris » s'il y en a assez, sinon « Tout ».
+  const [categorie, setCategorie] = useState(null);
+  const [combien, setCombien] = useState(null);
+  // Favoris : quantités vendues par article, retenues sur cet appareil pour cet établissement.
+  const [compteurs, setCompteurs] = useState(() => lireFavoris(etab));
+  useEffect(() => {
+    setCompteurs(lireFavoris(etab));
+    setCategorie(null);
+  }, [etab]);
+  const compterFavoris = (lignesVendues, sens) => {
+    const suivant = compterVente(lireFavoris(etab), lignesVendues, sens);
+    enregistrerFavoris(etab, suivant);
+    setCompteurs(suivant);
+  };
   const [paiement, setPaiement] = useState(null);
   const [recu, setRecu] = useState(null);
   const [panierMobile, setPanierMobile] = useState(false);
@@ -339,17 +477,27 @@ export default function Caisse({ naviguer }) {
   }
 
   const texte = recherche.trim().toLowerCase();
-  const visibles = donnees.articles.filter((a) => (!categorie || a.categorie_id === categorie)
-    && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.code_barres ?? '') === texte));
+  const favoris = classerFavoris(compteurs, donnees.articles.map((a) => a.id));
+  const filtre = categorie === FAVORIS && !favoris.length ? '' : categorie ?? (favoris.length >= MIN_FAVORIS_AUTO ? FAVORIS : '');
+  // Une recherche tapée cherche toujours dans tout le catalogue, même depuis « Favoris ».
+  const visibles = filtre === FAVORIS && !texte
+    ? favoris.map((id) => parId[id])
+    : donnees.articles.filter((a) => (!filtre || filtre === FAVORIS || a.categorie_id === filtre)
+      && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.code_barres ?? '') === texte));
   const pdvNom = donnees.pointsDeVente.find((p) => p.id === session.point_de_vente_id)?.nom;
   const nombreArticles = lignes.reduce((s, l) => s + l.quantite, 0);
 
-  const ajouter = (article) => {
+  const ajouter = (article, quantite = 1) => {
     setLignes((liste) => {
       const existante = liste.find((l) => l.article_id === article.id);
-      if (existante) return liste.map((l) => (l.article_id === article.id ? { ...l, quantite: l.quantite + 1 } : l));
-      return [...liste, { article_id: article.id, quantite: 1 }];
+      if (existante) return liste.map((l) => (l.article_id === article.id ? { ...l, quantite: arrondirQuantite(l.quantite + quantite) } : l));
+      return [...liste, { article_id: article.id, quantite }];
     });
+  };
+  // Article au poids : on demande « Combien ? » ; article à l'unité : une touche = un de plus.
+  const toucher = (article) => {
+    if (estVenteAuPoids(article.unite)) setCombien(article);
+    else ajouter(article);
   };
   const changerQuantite = (id, quantite) => {
     setLignes((liste) => (quantite > 0 ? liste.map((l) => (l.article_id === id ? { ...l, quantite } : l)) : liste.filter((l) => l.article_id !== id)));
@@ -379,10 +527,12 @@ export default function Caisse({ naviguer }) {
       }
       throw err;
     }
+    const lignesVendues = lignes;
+    compterFavoris(lignesVendues, 1);
     setPaiement(null);
     setPanierMobile(false);
     vider();
-    setRecu(resultat);
+    setRecu({ ...resultat, lignesVendues });
     notifier(`Vente ${resultat.numero} enregistrée`);
     recharger();
   };
@@ -416,7 +566,7 @@ export default function Caisse({ naviguer }) {
     if (e.key !== 'Enter') return;
     const exact = donnees.articles.find((a) => a.code_barres === recherche.trim() || a.reference === recherche.trim());
     if (exact) {
-      ajouter(exact);
+      toucher(exact);
       setRecherche('');
     }
   };
@@ -441,9 +591,12 @@ export default function Caisse({ naviguer }) {
           <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, référence ou code-barres" />
         </div>
         <div className="puces">
-          <button className={!categorie ? 'actif' : ''} onClick={() => setCategorie('')}>Tout</button>
+          {favoris.length > 0 && (
+            <button className={filtre === FAVORIS ? 'actif' : ''} onClick={() => setCategorie(FAVORIS)}>★ Favoris</button>
+          )}
+          <button className={!filtre ? 'actif' : ''} onClick={() => setCategorie('')}>Tout</button>
           {donnees.categories.map((c) => (
-            <button key={c.id} className={categorie === c.id ? 'actif' : ''} onClick={() => setCategorie(c.id)}>{c.nom}</button>
+            <button key={c.id} className={filtre === c.id ? 'actif' : ''} onClick={() => setCategorie(c.id)}>{c.nom}</button>
           ))}
         </div>
         {donnees.articles.length === 0 && (
@@ -455,14 +608,14 @@ export default function Caisse({ naviguer }) {
             const dansPanier = lignes.find((l) => l.article_id === a.id)?.quantite ?? 0;
             const epuise = a.suivi_stock && quantite - dansPanier <= 0;
             return (
-              <button key={a.id} className={`tuile-article ${epuise ? 'epuise' : ''}`} onClick={() => ajouter(a)}>
+              <button key={a.id} className={`tuile-article ${epuise ? 'epuise' : ''}`} onClick={() => toucher(a)}>
                 <VignetteArticle article={a} />
                 <span className="tuile-nom">{a.nom}</span>
                 <strong className="tuile-prix">{montant(a.prix_vente)}</strong>
                 {a.suivi_stock && (
                   <span className={`tuile-stock ${quantite <= a.stock_minimum ? 'bas' : ''}`}>{formatQuantite(quantite - dansPanier, a.unite)} en stock</span>
                 )}
-                {dansPanier > 0 && <span className="tuile-compte">{formatQuantite(dansPanier)}</span>}
+                {dansPanier > 0 && <span className="tuile-compte">{formatQuantite(dansPanier, estVenteAuPoids(a.unite) ? a.unite : undefined)}</span>}
               </button>
             );
           })}
@@ -498,6 +651,7 @@ export default function Caisse({ naviguer }) {
           contacts={donnees.contacts}
           contactId={contactId}
           onContact={setContactId}
+          onContactCree={() => recharger()}
           onValider={validerVente}
           onFermer={() => setPaiement(null)}
         />
@@ -508,6 +662,20 @@ export default function Caisse({ naviguer }) {
           monnaie={recu.monnaie}
           onFermer={() => setRecu(null)}
           piedSupplementaire={<Bouton onClick={() => setRecu(null)}>Nouvelle vente</Bouton>}
+          annulerRapide={peut('ventes.annuler') ? async () => {
+            await api.rpc('annuler_vente', { p_vente_id: recu.vente_id, p_motif: 'Erreur de saisie, annulée juste après la vente' });
+            compterFavoris(recu.lignesVendues, -1);
+            notifier(`Vente ${recu.numero} annulée`);
+            setRecu(null);
+            recharger();
+          } : null}
+        />
+      )}
+      {combien && (
+        <ModaleCombien
+          article={combien}
+          onValider={(quantite) => { ajouter(combien, quantite); setCombien(null); }}
+          onFermer={() => setCombien(null)}
         />
       )}
     </div>
