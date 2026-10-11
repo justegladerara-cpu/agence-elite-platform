@@ -10,6 +10,8 @@ import { BadgePaiement, DetailVente } from '../ventes/Ventes.jsx';
 import { RendezVousLies } from '../agenda/RendezVousLies.jsx';
 import { AlerteSimilaires, CoordonneesConfirmees, Interlocuteurs } from './Interlocuteurs.jsx';
 import { ActionsDonneesPersonnelles } from './DonneesPersonnelles.jsx';
+import { MessageGroupe } from './MessageGroupe.jsx';
+import { nomOuTelephone } from './envoiGroupe.js';
 
 const TYPES = { client: 'Client', prospect: 'Prospect', fournisseur: 'Fournisseur', les_deux: 'Client et fournisseur' };
 const CHAMPS = ['type', 'nom', 'societe', 'identifiant_fiscal', 'telephone', 'email', 'adresse', 'notes', 'actif'];
@@ -27,10 +29,16 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
   const brouillon = useBrouillon(`contact:${contact?.id ?? 'nouveau'}`, valeurs, setValeurs, { version: contact?.modifie_le ?? null });
   const enregistrer = async (e) => {
     e.preventDefault();
+    // Un client peut n'avoir qu'un numéro : le nom reprend alors le téléphone (modifiable plus tard).
+    const nom = nomOuTelephone(valeurs);
+    if (!nom) {
+      setErreur('Indiquez au moins un nom ou un numéro de téléphone.');
+      return;
+    }
     setChargement(true);
     setErreur('');
     try {
-      const p = Object.fromEntries([...CHAMPS, ...(crm ? ['source'] : [])].map((k) => [k, valeurs[k]]));
+      const p = { ...Object.fromEntries([...CHAMPS, ...(crm ? ['source'] : [])].map((k) => [k, valeurs[k]])), nom };
       await api.rpc('enregistrer_contact', { p_etablissement_id: etablissement.id, p_contact: { ...p, id: contact?.id } });
       brouillon.effacer();
       onEnregistre(contact ? 'Contact modifié' : 'Contact créé');
@@ -56,7 +64,9 @@ function FormulaireContact({ contact, onFermer, onEnregistre }) {
             </select>
           </Champ>
         )}
-        <Champ libelle="Nom ou raison sociale"><input value={valeurs.nom} onChange={changer('nom')} required autoFocus /></Champ>
+        <Champ libelle={contact ? 'Nom ou raison sociale' : 'Nom (facultatif si vous mettez le téléphone)'}>
+          <input value={valeurs.nom} onChange={changer('nom')} required={Boolean(contact)} autoFocus />
+        </Champ>
         <div className="grille-champs">
           <Champ libelle="Téléphone"><input type="tel" value={valeurs.telephone} onChange={changer('telephone')} /></Champ>
           <Champ libelle="E-mail"><input type="email" value={valeurs.email} onChange={changer('email')} /></Champ>
@@ -152,6 +162,7 @@ export default function Contacts({ naviguer, sousRoute }) {
   // ?nouveau=1 : ouvre directement le formulaire de création.
   const [edition, setEdition] = useState(() => (peut('contacts.gerer') && lireParametres().get('nouveau') === '1' ? {} : null));
   const [fiche, setFiche] = useState(null);
+  const [groupe, setGroupe] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [contacts, ventes] = await Promise.all([
       api.lire('contacts', { eq: { etablissement_id: etab }, ordre: ['nom'] }),
@@ -191,6 +202,8 @@ export default function Contacts({ naviguer, sousRoute }) {
             { libelle: 'Actif', valeur: (c) => (c.actif ? 'oui' : 'non') },
           ], contacts)}>Exporter</Bouton>
         )}
+        {totalDu > 0 && moduleActif('paiements') && peut('paiements.lire') && <Bouton icone="clients" onClick={() => naviguer('qui-me-doit')}>Qui me doit ?</Bouton>}
+        {(donnees?.contacts ?? []).some((c) => c.telephone) && <Bouton icone="message" onClick={() => setGroupe(true)}>Message à plusieurs clients</Bouton>}
         {peut('contacts.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouveau contact</Bouton>}
       </EnTete>
       <div className="filtres">
@@ -234,6 +247,7 @@ export default function Contacts({ naviguer, sousRoute }) {
           naviguer={naviguer}
         />
       )}
+      {groupe && <MessageGroupe contacts={donnees.contacts} soldes={soldes} onFermer={() => setGroupe(false)} />}
       {edition && (
         <FormulaireContact
           contact={edition.contact}

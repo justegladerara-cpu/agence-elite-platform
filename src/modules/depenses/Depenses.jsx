@@ -6,6 +6,8 @@ import { BandeauBrouillon, exporterCsv } from '../../ui/communs.jsx';
 import { useBrouillon } from '../../noyau/brouillons.js';
 import { Recadrage } from '../../ui/Recadrage.jsx';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, ModaleMotif, Onglets, Vide } from '../../ui/composants.jsx';
+import { libelleDepense, motifParId, MOTIFS_DEPENSE } from './motifs.js';
+import './depenses.css';
 
 const CATEGORIES = ['Achats de marchandises', 'Transport', 'Loyer', 'Énergie', 'Salaires', 'Téléphone et Internet', 'Entretien', 'Impôts et taxes', 'Divers'];
 const PERIODES = [['mois', 'Ce mois'], ['30', '30 jours'], ['tout', 'Tout']];
@@ -16,10 +18,12 @@ function debut(periode) {
   return `${dateLocale().slice(0, 8)}01`;
 }
 
+// « J'ai payé une dépense » : le montant, un motif en un geste, la photo du reçu si on l'a, et c'est fini.
+// Date, mode de paiement, fournisseur et catégorie libre restent accessibles sous « Plus de détails ».
 function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFermer, onEnregistre }) {
   const { api, etablissement, hub, multiHub, montant } = useEspace();
   const [valeurs, setValeurs] = useState({
-    libelle: '', montant: '', categorie: 'Divers', date_depense: dateLocale(), mode: 'especes', fournisseur_id: '', justificatif: '',
+    motif: '', libelle: '', montant: '', categorie: 'Divers', date_depense: dateLocale(), mode: 'especes', fournisseur_id: '', justificatif: '',
     depuis_caisse: sessions.length > 0,
   });
   const [erreur, setErreur] = useState('');
@@ -30,18 +34,24 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
   // Au-dessus du seuil, une dépense hors caisse part en validation (sauf pour qui peut valider).
   const enValidation = seuil > 0 && !depuisCaisse && !reglages?.peut_valider && Number(valeurs.montant) >= seuil;
   const changer = (champ) => (e) => setValeurs((v) => ({ ...v, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const choisirMotif = (m) => setValeurs((v) => ({ ...v, motif: m.id, categorie: m.categorie }));
   // La photo du justificatif est trop lourde pour un brouillon : elle se reprend.
   const brouillon = useBrouillon('depense', valeurs, setValeurs, { exclure: ['justificatif', 'depuis_caisse'] });
   const enregistrer = async (e) => {
     e.preventDefault();
+    const libelle = libelleDepense(valeurs);
+    if (!libelle) {
+      setErreur('Touchez ce que vous avez payé (Loyer, Transport…) ou écrivez-le.');
+      return;
+    }
     setChargement(true);
     setErreur('');
     try {
-      const { depuis_caisse: _caisse, ...reste } = valeurs;
+      const { depuis_caisse: _caisse, motif: _motif, ...reste } = valeurs;
       if (enValidation) {
         await api.rpc('demander_depense', {
           p_etablissement_id: etablissement.id,
-          p: { ...reste, montant: Number(valeurs.montant), fournisseur_id: valeurs.fournisseur_id || null, ...(multiHub && hub ? { hub_id: hub.id } : {}) },
+          p: { ...reste, libelle, montant: Number(valeurs.montant), fournisseur_id: valeurs.fournisseur_id || null, ...(multiHub && hub ? { hub_id: hub.id } : {}) },
         });
         brouillon.effacer();
         onEnregistre('Dépense envoyée en validation');
@@ -51,6 +61,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
         p_etablissement_id: etablissement.id,
         p_depense: {
           ...reste,
+          libelle,
           montant: Number(valeurs.montant),
           fournisseur_id: valeurs.fournisseur_id || null,
           session_caisse_id: valeurs.mode === 'especes' && depuisCaisse ? sessions[0].id : null,
@@ -66,37 +77,31 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
     }
   };
   return (
-    <Modale titre="Nouvelle dépense" onFermer={onFermer}>
-      <form className="formulaire" onSubmit={enregistrer}>
+    <Modale titre="J’ai payé une dépense" onFermer={onFermer}>
+      <form className="formulaire depense-rapide" onSubmit={enregistrer}>
         <BandeauBrouillon brouillon={brouillon} />
-        <Champ libelle="Libellé"><input value={valeurs.libelle} onChange={changer('libelle')} required autoFocus placeholder="Ex. : transport de marchandises" /></Champ>
-        <div className="grille-champs">
-          <Champ libelle="Montant"><input type="number" min="0" step="any" inputMode="decimal" value={valeurs.montant} onChange={changer('montant')} required /></Champ>
-          <Champ libelle="Date"><input type="date" value={valeurs.date_depense} onChange={changer('date_depense')} required /></Champ>
-          <Champ libelle="Catégorie">
-            <input list="categories-depenses" value={valeurs.categorie} onChange={changer('categorie')} required />
-            <datalist id="categories-depenses">
-              {categories.map((c) => <option key={c} value={c} />)}
-            </datalist>
-          </Champ>
-          <Champ libelle="Payée par">
-            <select value={valeurs.mode} onChange={changer('mode')}>
-              {Object.entries(MODES_PAIEMENT).map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
-            </select>
-          </Champ>
-        </div>
+        <Champ libelle="Combien ?">
+          <input className="depense-montant" type="number" min="0" step="any" inputMode="decimal" value={valeurs.montant} onChange={changer('montant')} required autoFocus placeholder="0" />
+        </Champ>
+        <fieldset className="depense-motifs">
+          <legend>C’était pour quoi ?</legend>
+          <div className="depense-motifs-liste">
+            {MOTIFS_DEPENSE.map((m) => (
+              <button key={m.id} type="button" className={valeurs.motif === m.id ? 'actif' : ''} aria-pressed={valeurs.motif === m.id} onClick={() => choisirMotif(m)}>
+                {m.libelle}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <Champ libelle={valeurs.motif === 'autre' ? 'Précisez (conseillé)' : 'Détail (facultatif)'}>
+          <input value={valeurs.libelle} onChange={changer('libelle')} placeholder={motifParId(valeurs.motif) && valeurs.motif !== 'autre' ? `Ex. : ${motifParId(valeurs.motif).libelle} du mois` : 'Ex. : transport de marchandises'} />
+        </Champ>
         {valeurs.mode === 'especes' && sessions.length > 0 && (
           <label className="case">
             <input type="checkbox" checked={valeurs.depuis_caisse} onChange={changer('depuis_caisse')} />
             Prise dans le tiroir de la caisse ouverte (sera déduite au ticket Z)
           </label>
         )}
-        <Champ libelle="Fournisseur (facultatif)">
-          <select value={valeurs.fournisseur_id} onChange={changer('fournisseur_id')}>
-            <option value="">—</option>
-            {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-          </select>
-        </Champ>
         {aRecadrer && (
           <Recadrage source={aRecadrer} taille={1000} onAnnuler={() => setARecadrer(null)}
             onValider={(image) => { setValeurs((v) => ({ ...v, justificatif: image })); setARecadrer(null); }} />
@@ -124,9 +129,32 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
                 }
               }}
             />
-            Photo du justificatif
+            {valeurs.justificatif ? 'Changer la photo' : 'Photo du reçu (facultatif)'}
           </label>
         </div>
+        <details className="depense-details">
+          <summary>Plus de détails (date, payée par, fournisseur)</summary>
+          <div className="grille-champs">
+            <Champ libelle="Date"><input type="date" value={valeurs.date_depense} onChange={changer('date_depense')} required /></Champ>
+            <Champ libelle="Payée par">
+              <select value={valeurs.mode} onChange={changer('mode')}>
+                {Object.entries(MODES_PAIEMENT).map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
+              </select>
+            </Champ>
+            <Champ libelle="Catégorie">
+              <input list="categories-depenses" value={valeurs.categorie} onChange={changer('categorie')} required />
+              <datalist id="categories-depenses">
+                {categories.map((c) => <option key={c} value={c} />)}
+              </datalist>
+            </Champ>
+            <Champ libelle="Fournisseur (facultatif)">
+              <select value={valeurs.fournisseur_id} onChange={changer('fournisseur_id')}>
+                <option value="">—</option>
+                {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+              </select>
+            </Champ>
+          </div>
+        </details>
         {enValidation && (
           <p className="encart" role="status">
             À partir de {montant(seuil)}, une dépense hors caisse doit être validée : elle sera comptée seulement après l’accord d’un responsable.
@@ -135,7 +163,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
-          <Bouton type="submit" variante="principal" chargement={chargement}>{enValidation ? 'Envoyer en validation' : 'Enregistrer'}</Bouton>
+          <Bouton type="submit" variante="principal" chargement={chargement}>{enValidation ? 'Envoyer en validation' : 'C’est payé'}</Bouton>
         </div>
       </form>
     </Modale>
@@ -202,7 +230,7 @@ export default function Depenses() {
             { libelle: 'État', valeur: (d) => (d.statut === 'annulee' ? `Annulée : ${d.motif_annulation ?? ''}` : 'Valide') },
           ], donnees.depenses)}>Exporter</Bouton>
         )}
-        {peut('depenses.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setNouvelle(true)}>Nouvelle dépense</Bouton>}
+        {peut('depenses.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setNouvelle(true)}>J’ai payé une dépense</Bouton>}
       </EnTete>
       <div className="filtres">
         <Onglets onglets={PERIODES} actif={periode} onChange={setPeriode} />

@@ -1,0 +1,23 @@
+/* Message à plusieurs clients : liste à cocher puis un lien WhatsApp par client, pratique au doigt. */
+.envoi-groupe-liste {
+  display: grid;
+  gap: 6px;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.envoi-groupe-choix {
+  min-height: 44px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.envoi-groupe-liste .liste-ligne .bouton {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.envoi-groupe-liste .fait {
+  opacity: 0.6;
+}

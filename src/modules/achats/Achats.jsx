@@ -119,7 +119,8 @@ function Liste({ naviguer }) {
         sousTitre="Demandes, commandes fournisseurs, réceptions en stock et paiements"
         actions={(
           <>
-            {peut('achats.demander') && peut('achats.gerer') && <Bouton icone="plus" onClick={() => naviguer('achats/nouvelle-demande')}>Demande d’achat</Bouton>}
+            <Bouton icone="echeance" onClick={() => naviguer('a-qui-je-dois')}>À qui je dois ?</Bouton>
+            {peut('achats.demander') && peut('achats.gerer') &&<Bouton icone="plus" onClick={() => naviguer('achats/nouvelle-demande')}>Demande d’achat</Bouton>}
             {(peut('achats.gerer') || peut('achats.demander')) && (
               <Bouton variante="principal" icone="plus" onClick={() => naviguer(nouvelle)}>{peut('achats.gerer') ? 'Nouvelle commande' : 'Demande d’achat'}</Bouton>
             )}
@@ -153,6 +154,10 @@ function Liste({ naviguer }) {
                 { id: 'date', libelle: 'Date', tri: (c) => c.date_commande, rendu: (c) => formatDate(c.date_commande) },
                 { id: 'total', libelle: 'Total', tri: (c) => Number(c.total), rendu: (c) => montant(c.total), classe: 'nombre' },
                 { id: 'reste', libelle: 'Reste dû', tri: resteAPayer, rendu: (c) => (resteAPayer(c) > 0 ? montant(resteAPayer(c)) : '—'), classe: 'nombre' },
+                ...(onglet === 'a_payer' ? [{
+                  id: 'echeance', libelle: 'À payer avant le', tri: (c) => c.echeance ?? '9999-12-31',
+                  rendu: (c) => (c.echeance ? <span className={c.echeance < aujourdhui ? 'texte-alerte' : ''}>{formatDate(c.echeance)}</span> : '—'),
+                }] : []),
                 { id: 'etat', libelle: 'État', tri: (c) => etat(c)[0], rendu: (c) => <Badge ton={etat(c)[1]}>{etat(c)[0]}</Badge> },
               ]}
               lignes={lignes}

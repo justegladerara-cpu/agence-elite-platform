@@ -6,7 +6,8 @@ import {
   Badge, Bouton, Champ, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette,
 } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
-import { contreValeur, etatDocument, etatEcheances, ligneComptee, repartirEcheances, tauxRemise, TYPES_DOCUMENT, vrai } from './commun.js';
+import { contreValeur, etatDocument, etatEcheances, joursDeRetard, ligneComptee, messageRelance, repartirEcheances, tauxRemise, TYPES_DOCUMENT, vrai } from './commun.js';
+import { lienWhatsApp } from '../../noyau/messagesWhatsapp.js';
 
 // Rendu A4 d'un devis, d'une facture ou d'un avoir : le même à l'écran et à l'impression.
 export function FeuilleDocument({ complet }) {
@@ -405,7 +406,7 @@ function ModaleComparaison({ versions, devise, onFermer }) {
 }
 
 export default function DocumentVente({ documentId, naviguer }) {
-  const { api, peut, notifier, moduleActif } = useEspace();
+  const { api, peut, notifier, moduleActif, etablissement } = useEspace();
   const [action, setAction] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
   const { donnees: c, chargement, erreur, recharger } = useDonnees(async () => {
@@ -463,6 +464,15 @@ export default function DocumentVente({ documentId, naviguer }) {
   const disponible = (k) => Number(k.montant) - Number(k.montant_utilise) - Number(k.montant_rembourse);
   const creditsDispo = c.credits.filter((k) => k.statut === 'disponible');
   const creditsNes = c.credits.filter((k) => k.document_id === d.id);
+  // Facture en retard (et non contestée) : relance WhatsApp prête, ton doux vers J+7, plus ferme dès J+15.
+  const joursRetard = d.type === 'facture' && d.statut === 'emise' && reste > 0 && c.vente?.statut === 'validee' && d.echeance && !contestation
+    ? joursDeRetard(String(d.echeance).slice(0, 10), dateLocale()) : 0;
+  const relance = joursRetard > 0 ? lienWhatsApp(c.contact.telephone, messageRelance({
+    nom: c.contact.nom,
+    factures: [{ numero: d.numero, reste, jours: joursRetard }],
+    montant: (n) => formatMontant(n, c.devise),
+    emetteur: c.identite?.documents?.nom_commercial || etablissement.identite?.nom_commercial || etablissement.nom,
+  })) : null;
   return (
     <div className="page">
       <PageHeader
@@ -477,7 +487,9 @@ export default function DocumentVente({ documentId, naviguer }) {
               <Bouton variante="principal" onClick={() => executer('changer_statut_devis', { p_document_id: d.id, p_statut: 'envoye' }, 'Devis marqué envoyé')}>Marquer envoyé</Bouton>
             )}
             {gerer && d.type === 'devis' && ['envoye', 'accepte'].includes(d.statut) && (
-              <Bouton variante="principal" icone="facture" onClick={() => executer('convertir_devis', { p_document_id: d.id }, 'Facture créée depuis le devis', (id) => naviguer(`factures/${id}`))}>Facturer</Bouton>
+              <Bouton variante="principal" icone="facture" onClick={() => executer('convertir_devis', { p_document_id: d.id }, 'Facture créée depuis le devis', (id) => naviguer(`factures/${id}`))}>
+                {d.statut === 'envoye' ? 'Le client a accepté → facturer' : 'Facturer'}
+              </Bouton>
             )}
             {remiseAValider && peut('facturation.valider_remises') && (
               <Bouton onClick={() => executer('valider_remise_document', { p_document_id: d.id }, `Remise de ${taux} % validée`)}>Valider la remise</Bouton>
@@ -487,6 +499,9 @@ export default function DocumentVente({ documentId, naviguer }) {
             )}
             {gerer && d.type === 'facture' && d.statut === 'emise' && reste > 0 && c.vente?.statut === 'validee' && (
               <Bouton variante="principal" icone="ventes" onClick={() => setAction('paiement')}>Encaisser</Bouton>
+            )}
+            {relance && (
+              <a className="bouton" href={relance} target="_blank" rel="noreferrer" title={`En retard de ${joursRetard} jour(s)`}>Relancer sur WhatsApp</a>
             )}
             <Bouton icone="imprimer" onClick={() => setTimeout(() => window.print(), 50)}>Imprimer / PDF</Bouton>
             <MenuActions actions={[

@@ -130,7 +130,7 @@ function ModaleReception({ commande, lignes, onFermer, onFait }) {
   );
 }
 
-function ModalePaiement({ commande, onFermer, onFait }) {
+export function ModalePaiement({ commande, onFermer, onFait }) {
   const { api, montant } = useEspace();
   const plafond = Math.max(Number(commande.total), Number(commande.montant_recu)) - Number(commande.montant_paye);
   const [v, setV] = useState({ montant: String(resteAPayer(commande) || plafond), mode: 'virement', reference: '', date: dateLocale() });
