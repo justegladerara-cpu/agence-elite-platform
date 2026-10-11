@@ -81,7 +81,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     });
     await etape('vente-validee', async () => {
       // Servi par (facultatif) : le nom du serveur s'imprime sur le reçu.
-      await p.getByLabel('Servi par (facultatif)').fill('Alex');
+      await p.getByLabel(/Servi par \(facultatif\)/).fill('Alex');
       await p.getByRole('button', { name: 'Valider la vente' }).click();
       await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
       await p.getByRole('dialog').getByText('Alex').first().waitFor({ timeout: 30000 });

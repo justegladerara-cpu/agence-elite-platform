@@ -9,6 +9,7 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Mod
 import { libelleDepense, motifParId, MOTIFS_DEPENSE } from './motifs.js';
 import './depenses.css';
 import { mesCaisses } from '../caisse/mesCaisses.js';
+import { PastilleNouveau } from '../../ui/Nouveau.jsx';
 
 const CATEGORIES = ['Achats de marchandises', 'Transport', 'Loyer', 'Énergie', 'Salaires', 'Téléphone et Internet', 'Entretien', 'Impôts et taxes', 'Divers'];
 const PERIODES = [['mois', 'Ce mois'], ['30', '30 jours'], ['tout', 'Tout']];
@@ -104,7 +105,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
           </label>
         )}
         {valeurs.mode === 'especes' && valeurs.depuis_caisse && sessions.length > 1 && (
-          <Champ libelle="Tiroir de quelle caisse ?">
+          <Champ libelle={<>Tiroir de quelle caisse ?<PastilleNouveau /></>}>
             <select value={valeurs.caisse_id} onChange={changer('caisse_id')}>
               {sessions.map((x) => <option key={x.id} value={x.id}>{x.mienne ? 'Ma caisse' : x.caissier ?? 'Caisse'}{x.point_de_vente ? ` · ${x.point_de_vente}` : ''}</option>)}
             </select>

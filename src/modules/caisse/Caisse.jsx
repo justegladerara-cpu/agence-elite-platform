@@ -12,6 +12,7 @@ import { mesCaisses } from './mesCaisses.js';
 import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import { lireRecents, nomsServeurs, retenirServeur } from './serviPar.js';
 import './caisse.css';
+import { BandeauNouveau, PastilleNouveau } from '../../ui/Nouveau.jsx';
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
 const FAVORIS = '__favoris__';
@@ -208,7 +209,7 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
         ))}
       </div>
       {serveurs && (
-        <Champ libelle="Servi par (facultatif)">
+        <Champ libelle={<>Servi par (facultatif)<PastilleNouveau /></>}>
           <input list="liste-serveurs" value={serviPar} maxLength={60} onChange={(e) => setServiPar(e.target.value)} placeholder="Nom du serveur" />
           <datalist id="liste-serveurs">{serveurs.map((n) => <option key={n} value={n} />)}</datalist>
           {serveurs.length > 0 && (
@@ -668,6 +669,10 @@ export default function Caisse({ naviguer }) {
           )}
           <Bouton icone="cloture" variante="principal" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
         </div>
+        <BandeauNouveau>
+          Votre caisse à vous : bouton « Fermeture de caisse » pour votre ticket Z, « Factures en cours » toujours visibles ci-dessous,
+          « Servi par » à l’encaissement, et verrouillage automatique après 15 min sans activité (la caisse reste ouverte).
+        </BandeauNouveau>
         <BandeFactures
           attentes={attentes}
           maintenant={maintenant}

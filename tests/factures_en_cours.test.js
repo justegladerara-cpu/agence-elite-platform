@@ -15,3 +15,13 @@ describe('factures en cours', () => {
     expect(totalFactures([{ total_estime: '1500' }, { total_estime: 2500 }, {}])).toBe(4000);
   });
 });
+
+import { estNouveau } from '../src/ui/Nouveau.jsx';
+
+describe('bandeau « Nouveau »', () => {
+  test('visible 72 h puis disparaît tout seul', () => {
+    const fin = '2026-10-14T22:30:00Z';
+    expect(estNouveau(fin, new Date('2026-10-11T22:30:00Z').getTime())).toBe(true);
+    expect(estNouveau(fin, new Date('2026-10-14T22:31:00Z').getTime())).toBe(false);
+  });
+});
