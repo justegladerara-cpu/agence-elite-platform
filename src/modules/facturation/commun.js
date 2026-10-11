@@ -77,21 +77,9 @@ export function balanceAgee(documents, ventes, aujourdhui, contestees = new Set(
   return [...parContact.values()].sort((a, b) => b.retard_max - a.retard_max || b.total - a.total);
 }
 
-// Message de relance prêt à copier (WhatsApp, SMS, e-mail). Le ton monte avec le retard le plus ancien.
-export function messageRelance({ nom, factures, montant, emetteur }) {
-  const retard = Math.max(...factures.map((f) => f.jours));
-  const ouverture = retard > 60
-    ? `Bonjour ${nom}, malgré nos précédents rappels, les factures suivantes restent impayées :`
-    : retard > 0
-      ? `Bonjour ${nom}, sauf erreur de notre part, les factures suivantes sont arrivées à échéance :`
-      : `Bonjour ${nom}, pour rappel, les factures suivantes arrivent à échéance :`;
-  const lignes = factures.map((f) => `- ${f.numero} : ${montant(f.reste)}${f.jours > 0 ? ` (en retard de ${f.jours} j)` : ''}`);
-  const total = factures.reduce((s, f) => s + f.reste, 0);
-  const fin = retard > 60
-    ? 'Merci de régler ce montant sans délai ou de nous contacter pour convenir d’un échéancier.'
-    : 'Merci de procéder au règlement ou de nous indiquer la date prévue.';
-  return [ouverture, ...lignes, `Total : ${montant(total)}.`, fin, emetteur ? `Cordialement, ${emetteur}` : 'Cordialement.'].join('\n');
-}
+// Message de relance prêt à copier (WhatsApp, SMS, e-mail) : le ton monte avec le retard le plus ancien (J+7 doux,
+// J+15 plus ferme, au-delà de 60 j très ferme). Texte commun à toute l'application : src/noyau/messagesWhatsapp.js.
+export { messageRelanceFactures as messageRelance } from '../../noyau/messagesWhatsapp.js';
 
 // Remise globale en % du montant avant remise (lignes comptées), comme la base.
 export function tauxRemise(lignes) {

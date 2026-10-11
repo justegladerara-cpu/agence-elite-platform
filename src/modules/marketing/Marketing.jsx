@@ -3,6 +3,7 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { formatDate, formatDateHeure } from '../../noyau/format.js';
 import { integration } from '../../noyau/integrations.js';
+import { lienWhatsApp, personnaliserMessage } from '../../noyau/messagesWhatsapp.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, ModaleMotif, PageHeader, Tabs } from '../../ui/composants.jsx';
 
 // Marketing (Bêta) : segments, consentements par canal, campagnes préparées puis envoyées. Aucun message ne part
@@ -125,6 +126,14 @@ function ModaleDetail({ campagne: k, segment, destinataires, peutGerer, mention,
               colonnes={[
                 { id: 'nom', libelle: 'Contact', rendu: (d) => d.nom },
                 { id: 'coordonnee', libelle: k.canal === 'email' ? 'E-mail' : 'Téléphone', rendu: (d) => d.coordonnee },
+                // WhatsApp sans service branché : un lien prérempli par destinataire, envoyé à la main un par un.
+                ...(k.canal === 'whatsapp' && k.statut === 'prete' ? [{
+                  id: 'whatsapp', libelle: '', exporter: false,
+                  rendu: (d) => (
+                    <a className="bouton" href={lienWhatsApp(d.coordonnee, [personnaliserMessage(k.message, d), mention].filter(Boolean).join('\n\n'))} target="_blank" rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}>Ouvrir WhatsApp</a>
+                  ),
+                }] : []),
               ]}
             />
           </>
@@ -133,7 +142,7 @@ function ModaleDetail({ campagne: k, segment, destinataires, peutGerer, mention,
           <>
             <p className="texte-doux">
               Envoi par {service?.nom ?? CANAUX[k.canal]} : Bloqué : {service?.bloque ?? 'service à brancher'}. En attendant, exportez la liste,
-              envoyez depuis votre outil habituel, puis déclarez l’envoi.
+              envoyez depuis votre outil habituel{k.canal === 'whatsapp' ? ' (ou un par un avec les boutons « Ouvrir WhatsApp »)' : ''}, puis déclarez l’envoi.
             </p>
             <div className="actions">
               <Bouton disabled title="Intégration pas encore disponible">Envoyer par le service</Bouton>

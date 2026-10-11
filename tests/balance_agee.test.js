@@ -36,7 +36,7 @@ describe('balance âgée', () => {
   test('message de relance : ton selon le retard, total, signature', () => {
     const montant = (n) => `${n} F`;
     const doux = messageRelance({ nom: 'Mme Test', factures: [{ numero: 'F-1', reste: 5000, jours: 0 }], montant, emetteur: 'Boutique Démo' });
-    expect(doux).toMatch(/arrivent à échéance/);
+    expect(doux).toMatch(/la facture suivante arrive à échéance/);
     expect(doux).toMatch(/Total : 5000 F\./);
     expect(doux).toMatch(/Cordialement, Boutique Démo$/);
     const ferme = messageRelance({ nom: 'M. Test', factures: [{ numero: 'F-2', reste: 1000, jours: 75 }, { numero: 'F-3', reste: 2000, jours: 10 }], montant });
