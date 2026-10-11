@@ -33,7 +33,7 @@ describe('registre des modules (manifestes)', () => {
   test('menu et widgets suivent modules actifs et permissions', () => {
     const espace = (modules, permissions) => ({ moduleActif: (m) => modules.includes(m), peut: (p) => permissions.includes(p), multiHub: false, hub: null });
     const caissier = espace(['tableau_de_bord', 'caisse', 'ventes', 'paiements', 'stock'], ['tableau_de_bord.lire', 'caisse.utiliser', 'ventes.lire']);
-    expect(pagesAccessibles(caissier).map((p) => p.id)).toEqual(['tableau-de-bord', 'caisse', 'ventes']);
+    expect(pagesAccessibles(caissier).map((p) => p.id)).toEqual(['accueil', 'tableau-de-bord', 'caisse', 'ventes']);
     expect(groupesDuMenu(pagesAccessibles(caissier))).toEqual(['Pilotage', 'Vente']);
     // Les indicateurs du tableau de bord viennent désormais des fonctions cockpit_* (plus de widget par défaut).
     expect(widgetsAccessibles(caissier, 'section', {})).toEqual([]);

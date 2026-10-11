@@ -3161,3 +3161,7 @@ kbd {
 .espace-partenaire > .page { max-width: 1200px; margin: 0 auto; }
 .pile-serree { display: flex; flex-direction: column; gap: 2px; }
 .espace-partenaire a.bouton { text-decoration: none; }
+
+/* Bulle d'aide d'un écran (src/noyau/aides.js) */
+.bulle-aide { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--accent-doux, #EAF2FF); color: var(--texte, #1f2328); }
+.bulle-aide span { flex: 1; }
