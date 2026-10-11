@@ -5,7 +5,7 @@ propre compte, ouvre SA caisse, vend sur SA caisse et clôture SON ticket Z. Deu
 temps sur le même point de vente : leurs ventes, encaissements et tickets Z restent séparés. Personne ne vend ni
 n'encaisse sur la caisse d'une autre personne. Il n'y a plus de ticket X : seulement un ticket Z en fin de session.
 
-1. **Caisse › Fermer ma caisse** (ou **Clôtures**) : « Ma caisse » affiche mes ventes, mes encaissements et les espèces
+1. **Caisse › Fermeture de caisse** (bouton dans l'écran de vente, ou page **Clôtures**) : « Ma caisse » affiche mes ventes, mes encaissements et les espèces
    attendues dans mon tiroir.
 2. Si un bandeau indique des **ventes en attente**, les reprendre (encaisser) ou les abandonner depuis la Caisse
    (bouton « En attente ») avant de clôturer. Chaque personne ne voit que ses propres ventes en attente.
@@ -27,3 +27,10 @@ n'encaisse sur la caisse d'une autre personne. Il n'y a plus de ticket X : seule
 
 Une vente d'une session clôturée ne peut plus être modifiée ; une erreur se corrige par un avoir / une annulation tracée.
 Restaurant : le serveur qui encaisse une addition le fait sur SA caisse (bouton « Ouvrir la caisse » dans la Salle).
+
+**Ventes** : une personne qui tient une caisse voit d'abord « Mes ventes » (onglet « Tout le monde » pour le reste).
+Cocher plusieurs ventes (ou la case du haut) affiche leur total et le reste à encaisser, et permet de les exporter.
+
+**Tableau de bord** (gérant, responsable) : bloc « Caissières et caissiers » : qui est en caisse en ce moment (depuis
+quand, sur quelle caisse, montant en cours), nombre de ventes et montant de chaque personne sur la période, classement
+(1 ★ = celle qui a le plus vendu). Fonction `activite_caissiers`.

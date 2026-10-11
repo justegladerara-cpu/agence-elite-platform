@@ -102,6 +102,20 @@ describe('une caisse par caissière', () => {
     expect(Number(z.especes_attendues)).toBe(400);
   });
 
+  test('tableau de bord : qui est en caisse, montant par personne et classement (responsable seulement)', async () => {
+    await expect(comme(awa, 'select activite_caissiers($1)', [etab])).rejects.toThrow(/Accès refusé/);
+    const caisse = await valeur(binta, 'select ouvrir_caisse($1, null, 0)', [etab]);
+    await vendre(binta, caisse, 1500);
+    const liste = await valeur(gerant, 'select activite_caissiers($1)', [etab]);
+    expect(liste.map((p) => p.nom)).toEqual(['Binta', 'Awa']);
+    expect(Number(liste[0].total_ventes)).toBe(2500);
+    expect(liste[0].en_caisse).toBe(true);
+    expect(Number(liste[0].caisse_en_cours)).toBe(1500);
+    expect(liste[1].en_caisse).toBe(false);
+    expect(Number(liste[1].total_ventes)).toBe(1000);
+    await valeur(binta, 'select cloturer_caisse($1, 1500)', [caisse]);
+  });
+
   test('une caisse fermée automatiquement : la caissière compte elle-même ses espèces', async () => {
     const caisse = await valeur(binta, 'select ouvrir_caisse($1, null, 0)', [etab]);
     await vendre(binta, caisse, 500);

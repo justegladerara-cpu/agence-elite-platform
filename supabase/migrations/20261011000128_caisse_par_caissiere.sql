@@ -325,4 +325,57 @@ $$;
 revoke execute on function public.caisses_ouvertes(uuid) from public, anon;
 grant execute on function public.caisses_ouvertes(uuid) to authenticated;
 
+-- ---------------------------------------------------------------------------
+-- 9. Tableau de bord : qui tient une caisse en ce moment, combien chaque personne a vendu, classement
+-- ---------------------------------------------------------------------------
+-- Une vente compte pour la personne de sa caisse (sinon pour son vendeur : facture, boutique en ligne...).
+-- Réservé à qui voit toutes les caisses (gérant, responsable, comptable).
+create function public.activite_caissiers(p_etablissement_id uuid, p_du date default null, p_au date default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  fuseau text := coalesce((select e.fuseau from public.etablissements e where e.id = p_etablissement_id), 'UTC');
+  du date := coalesce(p_du, (now() at time zone fuseau)::date);
+  au date := coalesce(p_au, du);
+begin
+  if not public.voit_toutes_caisses(p_etablissement_id) then
+    raise exception 'Accès refusé';
+  end if;
+  return coalesce((
+    with ventes as (
+      select coalesce(s.ouverte_par, v.vendeur) personne, v.total
+      from public.ventes v
+      left join public.sessions_caisse s on s.id = v.session_caisse_id
+      where v.etablissement_id = p_etablissement_id and v.statut = 'validee'
+        and (v.cree_le at time zone fuseau)::date between du and au
+        and public.lecture_hub(v.etablissement_id, v.hub_id)
+    ), totaux as (
+      select personne, count(*) nombre, sum(total) total from ventes where personne is not null group by personne
+    ), ouvertes as (
+      select s.ouverte_par personne, min(s.ouverte_le) depuis,
+        string_agg(distinct p.nom, ', ') caisses,
+        sum((select coalesce(sum(v.total), 0) from public.ventes v where v.session_caisse_id = s.id and v.statut = 'validee')) en_cours
+      from public.sessions_caisse s join public.points_de_vente p on p.id = s.point_de_vente_id
+      where s.etablissement_id = p_etablissement_id and s.statut = 'ouverte' and not s.rattrapage
+        and public.lecture_hub(s.etablissement_id, s.hub_id)
+      group by s.ouverte_par
+    )
+    select jsonb_agg(jsonb_build_object(
+        'id', x.personne, 'nom', public.nom_membre_restaurant(x.personne),
+        'nombre_ventes', coalesce(t.nombre, 0), 'total_ventes', coalesce(t.total, 0),
+        'en_caisse', o.personne is not null, 'depuis', o.depuis, 'caisses', o.caisses, 'caisse_en_cours', o.en_cours)
+      order by coalesce(t.total, 0) desc, public.nom_membre_restaurant(x.personne))
+    from (select personne from totaux union select personne from ouvertes) x
+    left join totaux t on t.personne = x.personne
+    left join ouvertes o on o.personne = x.personne
+  ), '[]'::jsonb);
+end
+$$;
+revoke execute on function public.activite_caissiers(uuid, date, date) from public, anon;
+grant execute on function public.activite_caissiers(uuid, date, date) to authenticated;
+
 notify pgrst, 'reload schema';

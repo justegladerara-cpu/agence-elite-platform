@@ -126,6 +126,12 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
       await p.getByText(/1 vente\(s\) en attente sur cette caisse/).waitFor();
     });
+    await etape('tableau-caissiers', async () => {
+      await p.goto(U + '#/tableau-de-bord');
+      await p.getByRole('heading', { name: 'Caissières et caissiers' }).waitFor({ timeout: 60000 });
+      await p.goto(U + '#/clotures');
+      await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
+    });
     await etape('ma-caisse', async () => {
       // Une caisse par personne : plus de ticket X, seulement SON ticket Z en fin de session.
       await p.getByRole('heading', { name: /^Ma caisse/ }).waitFor();
