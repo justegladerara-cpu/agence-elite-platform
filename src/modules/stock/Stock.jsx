@@ -108,7 +108,7 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
         <Champ libelle={config.libelle} aide={config.aide}>
           <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} required autoFocus />
         </Champ>
-        <div className="puces puces-retour" role="group" aria-label="Raison">
+        <div className="puces puces-retour" role="group" aria-label="Raisons en un clic">
           {RAISONS_RETRAIT.map((r) => <button key={r} type="button" className={motif === r ? 'actif' : ''} onClick={() => setMotif(r)}>{r}</button>)}
         </div>
         <Champ libelle="Raison">

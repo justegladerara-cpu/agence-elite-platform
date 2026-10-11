@@ -20,7 +20,13 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
   };
   try {
     await p.goto(U);
-    await etape('connexion', async () => { await p.getByText(/Mireille/).click({ timeout: 90000 }); await p.getByText('Chiffre d’affaires').first().waitFor(); });
+    await etape('connexion', async () => { await p.getByText(/Mireille/).click({ timeout: 90000 }); await p.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor(); });
+    await etape('accueil', async () => {
+      await p.getByRole('button', { name: /J’ai reçu de la marchandise/ }).first().waitFor();
+      await p.getByLabel('Je veux').fill('depense');
+      await p.locator('.accueil-resultats button').first().waitFor();
+      await p.getByLabel('Je veux').fill('');
+    });
     await etape('article-cree', async () => {
       await p.goto(U + '#/articles');
       await p.getByRole('button', { name: 'Nouvel article' }).click();
