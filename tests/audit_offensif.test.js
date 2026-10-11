@@ -17,6 +17,8 @@ let stylo;
 let service;
 let contactA;
 let sessionA;
+// Caisse du gérant : depuis la migration 20261011000128, chacun vend sur SA caisse.
+let sessionGA;
 let categorieB;
 let articleB;
 let contactB;
@@ -65,6 +67,7 @@ beforeAll(async () => {
   service = await valeur(gerantA, 'select enregistrer_article($1, $2::jsonb)', [etabA, '{"nom":"Photocopie","prix_vente":100,"suivi_stock":false}']);
   contactA = await valeur(gerantA, 'select enregistrer_contact($1, $2::jsonb)', [etabA, '{"nom":"Acheteur A"}']);
   sessionA = await valeur(caissierA, 'select ouvrir_caisse($1)', [etabA]);
+  sessionGA = await valeur(gerantA, 'select ouvrir_caisse($1)', [etabA]);
 
   categorieB = await valeur(gerantB, "select enregistrer_categorie($1, 'Catégorie B')", [etabB]);
   articleB = await valeur(gerantB, 'select enregistrer_article($1, $2::jsonb)', [etabB, '{"nom":"Article B","prix_vente":1000,"stock_initial":5}']);
@@ -81,10 +84,10 @@ afterAll(async () => db.close());
 describe('références croisées entre établissements', () => {
   test('une vente de A refuse un article, une caisse ou un contact de B', async () => {
     const avant = await nombre('select count(*) from ventes');
-    await expect(vendre(gerantA, etabA, sessionA, [{ article_id: articleB, quantite: 1 }], [{ mode: 'especes', montant: 1000 }])).rejects.toThrow(/Article inconnu/);
-    await expect(vendre(gerantA, etabA, sessionA, [{ article_id: stylo, quantite: 1 }, { article_id: articleB, quantite: 1 }], [{ mode: 'especes', montant: 2000 }])).rejects.toThrow(/Article inconnu/);
+    await expect(vendre(gerantA, etabA, sessionGA, [{ article_id: articleB, quantite: 1 }], [{ mode: 'especes', montant: 1000 }])).rejects.toThrow(/Article inconnu/);
+    await expect(vendre(gerantA, etabA, sessionGA, [{ article_id: stylo, quantite: 1 }, { article_id: articleB, quantite: 1 }], [{ mode: 'especes', montant: 2000 }])).rejects.toThrow(/Article inconnu/);
     await expect(vendre(gerantA, etabA, sessionB, [{ article_id: stylo, quantite: 1 }], [{ mode: 'especes', montant: 500 }])).rejects.toThrow(/Aucune caisse ouverte/);
-    await expect(vendre(gerantA, etabA, sessionA, [{ article_id: stylo, quantite: 1 }], [], contactB)).rejects.toThrow(/Contact inconnu/);
+    await expect(vendre(gerantA, etabA, sessionGA, [{ article_id: stylo, quantite: 1 }], [], contactB)).rejects.toThrow(/Contact inconnu/);
     await expect(vendre(gerantA, etabB, sessionB, [{ article_id: articleB, quantite: 1 }], [{ mode: 'especes', montant: 1000 }])).rejects.toThrow(/Permission refusée/);
     expect(await nombre('select count(*) from ventes')).toBe(avant);
     expect(await stock(articleB)).toBe(4);
@@ -113,7 +116,7 @@ describe('références croisées entre établissements', () => {
     await expect(comme(gerantA, "select annuler_paiement($1, 'Sabotage')", [paiementB])).rejects.toThrow(/Permission refusée/);
     await expect(comme(gerantA, "select annuler_depense($1, 'Sabotage')", [depenseB])).rejects.toThrow(/Permission refusée/);
     await expect(comme(gerantA, 'select cloturer_caisse($1, 0)', [sessionB])).rejects.toThrow(/Permission refusée/);
-    const credit = (await vendre(gerantA, etabA, sessionA, [{ article_id: service, quantite: 1 }], [], contactA))[0].v.vente_id;
+    const credit = (await vendre(gerantA, etabA, sessionGA, [{ article_id: service, quantite: 1 }], [], contactA))[0].v.vente_id;
     await expect(comme(gerantA, "select encaisser_paiement($1, 100, 'especes', $2)", [credit, sessionB])).rejects.toThrow(/Caisse introuvable/);
     expect((await db.query('select statut from ventes where id = $1', [venteB])).rows[0].statut).toBe('validee');
     expect((await db.query('select statut from sessions_caisse where id = $1', [sessionB])).rows[0].statut).toBe('ouverte');
@@ -178,7 +181,7 @@ describe("contexte d'appel", () => {
 
   test('un établissement ou un client suspendu refuse toute écriture commerciale', async () => {
     await comme(admin, "select definir_statut_etablissement($1, 'suspendu')", [etabA]);
-    await expect(vendre(gerantA, etabA, sessionA, [{ article_id: service, quantite: 1 }], [{ mode: 'especes', montant: 100 }])).rejects.toThrow(/suspendu/);
+    await expect(vendre(gerantA, etabA, sessionGA, [{ article_id: service, quantite: 1 }], [{ mode: 'especes', montant: 100 }])).rejects.toThrow(/suspendu/);
     await expect(comme(gerantA, "select ajuster_stock($1, $2, 'entree', 1)", [etabA, stylo])).rejects.toThrow(/suspendu/);
     await comme(admin, "select definir_statut_etablissement($1, 'actif')", [etabA]);
     await comme(admin, "select definir_statut_client($1, 'suspendu')", [clientB]);
@@ -309,7 +312,7 @@ describe('cycle de vie des ventes et des caisses', () => {
 
   test("une vente ne s'annule plus si l'un de ses paiements est dans une caisse clôturée", async () => {
     const pdv = await valeur(gerantA, "select enregistrer_point_de_vente($1, 'Caisse 2')", [etabA]);
-    const session2 = await valeur(gerantA, 'select ouvrir_caisse($1, $2)', [etabA, pdv]);
+    const session2 = await valeur(caissierA, 'select ouvrir_caisse($1, $2)', [etabA, pdv]);
     const vente = (await vendre(caissierA, etabA, sessionA, [{ article_id: service, quantite: 1 }], [], contactA))[0].v.vente_id;
     await comme(caissierA, "select encaisser_paiement($1, 100, 'especes', $2)", [vente, session2]);
     const z = await valeur(gerantA, 'select cloturer_caisse($1, 100)', [session2]);
@@ -321,7 +324,7 @@ describe('cycle de vie des ventes et des caisses', () => {
 
   test('clôture : ni double clôture, ni annulation après Z, ni réouverture', async () => {
     const pdv = await valeur(gerantA, "select enregistrer_point_de_vente($1, 'Caisse 3')", [etabA]);
-    const session = await valeur(gerantA, 'select ouvrir_caisse($1, $2, 1000)', [etabA, pdv]);
+    const session = await valeur(caissierA, 'select ouvrir_caisse($1, $2, 1000)', [etabA, pdv]);
     const vente = (await vendre(caissierA, etabA, session, [{ article_id: service, quantite: 1 }], [{ mode: 'especes', montant: 100 }]))[0].v.vente_id;
     const paiement = (await db.query('select id from paiements where vente_id = $1', [vente])).rows[0].id;
     await expect(comme(gerantA, "select cloturer_caisse($1, 'NaN'::numeric)", [session])).rejects.toThrow();

@@ -10,7 +10,7 @@ export const DOMAINES = {
       { libelle: 'Ajouter un article', icone: 'plus', route: 'articles?nouveau=1', permission: 'articles.gerer' },
       { libelle: 'Inventaire', icone: 'inventaire', route: 'stock?vue=inventaire', permission: 'stock.ajuster' },
       { libelle: 'Transfert', icone: 'transfert', route: 'transferts?nouveau=1', permission: 'stock.transferer' },
-      { libelle: 'Clôturer la caisse', icone: 'cloture', route: 'clotures', permission: 'cloture.cloturer' },
+      { libelle: 'Clôturer ma caisse', icone: 'cloture', route: 'clotures', permission: 'caisse.utiliser' },
       { libelle: 'Voir les retours', icone: 'retour', route: 'ventes?vue=retours', permission: 'ventes.lire' },
     ],
   },

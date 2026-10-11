@@ -8,6 +8,7 @@ import {
 import { PiecesJointes } from '../../ui/communs.jsx';
 import { contreValeur, etatDocument, etatEcheances, joursDeRetard, ligneComptee, messageRelance, repartirEcheances, tauxRemise, TYPES_DOCUMENT, vrai } from './commun.js';
 import { lienWhatsApp } from '../../noyau/messagesWhatsapp.js';
+import { mesCaisses } from '../caisse/mesCaisses.js';
 
 // Rendu A4 d'un devis, d'une facture ou d'un avoir : le même à l'écran et à l'impression.
 export function FeuilleDocument({ complet }) {
@@ -128,11 +129,11 @@ function ZoneImpression({ children }) {
 }
 
 function ModalePaiement({ complet, onFermer, onFait }) {
-  const { api, etablissement, montant } = useEspace();
+  const { api, etablissement, montant, utilisateur } = useEspace();
   const reste = complet.vente.total - complet.vente.montant_paye;
   const [v, setV] = useState({ montant: String(reste), mode: 'virement', reference: '' });
   const [erreur, setErreur] = useState('');
-  const { donnees: sessions } = useDonnees(() => api.lire('sessions_caisse', { eq: { etablissement_id: etablissement.id, statut: 'ouverte' } }).catch(() => []), [etablissement.id]);
+  const { donnees: sessions } = useDonnees(() => api.lire('sessions_caisse', { eq: { etablissement_id: etablissement.id, statut: 'ouverte' } }).then((s) => mesCaisses(s, utilisateur)).catch(() => []), [etablissement.id, utilisateur?.id]);
   const excedent = Math.round((Number(v.montant) - reste) * 100) / 100;
   const tropPercu = excedent > 0 && v.mode !== 'especes';
   const valider = async (e) => {

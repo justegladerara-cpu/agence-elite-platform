@@ -6,12 +6,13 @@ import { Bouton, Chargement, EmptyState, EnTete, Erreur, Modale, Recherche } fro
 import { ModaleEncaissement } from '../ventes/Ventes.jsx';
 import { regrouperCreances } from './dettes.js';
 import './dettes.css';
+import { mesCaisses } from '../caisse/mesCaisses.js';
 
 // « Qui me doit ? » : les clients qui doivent encore de l'argent (ventes à crédit, payées en partie, factures non
 // soldées), le total par client, depuis quand, un rappel WhatsApp prêt à envoyer et « Il a payé » qui ouvre
 // l'encaissement déjà existant (vente) ou la facture. Rien n'est envoyé automatiquement.
 export default function QuiMeDoit({ naviguer }) {
-  const { api, etablissement, montant, peut, moduleActif, notifier, hub, multiHub } = useEspace();
+  const { api, etablissement, montant, peut, moduleActif, notifier, hub, multiHub, utilisateur } = useEspace();
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const lireVentes = peut('ventes.lire');
@@ -41,7 +42,7 @@ export default function QuiMeDoit({ naviguer }) {
     }).catch(() => [])))).flat();
     return {
       ventes,
-      sessions,
+      sessions: mesCaisses(sessions, utilisateur),
       contacts: Object.fromEntries(contacts.map((c) => [c.id, c])),
       factures: Object.fromEntries(documents.map((d) => [d.vente_id, d])),
     };

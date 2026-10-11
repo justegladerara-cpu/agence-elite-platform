@@ -40,7 +40,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Ouvrir une boutique ou un dépôt (Hub) | [26](26_CREER_UN_HUB.md) | Responsable, Agence Elite |
 | Déplacer du stock entre Hubs | [27](27_TRANSFERT_DE_STOCK.md) | Responsable, gestionnaire dépôt |
 | Faire un inventaire | [28](28_INVENTAIRE.md) | Responsable, gestionnaire dépôt |
-| Clôturer une caisse (ticket Z) | [29](29_CLOTURE_DE_CAISSE.md) | Caissier, responsable |
+| Clôturer SA caisse : une caisse et un ticket Z par personne, sans ticket X | [29](29_CLOTURE_DE_CAISSE.md) | Caissier, responsable |
 | Faire une démonstration commerciale | [30](30_DEMO_COMMERCIALE.md) | Agence Elite |
 | Savoir si une tâche est finie | [31](31_DEFINITION_OF_DONE.md) | Tous |
 | Faire travailler une IA sur le projet | [32](32_REGLES_POUR_LES_IA.md) | Tous |

@@ -7,6 +7,7 @@ import {
   arrondirQuantite, classerFavoris, compterVente, enregistrerFavoris, estVenteAuPoids, FRACTIONS, lireFavoris, MIN_FAVORIS_AUTO,
   quantitePourMontant,
 } from './poids.js';
+import { mesCaisses } from './mesCaisses.js';
 import './caisse.css';
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
@@ -402,7 +403,7 @@ function ModaleAttentes({ attentes, panierOccupe, onAction, onFermer }) {
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur } = useEspace();
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
@@ -424,9 +425,10 @@ export default function Caisse({ naviguer }) {
       articles, stock, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
-      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees,
+      // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
+      sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees,
     };
-  }, [etab, hubsCaisse.join()]);
+  }, [etab, hubsCaisse.join(), utilisateur?.id]);
   const [pdvChoisi, setPdvChoisi] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [remise, setRemise] = useState('');
@@ -537,8 +539,8 @@ export default function Caisse({ naviguer }) {
     recharger();
   };
 
-  // Les ventes en attente du Hub de la caisse : un panier mis de côté se reprend sur n'importe quelle caisse du Hub.
-  const attentes = donnees.attentes?.filter((a) => a.hub_id === session.hub_id) ?? null;
+  // Les ventes mises en attente sur MA caisse : chaque personne reprend ses propres paniers.
+  const attentes = donnees.attentes?.filter((a) => a.session_caisse_id === session.id) ?? null;
   const mettreEnAttente = async (libelle) => {
     await api.rpc('mettre_vente_en_attente', {
       p_session_id: session.id, p_lignes: lignes, p_libelle: libelle || null, p_contact_id: contactId, p_remise: Number(remise || 0),
@@ -585,7 +587,7 @@ export default function Caisse({ naviguer }) {
             )}
           </div>
           {attentes?.length > 0 && <Bouton icone="horloge" onClick={() => setListeAttente(true)}>En attente ({attentes.length})</Bouton>}
-          {peut('cloture.cloturer') && <Bouton icone="cloture" onClick={() => naviguer('clotures')}>Clôturer</Bouton>}
+          <Bouton icone="cloture" onClick={() => naviguer('clotures')}>Fermer ma caisse</Bouton>
         </div>
         <div onKeyDown={recherchePrecise}>
           <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, référence ou code-barres" />

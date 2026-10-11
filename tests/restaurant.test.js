@@ -149,7 +149,8 @@ describe('service en salle et cuisine', () => {
 
 describe('addition et encaissement', () => {
   test('addition séparée : on sépare 1 poulet, on l’encaisse ; vente d’origine restaurant, stock du Hub sorti', async () => {
-    session = await valeur(gerant, 'select ouvrir_caisse($1)', [etab]);
+    // Le serveur encaisse sur SA caisse (une caisse par personne, migration 20261011000128).
+    session = await valeur(serveur, 'select ouvrir_caisse($1)', [etab]);
     const [p] = await lignes(commande);
     await expect(comme(serveur, 'select scinder_ligne_restaurant($1, 3)', [p.id])).rejects.toThrow(/Quantité à séparer invalide/);
     const part = await valeur(serveur, 'select scinder_ligne_restaurant($1, 1)', [p.id]);

@@ -15,7 +15,8 @@ describe('registre des modules (manifestes)', () => {
     const permissions = Object.fromEntries((await db.query('select id, module_id from permissions')).rows.map((p) => [p.id, p.module_id]));
     for (const m of MANIFESTES) expect(['actif', 'beta']).toContain(modules[m.module]);
     for (const p of PAGES) {
-      expect(permissions[p.permission], `${p.id} : ${p.permission}`).toBeDefined();
+      // Une page peut accepter plusieurs droits (Clôtures : responsable ou personne de la caisse).
+      for (const x of [].concat(p.permission)) expect(permissions[x], `${p.id} : ${x}`).toBeDefined();
     }
     for (const w of WIDGETS) {
       expect(['actif', 'beta']).toContain(modules[w.module]);

@@ -9,7 +9,7 @@ export const GROS_BOUTONS = [
   { id: 'compter', libelle: 'Je compte mon stock', detail: 'Inventaire, tout ou une partie', icone: 'inventaire', route: 'stock?vue=inventaire', permission: 'stock.ajuster', mots: 'inventaire comptage compter' },
   { id: 'perte', libelle: 'J’ai perdu / cassé / périmé', detail: 'Le stock baisse, la perte est chiffrée', icone: 'alerte', route: 'stock?vue=perte', permission: 'stock.ajuster', mots: 'perte casse vol perime abime retirer' },
   { id: 'depense', libelle: 'J’ai payé une dépense', detail: 'Loyer, transport, électricité…', icone: 'depenses', route: 'depenses?nouveau=1', permission: 'depenses.gerer', mots: 'depense frais loyer transport electricite sortie argent' },
-  { id: 'fermer', libelle: 'Fermer ma caisse', detail: 'Compter les billets du jour', icone: 'cloture', route: 'clotures', permission: 'cloture.cloturer', mots: 'cloture fermer fin journee billets z' },
+  { id: 'fermer', libelle: 'Fermer ma caisse', detail: 'Ticket Z de ma caisse', icone: 'cloture', route: 'clotures', permission: 'caisse.utiliser', mots: 'cloture fermer fin journee billets z' },
   { id: 'doit', libelle: 'Qui me doit de l’argent ?', detail: 'Clients à relancer', icone: 'clients', route: 'qui-me-doit', mots: 'dette credit creance doit impaye relance' },
   { id: 'commander', libelle: 'Je dois commander', detail: 'Ce qui va manquer', icone: 'panier', route: 'achats?onglet=reappro', permission: 'achats.lire', mots: 'commander commande achat reapprovisionner manque fournisseur' },
   { id: 'je-dois', libelle: 'À qui je dois ?', detail: 'Fournisseurs à payer', icone: 'echeance', route: 'achats?onglet=a_payer', permission: 'achats.lire', mots: 'fournisseur payer dette' },

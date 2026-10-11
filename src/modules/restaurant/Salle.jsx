@@ -8,10 +8,11 @@ import { ModaleRecu } from '../recus/Recu.jsx';
 import { STATUTS_LIGNE, minutesDepuis, nomArticle, trierArticles, trierCategories, totalLignes } from './commun.js';
 import Reglages from './Reglages.jsx';
 import Serveurs, { ModaleAffectation, ModaleTransfertServeur, ServiceEnCours } from './Serveurs.jsx';
+import { mesCaisses } from '../caisse/mesCaisses.js';
 
 // Données de la salle : tables, commandes ouvertes, plats, articles, caisses ouvertes (Hubs autorisés).
 function useSalle(dependances = []) {
-  const { api, etablissement, hubs, hub, multiHub } = useEspace();
+  const { api, etablissement, hubs, hub, multiHub, utilisateur } = useEspace();
   const etab = etablissement.id;
   const hubsVisibles = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_vente).map((h) => h.id);
   return useDonnees(async () => {
@@ -31,7 +32,7 @@ function useSalle(dependances = []) {
     return {
       tables: tables.filter((t) => hubsVisibles.includes(t.hub_id)),
       commandes: commandes.filter((c) => hubsVisibles.includes(c.hub_id)),
-      lignes, articles: trierArticles(articles, categories), categories: trierCategories(categories), sessions,
+      lignes, articles: trierArticles(articles, categories), categories: trierCategories(categories), sessions: mesCaisses(sessions, utilisateur),
       reservations: reservations.filter((r) => hubsVisibles.includes(r.hub_id)),
       article: Object.fromEntries(articles.map((a) => [a.id, a])),
       // Serveur affecté à chaque table (affectation en cours) ; serveurs : null si la fonction n'est pas encore déployée.

@@ -116,8 +116,8 @@ describe('accorder des modules d’une autre solution', () => {
       await comme(cuisinier, "select avancer_ligne_restaurant($1, 'prete')", [l.id]);
       await comme(serveur, "select avancer_ligne_restaurant($1, 'servie')", [l.id]);
     }
-    const session = await valeur(gerant, 'select ouvrir_caisse($1)', [etab]).catch(async () =>
-      (await un("select id from sessions_caisse where etablissement_id = $1 and statut = 'ouverte' order by ouverte_le desc limit 1", [etab])).id);
+    // Le serveur encaisse sur SA caisse (une caisse par personne, migration 20261011000128).
+    const session = await valeur(serveur, 'select ouvrir_caisse($1)', [etab]);
     const r = (await comme(serveur, 'select encaisser_commande_restaurant($1, $2, $3::jsonb) r', [commande, session, json([{ mode: 'especes', montant: 10000 }])]))[0].r;
     expect(Number(r.total)).toBe(10000);
     expect(r.commande_close).toBe(true);

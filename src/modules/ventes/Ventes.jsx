@@ -5,6 +5,7 @@ import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, ModaleMotif, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
+import { mesCaisses } from '../caisse/mesCaisses.js';
 
 const PERIODES = [['jour', 'Aujourd’hui'], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout']];
 const DEBUTS = { jour: 0, semaine: -6, mois: -29 };
@@ -131,7 +132,7 @@ function ModaleRetour({ vente, lignes, retours, sessions, onFermer, onFait }) {
 }
 
 export function DetailVente({ venteId, onFermer, onChange }) {
-  const { api, montant, peut, notifier } = useEspace();
+  const { api, montant, peut, notifier, utilisateur } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [[vente], lignes, paiements, retours] = await Promise.all([
       api.lire('ventes', { eq: { id: venteId } }),
@@ -139,7 +140,7 @@ export function DetailVente({ venteId, onFermer, onChange }) {
       peut('paiements.lire') ? api.lire('paiements', { eq: { vente_id: venteId }, ordre: ['cree_le'] }) : [],
       api.rpc('historique_retours_vente', { p_vente_id: venteId }).catch(() => []),
     ]);
-    const sessions = await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } });
+    const sessions = mesCaisses(await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } }), utilisateur);
     const contact = vente.contact_id ? (await api.lire('contacts', { eq: { id: vente.contact_id } }))[0] : null;
     return { vente, lignes, paiements, retours, sessions, contact };
   }, [venteId]);

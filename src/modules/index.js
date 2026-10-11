@@ -56,7 +56,8 @@ export const WIDGETS = MANIFESTES
   .sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99));
 
 export function pagesAccessibles({ moduleActif, peut }) {
-  return PAGES.filter((p) => moduleActif(p.module) && peut(p.permission));
+  // Une page peut accepter plusieurs droits (tableau) : un seul suffit.
+  return PAGES.filter((p) => moduleActif(p.module) && [].concat(p.permission).some((x) => peut(x)));
 }
 
 // Pages affichées dans le menu (certaines disparaissent une fois inutiles).
