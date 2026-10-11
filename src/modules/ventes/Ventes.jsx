@@ -5,6 +5,7 @@ import { lireParametres } from '../../noyau/routes.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, ModaleMotif, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
+import { mesCaisses } from '../caisse/mesCaisses.js';
 
 const PERIODES = [['jour', 'Aujourd’hui'], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout']];
 const DEBUTS = { jour: 0, semaine: -6, mois: -29 };
@@ -131,7 +132,7 @@ function ModaleRetour({ vente, lignes, retours, sessions, onFermer, onFait }) {
 }
 
 export function DetailVente({ venteId, onFermer, onChange }) {
-  const { api, montant, peut, notifier } = useEspace();
+  const { api, montant, peut, notifier, utilisateur } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [[vente], lignes, paiements, retours] = await Promise.all([
       api.lire('ventes', { eq: { id: venteId } }),
@@ -139,7 +140,7 @@ export function DetailVente({ venteId, onFermer, onChange }) {
       peut('paiements.lire') ? api.lire('paiements', { eq: { vente_id: venteId }, ordre: ['cree_le'] }) : [],
       api.rpc('historique_retours_vente', { p_vente_id: venteId }).catch(() => []),
     ]);
-    const sessions = await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } });
+    const sessions = mesCaisses(await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } }), utilisateur);
     const contact = vente.contact_id ? (await api.lire('contacts', { eq: { id: vente.contact_id } }))[0] : null;
     return { vente, lignes, paiements, retours, sessions, contact };
   }, [venteId]);
@@ -267,8 +268,10 @@ export function DetailVente({ venteId, onFermer, onChange }) {
 // Paramètres reconnus dans l'adresse (ouverts depuis le tableau de bord) :
 // du, au, paiement=impaye, statut=annulee, origine, vendeur, q, vue=retours ; #/ventes/<id> ouvre une vente.
 export default function Ventes({ sousRoute }) {
-  const { api, etablissement, montant, hubs, hub, multiHub } = useEspace();
+  const { api, etablissement, montant, hubs, hub, multiHub, peut, utilisateur } = useEspace();
   const etab = etablissement.id;
+  // Une personne qui tient une caisse suit d'abord SES ventes ; le responsable voit tout le monde par défaut.
+  const responsable = peut('cloture.cloturer') || !peut('caisse.utiliser');
   const hubFiltre = multiHub ? hub?.id ?? null : null;
   const nomHub = (id) => hubs.find((h) => h.id === id)?.nom ?? '—';
   const p = lireParametres();
@@ -278,7 +281,8 @@ export default function Ventes({ sousRoute }) {
   const [filtre, setFiltre] = useState(p.get('paiement') ? 'credit' : p.get('statut') === 'annulee' ? 'annulees' : 'toutes');
   const [recherche, setRecherche] = useState(p.get('q') ?? '');
   const [origine, setOrigine] = useState(p.get('origine') ?? '');
-  const [vendeur, setVendeur] = useState(p.get('vendeur') ?? '');
+  const [vendeur, setVendeur] = useState(p.get('vendeur') ?? (responsable ? '' : utilisateur?.id ?? ''));
+  const [selection, setSelection] = useState([]);
   const [ouverte, setOuverte] = useState((sousRoute ?? '').split('/')[0] || null);
   const bornes = () => {
     if (periode === 'plage') return { gte: new Date(`${plage.du}T00:00:00`).toISOString(), lte: new Date(`${plage.au}T23:59:59.999`).toISOString() };
@@ -315,7 +319,23 @@ export default function Ventes({ sousRoute }) {
   const numeroVente = Object.fromEntries((donnees?.ventes ?? []).map((v) => [v.id, v.numero]));
   const retours = (donnees?.retours ?? []).filter((r) => !texte || `${r.numero} ${r.motif} ${numeroVente[r.vente_id] ?? ''}`.toLowerCase().includes(texte));
   const ongletsPeriode = plage ? [...PERIODES, ['plage', `${formatDate(plage.du)} → ${formatDate(plage.au)}`]] : PERIODES;
-  const filtresActifs = [origine && `Origine : ${ORIGINES[origine] ?? origine}`, vendeur && 'Un vendeur'].filter(Boolean);
+  const filtresActifs = [origine && `Origine : ${ORIGINES[origine] ?? origine}`, vendeur && vendeur !== utilisateur?.id && 'Un vendeur'].filter(Boolean);
+  // Sélection multiple : total, export et impression des ventes cochées.
+  const choisies = ventes.filter((v) => selection.includes(v.id));
+  const toutesCochees = ventes.length > 0 && ventes.every((v) => selection.includes(v.id));
+  const cocher = (id, oui) => setSelection((liste) => (oui ? [...new Set([...liste, id])] : liste.filter((x) => x !== id)));
+  const colonnesExport = [
+    { libelle: 'Numéro', valeur: (v) => v.numero },
+    { libelle: 'Date', valeur: (v) => formatDateHeure(v.cree_le) },
+    ...(multiHub ? [{ libelle: 'Hub', valeur: (v) => nomHub(v.hub_id) }] : []),
+    { libelle: 'Origine', valeur: (v) => ORIGINES[v.origine] ?? v.origine ?? '' },
+    { libelle: 'Contact', valeur: (v) => donnees.contacts[v.contact_id] ?? '' },
+    { libelle: 'Sous-total', valeur: (v) => v.sous_total },
+    { libelle: 'Remise', valeur: (v) => v.remise },
+    { libelle: 'Total', valeur: (v) => v.total },
+    { libelle: 'Payé', valeur: (v) => v.montant_paye },
+    { libelle: 'État', valeur: (v) => (v.statut === 'annulee' ? 'Annulée' : v.montant_paye >= v.total ? 'Payée' : 'À encaisser') },
+  ];
 
   return (
     <div className="page">
@@ -326,19 +346,7 @@ export default function Ventes({ sousRoute }) {
           : `${multiHub ? `${hub ? hub.nom : 'Tous les Hubs'} · ` : ''}${validees.length} vente(s) validée(s) · ${montant(total)}`}
       >
         {vue === 'ventes' && ventes.length > 0 && (
-          <Bouton icone="telecharger" onClick={() => exporterCsv(`ventes-${dateLocale()}.csv`, [
-            { libelle: 'Numéro', valeur: (v) => v.numero },
-            { libelle: 'Date', valeur: (v) => formatDateHeure(v.cree_le) },
-            ...(multiHub ? [{ libelle: 'Hub', valeur: (v) => nomHub(v.hub_id) }] : []),
-            { libelle: 'Origine', valeur: (v) => ORIGINES[v.origine] ?? v.origine ?? '' },
-            { libelle: 'Contact', valeur: (v) => donnees.contacts[v.contact_id] ?? '' },
-            { libelle: 'Sous-total', valeur: (v) => v.sous_total },
-            { libelle: 'Remise', valeur: (v) => v.remise },
-            { libelle: 'Total', valeur: (v) => v.total },
-            { libelle: 'Payé', valeur: (v) => v.montant_paye },
-            { libelle: 'État', valeur: (v) => (v.statut === 'annulee' ? 'Annulée' : v.montant_paye >= v.total ? 'Payée' : 'À encaisser') },
-          ], ventes)}
-          >
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`ventes-${dateLocale()}.csv`, colonnesExport, ventes)}>
             Exporter
           </Bouton>
         )}
@@ -347,6 +355,10 @@ export default function Ventes({ sousRoute }) {
       <div className="filtres">
         <Onglets onglets={ongletsPeriode} actif={periode} onChange={setPeriode} />
         {vue === 'ventes' && <Onglets onglets={[['toutes', 'Toutes'], ['credit', 'À encaisser'], ['annulees', 'Annulées']]} actif={filtre} onChange={setFiltre} />}
+        {vue === 'ventes' && utilisateur?.id && (
+          <Onglets onglets={[['moi', 'Mes ventes'], ['tous', 'Tout le monde']]} actif={vendeur === utilisateur.id ? 'moi' : 'tous'}
+            onChange={(x) => { setVendeur(x === 'moi' ? utilisateur.id : ''); setSelection([]); }} />
+        )}
         <Recherche valeur={recherche} onChange={setRecherche} placeholder={vue === 'retours' ? 'Numéro ou motif' : 'Numéro ou contact'} />
         {filtresActifs.length > 0 && (
           <Bouton icone="fermer" onClick={() => { setOrigine(''); setVendeur(''); }}>{filtresActifs.join(' · ')}</Bouton>
@@ -375,15 +387,31 @@ export default function Ventes({ sousRoute }) {
         </div>
       )}
       {vue === 'ventes' && donnees && !ventes.length && <Vide titre="Aucune vente" texte="Aucune vente ne correspond à ces filtres." />}
+      {vue === 'ventes' && choisies.length > 0 && (
+        <div className="barre-selection" role="region" aria-label="Ventes sélectionnées">
+          <strong>{choisies.length} vente(s) sélectionnée(s) · {montant(choisies.filter((v) => v.statut === 'validee').reduce((t, v) => t + v.total, 0))}</strong>
+          <span className="texte-doux">dont à encaisser {montant(choisies.filter((v) => v.statut === 'validee').reduce((t, v) => t + Math.max(0, v.total - v.montant_paye), 0))}</span>
+          <Bouton icone="telecharger" onClick={() => exporterCsv(`ventes-selection-${dateLocale()}.csv`, colonnesExport, choisies)}>Exporter la sélection</Bouton>
+          <Bouton onClick={() => setSelection([])}>Tout décocher</Bouton>
+        </div>
+      )}
       {vue === 'ventes' && ventes.length > 0 && (
         <div className="tableau-conteneur">
           <table className="tableau cliquable">
             <thead>
-              <tr><th>N°</th><th>Date</th>{multiHub && <th>Hub</th>}<th>Contact</th><th className="nombre">Total</th><th className="nombre">Reste</th><th>État</th></tr>
+              <tr>
+                <th className="cellule-case">
+                  <input type="checkbox" aria-label="Sélectionner toutes les ventes affichées" checked={toutesCochees}
+                    onChange={(e) => setSelection(e.target.checked ? ventes.map((v) => v.id) : [])} />
+                </th>
+                <th>N°</th><th>Date</th>{multiHub && <th>Hub</th>}<th>Contact</th><th className="nombre">Total</th><th className="nombre">Reste</th><th>État</th></tr>
             </thead>
             <tbody>
               {ventes.map((v) => (
                 <tr key={v.id} onClick={() => setOuverte(v.id)}>
+                  <td className="cellule-case" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" aria-label={`Sélectionner ${v.numero}`} checked={selection.includes(v.id)} onChange={(e) => cocher(v.id, e.target.checked)} />
+                  </td>
                   <td><strong>{v.numero}</strong>{v.origine && v.origine !== 'caisse' && <><br /><small className="texte-doux">{ORIGINES[v.origine] ?? v.origine}</small></>}</td>
                   <td>{formatDateHeure(v.cree_le)}</td>
                   {multiHub && <td>{nomHub(v.hub_id)}</td>}

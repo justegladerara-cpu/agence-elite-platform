@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
@@ -7,16 +7,17 @@ import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
 import VentesPassees from './VentesPassees.jsx';
 
-// Ticket X (type « X ») : même contenu, édité pendant que la caisse reste ouverte, sans numéro ni comptage.
-export function TicketZ({ z, identite, nomEtablissement, devise, type = 'Z' }) {
+// Ticket Z : le bilan figé d'UNE caisse, donc d'une seule personne (migration 20261011000128).
+export function TicketZ({ z, identite, nomEtablissement, devise }) {
   const m = (n) => formatMontant(n, devise);
   return (
     <div className="ticket">
       <strong className="ticket-nom">{identite?.nom_commercial ?? nomEtablissement}</strong>
-      <div className="ticket-titre">{type === 'X' ? 'TICKET X · ÉTAT INTERMÉDIAIRE' : `TICKET Z · ${z.numero}`}</div>
+      <div className="ticket-titre">{`TICKET Z · ${z.numero}`}</div>
       <div className="ticket-ligne"><span>Caisse</span><span>{z.point_de_vente}</span></div>
+      {z.caissier && <div className="ticket-ligne"><span>Tenue par</span><span>{z.caissier}</span></div>}
       <div className="ticket-ligne"><span>Ouverture</span><span>{formatDateHeure(z.ouverte_le)}</span></div>
-      <div className="ticket-ligne"><span>{type === 'X' ? 'Édité le' : 'Clôture'}</span><span>{formatDateHeure(z.cloturee_le)}</span></div>
+      <div className="ticket-ligne"><span>Clôture</span><span>{formatDateHeure(z.cloturee_le)}</span></div>
       <div className="ticket-sep" />
       <div className="ticket-ligne"><span>Ventes ({z.nombre_ventes})</span><strong>{m(z.total_ventes)}</strong></div>
       <div className="ticket-ligne"><span>Remises</span><span>{m(z.total_remises)}</span></div>
@@ -34,7 +35,7 @@ export function TicketZ({ z, identite, nomEtablissement, devise, type = 'Z' }) {
       <div className="ticket-ligne"><span>+ Encaissées</span><span>{m(z.encaissements?.especes ?? 0)}</span></div>
       <div className="ticket-ligne"><span>− Dépenses payées en caisse</span><span>{m(z.depenses_especes)}</span></div>
       <div className="ticket-ligne"><span>Attendues</span><strong>{m(z.especes_attendues)}</strong></div>
-      {type === 'Z' && z.especes_comptees == null && <div className="ticket-ligne"><span>Comptées</span><span>à compter</span></div>}
+      {z.especes_comptees == null && <div className="ticket-ligne"><span>Comptées</span><span>à compter</span></div>}
       {z.especes_comptees != null && (
         <>
           <div className="ticket-ligne"><span>Comptées</span><strong>{m(z.especes_comptees)}</strong></div>
@@ -93,17 +94,25 @@ function ComptageApres({ z, onCompte }) {
   );
 }
 
-function ModaleZ({ z: zInitial, onFermer, onCompte, type = 'Z' }) {
-  const { etablissement, devise, peut } = useEspace();
+export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }) {
+  const { etablissement, devise, peut, utilisateur, deconnecter } = useEspace();
   const [z, setZ] = useState(zInitial);
   useEffect(() => {
     document.body.classList.add('impression-ticket');
     return () => document.body.classList.remove('impression-ticket');
   }, []);
-  const ticket = <TicketZ z={z} identite={etablissement.identite} nomEtablissement={etablissement.nom} devise={devise} type={type} />;
+  const ticket = <TicketZ z={z} identite={etablissement.identite} nomEtablissement={etablissement.nom} devise={devise} />;
+  // La personne de la caisse compte ses espèces ; un responsable peut le faire à sa place.
+  const peutCompter = z.caissier_id === utilisateur?.id ? peut('caisse.utiliser') : peut('cloture.cloturer');
+  const pied = (
+    <>
+      <Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>
+      {deconnexion && deconnecter && <Bouton onClick={deconnecter}>Terminer et me déconnecter</Bouton>}
+    </>
+  );
   return (
-    <Modale titre={type === 'X' ? 'Ticket X (caisse toujours ouverte)' : `Ticket ${z.numero}`} onFermer={onFermer} pied={<Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>}>
-      {type === 'Z' && z.automatique && z.especes_comptees == null && peut('cloture.cloturer') && etablissement.ecriture && (
+    <Modale titre={`Ticket ${z.numero}`} onFermer={onFermer} pied={pied}>
+      {z.automatique && z.especes_comptees == null && peutCompter && etablissement.ecriture && (
         <ComptageApres z={z} onCompte={(maj) => { setZ({ ...z, ...maj }); onCompte?.(); }} />
       )}
       <div className="ticket-apercu">{ticket}</div>
@@ -141,10 +150,10 @@ function ComptageCoupures({ coupures, onTotal }) {
   );
 }
 
-function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
-  const { api, montant, peut } = useEspace();
+export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
+  const { api, montant, peut, utilisateur } = useEspace();
+  const mienne = session.ouverte_par === utilisateur?.id;
   const { donnees: apercu, chargement, erreur } = useDonnees(() => api.rpc('apercu_cloture', { p_session_id: session.id }), [session.id]);
-  const [ticketX, setTicketX] = useState(null);
   const [comptees, setComptees] = useState('');
   const [commentaire, setCommentaire] = useState('');
   const [erreurCloture, setErreurCloture] = useState('');
@@ -168,15 +177,13 @@ function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
     <div className="carte session-ouverte">
       <div className="titre-ligne">
         <div>
-          <h2>{apercu.point_de_vente}</h2>
-          <p className="texte-doux">Ouverte le {formatDateHeure(apercu.ouverte_le)}</p>
+          <h2>{mienne ? 'Ma caisse' : apercu.caissier ?? 'Caisse'} · {apercu.point_de_vente}</h2>
+          <p className="texte-doux">Ouverte le {formatDateHeure(apercu.ouverte_le)}{mienne ? '' : ` par ${apercu.caissier ?? 'une autre personne'}`}</p>
         </div>
         <div className="actions-gauche">
-          <Bouton icone="imprimer" onClick={() => setTicketX({ ...apercu, cloturee_le: new Date().toISOString() })}>Ticket X</Bouton>
           <Badge ton="vert">Ouverte</Badge>
         </div>
       </div>
-      {ticketX && <ModaleZ z={ticketX} type="X" onFermer={() => setTicketX(null)} />}
       <div className="grille-indicateurs">
         <div className="indicateur"><span className="indicateur-libelle">Ventes</span><strong>{montant(apercu.total_ventes)}</strong><small>{apercu.nombre_ventes} vente(s)</small></div>
         {Object.entries(apercu.encaissements).map(([mode, total]) => (
@@ -184,7 +191,7 @@ function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
         ))}
         <div className="indicateur"><span className="indicateur-libelle">Espèces attendues</span><strong>{montant(apercu.especes_attendues)}</strong><small>fond {montant(apercu.fond_initial)} − dépenses {montant(apercu.depenses_especes)}</small></div>
       </div>
-      {peut('cloture.cloturer') ? (
+      {(mienne ? peut('caisse.utiliser') : peut('cloture.cloturer')) ? (
         <form className="formulaire cloture-formulaire" onSubmit={cloturer}>
           {attentes > 0 && (
             <p className="bandeau attention">{attentes} vente(s) en attente sur cette caisse : reprenez-les ou abandonnez-les depuis la caisse avant de clôturer.</p>
@@ -200,26 +207,33 @@ function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
           )}
           <Champ libelle="Commentaire (facultatif)"><input value={commentaire} onChange={(e) => setCommentaire(e.target.value)} /></Champ>
           <Erreur message={erreurCloture} />
-          <Bouton type="submit" variante="principal" chargement={enCours} disabled={comptees === ''}>Clôturer et éditer le ticket Z</Bouton>
+          <Bouton type="submit" variante="principal" chargement={enCours} disabled={comptees === ''}>
+            {mienne ? 'Clôturer ma caisse et éditer mon ticket Z' : `Clôturer à la place de ${apercu.caissier ?? 'cette personne'} (caisse oubliée)`}
+          </Bouton>
           <small className="texte-doux">Après clôture, les ventes de cette caisse ne peuvent plus être annulées.</small>
         </form>
-      ) : <p className="texte-doux">La clôture est réservée au gérant ou au responsable.</p>}
+      ) : <p className="texte-doux">Chaque personne clôture sa propre caisse.</p>}
     </div>
   );
 }
 
 export default function Clotures() {
-  const { api, etablissement, montant, notifier, hubs, hub, multiHub, peut } = useEspace();
+  const { api, etablissement, montant, notifier, hubs, hub, multiHub, peut, utilisateur } = useEspace();
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
+  // Responsable (« clôturer une caisse ») ou rôle de lecture sans caisse (comptable) : voit toutes les caisses et tous
+  // les tickets Z. Une personne qui tient une caisse ne voit que les siens (même règle que tickets_z côté base).
+  const responsable = peut('cloture.cloturer') || (peut('cloture.lire') && !peut('caisse.utiliser'));
   const [zOuvert, setZOuvert] = useState(null);
   const [passees, setPassees] = useState(false);
+  const [personne, setPersonne] = useState('');
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     // Caisses de la veille fermées d'abord (heure de fin de journée, migration 20261010000124).
     await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
     const [sessions, clotures, points, parametres, attentes] = await Promise.all([
       api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }),
-      api.lire('clotures', { eq: { etablissement_id: etab }, ordre: ['cloturee_le', 'desc'], limite: 100 }),
+      // Tickets Z avec la personne de chaque caisse (migration 20261011000128).
+      api.rpc('tickets_z', { p_etablissement_id: etab, p_limite: 300 }),
       api.lire('points_de_vente', { eq: { etablissement_id: etab } }),
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'cloture' } }).catch(() => []),
       // Table ajoutée par la migration 20261010000102 : absente, la clôture fonctionne comme avant.
@@ -228,55 +242,108 @@ export default function Clotures() {
     const noms = Object.fromEntries(points.map((p) => [p.id, `${p.nom}${multiHub ? ` · ${hubs.find((h) => h.id === p.hub_id)?.nom ?? ''}` : ''}`]));
     const garder = (x) => !hubFiltre || x.hub_id === hubFiltre;
     const attentesParSession = attentes.reduce((n, a) => ({ ...n, [a.session_caisse_id]: (n[a.session_caisse_id] ?? 0) + 1 }), {});
-    return { noms, points: points.filter((p) => p.actif && garder(p)), coupures: lireCoupures(parametres[0]?.data?.coupures), attentesParSession, sessions: sessions.filter(garder), clotures: clotures.filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] })) };
-  }, [etab, hubFiltre]);
+    const ouvertes = sessions.filter((x) => garder(x) && !x.rattrapage);
+    return {
+      noms,
+      points: points.filter((p) => p.actif && garder(p)),
+      coupures: lireCoupures(parametres[0]?.data?.coupures),
+      attentesParSession,
+      miennes: ouvertes.filter((x) => x.ouverte_par === utilisateur?.id),
+      autres: responsable ? ouvertes.filter((x) => x.ouverte_par !== utilisateur?.id) : [],
+      clotures: (clotures ?? []).filter(garder).map((z) => ({ ...z, point_de_vente: noms[z.point_de_vente_id] ?? z.point_de_vente })),
+    };
+  }, [etab, hubFiltre, utilisateur?.id, responsable]);
+
+  // Qui a fait quoi : une ligne par personne, et la liste filtrable par personne.
+  const personnes = useMemo(() => {
+    const parId = {};
+    for (const z of donnees?.clotures ?? []) {
+      const cle = z.caissier_id ?? '';
+      parId[cle] ??= { id: cle, nom: z.caissier ?? 'Inconnue', tickets: 0, ventes: 0 };
+      parId[cle].tickets += 1;
+      parId[cle].ventes += Number(z.total_ventes) || 0;
+    }
+    return Object.values(parId).sort((a, b) => b.ventes - a.ventes);
+  }, [donnees]);
+  const affiches = (donnees?.clotures ?? []).filter((z) => !personne || (z.caissier_id ?? '') === personne);
+  const totalAffiche = affiches.reduce((t, z) => t + (Number(z.total_ventes) || 0), 0);
+
+  const carteSession = (s) => (
+    <SessionOuverte
+      key={s.id}
+      session={s}
+      coupures={donnees.coupures}
+      attentes={donnees.attentesParSession[s.id] ?? 0}
+      onCloturee={(z) => {
+        notifier(`Caisse clôturée : ${z.numero}`);
+        setZOuvert({ ...z, deconnexion: s.ouverte_par === utilisateur?.id });
+        recharger();
+      }}
+    />
+  );
 
   return (
     <div className="page">
-      <EnTete titre="Clôture de caisse" sousTitre="Ticket Z : le bilan figé de chaque caisse">
+      <EnTete titre="Clôture de caisse" sousTitre="Chaque personne clôture sa propre caisse : un ticket Z par personne">
         {peut('caisse.rattraper') && donnees?.points.length > 0 && (
           <Bouton icone="plus" onClick={() => setPassees(true)}>Ventes d’un jour passé</Bouton>
         )}
-        {donnees?.clotures.length > 0 && (
+        {affiches.length > 0 && (
           <Bouton icone="telecharger" onClick={() => exporterCsv('tickets-z.csv', [
             { libelle: 'N°', valeur: (z) => z.numero },
             { libelle: 'Clôture', valeur: (z) => formatDateHeure(z.cloturee_le) },
             { libelle: 'Caisse', valeur: (z) => z.point_de_vente ?? '' },
+            { libelle: 'Tenue par', valeur: (z) => z.caissier ?? '' },
             { libelle: 'Ventes', valeur: (z) => z.total_ventes },
             { libelle: 'Écart', valeur: (z) => z.ecart ?? '' },
-          ], donnees.clotures)}>Exporter</Bouton>
+          ], affiches)}>Exporter</Bouton>
         )}
       </EnTete>
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {donnees && (
         <>
-          {donnees.sessions.map((s) => (
-            <SessionOuverte
-              key={s.id}
-              session={s}
-              coupures={donnees.coupures}
-              attentes={donnees.attentesParSession[s.id] ?? 0}
-              onCloturee={(z) => {
-                notifier(`Caisse clôturée : ${z.numero}`);
-                setZOuvert(z);
-                recharger();
-              }}
-            />
-          ))}
-          {!donnees.sessions.length && <div className="encart">Aucune caisse ouverte en ce moment.</div>}
-          <h2 className="sous-titre">Tickets Z</h2>
-          {!donnees.clotures.length && <Vide titre="Aucun ticket Z" texte="Le premier apparaîtra à la première clôture." />}
-          {donnees.clotures.length > 0 && (
+          {donnees.miennes.map(carteSession)}
+          {!donnees.miennes.length && <div className="encart">Votre caisse n’est pas ouverte en ce moment.</div>}
+          {donnees.autres.length > 0 && (
+            <>
+              <h2 className="sous-titre">Caisses ouvertes par les autres personnes</h2>
+              {donnees.autres.map(carteSession)}
+            </>
+          )}
+          <h2 className="sous-titre">{responsable ? 'Tickets Z' : 'Mes tickets Z'}</h2>
+          {responsable && personnes.length > 1 && (
+            <div className="tableau-conteneur">
+              <table className="tableau">
+                <thead><tr><th>Personne</th><th className="nombre">Tickets Z</th><th className="nombre">Ventes</th></tr></thead>
+                <tbody>
+                  {personnes.map((p) => (
+                    <tr key={p.id}><td>{p.nom}</td><td className="nombre">{p.tickets}</td><td className="nombre">{montant(p.ventes)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {responsable && personnes.length > 1 && (
+            <Champ libelle="Afficher les tickets Z de">
+              <select value={personne} onChange={(e) => setPersonne(e.target.value)}>
+                <option value="">Tout le monde</option>
+                {personnes.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
+              </select>
+            </Champ>
+          )}
+          {!affiches.length && <Vide titre="Aucun ticket Z" texte="Le premier apparaîtra à la première clôture." />}
+          {affiches.length > 0 && (
             <div className="tableau-conteneur">
               <table className="tableau cliquable">
-                <thead><tr><th>N°</th><th>Clôture</th><th>Caisse</th><th className="nombre">Ventes</th><th className="nombre">Écart</th></tr></thead>
+                <thead><tr><th>N°</th><th>Clôture</th><th>Caisse</th><th>Tenue par</th><th className="nombre">Ventes</th><th className="nombre">Écart</th></tr></thead>
                 <tbody>
-                  {donnees.clotures.map((z) => (
+                  {affiches.map((z) => (
                     <tr key={z.id} onClick={() => setZOuvert(z)}>
                       <td><strong>{z.numero}</strong></td>
                       <td>{formatDateHeure(z.cloturee_le)}</td>
                       <td>{z.point_de_vente}</td>
+                      <td>{z.caissier ?? ''}</td>
                       <td className="nombre">{montant(z.total_ventes)}</td>
                       <td className={`nombre ${z.ecart === 0 ? '' : 'texte-alerte'}`}>
                         {z.ecart == null ? <Badge ton="orange">Espèces à compter</Badge> : `${z.ecart > 0 ? '+' : ''}${montant(z.ecart)}`}
@@ -284,6 +351,9 @@ export default function Clotures() {
                     </tr>
                   ))}
                 </tbody>
+                {personne && (
+                  <tfoot><tr><td colSpan={4}>Total</td><td className="nombre">{montant(totalAffiche)}</td><td /></tr></tfoot>
+                )}
               </table>
             </div>
           )}
@@ -301,7 +371,10 @@ export default function Clotures() {
           }}
         />
       )}
-      {zOuvert && <ModaleZ key={zOuvert.id ?? 'x'} z={zOuvert} onFermer={() => setZOuvert(null)} onCompte={() => { notifier('Comptage enregistré'); recharger(); }} />}
+      {zOuvert && (
+        <ModaleZ key={zOuvert.id ?? 'z'} z={zOuvert} deconnexion={zOuvert.deconnexion} onFermer={() => setZOuvert(null)}
+          onCompte={() => { notifier('Comptage enregistré'); recharger(); }} />
+      )}
     </div>
   );
 }

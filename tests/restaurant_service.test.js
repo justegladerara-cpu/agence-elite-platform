@@ -242,7 +242,8 @@ describe('serveur affecté à une table', () => {
       await comme(cuisinier, "select avancer_ligne_restaurant($1, 'prete')", [l.id]);
       await comme(serveur, "select avancer_ligne_restaurant($1, 'servie')", [l.id]);
     }
-    session = await valeur(gerant, 'select ouvrir_caisse($1)', [etab]);
+    // Le serveur encaisse sur SA caisse (une caisse par personne, migration 20261011000128).
+    session = await valeur(serveur, 'select ouvrir_caisse($1)', [etab]);
     const r = (await comme(serveur, 'select encaisser_commande_restaurant($1, $2, $3::jsonb) r',
       [commande, session, json([{ mode: 'especes', montant: 18500 }])]))[0].r;
     expect(Number(r.total)).toBe(18500);

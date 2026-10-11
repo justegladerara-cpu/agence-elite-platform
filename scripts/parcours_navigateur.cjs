@@ -65,6 +65,10 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('caisse', async () => {
       await p.goto(U + '#/caisse');
       await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
+      // Fermeture de caisse directement depuis la caisse (comptage puis ticket Z de la personne).
+      await p.getByRole('button', { name: 'Fermeture de caisse' }).click();
+      await p.getByRole('dialog').getByLabel('Espèces comptées dans le tiroir').waitFor();
+      await p.keyboard.press('Escape');
     });
     await etape('panier', async () => {
       await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
@@ -99,6 +103,13 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/ventes');
       await p.getByText('10 000 FCFA').first().waitFor().catch(() => {});
     });
+    await etape('ventes-selection', async () => {
+      await p.getByRole('tab', { name: 'Mes ventes' }).waitFor();
+      await p.getByLabel('Sélectionner toutes les ventes affichées').check();
+      await p.getByText(/vente\(s\) sélectionnée\(s\)/).waitFor();
+      await p.getByRole('button', { name: 'Exporter la sélection' }).waitFor();
+      await p.getByRole('button', { name: 'Tout décocher' }).click();
+    });
     await etape('detail-vente', async () => {
       await p.locator('table.tableau tbody tr').first().click();
       await p.getByRole('button', { name: 'Annuler la vente' }).waitFor();
@@ -115,15 +126,24 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
       await p.getByText(/1 vente\(s\) en attente sur cette caisse/).waitFor();
     });
-    await etape('ticket-x', async () => {
-      await p.getByRole('button', { name: 'Ticket X' }).click();
-      await p.locator('.ticket-apercu').getByText('TICKET X · ÉTAT INTERMÉDIAIRE').waitFor();
-      await p.keyboard.press('Escape');
+    await etape('tableau-caissiers', async () => {
+      await p.goto(U + '#/tableau-de-bord');
+      await p.getByRole('heading', { name: 'Caissières et caissiers' }).waitFor({ timeout: 60000 });
+      await p.goto(U + '#/clotures');
+      await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
+    });
+    await etape('ma-caisse', async () => {
+      // Une caisse par personne : plus de ticket X, seulement SON ticket Z en fin de session.
+      await p.getByRole('heading', { name: /^Ma caisse/ }).waitFor();
+      if (await p.getByRole('button', { name: 'Ticket X' }).count()) throw new Error('le ticket X ne doit plus exister');
     });
     await etape('ticket-z', async () => {
       await p.getByLabel('Espèces comptées dans le tiroir').fill('50000');
-      await p.getByRole('button', { name: 'Clôturer et éditer le ticket Z' }).click();
+      await p.getByRole('button', { name: 'Clôturer ma caisse et éditer mon ticket Z' }).click();
       await p.getByText(/Z-0000/).first().waitFor();
+      await p.locator('.ticket-apercu').getByText('Tenue par').waitFor();
+      await p.getByRole('button', { name: 'Terminer et me déconnecter' }).waitFor();
+      await p.keyboard.press('Escape');
     });
     await etape('contacts', async () => { await p.goto(U + '#/contacts'); await p.locator('table.tableau tbody tr, .fiche-liste-ligne').first().waitFor(); });
     await etape('contact-fiche', async () => { await p.locator('table.tableau tbody tr, .fiche-liste-ligne').first().click(); });

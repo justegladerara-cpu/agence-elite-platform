@@ -81,7 +81,8 @@ caisse ouverte du Hub et est déduit du ticket Z. **Avoir / échange** trace la 
   par défaut, donc aucune limite. Au-delà du plafond, la vente est refusée à qui n'a pas le droit
   `caisse.remise_libre` (gérant et responsable l'ont). Remises de ligne et remise globale sont additionnées. Contrôle
   dans la base, à la validation de la vente (déclencheur `ventes_plafond_remise`) : il vaut aussi pour la Salle.
-- **Ticket X** et **comptage par coupures** : voir [SOP 29](SOP/29_CLOTURE_DE_CAISSE.md).
+- **Comptage par coupures** : voir [SOP 29](SOP/29_CLOTURE_DE_CAISSE.md). Le ticket X a été retiré le 2026-10-11 :
+  seulement un ticket Z par personne en fin de session.
 
 ### Limites connues
 - Pas de validation à distance : au-delà du plafond, un responsable doit se connecter sur le poste pour encaisser.
@@ -106,3 +107,16 @@ demande refusée ne se modifie pas, on en refait une.
 Sur la fiche d'un contact, le gérant voit **Exporter ses données** (fichier JSON de tout ce qui le concerne) et
 **Anonymiser** (sur demande de la personne, irréversible, refusé tant que quelque chose est en cours avec elle).
 Détail et limites : `docs/SECURITE.md` (section lot F) et SOP 69.
+
+## Une caisse par personne, un ticket Z par personne (2026-10-11)
+
+- Chaque personne ouvre SA caisse (index unique `sessions_caisse_une_ouverte` sur point de vente + personne) ;
+  `ouvrir_caisse` rend toujours la caisse de la personne connectée.
+- Déclencheurs `exiger_ma_caisse` (ventes, paiements, ventes en attente) et `exiger_ma_caisse_ou_responsable`
+  (dépenses et remboursements en espèces, reprise / abandon d'une attente, annulation d'une vente sur caisse ouverte) :
+  personne n'écrit sur la caisse d'une autre, sauf un responsable (droit `cloture.cloturer`) pour sortir de l'argent
+  ou débloquer une caisse oubliée.
+- `cloturer_caisse` et `compter_cloture` : la personne de la caisse (droit `caisse.utiliser`) ou un responsable.
+- `tickets_z` et `caisses_ouvertes` ajoutent le nom de la personne ; `voit_toutes_caisses` décide qui voit tout le
+  monde. Ticket X retiré de l'écran. Migration `20261011000128_caisse_par_caissiere.sql`, tests
+  `tests/caisse_par_caissiere.test.js`, SOP 29.

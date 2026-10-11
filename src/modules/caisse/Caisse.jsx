@@ -7,6 +7,8 @@ import {
   arrondirQuantite, classerFavoris, compterVente, enregistrerFavoris, estVenteAuPoids, FRACTIONS, lireFavoris, MIN_FAVORIS_AUTO,
   quantitePourMontant,
 } from './poids.js';
+import { lireCoupures, ModaleZ, SessionOuverte } from '../cloture/Clotures.jsx';
+import { mesCaisses } from './mesCaisses.js';
 import './caisse.css';
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
@@ -402,14 +404,14 @@ function ModaleAttentes({ attentes, panierOccupe, onAction, onFermer }) {
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur } = useEspace();
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
-    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes] = await Promise.all([
+    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -418,15 +420,18 @@ export default function Caisse({ naviguer }) {
       api.lire('points_de_vente', { eq: { etablissement_id: etab, actif: true }, ordre: ['cree_le'] }),
       // Ventes en attente (migration 20261010000102) : sans la table, la fonction est simplement masquée.
       api.lire('ventes_en_attente', { eq: { etablissement_id: etab, statut: 'en_attente' }, ordre: ['cree_le'] }).catch(() => null),
+      // Coupures pour compter le tiroir à la fermeture de caisse.
+      api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'cloture' } }).catch(() => []),
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
       articles, stock, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
-      sessions: sessions.filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees,
+      // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
+      sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees, coupures: lireCoupures(reglagesCloture[0]?.data?.coupures),
     };
-  }, [etab, hubsCaisse.join()]);
+  }, [etab, hubsCaisse.join(), utilisateur?.id]);
   const [pdvChoisi, setPdvChoisi] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [remise, setRemise] = useState('');
@@ -451,6 +456,9 @@ export default function Caisse({ naviguer }) {
   const [panierMobile, setPanierMobile] = useState(false);
   const [miseEnAttente, setMiseEnAttente] = useState(false);
   const [listeAttente, setListeAttente] = useState(false);
+  // Fermeture de caisse depuis la caisse : comptage, puis MON ticket Z.
+  const [fermeture, setFermeture] = useState(false);
+  const [ticketZ, setTicketZ] = useState(null);
 
   const parId = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
   const session = donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
@@ -462,17 +470,22 @@ export default function Caisse({ naviguer }) {
 
   if (chargement && !donnees) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
+  // Ticket Z qui vient d'être édité : il reste affiché même si la caisse est maintenant fermée.
+  const modaleTicketZ = ticketZ && <ModaleZ key={ticketZ.id} z={ticketZ} deconnexion onFermer={() => setTicketZ(null)} />;
   if (!session) {
     return (
-      <OuvertureCaisse
-        pointsDeVente={donnees.pointsDeVente}
-        fermees={donnees.fermees}
-        onOuvrir={async (pdv, fond) => {
-          await api.rpc('ouvrir_caisse', { p_etablissement_id: etab, p_point_de_vente_id: pdv, p_fond_initial: fond });
-          notifier('Caisse ouverte');
-          recharger();
-        }}
-      />
+      <>
+        <OuvertureCaisse
+          pointsDeVente={donnees.pointsDeVente}
+          fermees={donnees.fermees}
+          onOuvrir={async (pdv, fond) => {
+            await api.rpc('ouvrir_caisse', { p_etablissement_id: etab, p_point_de_vente_id: pdv, p_fond_initial: fond });
+            notifier('Caisse ouverte');
+            recharger();
+          }}
+        />
+        {modaleTicketZ}
+      </>
     );
   }
 
@@ -537,8 +550,8 @@ export default function Caisse({ naviguer }) {
     recharger();
   };
 
-  // Les ventes en attente du Hub de la caisse : un panier mis de côté se reprend sur n'importe quelle caisse du Hub.
-  const attentes = donnees.attentes?.filter((a) => a.hub_id === session.hub_id) ?? null;
+  // Les ventes mises en attente sur MA caisse : chaque personne reprend ses propres paniers.
+  const attentes = donnees.attentes?.filter((a) => a.session_caisse_id === session.id) ?? null;
   const mettreEnAttente = async (libelle) => {
     await api.rpc('mettre_vente_en_attente', {
       p_session_id: session.id, p_lignes: lignes, p_libelle: libelle || null, p_contact_id: contactId, p_remise: Number(remise || 0),
@@ -585,7 +598,7 @@ export default function Caisse({ naviguer }) {
             )}
           </div>
           {attentes?.length > 0 && <Bouton icone="horloge" onClick={() => setListeAttente(true)}>En attente ({attentes.length})</Bouton>}
-          {peut('cloture.cloturer') && <Bouton icone="cloture" onClick={() => naviguer('clotures')}>Clôturer</Bouton>}
+          <Bouton icone="cloture" variante="principal" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
         </div>
         <div onKeyDown={recherchePrecise}>
           <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, référence ou code-barres" />
@@ -642,6 +655,22 @@ export default function Caisse({ naviguer }) {
         <Icone nom="panier" /> {formatQuantite(nombreArticles)} article(s) · voir le panier
       </button>
       {miseEnAttente && <ModaleMiseEnAttente onValider={mettreEnAttente} onFermer={() => setMiseEnAttente(false)} />}
+      {fermeture && (
+        <Modale titre="Fermeture de caisse" onFermer={() => setFermeture(false)}>
+          <SessionOuverte
+            session={session}
+            coupures={donnees.coupures ?? []}
+            attentes={attentes?.length ?? 0}
+            onCloturee={(z) => {
+              setFermeture(false);
+              notifier(`Caisse fermée : ${z.numero}`);
+              setTicketZ(z);
+              recharger();
+            }}
+          />
+        </Modale>
+      )}
+      {modaleTicketZ}
       {listeAttente && attentes && (
         <ModaleAttentes attentes={attentes} panierOccupe={lignes.length > 0} onAction={terminerAttente} onFermer={() => setListeAttente(false)} />
       )}

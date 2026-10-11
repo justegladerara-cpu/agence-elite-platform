@@ -8,6 +8,7 @@ import { Recadrage } from '../../ui/Recadrage.jsx';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, ModaleMotif, Onglets, Vide } from '../../ui/composants.jsx';
 import { libelleDepense, motifParId, MOTIFS_DEPENSE } from './motifs.js';
 import './depenses.css';
+import { mesCaisses } from '../caisse/mesCaisses.js';
 
 const CATEGORIES = ['Achats de marchandises', 'Transport', 'Loyer', 'Énergie', 'Salaires', 'Téléphone et Internet', 'Entretien', 'Impôts et taxes', 'Divers'];
 const PERIODES = [['mois', 'Ce mois'], ['30', '30 jours'], ['tout', 'Tout']];
@@ -24,7 +25,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
   const { api, etablissement, hub, multiHub, montant } = useEspace();
   const [valeurs, setValeurs] = useState({
     motif: '', libelle: '', montant: '', categorie: 'Divers', date_depense: dateLocale(), mode: 'especes', fournisseur_id: '', justificatif: '',
-    depuis_caisse: sessions.length > 0,
+    depuis_caisse: sessions.length > 0, caisse_id: sessions[0]?.id ?? '',
   });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
@@ -36,7 +37,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
   const changer = (champ) => (e) => setValeurs((v) => ({ ...v, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const choisirMotif = (m) => setValeurs((v) => ({ ...v, motif: m.id, categorie: m.categorie }));
   // La photo du justificatif est trop lourde pour un brouillon : elle se reprend.
-  const brouillon = useBrouillon('depense', valeurs, setValeurs, { exclure: ['justificatif', 'depuis_caisse'] });
+  const brouillon = useBrouillon('depense', valeurs, setValeurs, { exclure: ['justificatif', 'depuis_caisse', 'caisse_id'] });
   const enregistrer = async (e) => {
     e.preventDefault();
     const libelle = libelleDepense(valeurs);
@@ -47,7 +48,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
     setChargement(true);
     setErreur('');
     try {
-      const { depuis_caisse: _caisse, motif: _motif, ...reste } = valeurs;
+      const { depuis_caisse: _caisse, caisse_id: caisseId, motif: _motif, ...reste } = valeurs;
       if (enValidation) {
         await api.rpc('demander_depense', {
           p_etablissement_id: etablissement.id,
@@ -64,7 +65,7 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
           libelle,
           montant: Number(valeurs.montant),
           fournisseur_id: valeurs.fournisseur_id || null,
-          session_caisse_id: valeurs.mode === 'especes' && depuisCaisse ? sessions[0].id : null,
+          session_caisse_id: valeurs.mode === 'especes' && depuisCaisse ? (sessions.find((x) => x.id === caisseId) ?? sessions[0]).id : null,
           // Rattachée au Hub choisi en haut de l'écran (sinon : Hub de la caisse, ou Hub principal).
           ...(multiHub && hub ? { hub_id: hub.id } : {}),
         },
@@ -101,6 +102,13 @@ function FormulaireDepense({ fournisseurs, sessions, categories, reglages, onFer
             <input type="checkbox" checked={valeurs.depuis_caisse} onChange={changer('depuis_caisse')} />
             Prise dans le tiroir de la caisse ouverte (sera déduite au ticket Z)
           </label>
+        )}
+        {valeurs.mode === 'especes' && valeurs.depuis_caisse && sessions.length > 1 && (
+          <Champ libelle="Tiroir de quelle caisse ?">
+            <select value={valeurs.caisse_id} onChange={changer('caisse_id')}>
+              {sessions.map((x) => <option key={x.id} value={x.id}>{x.mienne ? 'Ma caisse' : x.caissier ?? 'Caisse'}{x.point_de_vente ? ` · ${x.point_de_vente}` : ''}</option>)}
+            </select>
+          </Champ>
         )}
         {aRecadrer && (
           <Recadrage source={aRecadrer} taille={1000} onAnnuler={() => setARecadrer(null)}
@@ -186,7 +194,8 @@ export default function Depenses() {
     const [depenses, contacts, sessions, reglages, demandes] = await Promise.all([
       api.lire('depenses', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, gte: depuis ? { date_depense: depuis } : {}, ordre: ['date_depense', 'desc'], limite: 500 }),
       peut('contacts.lire') ? api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }) : [],
-      api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }).catch(() => []),
+      // Ma caisse, et pour un responsable celles des autres (migration 20261011000128).
+      api.rpc('caisses_ouvertes', { p_etablissement_id: etab }).catch(() => api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }).then((x) => mesCaisses(x, utilisateur)).catch(() => [])),
       api.rpc('reglages_depenses', { p_etablissement_id: etab }).catch(() => ({ seuil_validation: 0, peut_valider: false })),
       api.lire('demandes_depense', { eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}) }, ordre: ['demande_le', 'desc'], limite: 100, colonnes: [
         'id', 'date_depense', 'categorie', 'libelle', 'montant', 'mode', 'fournisseur_id', 'statut', 'demande_par', 'demande_le', 'decide_le', 'motif_refus',

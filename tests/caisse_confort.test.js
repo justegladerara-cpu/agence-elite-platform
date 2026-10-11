@@ -17,7 +17,9 @@ const utilisateur = async (email) => (await db.query('insert into auth.users(ema
 const comme = (user, sql, params = []) => commeRole(db, 'authenticated', user, async (tx) => (await tx.query(sql, params)).rows);
 const valeur = async (user, sql, params = []) => Object.values((await comme(user, sql, params))[0])[0];
 const json = JSON.stringify;
-const vendre = (user, remise, ligne = {}) => valeur(user, 'select enregistrer_vente($1,$2,$3::jsonb,$4::jsonb,null,$5)', [etab, session,
+// Chacun vend sur SA caisse (migration 20261011000128).
+let sessionGerant;
+const vendre = (user, remise, ligne = {}) => valeur(user, 'select enregistrer_vente($1,$2,$3::jsonb,$4::jsonb,null,$5)', [etab, user === gerant ? sessionGerant : session,
   json([{ article_id: article, quantite: 1, ...ligne }]), json([{ mode: 'especes', montant: 10000 }]), remise]);
 
 beforeAll(async () => {
@@ -32,6 +34,7 @@ beforeAll(async () => {
   article = await valeur(gerant, 'select enregistrer_article($1,$2::jsonb)', [etab, json({ nom: 'Pagne wax', prix_vente: 10000, stock_initial: 50 })]);
   articleAutre = await valeur(autre, 'select enregistrer_article($1,$2::jsonb)', [autreEtab, json({ nom: 'Article ailleurs', prix_vente: 500 })]);
   session = await valeur(caissier, 'select ouvrir_caisse($1,null,0)', [etab]);
+  sessionGerant = await valeur(gerant, 'select ouvrir_caisse($1,null,0)', [etab]);
 });
 
 afterAll(async () => db.close());

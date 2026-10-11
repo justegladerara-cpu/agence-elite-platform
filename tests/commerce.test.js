@@ -163,8 +163,10 @@ describe('Solution Commerce : parcours de bout en bout', () => {
     const apercu = await valeur(caissier, 'select apercu_cloture($1)', [session]);
     // Fond 10 000 + espèces (3 000 de V-00001 ; 2 000 annulés) − dépense 1 500.
     expect(Number(apercu.especes_attendues)).toBe(11500);
-    await expect(comme(caissier, 'select cloturer_caisse($1, 11500)', [session])).rejects.toThrow(/Permission refusée/);
-    const z = await valeur(gerant, "select cloturer_caisse($1, 11000, 'Manque 500')", [session]);
+    // Chaque personne clôture SA caisse (migration 20261011000128) : le caissier édite lui-même son ticket Z.
+    await expect(comme(comptable, 'select cloturer_caisse($1, 11500)', [session])).rejects.toThrow(/Permission refusée/);
+    const z = await valeur(caissier, "select cloturer_caisse($1, 11000, 'Manque 500')", [session]);
+    expect(z.caissier_id).toBe(caissier);
     expect(z.numero).toBe('Z-00001');
     expect(z.nombre_ventes).toBe(1);
     expect(Number(z.total_ventes)).toBe(3000);

@@ -76,7 +76,7 @@ describe('fermeture automatique de la caisse', () => {
 
   test('les espèces se comptent ensuite une seule fois ; le reste du ticket Z reste définitif', async () => {
     const z = (await db.query('select id from clotures where automatique order by cloturee_le limit 1')).rows[0].id;
-    await expect(comme(caissier, 'select compter_cloture($1, 1400)', [z])).rejects.toThrow(/Permission refusée/);
+    // La personne de la caisse peut compter elle-même (migration 20261011000128) ; ici, c'est le gérant qui compte.
     const compte = await valeur(gerant, "select compter_cloture($1, 1400, 'Compté le matin')", [z]);
     expect(Number(compte.especes_comptees)).toBe(1400);
     expect(Number(compte.ecart)).toBe(-100);

@@ -544,10 +544,10 @@ begin
       'zone', ligne.zone, 'places', ligne.places, 'ordre', ligne.ordre)));
   end loop;
 
-  session := public.ouvrir_caisse(etab, null, 20000);
-
   -- Table T3 : servie et encaissée (addition séparée : un client paie sa part en espèces, le reste en Mobile Money).
+  -- Le serveur encaisse sur SA caisse (une caisse par personne, migration 20261011000128).
   perform set_config('request.jwt.claims', json_build_object('sub', serveur, 'role', 'authenticated')::text, true);
+  session := public.ouvrir_caisse(etab, null, 20000);
   cmd := public.ouvrir_commande_restaurant(etab, jsonb_build_object('table_id', t ->> 'T3', 'couverts', 4));
   perform public.ajouter_lignes_restaurant(cmd, jsonb_build_array(
     jsonb_build_object('article_id', art ->> 'PLT-PDG', 'quantite', 2), jsonb_build_object('article_id', art ->> 'PLT-POI', 'quantite', 2),

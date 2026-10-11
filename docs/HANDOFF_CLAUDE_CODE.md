@@ -437,7 +437,7 @@ contractuel comme de l'argent encaissé. Doc : `TABLEAUX_DE_BORD.md`, SOP 37.
 ## 24. Restaurant
 
 Sur `main` (en production côté site) : tables par zone et Hub, commandes (sur table ou à emporter), envoi en cuisine /
-bar, écran cuisine, statuts des plats, addition séparée, encaissement par la caisse commune (stock et paiements communs),
+bar, écran cuisine, statuts des plats, addition séparée, encaissement par la caisse du serveur (une caisse par personne depuis la migration 128 ; stock commun),
 annulation avec motif, réservations de tables (capacité, chevauchement), tableau de bord.
 Sur la PR #4 (**base déjà en production, écrans pas encore publiés**) : serveurs affectés aux tables avec historique
 (`rest_affectations`), transferts de serveur motivés (`rest_transferts_serveur`), statistiques par serveur, filtres de

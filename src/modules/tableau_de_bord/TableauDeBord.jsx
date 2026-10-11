@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, EmptyState, Erreur, Icone, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { widgetsAccessibles } from '../index.js';
@@ -91,7 +91,7 @@ function VueGlobale({ domaines, f, naviguer }) {
               ))}
             </div>
           )}
-          {extras.map((w) => { const W = w.composant; return <W key={w.id} cockpit={c} espace={espace} naviguer={naviguer} />; })}
+          {extras.map((w) => { const W = w.composant; return <Suspense key={w.id} fallback={null}><W cockpit={c} espace={espace} naviguer={naviguer} du={f.du} au={f.au} /></Suspense>; })}
         </>
       )}
     </>
