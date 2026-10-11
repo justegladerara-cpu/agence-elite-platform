@@ -6,6 +6,7 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '
 import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
 import VentesPassees from './VentesPassees.jsx';
+import { BandeauNouveau } from '../../ui/Nouveau.jsx';
 
 // Ticket Z : le bilan figé d'UNE caisse, donc d'une seule personne (migration 20261011000128).
 export function TicketZ({ z, identite, nomEtablissement, devise }) {
@@ -284,6 +285,10 @@ export default function Clotures() {
 
   return (
     <div className="page">
+      <BandeauNouveau>
+        Une caisse et un ticket Z par personne (« Tenue par »), plus de ticket X, plus de fermeture automatique à minuit :
+        chacune ferme sa caisse quand elle a fini, puis « Terminer et me déconnecter ».
+      </BandeauNouveau>
       <EnTete titre="Clôture de caisse" sousTitre="Chaque personne clôture sa propre caisse : un ticket Z par personne">
         {peut('caisse.rattraper') && donnees?.points.length > 0 && (
           <Bouton icone="plus" onClick={() => setPassees(true)}>Ventes d’un jour passé</Bouton>

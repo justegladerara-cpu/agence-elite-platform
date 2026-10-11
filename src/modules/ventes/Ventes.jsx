@@ -6,6 +6,7 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, ModaleMotif, 
 import { ModaleRecu } from '../recus/Recu.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
 import { mesCaisses } from '../caisse/mesCaisses.js';
+import { BandeauNouveau } from '../../ui/Nouveau.jsx';
 
 const PERIODES = [['jour', 'Aujourd’hui'], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout']];
 const DEBUTS = { jour: 0, semaine: -6, mois: -29 };
@@ -351,6 +352,9 @@ export default function Ventes({ sousRoute }) {
           </Bouton>
         )}
       </EnTete>
+      <BandeauNouveau>
+        « Mes ventes » / « Tout le monde », cochez plusieurs ventes pour voir leur total et les exporter, et le serveur (« servi par ») sous le client.
+      </BandeauNouveau>
       <Onglets onglets={[['ventes', 'Ventes'], ['retours', 'Retours et remboursements']]} actif={vue} onChange={setVue} />
       <div className="filtres">
         <Onglets onglets={ongletsPeriode} actif={periode} onChange={setPeriode} />

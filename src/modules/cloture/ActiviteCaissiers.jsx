@@ -2,6 +2,7 @@ import React from 'react';
 import { useDonnees } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Erreur } from '../../ui/composants.jsx';
+import { PastilleNouveau } from '../../ui/Nouveau.jsx';
 
 // Tableau de bord (gérant, responsable, comptable) : qui tient une caisse en ce moment, combien chaque personne a
 // vendu sur la période et le classement (migration 20261011000128, fonction activite_caissiers), et les factures
@@ -31,7 +32,7 @@ export default function ActiviteCaissiers({ espace, du, au, naviguer }) {
   return (
     <section className="carte cockpit-caissiers" aria-label="Caissières">
       <div className="titre-ligne">
-        <h2>Caissières et caissiers</h2>
+        <h2>Caissières et caissiers<PastilleNouveau /></h2>
         <Badge ton={enCaisse.length ? 'vert' : undefined}>{enCaisse.length ? `${enCaisse.length} en caisse maintenant` : 'Aucune caisse ouverte'}</Badge>
       </div>
       <div className="tableau-conteneur">

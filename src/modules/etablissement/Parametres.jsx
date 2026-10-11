@@ -6,6 +6,7 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Tab
 import { ChampsApparence } from '../../ui/Marque.jsx';
 import { ListeApplications } from './Applications.jsx';
 import { Connexions } from './Connexions.jsx';
+import { BandeauNouveau } from '../../ui/Nouveau.jsx';
 
 function Identite({ partie }) {
   const { api, etablissement, peut, notifier, recharger } = useEspace();
@@ -410,7 +411,15 @@ export default function Parametres({ naviguer }) {
       {onglet === 'documents' && <Identite key={`d-${etablissement.id}`} partie="documents" />}
       {onglet === 'apparence' && <Apparence key={etablissement.id} />}
       {onglet === 'caisses' && <ReglagesCaisse />}
-      {onglet === 'reglages' && <ReglagesModules />}
+      {onglet === 'reglages' && (
+        <>
+          <BandeauNouveau>
+            Clôture : « Verrouiller la caisse… » (15 min par défaut) et fermeture automatique désactivée par défaut.
+            Caisse : « Serveurs » proposés dans « Servi par ».
+          </BandeauNouveau>
+          <ReglagesModules />
+        </>
+      )}
       {onglet === 'applications' && <ListeApplications />}
       {onglet === 'connexions' && <Connexions />}
       {onglet === 'equipe' && (
