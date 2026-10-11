@@ -7,6 +7,10 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Mod
 import { VignetteArticle } from '../caisse/Caisse.jsx';
 import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
 import Categories from './Categories.jsx';
+import AjoutMultiple from './AjoutMultiple.jsx';
+import ChangerPrix from './ChangerPrix.jsx';
+import ChoixUnite from './ChoixUnite.jsx';
+import './articles.css';
 
 // Actions groupées sur les articles sélectionnés (une seule opération côté base, tout ou rien).
 const ACTIONS_LOT = [
@@ -37,7 +41,9 @@ const VIDE = {
   disponible: true, epuise: false, unites_par_lot: '', nom_lot: '',
 };
 
-function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
+// Création : formulaire court (nom, prix, « Vendu à », photo) ; « Plus d’options » ouvre le reste sans perdre la saisie.
+// Modification : formulaire complet.
+function FormulaireArticle({ article, categories, onFermer, onEnregistre, onPlusieurs }) {
   const { api, etablissement, peut } = useEspace();
   const [valeurs, setValeurs] = useState(() => (article
     ? { ...VIDE, ...Object.fromEntries(Object.entries(article).map(([k, v]) => [k, v ?? ''])) }
@@ -45,6 +51,7 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
   const [nouvelleCategorie, setNouvelleCategorie] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
+  const [complet, setComplet] = useState(Boolean(article));
   const changer = (champ) => (e) => setValeurs((v) => ({ ...v, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
   const choisirPhoto = async (e) => {
@@ -93,21 +100,40 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
   };
 
   return (
-    <Modale titre={article ? 'Modifier l’article' : 'Nouvel article'} onFermer={onFermer} large>
+    <Modale titre={article ? 'Modifier l’article' : 'Ajouter un article'} onFermer={onFermer} large={complet}>
       <form className="formulaire" onSubmit={enregistrer}>
         <div className="article-photo">
           <VignetteArticle article={{ nom: valeurs.nom || '?', photo: valeurs.photo }} taille="grande" />
-          <div>
+          <div className="boutons-photo">
+            {/* capture : ouvre directement l'appareil photo du téléphone ; sans capture : galerie ou fichier. */}
             <label className="bouton secondaire">
               <input type="file" accept="image/*" capture="environment" onChange={choisirPhoto} hidden />
-              Prendre ou choisir une photo
+              Prendre en photo
+            </label>
+            <label className="bouton secondaire">
+              <input type="file" accept="image/*" onChange={choisirPhoto} hidden />
+              Choisir une photo
             </label>
             {valeurs.photo && <button type="button" className="lien" onClick={() => setValeurs((v) => ({ ...v, photo: '' }))}>Retirer la photo</button>}
+            <small className="texte-doux">Photo facultative, réduite avant l’envoi.</small>
           </div>
         </div>
         <div className="grille-champs">
           <Champ libelle="Nom de l’article" className="large"><input value={valeurs.nom} onChange={changer('nom')} required autoFocus /></Champ>
           <Champ libelle="Prix de vente"><input type="number" min="0" step="any" inputMode="decimal" value={valeurs.prix_vente} onChange={changer('prix_vente')} required /></Champ>
+          <Champ libelle="Vendu à"><ChoixUnite valeur={valeurs.unite} onChange={(unite) => setValeurs((v) => ({ ...v, unite }))} /></Champ>
+        </div>
+        {!complet && (
+          <div className="options-article">
+            <button type="button" className="lien" onClick={() => setComplet(true)}>
+              Plus d’options (prix d’achat, catégorie, stock, code-barres…)
+            </button>
+            {onPlusieurs && <button type="button" className="lien" onClick={onPlusieurs}>Ajouter plusieurs articles d’un coup</button>}
+          </div>
+        )}
+        {complet && (
+        <>
+        <div className="grille-champs">
           <Champ libelle="Coût d’achat" aide="Sert au calcul de la marge."><input type="number" min="0" step="any" inputMode="decimal" value={valeurs.cout_achat} onChange={changer('cout_achat')} /></Champ>
           <Champ libelle="Catégorie">
             <select value={valeurs.categorie_id} onChange={changer('categorie_id')}>
@@ -119,7 +145,6 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
           {valeurs.categorie_id === '__nouvelle' && (
             <Champ libelle="Nom de la catégorie"><input value={nouvelleCategorie} onChange={(e) => setNouvelleCategorie(e.target.value)} required /></Champ>
           )}
-          <Champ libelle="Unité"><input value={valeurs.unite} onChange={changer('unite')} placeholder="unité, m, kg, L…" /></Champ>
           <Champ libelle="Référence"><input value={valeurs.reference} onChange={changer('reference')} /></Champ>
           <Champ libelle="Code-barres"><input value={valeurs.code_barres} onChange={changer('code_barres')} inputMode="numeric" /></Champ>
         </div>
@@ -159,6 +184,8 @@ function FormulaireArticle({ article, categories, onFermer, onEnregistre }) {
             Épuisé pour le moment
           </label>
         </div>
+        </>
+        )}
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
@@ -338,8 +365,10 @@ export default function Articles() {
   const [selection, setSelection] = useState([]);
   const [destination, setDestination] = useState('');
   const [erreurAction, setErreurAction] = useState('');
-  // ?nouveau=1 : ouvre directement le formulaire de création.
+  // ?nouveau=1 : ouvre directement le formulaire court de création ; ?nouveau=plusieurs : la saisie de plusieurs articles.
   const [edition, setEdition] = useState(() => (peut('articles.gerer') && lireParametres().get('nouveau') === '1' ? {} : null));
+  const [plusieurs, setPlusieurs] = useState(() => peut('articles.gerer') && lireParametres().get('nouveau') === 'plusieurs');
+  const [prix, setPrix] = useState(false);
   const [importer, setImporter] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [articles, categories, stock] = await Promise.all([
@@ -413,8 +442,36 @@ export default function Articles() {
           ], articles)}>Exporter</Bouton>
         )}
         {peut('articles.gerer') && <Bouton onClick={() => setImporter(true)}>Importer</Bouton>}
+        {peut('articles.gerer') && vue !== 'categories' && donnees?.articles.length > 0 && <Bouton onClick={() => setPrix(true)}>Changer les prix</Bouton>}
+        {peut('articles.gerer') && <Bouton icone="plus" onClick={() => setPlusieurs(true)}>Ajouter plusieurs articles</Bouton>}
         {peut('articles.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouvel article</Bouton>}
       </EnTete>
+      {plusieurs && donnees && (
+        <AjoutMultiple
+          articles={donnees.articles}
+          categories={ouvertes}
+          onFermer={() => setPlusieurs(false)}
+          onAjoutes={(message, fermer) => {
+            if (fermer) setPlusieurs(false);
+            notifier(message);
+            recharger();
+          }}
+        />
+      )}
+      {prix && donnees && (
+        <ChangerPrix
+          articles={donnees.articles}
+          categories={ouvertes}
+          selection={selection}
+          onFermer={() => { setPrix(false); recharger(); }}
+          onTermine={(message) => {
+            setPrix(false);
+            setSelection([]);
+            notifier(message);
+            recharger();
+          }}
+        />
+      )}
       {importer && (
         <ImportArticles
           onFermer={() => setImporter(false)}
@@ -467,6 +524,7 @@ export default function Articles() {
             <option value="__sans">Sans catégorie</option>
           </select>}
           {deplacer && <Bouton disabled={!destination} onClick={changerCategorie}>Changer de catégorie</Bouton>}
+          {gerer && <Bouton onClick={() => setPrix(true)}>Changer les prix</Bouton>}
           <button type="button" className="lien" onClick={() => setSelection([])}>Tout désélectionner</button>
         </div>
       )}
@@ -527,6 +585,7 @@ export default function Articles() {
           article={edition.article}
           categories={ouvertes}
           onFermer={() => setEdition(null)}
+          onPlusieurs={() => { setEdition(null); setPlusieurs(true); }}
           onEnregistre={(message) => {
             setEdition(null);
             notifier(message);
