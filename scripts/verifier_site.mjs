@@ -49,8 +49,9 @@ await etape('mauvais mot de passe refusé', async () => {
 await etape('connexion du gérant fictif', async () => {
   await page.getByLabel(/^Mot de passe/).fill(motDePasse);
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  await page.getByText('Chiffre d’affaires').first().waitFor({ timeout: 30000 });
-  return 'tableau de bord affiché';
+  // Depuis le parcours simple (SOP 79), la connexion ouvre l'accueil en gros boutons.
+  await page.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor({ timeout: 30000 });
+  return 'accueil affiché';
 });
 await etape('données de l’établissement visibles', async () => {
   await page.goto(url + '#/articles');
