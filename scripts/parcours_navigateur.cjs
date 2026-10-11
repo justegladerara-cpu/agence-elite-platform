@@ -20,12 +20,20 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
   };
   try {
     await p.goto(U);
-    await etape('connexion', async () => { await p.getByText(/Mireille/).click({ timeout: 90000 }); await p.getByText('Chiffre d’affaires').first().waitFor(); });
+    await etape('connexion', async () => { await p.getByText(/Mireille/).click({ timeout: 90000 }); await p.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor(); });
+    await etape('accueil', async () => {
+      await p.getByRole('button', { name: /J’ai reçu de la marchandise/ }).first().waitFor();
+      await p.getByLabel('Je veux').fill('depense');
+      await p.locator('.accueil-resultats button').first().waitFor();
+      await p.getByLabel('Je veux').fill('');
+    });
     await etape('article-cree', async () => {
       await p.goto(U + '#/articles');
       await p.getByRole('button', { name: 'Nouvel article' }).click();
       await p.getByLabel('Nom de l’article').fill('Casque test');
       await p.getByLabel('Prix de vente').fill('5000');
+      // Formulaire court par défaut : les autres champs sont sous « Plus d’options ».
+      await p.getByRole('button', { name: /Plus d’options/ }).click();
       await p.getByLabel('Coût d’achat').fill('3000');
       await p.getByLabel(/Suivre les quantités de cet article/).check();
       await p.getByLabel('Stock initial').fill('10');
@@ -119,12 +127,13 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     });
     await etape('contacts', async () => { await p.goto(U + '#/contacts'); await p.locator('table.tableau tbody tr, .fiche-liste-ligne').first().waitFor(); });
     await etape('contact-fiche', async () => { await p.locator('table.tableau tbody tr, .fiche-liste-ligne').first().click(); });
-    await etape('depenses', async () => { await p.goto(U + '#/depenses'); await p.getByRole('button', { name: 'Nouvelle dépense' }).waitFor(); });
+    await etape('depenses', async () => { await p.goto(U + '#/depenses'); await p.getByRole('button', { name: 'J’ai payé une dépense' }).waitFor(); });
     await etape('depense-ajoutee', async () => {
-      await p.getByRole('button', { name: 'Nouvelle dépense' }).click();
-      await p.getByLabel('Libellé').fill('Carburant livraison');
-      await p.getByLabel('Montant').fill('7000');
-      await p.getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByRole('button', { name: 'J’ai payé une dépense' }).click();
+      await p.getByLabel('Détail (facultatif)').fill('Carburant livraison');
+      await p.getByLabel('Combien ?').fill('7000');
+      await p.getByRole('button', { name: 'Transport', exact: true }).click();
+      await p.getByRole('button', { name: 'C’est payé' }).click();
       await p.getByText('Carburant livraison').waitFor();
     });
     await etape('tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.getByText('Chiffre d’affaires').first().waitFor(); });
@@ -466,7 +475,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(L, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
       const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', zlib.deflateSync(brut)), bloc('IEND', Buffer.alloc(0))]);
       await p.goto(U + '#/depenses');
-      await p.getByRole('button', { name: 'Nouvelle dépense' }).click();
+      await p.getByRole('button', { name: 'J’ai payé une dépense' }).click();
       const d = p.getByRole('dialog');
       await d.locator('input[type=file]').setInputFiles({ name: 'ticket.png', mimeType: 'image/png', buffer: png });
       await d.getByRole('group', { name: 'Recadrer la photo' }).waitFor();
@@ -581,6 +590,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Nouvel article' }).click({ timeout: 60000 });
       await p.getByLabel('Nom de l’article').fill('Bière test 33 cl');
       await p.getByLabel('Prix de vente').fill('1000');
+      await p.getByRole('button', { name: /Plus d’options/ }).click();
       await p.getByLabel(/Suivre les quantités de cet article/).check();
       await p.getByLabel(/Unités par casier/).fill('24');
       await p.getByRole('button', { name: 'Enregistrer' }).click();

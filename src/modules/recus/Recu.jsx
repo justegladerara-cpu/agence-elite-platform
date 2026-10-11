@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Bouton, Chargement, Erreur, Modale } from '../../ui/composants.jsx';
+import { lienRecuWhatsApp } from './whatsapp.js';
+import './recu.css';
 
 // Ticket de caisse 80 mm. Le même rendu sert à l'écran et à l'impression.
 // En-tête : informations de l'établissement, sinon celles de sa société (recu.documents, calculé par la base).
@@ -78,7 +80,49 @@ export function imprimer() {
   setTimeout(() => window.print(), 50);
 }
 
-export function ModaleRecu({ venteId, onFermer, monnaie, piedSupplementaire }) {
+// « Oups, annuler » : juste après la vente, pendant ce délai, une erreur de saisie s'annule en deux touches.
+export const DELAI_ANNULATION_RAPIDE = 15000;
+
+export function AnnulationRapide({ onAnnuler }) {
+  const [visible, setVisible] = useState(true);
+  const [confirmer, setConfirmer] = useState(false);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(false), DELAI_ANNULATION_RAPIDE);
+    return () => clearTimeout(t);
+  }, []);
+  if (!visible && !enCours) return null;
+  const annuler = async () => {
+    setEnCours(true);
+    setErreur('');
+    try {
+      await onAnnuler();
+    } catch (err) {
+      setErreur(err.message);
+      setEnCours(false);
+    }
+  };
+  return (
+    <div className="annulation-rapide">
+      {!confirmer ? (
+        <Bouton variante="danger" onClick={() => setConfirmer(true)}>Oups, annuler cette vente</Bouton>
+      ) : (
+        <>
+          <p><strong>Annuler cette vente ?</strong> Le stock revient et l’argent n’est pas compté.</p>
+          <div className="actions">
+            <Bouton onClick={() => setConfirmer(false)} disabled={enCours}>Non, garder</Bouton>
+            <Bouton variante="danger" onClick={annuler} chargement={enCours}>Oui, annuler la vente</Bouton>
+          </div>
+        </>
+      )}
+      <Erreur message={erreur} />
+    </div>
+  );
+}
+
+// annulerRapide : fourni par la caisse seulement si la personne a le droit ventes.annuler (la base le vérifie aussi).
+export function ModaleRecu({ venteId, onFermer, monnaie, piedSupplementaire, annulerRapide }) {
   const { api, devise } = useEspace();
   const { donnees: recu, chargement, erreur } = useDonnees(() => api.rpc('recu_vente', { p_vente_id: venteId }), [venteId]);
   useEffect(() => {
@@ -92,11 +136,17 @@ export function ModaleRecu({ venteId, onFermer, monnaie, piedSupplementaire }) {
       pied={(
         <>
           {piedSupplementaire}
+          {recu && (
+            <a className="bouton secondaire bouton-whatsapp" href={lienRecuWhatsApp(recu)} target="_blank" rel="noopener noreferrer">
+              <span>Envoyer sur WhatsApp</span>
+            </a>
+          )}
           <Bouton icone="imprimer" variante="principal" onClick={imprimer} disabled={!recu}>Imprimer</Bouton>
         </>
       )}
     >
       {monnaie > 0 && <div className="monnaie">Monnaie à rendre : <strong>{formatMontant(monnaie, devise)}</strong></div>}
+      {annulerRapide && recu?.vente.statut === 'validee' && <AnnulationRapide onAnnuler={annulerRapide} />}
       {chargement && <Chargement />}
       <Erreur message={erreur} />
       {recu && (

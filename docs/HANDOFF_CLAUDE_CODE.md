@@ -758,6 +758,8 @@ catégorie facultative, code-barres facultatif). SOP 75. Suite prévue : rattrap
 
 **Casiers de boissons (2026-10-10)** : migration `20261010000126`, `regler_lot_article`, `saisir_stock` en casiers + unités, affichage « 5 casiers + 3 », SOP 78.
 
+**Parcours simple (2026-10-11)** : 45 améliorations « comme J'ai reçu » (accueil gros boutons `#/accueil` = premier écran, mode simple, vente au poids, favoris, reçu WhatsApp, péremptions `20261011000127`, qui me doit / à qui je dois, articles en 3 champs et modèles par métier). SOP 79.
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

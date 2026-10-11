@@ -1,0 +1,73 @@
+/* « Qui me doit ? » et « À qui je dois ? » : une carte par client ou fournisseur, gros boutons pratiques au doigt. */
+.dettes-liste {
+  display: grid;
+  gap: 12px;
+}
+
+.dette-carte {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.dette-carte.ancienne {
+  border-left: 4px solid var(--orange);
+}
+
+.dette-carte.en-retard {
+  border-left: 4px solid var(--rouge);
+}
+
+.dette-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dette-montant {
+  font-size: 1.25rem;
+  white-space: nowrap;
+}
+
+.dette-lignes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: var(--texte-doux);
+}
+
+.dette-lignes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dette-lignes li .texte-alerte {
+  font-weight: 600;
+}
+
+.dette-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.dette-actions .bouton {
+  min-height: 46px;
+}
+
+@media (max-width: 520px) {
+  .dette-actions .bouton {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,32 @@
+/* Accueil « Qu'est-ce que vous voulez faire ? » : gros boutons pensés pour le téléphone, au comptoir, d'une main. */
+.accueil { display: grid; gap: 18px; }
+.accueil-tete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.accueil-tete h1 { margin: 0; font-size: 1.6rem; }
+.accueil-tete p { margin: 2px 0 0; }
+.accueil-mode { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.accueil-mode input { width: 20px; height: 20px; }
+.accueil-je-veux { display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1px solid var(--bordure, #d0d7de); border-radius: 14px; background: var(--surface, #fff); }
+.accueil-je-veux input { flex: 1; border: 0; outline: 0; background: transparent; font-size: 1.05rem; min-height: 52px; }
+.accueil-resultats { list-style: none; margin: -8px 0 0; padding: 0; display: grid; gap: 6px; }
+.accueil-resultats button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--bordure, #d0d7de); background: var(--surface, #fff); font: inherit; text-align: left; cursor: pointer; }
+.accueil-boutons { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.accueil-bouton { display: grid; gap: 6px; justify-items: start; align-content: start; min-height: 120px; padding: 16px; border-radius: 16px; border: 1px solid var(--bordure, #d0d7de); background: var(--surface, #fff); color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform .08s ease, box-shadow .15s ease; }
+.accueil-bouton:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .08); }
+.accueil-bouton:active { transform: scale(.98); }
+.accueil-bouton strong { font-size: 1.05rem; line-height: 1.25; }
+.accueil-bouton small { color: var(--texte-doux, #57606a); }
+.accueil-bouton .icone { color: var(--accent, #1F6FEB); }
+.accueil-bouton.principal { background: var(--accent, #1F6FEB); color: #fff; border-color: transparent; }
+.accueil-bouton.principal .icone, .accueil-bouton.principal small { color: #fff; }
+.accueil-titre { font-size: 1.1rem; margin: 0 0 10px; }
+.accueil-chiffres { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.accueil-whatsapp { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; min-height: 48px; padding: 0 16px; border-radius: 12px; background: #25D366; color: #fff; text-decoration: none; font-weight: 600; }
+.accueil-a-faire { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.accueil-a-faire button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--bordure, #d0d7de); background: var(--surface, #fff); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.accueil-a-faire button span { flex: 1; }
+.accueil-demarrage ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+@media (max-width: 600px) {
+  .accueil-boutons { grid-template-columns: 1fr 1fr; }
+  .accueil-bouton { min-height: 110px; padding: 14px; }
+  .accueil-chiffres { grid-template-columns: 1fr 1fr; }
+}

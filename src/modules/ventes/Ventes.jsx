@@ -24,7 +24,7 @@ function debutPeriode(periode) {
   return debut.toISOString();
 }
 
-function ModaleEncaissement({ vente, sessions, onFermer, onFait }) {
+export function ModaleEncaissement({ vente, sessions, onFermer, onFait }) {
   const { api, montant } = useEspace();
   const reste = vente.total - vente.montant_paye;
   const [mode, setMode] = useState('especes');

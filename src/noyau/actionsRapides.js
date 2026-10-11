@@ -5,7 +5,7 @@ export const ACTIONS_RAPIDES = [
   { id: 'vente', libelle: 'Nouvelle vente', mots: 'caisse ticket encaisser', route: 'caisse', module: 'caisse', permission: 'caisse.utiliser', icone: 'caisse' },
   { id: 'article', libelle: 'Nouvel article', mots: 'produit plat boisson', route: 'articles?nouveau=1', module: 'articles', permission: 'articles.gerer', icone: 'articles' },
   { id: 'contact', libelle: 'Nouveau contact', mots: 'client fournisseur prospect', route: 'contacts?nouveau=1', module: 'contacts', permission: 'contacts.gerer', icone: 'contacts' },
-  { id: 'depense', libelle: 'Nouvelle dépense', mots: 'frais sortie argent', route: 'depenses?nouveau=1', module: 'depenses', permission: 'depenses.gerer', icone: 'depenses' },
+  { id: 'depense', libelle: 'J’ai payé une dépense', mots: 'nouvelle dépense frais sortie argent loyer transport', route: 'depenses?nouveau=1', module: 'depenses', permission: 'depenses.gerer', icone: 'depenses' },
   { id: 'devis', libelle: 'Nouveau devis', mots: 'proposition offre', route: 'factures/nouveau-devis', module: 'facturation', permission: 'facturation.gerer', icone: 'document' },
   { id: 'facture', libelle: 'Nouvelle facture', mots: 'facturer', route: 'factures/nouvelle-facture', module: 'facturation', permission: 'facturation.gerer', icone: 'facture' },
   { id: 'commande-achat', libelle: 'Nouvelle commande fournisseur', mots: 'achat bon de commande', route: 'achats/nouveau', module: 'achats', permission: 'achats.gerer', icone: 'camion' },

@@ -3,18 +3,19 @@ import { useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';
 import { formatEnCasiers, nomCasier, quantiteHub } from './quantites.js';
 import { lireFichierStock, telechargerModeleStock } from './fichierStock.js';
+import './stock.css';
 
 export const MODES_SAISIE = {
   reception: {
     titre: 'J’ai reçu de la marchandise',
     colonne: 'Reçu',
-    aide: 'Tapez la quantité reçue à côté de chaque article. Les articles laissés vides ne changent pas.',
+    aide: 'Tapez la quantité reçue à côté de chaque article. Les articles laissés vides ne changent pas. Produit frais ? Indiquez « Périme le » : il apparaîtra dans « Dates de péremption » avant la date.',
     bouton: 'Ajouter au stock',
   },
   comptage: {
     titre: 'Je compte mon stock',
     colonne: 'Compté',
-    aide: 'Tapez ce que vous avez compté. La plateforme calcule la différence et la garde dans l’historique. Les articles laissés vides ne changent pas.',
+    aide: 'Tapez ce que vous avez compté. La plateforme calcule la différence et la garde dans l’historique. Les articles laissés vides ne changent pas : vous pouvez compter seulement une catégorie (choisissez-la ci-dessous), le reste du stock ne bouge pas.',
     bouton: 'Enregistrer le comptage',
   },
 };
@@ -36,11 +37,12 @@ const quantiteLigne = (unites, casiers, parCasier) => {
 // Saisie du stock sur une seule page : tous les articles, une quantité par ligne, un seul bouton. Un fichier de stock
 // (modèle téléchargeable) remplit la page ; les articles inconnus du fichier sont créés à l'enregistrement.
 export default function SaisieStock({ mode, articles, donnees, hubsStock, hubInitial, categories, onFermer, onFait }) {
-  const { api, peut } = useEspace();
+  const { api, peut, etablissement } = useEspace();
   const config = MODES_SAISIE[mode];
   const [hubId, setHubId] = useState(hubInitial ?? hubsStock[0]?.id);
   const [quantites, setQuantites] = useState({});
   const [casiers, setCasiers] = useState({});
+  const [peremptions, setPeremptions] = useState({}); // réception : date de péremption facultative par article
   const [nouveaux, setNouveaux] = useState([]);
   const [filtre, setFiltre] = useState('');
   const [categorie, setCategorie] = useState('');
@@ -106,7 +108,24 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
         p_simulation: false,
       });
       const ecarts = r.inventaire ? ` · ${r.inventaire.ecarts} différence(s)` : '';
-      onFait(`${mode === 'reception' ? 'Stock ajouté' : 'Comptage enregistré'} : ${r.articles} article(s)${r.nouveaux ? `, dont ${r.nouveaux} nouveau(x)` : ''}${ecarts}`);
+      // Réception enregistrée : on note ensuite les dates de péremption tapées (une erreur ici n'annule pas la réception).
+      let dates = 0;
+      let datesRatees = 0;
+      if (mode === 'reception') {
+        for (const [articleId, quantite] of saisies) {
+          if (!peremptions[articleId]) continue;
+          try {
+            await api.rpc('noter_peremption', {
+              p_etablissement_id: etablissement.id, p_hub_id: hubId, p_article_id: articleId, p_quantite: quantite, p_date: peremptions[articleId], p_note: null,
+            });
+            dates += 1;
+          } catch {
+            datesRatees += 1;
+          }
+        }
+      }
+      const suite = `${dates ? ` · ${dates} date(s) de péremption notée(s)` : ''}${datesRatees ? ` · ${datesRatees} date(s) non notée(s) : notez-les dans « Dates de péremption »` : ''}`;
+      onFait(`${mode === 'reception' ? 'Stock ajouté' : 'Comptage enregistré'} : ${r.articles} article(s)${r.nouveaux ? `, dont ${r.nouveaux} nouveau(x)` : ''}${ecarts}${suite}`);
     } catch (err) {
       setErreur(err.message);
       setChargement(false);
@@ -167,7 +186,7 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
         )}
         <div className="tableau-conteneur">
           <table className="tableau">
-            <thead><tr><th>Article</th><th className="nombre">En stock</th><th className="nombre">{config.colonne}</th><th className="nombre">Après</th></tr></thead>
+            <thead><tr><th>Article</th><th className="nombre">En stock</th><th className="nombre">{config.colonne}</th><th className="nombre">Après</th>{mode === 'reception' && <th>Périme le</th>}</tr></thead>
             <tbody>
               {visibles.map((a) => {
                 const actuel = quantiteHub(donnees, a.id, hubId, []);
@@ -194,6 +213,12 @@ export default function SaisieStock({ mode, articles, donnees, hubsStock, hubIni
                       )}
                     </td>
                     <td className={`nombre ${apres != null && apres < actuel ? 'texte-alerte' : ''}`}>{apres == null ? '' : formatEnCasiers(apres, a)}</td>
+                    {mode === 'reception' && (
+                      <td>
+                        <input type="date" className="saisie-peremption" aria-label={`Périme le (facultatif) : ${a.nom}`}
+                          value={peremptions[a.id] ?? ''} onChange={(e) => setPeremptions((p) => ({ ...p, [a.id]: e.target.value }))} />
+                      </td>
+                    )}
                   </tr>
                 );
               })}

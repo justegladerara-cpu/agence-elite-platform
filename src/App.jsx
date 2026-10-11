@@ -24,6 +24,8 @@ import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
+import { filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
+import { AIDES, aidesFermees, fermerAide } from './noyau/aides.js';
 import {
   Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, lireImageReduite, Modale, Onglets, useFilAriane, Vide,
 } from './ui/composants.jsx';
@@ -226,6 +228,21 @@ function Accueil({ config, api, contexte, onRecharger, onDeconnexion }) {
         onDeconnexion={onDeconnexion}
       />
     </EcranAuth>
+  );
+}
+
+// Bulle d'aide d'un écran (une phrase), fermable une fois pour toutes sur cet appareil.
+function BulleAide({ id }) {
+  const [fermees, setFermees] = useState(aidesFermees);
+  if (!AIDES[id] || fermees.includes(id)) return null;
+  return (
+    <div className="bulle-aide" role="note">
+      <Icone nom="message" taille={16} />
+      <span>{AIDES[id]}</span>
+      <button type="button" className="icone-bouton" aria-label="Fermer l’aide" onClick={() => { fermerAide(id); setFermees(aidesFermees()); }}>
+        <Icone nom="fermer" taille={14} />
+      </button>
+    </div>
   );
 }
 
@@ -515,7 +532,8 @@ function Coquille() {
   const ouvrirAide = useCallback(() => setAide(true), []);
   useRaccourcis({ ouvrirRecherche, ouvrirCreation, ouvrirAide, actif: Boolean(etablissement) && !palette });
   const pages = etablissement ? pagesAccessibles(espace) : [];
-  const menu = etablissement ? pagesDuMenu(espace) : [];
+  const modeSimple = useModeSimple();
+  const menu = etablissement ? filtrerModeSimple(pagesDuMenu(espace), modeSimple) : [];
   const surEditeur = editeur && (route.startsWith('editeur') || !etablissement);
   const premier = route.split('/')[0];
   // Tant que l'établissement n'est pas en service, son responsable arrive sur la liste de démarrage.
@@ -605,6 +623,7 @@ function Coquille() {
             <BandeauConnexion />
             <AnnonceMiseAJour />
             {!surEditeur && <Bandeaux naviguer={aller} />}
+            {!surEditeur && page && <BulleAide id={page.id} />}
             {contexte.invitations.length > 0 && (
               <div className="bandeau-invitations">
                 <Badge ton="bleu">Invitation</Badge>

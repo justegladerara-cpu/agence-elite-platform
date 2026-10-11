@@ -7,6 +7,8 @@ import { exporterCsv } from '../../ui/communs.jsx';
 import CommandeAchat from './Commande.jsx';
 import EditeurCommande from './Editeur.jsx';
 import { etatCommande, resteAPayer } from './commun.js';
+import { derniersFournisseurs, grouperParFournisseur, lienCommandeWhatsApp, quantiteSuggeree, texteCommandeWhatsApp } from './commandeWhatsApp.js';
+import './achats.css';
 
 const ONGLETS = [['en_cours', 'En cours'], ['demandes', 'Demandes'], ['a_payer', 'À payer'], ['toutes', 'Toutes'], ['reappro', 'Réapprovisionnement']];
 // Onglet ouvert par un lien profond : ?onglet=…, ?vue=paiements (dettes fournisseurs) ou l'onglet qui contient ?etat=….
@@ -26,13 +28,28 @@ const FILTRES = {
   toutes: () => true,
 };
 
-function Reapprovisionnement({ suggestions, naviguer }) {
-  const { montant, peut } = useEspace();
+// Une ligne de suggestion : stock, minimum, quantité proposée.
+function LigneSuggestion({ s }) {
+  const { montant } = useEspace();
+  return (
+    <div className="liste-ligne">
+      <span><strong>{s.nom}</strong>{s.reference ? ` · ${s.reference}` : ''}
+        <small className="texte-doux bloc">Stock {formatQuantite(s.stock)} pour un minimum de {formatQuantite(s.minimum)}{Number(s.en_commande) > 0 ? ` · ${formatQuantite(s.en_commande)} déjà en commande` : ''} · à commander : <strong>{formatQuantite(quantiteSuggeree(s))}</strong></small>
+      </span>
+      {s.cout != null && <span className="texte-doux">{montant(s.cout)} / unité</span>}
+    </div>
+  );
+}
+
+// « Je dois commander » : par Hub, puis par fournisseur (le dernier chez qui l'article a été commandé).
+// Chaque fournisseur a son bouton WhatsApp : le message est prêt, la personne l'envoie elle-même.
+function Reapprovisionnement({ suggestions, fournisseurDe, contacts, naviguer }) {
+  const { peut, etablissement, multiHub } = useEspace();
   const parHub = useMemo(() => suggestions.reduce((m, s) => ({ ...m, [s.hub_id]: [...(m[s.hub_id] ?? []), s] }), {}), [suggestions]);
   if (!suggestions.length) return <EmptyState icone="coche" titre="Aucun article sous son stock minimum" texte="Fixez un stock minimum sur les fiches articles pour recevoir des suggestions." />;
   const commander = (liste) => naviguer(peut('achats.gerer') ? 'achats/nouveau' : 'achats/nouvelle-demande', {
     hub_id: liste[0].hub_id,
-    lignes: liste.map((s) => ({ article_id: s.article_id, quantite: Math.max(1, Number(s.minimum) * 2 - Number(s.stock) - Number(s.en_commande)) })),
+    lignes: liste.map((s) => ({ article_id: s.article_id, quantite: quantiteSuggeree(s) })),
   });
   return Object.values(parHub).map((liste) => (
     <Section
@@ -42,16 +59,32 @@ function Reapprovisionnement({ suggestions, naviguer }) {
         <Bouton icone="panier" onClick={() => commander(liste)}>{peut('achats.gerer') ? 'Préparer la commande' : 'Faire une demande'}</Bouton>
       )}
     >
-      <div className="liste-simple">
-        {liste.map((s) => (
-          <div key={s.article_id} className="liste-ligne">
-            <span><strong>{s.nom}</strong>{s.reference ? ` · ${s.reference}` : ''}
-              <small className="texte-doux bloc">Stock {formatQuantite(s.stock)} pour un minimum de {formatQuantite(s.minimum)}{Number(s.en_commande) > 0 ? ` · ${formatQuantite(s.en_commande)} déjà en commande` : ''}</small>
-            </span>
-            {s.cout != null && <span className="texte-doux">{montant(s.cout)} / unité</span>}
+      {grouperParFournisseur(liste, fournisseurDe).map(({ fournisseur_id: fid, liste: articles }) => {
+        const contact = fid ? contacts[fid] : null;
+        const nom = contact ? (contact.societe || contact.nom) : null;
+        const texte = texteCommandeWhatsApp({
+          fournisseur: contact?.nom || nom,
+          etablissement: etablissement.nom,
+          hub: multiHub ? liste[0].hub : null,
+          lignes: articles.map((s) => ({ nom: s.nom, reference: s.reference, quantite: quantiteSuggeree(s) })),
+        });
+        return (
+          <div key={fid ?? 'inconnu'} className="groupe-fournisseur">
+            <div className="groupe-fournisseur-entete">
+              <strong>{nom ?? 'Fournisseur à choisir'}</strong>
+              <a className="bouton principal" href={lienCommandeWhatsApp(contact?.telephone, texte)} target="_blank" rel="noreferrer">Envoyer la commande sur WhatsApp</a>
+            </div>
+            {!contact?.telephone && (
+              <small className="texte-doux bloc">
+                {nom ? 'Pas de téléphone sur la fiche de ce fournisseur : WhatsApp vous demandera à qui envoyer.' : 'Jamais commandés chez un fournisseur connu : WhatsApp vous demandera à qui envoyer.'}
+              </small>
+            )}
+            <div className="liste-simple">
+              {articles.map((s) => <LigneSuggestion key={s.article_id} s={s} />)}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </Section>
   ));
 }
@@ -63,11 +96,16 @@ function Liste({ naviguer }) {
   const { donnees, chargement, erreur } = useDonnees(async () => {
     const [commandes, contacts, tdb, suggestions] = await Promise.all([
       api.lire('commandes_achat', { eq: { etablissement_id: etablissement.id }, ordre: ['cree_le', 'desc'], limite: 2000 }),
-      api.lire('contacts', { eq: { etablissement_id: etablissement.id }, colonnes: ['id', 'nom', 'societe'] }),
+      api.lire('contacts', { eq: { etablissement_id: etablissement.id }, colonnes: ['id', 'nom', 'societe', 'telephone'] }),
       peut('achats.lire') ? api.rpc('tableau_de_bord_achats', { p_etablissement_id: etablissement.id }) : null,
       peut('achats.lire') ? api.rpc('suggestions_achat', { p_etablissement_id: etablissement.id }) : [],
     ]);
-    return { commandes, tdb, suggestions, contact: Object.fromEntries(contacts.map((c) => [c.id, c])) };
+    // Dernier fournisseur de chaque article à commander (pour regrouper la commande WhatsApp par fournisseur).
+    const ids = [...new Set(suggestions.map((s) => s.article_id))];
+    const lignesAchat = ids.length
+      ? await api.lire('lignes_commande_achat', { eq: { etablissement_id: etablissement.id }, dans: { article_id: ids }, colonnes: ['article_id', 'commande_id'] }).catch(() => [])
+      : [];
+    return { commandes, tdb, suggestions, fournisseurDe: derniersFournisseurs(lignesAchat, commandes), contact: Object.fromEntries(contacts.map((c) => [c.id, c])) };
   }, [etablissement.id]);
   const lignes = useMemo(() => (onglet === 'reappro' ? [] : (donnees?.commandes ?? []).filter(FILTRES[onglet])), [donnees, onglet]);
   const fournisseur = (c) => donnees.contact[c.fournisseur_id]?.societe || donnees.contact[c.fournisseur_id]?.nom || '—';
@@ -81,7 +119,8 @@ function Liste({ naviguer }) {
         sousTitre="Demandes, commandes fournisseurs, réceptions en stock et paiements"
         actions={(
           <>
-            {peut('achats.demander') && peut('achats.gerer') && <Bouton icone="plus" onClick={() => naviguer('achats/nouvelle-demande')}>Demande d’achat</Bouton>}
+            <Bouton icone="echeance" onClick={() => naviguer('a-qui-je-dois')}>À qui je dois ?</Bouton>
+            {peut('achats.demander') && peut('achats.gerer') &&<Bouton icone="plus" onClick={() => naviguer('achats/nouvelle-demande')}>Demande d’achat</Bouton>}
             {(peut('achats.gerer') || peut('achats.demander')) && (
               <Bouton variante="principal" icone="plus" onClick={() => naviguer(nouvelle)}>{peut('achats.gerer') ? 'Nouvelle commande' : 'Demande d’achat'}</Bouton>
             )}
@@ -105,7 +144,7 @@ function Liste({ naviguer }) {
             actif={onglet}
             onChange={setOnglet}
           />
-          {onglet === 'reappro' ? <Reapprovisionnement suggestions={donnees.suggestions} naviguer={naviguer} /> : (
+          {onglet === 'reappro' ? <Reapprovisionnement suggestions={donnees.suggestions} fournisseurDe={donnees.fournisseurDe} contacts={donnees.contact} naviguer={naviguer} /> : (
             <DataTable exportable={false}
               key={onglet}
               colonnes={[
@@ -115,6 +154,10 @@ function Liste({ naviguer }) {
                 { id: 'date', libelle: 'Date', tri: (c) => c.date_commande, rendu: (c) => formatDate(c.date_commande) },
                 { id: 'total', libelle: 'Total', tri: (c) => Number(c.total), rendu: (c) => montant(c.total), classe: 'nombre' },
                 { id: 'reste', libelle: 'Reste dû', tri: resteAPayer, rendu: (c) => (resteAPayer(c) > 0 ? montant(resteAPayer(c)) : '—'), classe: 'nombre' },
+                ...(onglet === 'a_payer' ? [{
+                  id: 'echeance', libelle: 'À payer avant le', tri: (c) => c.echeance ?? '9999-12-31',
+                  rendu: (c) => (c.echeance ? <span className={c.echeance < aujourdhui ? 'texte-alerte' : ''}>{formatDate(c.echeance)}</span> : '—'),
+                }] : []),
                 { id: 'etat', libelle: 'État', tri: (c) => etat(c)[0], rendu: (c) => <Badge ton={etat(c)[1]}>{etat(c)[0]}</Badge> },
               ]}
               lignes={lignes}

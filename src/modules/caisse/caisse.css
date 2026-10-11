@@ -1,0 +1,96 @@
+/* Caisse : fenêtre « Combien ? » (vente au poids), nouveau client rapide. Gros boutons pour le téléphone. */
+.combien {
+  display: grid;
+  gap: 14px;
+}
+
+.combien-article {
+  margin: 0;
+  color: var(--texte-doux);
+}
+
+.combien-boutons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.combien-boutons button {
+  display: grid;
+  gap: 2px;
+  place-items: center;
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid var(--bordure-forte);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  cursor: pointer;
+}
+
+.combien-boutons button strong {
+  font-size: 1.25rem;
+}
+
+.combien-boutons button small {
+  color: var(--texte-doux);
+}
+
+.combien-boutons button:hover,
+.combien-boutons button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-doux);
+}
+
+.combien input {
+  min-height: 48px;
+  font-size: 1.1rem;
+}
+
+.combien-resultat {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--rayon);
+  background: var(--vert-doux);
+  font-size: 1.1rem;
+}
+
+.combien .actions,
+.client-rapide .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.combien .actions .bouton,
+.client-rapide .actions .bouton,
+.client-rapide-ouvrir {
+  min-height: 48px;
+  flex: 1 1 140px;
+  justify-content: center;
+}
+
+.client-rapide {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed var(--bordure-forte);
+  border-radius: var(--rayon);
+  background: var(--surface-douce);
+}
+
+.client-rapide input {
+  min-height: 48px;
+}
+
+.panier-poids {
+  font-weight: 600;
+  color: var(--texte);
+}
+
+/* Boutons de l'encaissement (billets, modes) : assez grands pour un doigt. */
+.billets button,
+.modes-rapides button {
+  min-height: 48px;
+}

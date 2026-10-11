@@ -90,6 +90,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Fermeture automatique de la caisse chaque jour (minuit par défaut, heure réglable), espèces comptées après coup | [76](76_FERMETURE_CAISSE_QUOTIDIENNE.md) | Gérant, responsable |
 | Saisir après coup les ventes d'un jour passé et fermer la caisse de ce jour (gérant) | [77](77_VENTES_JOUR_PASSE.md) | Gérant, responsable |
 | Boissons en casiers : régler le casier d'un article, recevoir et compter en casiers + unités | [78](78_STOCK_CASIERS.md) | Gérant, responsable, gestionnaire de dépôt |
+| Parcours simple : accueil en gros boutons, mode simple, vente au poids, péremptions, qui me doit, articles en 3 champs | [79](79_PARCOURS_SIMPLE.md) | Tous |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :

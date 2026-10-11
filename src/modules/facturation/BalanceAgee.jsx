@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, DataTable, EmptyState, Modale } from '../../ui/composants.jsx';
 import { balanceAgee, messageRelance, TRANCHES_RETARD } from './commun.js';
+import { lienWhatsApp, numeroWhatsApp } from '../../noyau/messagesWhatsapp.js';
 
 // Onglet « Retards » de Devis et factures : qui doit combien, depuis quand, et un message de relance prêt à envoyer.
 // Aucun envoi automatique : le message se copie ou s'ouvre dans WhatsApp sur le téléphone de la personne.
@@ -11,7 +12,7 @@ function ModaleRelance({ client, ligne, onFermer }) {
     nom: client?.nom ?? '', factures: ligne.factures, montant, emetteur: etablissement.identite?.nom_commercial ?? etablissement.nom,
   }));
   const [copie, setCopie] = useState(false);
-  const telephone = (client?.telephone ?? '').replace(/[^\d]/g, '');
+  const telephone = numeroWhatsApp(client?.telephone);
   const copier = async () => {
     try {
       await navigator.clipboard.writeText(texte);
@@ -23,7 +24,7 @@ function ModaleRelance({ client, ligne, onFermer }) {
   return (
     <Modale titre={`Relancer ${client?.societe || client?.nom || ''}`} onFermer={onFermer} pied={(
       <>
-        {telephone && <a className="bouton" href={`https://wa.me/${telephone}?text=${encodeURIComponent(texte)}`} target="_blank" rel="noreferrer">Ouvrir dans WhatsApp</a>}
+        {telephone && <a className="bouton" href={lienWhatsApp(client.telephone, texte)} target="_blank" rel="noreferrer">Relancer sur WhatsApp</a>}
         <Bouton variante="principal" icone="document" onClick={copier}>{copie ? 'Copié' : 'Copier le message'}</Bouton>
       </>
     )}>

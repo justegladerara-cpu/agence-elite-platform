@@ -4,6 +4,7 @@
 // Ajouter un module = créer son dossier + son manifeste, puis l'ajouter à MANIFESTES (docs/SOP/02_CREER_UN_MODULE.md).
 // La base reste la seule frontière de sécurité : ce registre ne fait que masquer ce qui n'est pas utilisable.
 import abonnements from './abonnements/manifeste.js';
+import accueil from './accueil/manifeste.js';
 import achats from './achats/manifeste.js';
 import agenda from './agenda/manifeste.js';
 import articles from './articles/manifeste.js';
@@ -39,7 +40,7 @@ import support from './support/manifeste.js';
 import tableauDeBord from './tableau_de_bord/manifeste.js';
 import ventes from './ventes/manifeste.js';
 
-export const MANIFESTES = [tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, contrats, abonnements, livraisons, location, articles, stock, production, achats, crm, marketing, portailClient, contacts, scolaire, agenda, support, fidelite, siteWeb, depenses, comptabilite, rh, projets, documents, etablissement, membres];
+export const MANIFESTES = [accueil, tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, contrats, abonnements, livraisons, location, articles, stock, production, achats, crm, marketing, portailClient, contacts, scolaire, agenda, support, fidelite, siteWeb, depenses, comptabilite, rh, projets, documents, etablissement, membres];
 
 // Ordre des groupes du menu ; un groupe inconnu déclaré par un nouveau module s'ajoute à la fin.
 export const GROUPES = ['Pilotage', 'Vente', 'Catalogue et stock', 'Relations', 'Ressources humaines', 'Organisation'];

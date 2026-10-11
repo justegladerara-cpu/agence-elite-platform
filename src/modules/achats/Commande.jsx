@@ -3,7 +3,8 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate, formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, EmptyState, Erreur, MenuActions, Modale, ModaleMotif, PageHeader, Section, Squelette, StatCard } from '../../ui/composants.jsx';
 import { PiecesJointes } from '../../ui/communs.jsx';
-import { etatCommande, resteAPayer } from './commun.js';
+import { etatCommande, hausseCoutAchat, resteAPayer } from './commun.js';
+import './achats.css';
 
 function ModaleApprobation({ commande, fournisseurs, onFermer, onFait }) {
   const { api } = useEspace();
@@ -38,9 +39,33 @@ function ModaleApprobation({ commande, fournisseurs, onFermer, onFait }) {
   );
 }
 
+// Ligne d'alerte sous un article dont le coût saisi dépasse le coût d'achat actuel.
+function AlerteHausse({ fiche, cout, lien }) {
+  const hausse = fiche ? hausseCoutAchat(fiche.prix_vente, fiche.cout_achat, cout) : null;
+  if (!hausse) return null;
+  return (
+    <tr className="ligne-alerte-prix">
+      <td colSpan={5}>
+        <p className="encart" role="status">
+          Le prix d’achat a augmenté. Marge actuelle {String(hausse.margeAvant).replace('.', ',')} % → {String(hausse.margeApres).replace('.', ',')} %.
+          {' '}Pensez à monter le prix de vente.
+          {lien && <>{' '}<a className="lien" href="#/articles" target="_blank" rel="noreferrer">Ouvrir les articles</a></>}
+        </p>
+      </td>
+    </tr>
+  );
+}
+
 function ModaleReception({ commande, lignes, onFermer, onFait }) {
-  const { api, montant } = useEspace();
+  const { api, montant, etablissement, peut } = useEspace();
   const restantes = lignes.filter((l) => Number(l.quantite_recue) < Number(l.quantite));
+  // Prix de vente et coût d'achat actuels : prévenir si le fournisseur a augmenté son prix (rien ne change tout seul).
+  const { donnees: fiches } = useDonnees(async () => {
+    const ids = [...new Set(restantes.map((l) => l.article_id))];
+    if (!ids.length) return {};
+    const articles = await api.lire('articles', { eq: { etablissement_id: etablissement.id }, dans: { id: ids }, colonnes: ['id', 'prix_vente', 'cout_achat'] }).catch(() => []);
+    return Object.fromEntries(articles.map((a) => [a.id, a]));
+  }, [etablissement.id, commande.id]);
   const [q, setQ] = useState(() => Object.fromEntries(restantes.map((l) => [l.id, { quantite: String(Number(l.quantite) - Number(l.quantite_recue)), cout: String(l.cout_unitaire) }])));
   const [bl, setBl] = useState('');
   const [notes, setNotes] = useState('');
@@ -71,7 +96,7 @@ function ModaleReception({ commande, lignes, onFermer, onFait }) {
           <table className="tableau">
             <thead><tr><th>Article</th><th className="nombre">Commandé</th><th className="nombre">Déjà reçu</th><th className="nombre">Reçu maintenant</th><th className="nombre">Coût unitaire</th></tr></thead>
             <tbody>
-              {restantes.map((l) => (
+              {restantes.map((l) => [
                 <tr key={l.id}>
                   <td>{l.libelle}</td>
                   <td className="nombre">{formatQuantite(l.quantite)}</td>
@@ -84,8 +109,9 @@ function ModaleReception({ commande, lignes, onFermer, onFait }) {
                     <input type="number" min="0" step="any" inputMode="decimal" value={q[l.id].cout}
                       onChange={(e) => setQ({ ...q, [l.id]: { ...q[l.id], cout: e.target.value } })} aria-label={`Coût ${l.libelle}`} />
                   </td>
-                </tr>
-              ))}
+                </tr>,
+                <AlerteHausse key={`${l.id}-hausse`} fiche={fiches?.[l.article_id]} cout={q[l.id].cout} lien={peut('articles.lire') || peut('articles.gerer')} />,
+              ])}
             </tbody>
           </table>
         </div>
@@ -104,7 +130,7 @@ function ModaleReception({ commande, lignes, onFermer, onFait }) {
   );
 }
 
-function ModalePaiement({ commande, onFermer, onFait }) {
+export function ModalePaiement({ commande, onFermer, onFait }) {
   const { api, montant } = useEspace();
   const plafond = Math.max(Number(commande.total), Number(commande.montant_recu)) - Number(commande.montant_paye);
   const [v, setV] = useState({ montant: String(resteAPayer(commande) || plafond), mode: 'virement', reference: '', date: dateLocale() });
