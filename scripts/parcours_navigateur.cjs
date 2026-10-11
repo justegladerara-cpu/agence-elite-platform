@@ -80,8 +80,11 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Compte juste' }).click().catch(() => {});
     });
     await etape('vente-validee', async () => {
+      // Servi par (facultatif) : le nom du serveur s'imprime sur le reçu.
+      await p.getByLabel('Servi par (facultatif)').fill('Alex');
       await p.getByRole('button', { name: 'Valider la vente' }).click();
       await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
+      await p.getByRole('dialog').getByText('Alex').first().waitFor({ timeout: 30000 });
     });
     await etape('caisse-attente', async () => {
       await p.getByRole('button', { name: 'Nouvelle vente' }).click();
@@ -629,15 +632,17 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     });
 
     await etape('fermeture-caisse-reglage', async () => {
-      // Heure de fin de journée de la caisse : minuit par défaut, réglable (bar de nuit), heure invalide refusée.
+      // Heure de fin de journée de la caisse : jamais par défaut (chacun ferme sa caisse), réglable (bar de nuit).
       await p.goto(U + '#/parametres?onglet=reglages');
       const champ = p.getByLabel(/Fermeture automatique de la caisse chaque jour/);
       await champ.waitFor({ timeout: 60000 });
-      if ((await champ.inputValue()) !== '00:00') throw new Error('minuit attendu par défaut');
+      if ((await champ.inputValue()) !== '') throw new Error('aucune fermeture automatique attendue par défaut');
+      const verrou = p.getByLabel(/Verrouiller la caisse et déconnecter le compte/);
+      if ((await verrou.inputValue()) !== '15') throw new Error('verrouillage à 15 minutes attendu par défaut');
       await champ.fill('04:00');
       await champ.locator('xpath=ancestor::form').getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText(/Réglages .* enregistrés/).first().waitFor({ timeout: 30000 });
-      await champ.fill('00:00');
+      await champ.fill('');
       await champ.locator('xpath=ancestor::form').getByRole('button', { name: 'Enregistrer' }).click();
       await p.goto(U + '#/clotures');
       await p.getByText('Tickets Z').first().waitFor({ timeout: 60000 });

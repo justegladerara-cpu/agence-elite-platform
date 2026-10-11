@@ -24,6 +24,7 @@ import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
+import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
 import { filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
 import { AIDES, aidesFermees, fermerAide } from './noyau/aides.js';
 import {
@@ -569,6 +570,7 @@ function Coquille() {
 
   return (
     <FournisseurFil>
+      {etablissement && <VerrouCaisse />}
       <div className={`coquille ${page?.pleinEcran ? 'plein-ecran' : ''}`}>
         <aside className={`menu ${menuOuvert ? 'ouvert' : ''}`} aria-label="Navigation principale">
           <Marque marque={marque} sousTitre={surEditeur ? 'Espace éditeur' : undefined} />
@@ -727,13 +729,14 @@ export default function App({ demarrer = demarrerDonnees }) {
   }, [demarrer, chargerContexte]);
 
   const recharger = useCallback(() => chargerContexte(donnees), [chargerContexte, donnees]);
-  const deconnecter = useCallback(async () => {
+  // avis : 'verrouillee' quand la caisse se verrouille faute d'activité (VerrouCaisse) ; sinon aucun message.
+  const deconnecter = useCallback(async (raison) => {
     ecrireStockage(CLE_SESSION, null);
     // Les brouillons de formulaires peuvent contenir des données de clients : ils ne restent pas après la déconnexion.
     try { effacerBrouillons(window.localStorage); } catch { /* stockage indisponible */ }
     await donnees.deconnecter();
     setContexte(null);
-    setAvis(null);
+    setAvis(raison === 'verrouillee' ? 'verrouillee' : null);
     setEtape('connexion');
   }, [donnees]);
 

@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Fermeture automatique de la caisse chaque jour (migration 20261010000124).
+// Fermeture automatique de la caisse chaque jour (migration 20261010000124). Depuis la migration 20261011000129,
+// elle est désactivée par défaut : ces tests la règlent à minuit.
 let db;
 let gerant;
 let caissier;
@@ -38,7 +39,9 @@ beforeAll(async () => {
 afterAll(async () => db.close());
 
 describe('fermeture automatique de la caisse', () => {
-  test('fin de journée : minuit par défaut, heure réglable, vide = jamais (heure locale de l’établissement)', async () => {
+  test('fin de journée : jamais par défaut, heure réglable, vide = jamais (heure locale de l’établissement)', async () => {
+    expect(await fin('2026-10-10T11:00:00Z')).toBeNull();
+    await regler('00:00');
     expect((await fin('2026-10-10T11:00:00Z')).toISOString()).toBe('2026-10-09T23:00:00.000Z');
     await regler('04:00');
     expect((await fin('2026-10-10T02:00:00Z')).toISOString()).toBe('2026-10-09T03:00:00.000Z');

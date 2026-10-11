@@ -117,6 +117,7 @@ describe('une caisse par caissière', () => {
   });
 
   test('une caisse fermée automatiquement : la caissière compte elle-même ses espèces', async () => {
+    await comme(gerant, "select enregistrer_parametres_module($1, 'cloture', '{\"fermeture_automatique\": \"00:00\"}'::jsonb)", [etab]);
     const caisse = await valeur(binta, 'select ouvrir_caisse($1, null, 0)', [etab]);
     await vendre(binta, caisse, 500);
     await db.transaction(async (tx) => {

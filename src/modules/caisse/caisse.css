@@ -177,3 +177,6 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+/* « Servi par » à l'encaissement : noms proposés en puces. */
+.serveurs-rapides { margin-top: 6px; }

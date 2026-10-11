@@ -10,6 +10,7 @@ import {
 import { lireCoupures, ModaleZ, SessionOuverte } from '../cloture/Clotures.jsx';
 import { mesCaisses } from './mesCaisses.js';
 import { attenteFacture, totalFactures } from './facturesEnCours.js';
+import { lireRecents, nomsServeurs, retenirServeur } from './serviPar.js';
 import './caisse.css';
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
@@ -134,12 +135,14 @@ export function ClientRapide({ onCree }) {
   );
 }
 
-export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier' }) {
+// serveurs : liste de noms pour « Servi par » (facultatif) ; sans elle, le champ n'apparaît pas.
+export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs }) {
   const { montant, devise, peut } = useEspace();
   // Clients créés dans cette fenêtre : visibles tout de suite, avant le rechargement des données.
   const [nouveaux, setNouveaux] = useState([]);
   const tousContacts = [...contacts, ...nouveaux.filter((n) => !contacts.some((c) => c.id === n.id))];
   const [paiements, setPaiements] = useState([{ mode: 'especes', montant: String(total), reference: '' }]);
+  const [serviPar, setServiPar] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const verse = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
@@ -152,7 +155,7 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
     setChargement(true);
     setErreur('');
     try {
-      await onValider(paiements.filter((p) => Number(p.montant) > 0).map((p) => ({ ...p, montant: Number(p.montant) })));
+      await onValider(paiements.filter((p) => Number(p.montant) > 0).map((p) => ({ ...p, montant: Number(p.montant) })), { serviPar: serviPar.trim() });
     } catch (err) {
       setErreur(err.message);
       setChargement(false);
@@ -204,6 +207,19 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
           <button key={id} type="button" onClick={() => ajouter(id)}>+ {libelle}</button>
         ))}
       </div>
+      {serveurs && (
+        <Champ libelle="Servi par (facultatif)">
+          <input list="liste-serveurs" value={serviPar} maxLength={60} onChange={(e) => setServiPar(e.target.value)} placeholder="Nom du serveur" />
+          <datalist id="liste-serveurs">{serveurs.map((n) => <option key={n} value={n} />)}</datalist>
+          {serveurs.length > 0 && (
+            <div className="puces serveurs-rapides">
+              {serveurs.slice(0, 8).map((n) => (
+                <button key={n} type="button" className={serviPar === n ? 'actif' : ''} onClick={() => setServiPar(serviPar === n ? '' : n)}>{n}</button>
+              ))}
+            </div>
+          )}
+        </Champ>
+      )}
       <div className="paiement-resume">
         <div><span>Versé</span><strong>{montant(verse)}</strong></div>
         {monnaie > 0 && <div className="vert"><span>Monnaie à rendre</span><strong>{montant(monnaie)}</strong></div>}
@@ -443,7 +459,7 @@ export default function Caisse({ naviguer }) {
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
-    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture] = await Promise.all([
+    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -454,6 +470,8 @@ export default function Caisse({ naviguer }) {
       api.lire('ventes_en_attente', { eq: { etablissement_id: etab, statut: 'en_attente' }, ordre: ['cree_le'] }).catch(() => null),
       // Coupures pour compter le tiroir à la fermeture de caisse.
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'cloture' } }).catch(() => []),
+      // Réglages caisse : noms proposés pour « Servi par ».
+      api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'caisse' } }).catch(() => []),
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
@@ -461,7 +479,7 @@ export default function Caisse({ naviguer }) {
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
       // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
-      sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees, coupures: lireCoupures(reglagesCloture[0]?.data?.coupures),
+      sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees, coupures: lireCoupures(reglagesCloture[0]?.data?.coupures), serveursReglage: reglagesCaisse[0]?.data?.serveurs ?? '',
     };
   }, [etab, hubsCaisse.join(), utilisateur?.id]);
   const [pdvChoisi, setPdvChoisi] = useState(null);
@@ -559,7 +577,7 @@ export default function Caisse({ naviguer }) {
     setContactId(null);
   };
 
-  const validerVente = async (paiements) => {
+  const validerVente = async (paiements, { serviPar } = {}) => {
     let resultat;
     try {
       resultat = await api.rpc('enregistrer_vente', {
@@ -577,6 +595,12 @@ export default function Caisse({ naviguer }) {
         recharger();
       }
       throw err;
+    }
+    // Servi par : la vente est déjà enregistrée ; un échec ici ne la remet pas en cause.
+    if (serviPar) {
+      retenirServeur(etab, serviPar);
+      await api.rpc('indiquer_serveur_vente', { p_vente_id: resultat.vente_id, p_nom: serviPar })
+        .catch((err) => notifier(`Serveur non enregistré : ${err.message}`, 'erreur'));
     }
     const lignesVendues = lignes;
     compterFavoris(lignesVendues, 1);
@@ -734,6 +758,7 @@ export default function Caisse({ naviguer }) {
           onContactCree={() => recharger()}
           onValider={validerVente}
           onFermer={() => setPaiement(null)}
+          serveurs={nomsServeurs(donnees.serveursReglage, lireRecents(etab))}
         />
       )}
       {recu && (

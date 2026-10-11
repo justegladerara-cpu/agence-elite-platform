@@ -167,7 +167,7 @@ export function DetailVente({ venteId, onFermer, onChange }) {
             <div className="detail-tete">
               <div>
                 <BadgePaiement vente={vente} />
-                <p className="texte-doux">{formatDateHeure(vente.cree_le)}{contact ? ` · ${contact.nom}` : ' · Client de passage'}</p>
+                <p className="texte-doux">{formatDateHeure(vente.cree_le)}{contact ? ` · ${contact.nom}` : ' · Client de passage'}{vente.servi_par ? ` · servi par ${vente.servi_par}` : ''}</p>
               </div>
               <div className="detail-total">
                 <span>Total</span>
@@ -415,7 +415,7 @@ export default function Ventes({ sousRoute }) {
                   <td><strong>{v.numero}</strong>{v.origine && v.origine !== 'caisse' && <><br /><small className="texte-doux">{ORIGINES[v.origine] ?? v.origine}</small></>}</td>
                   <td>{formatDateHeure(v.cree_le)}</td>
                   {multiHub && <td>{nomHub(v.hub_id)}</td>}
-                  <td>{donnees.contacts[v.contact_id] ?? '—'}</td>
+                  <td>{donnees.contacts[v.contact_id] ?? '—'}{v.servi_par && <><br /><small className="texte-doux">servi par {v.servi_par}</small></>}</td>
                   <td className="nombre">{montant(v.total)}</td>
                   <td className="nombre">{v.statut === 'validee' && v.total > v.montant_paye ? montant(v.total - v.montant_paye) : '—'}</td>
                   <td><BadgePaiement vente={v} /></td>

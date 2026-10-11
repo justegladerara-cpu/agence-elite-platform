@@ -44,6 +44,7 @@ export function Ticket({ recu }) {
       <div className="ticket-ligne"><span>Date</span><span>{formatDateHeure(vente.cree_le)}</span></div>
       {recu.point_de_vente && <div className="ticket-ligne"><span>Caisse</span><span>{recu.point_de_vente}</span></div>}
       {recu.vendeur && <div className="ticket-ligne"><span>Vendeur</span><span>{recu.vendeur}</span></div>}
+      {vente.servi_par && <div className="ticket-ligne"><span>Servi par</span><span>{vente.servi_par}</span></div>}
       {recu.contact && <div className="ticket-ligne"><span>Contact</span><span>{recu.contact.nom}</span></div>}
       {vente.statut === 'annulee' && <div className="ticket-annule">VENTE ANNULÉE — {vente.motif_annulation}</div>}
       <div className="ticket-sep" />
