@@ -94,3 +94,86 @@
 .modes-rapides button {
   min-height: 48px;
 }
+
+/* Factures en cours : bande toujours visible en haut de la caisse, une carte par facture.
+   Vert moins d'1 h, orange après 1 h, rouge après 3 h (facturesEnCours.js). */
+.bande-factures {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--orange);
+  border-radius: var(--rayon);
+  background: var(--orange-doux);
+}
+
+.bande-factures-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texte);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.bande-factures-cartes {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.carte-facture {
+  display: grid;
+  gap: 2px;
+  flex: none;
+  min-width: 140px;
+  max-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid var(--bordure-forte);
+  border-left-width: 6px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.carte-facture strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.carte-facture-montant {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.carte-facture small {
+  color: var(--texte-doux);
+}
+
+.facture-vert { border-left-color: var(--vert); }
+.facture-orange { border-left-color: var(--orange); }
+.facture-rouge { border-left-color: var(--rouge); background: var(--rouge-doux); }
+.liste-attentes li.facture-vert, .liste-attentes li.facture-orange, .liste-attentes li.facture-rouge { border-left-width: 6px; }
+
+.pastille-compte {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--rouge);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}

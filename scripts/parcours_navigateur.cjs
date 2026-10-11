@@ -87,17 +87,19 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Nouvelle vente' }).click();
       await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
       await p.locator('button:has-text("Casque test")').first().click();
-      await p.getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByLabel(/Nom pour la retrouver/).fill('Client en bleu');
-      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByRole('button', { name: 'En attente (1)' }).click();
-      await p.getByText('Client en bleu').waitFor();
-      await p.getByRole('button', { name: 'Reprendre' }).click();
+      await p.getByRole('button', { name: 'Facture en cours', exact: true }).click();
+      await p.getByLabel(/Nom de la facture/).fill('Client en bleu');
+      await p.getByRole('dialog').getByRole('button', { name: 'Garder en facture en cours' }).click();
+      // La bande en haut de la caisse montre la facture : on la reprend d'un geste.
+      await p.getByRole('region', { name: 'Factures en cours' }).getByText('1 facture en cours').waitFor();
+      await p.getByRole('region', { name: 'Factures en cours' }).getByRole('button', { name: /Client en bleu/ }).click();
       await p.locator('.panier-ligne', { hasText: 'Casque test' }).waitFor();
-      // On la remet en attente : la clôture doit le signaler.
-      await p.getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByRole('button', { name: 'En attente (1)' }).waitFor();
+      // On la garde de nouveau en facture en cours : la liste et la fermeture doivent la signaler.
+      await p.getByRole('button', { name: 'Facture en cours', exact: true }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Garder en facture en cours' }).click();
+      await p.getByRole('button', { name: /^Factures en cours/ }).click();
+      await p.getByRole('dialog').getByText(/^Facture \d+$/).waitFor();
+      await p.keyboard.press('Escape');
     });
     await etape('ventes', async () => {
       await p.goto(U + '#/ventes');
@@ -124,7 +126,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('cloture', async () => {
       await p.goto(U + '#/clotures');
       await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
-      await p.getByText(/1 vente\(s\) en attente sur cette caisse/).waitFor();
+      await p.getByText(/Il reste 1 facture\(s\) en cours sur cette caisse/).waitFor();
     });
     await etape('tableau-caissiers', async () => {
       await p.goto(U + '#/tableau-de-bord');

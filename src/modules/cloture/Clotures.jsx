@@ -194,7 +194,7 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
       {(mienne ? peut('caisse.utiliser') : peut('cloture.cloturer')) ? (
         <form className="formulaire cloture-formulaire" onSubmit={cloturer}>
           {attentes > 0 && (
-            <p className="bandeau attention">{attentes} vente(s) en attente sur cette caisse : reprenez-les ou abandonnez-les depuis la caisse avant de clôturer.</p>
+            <p className="bandeau attention">Il reste {attentes} facture(s) en cours sur cette caisse : encaissez-les ou abandonnez-les depuis la caisse avant de fermer.</p>
           )}
           {coupures.length > 0 && <ComptageCoupures coupures={coupures} onTotal={(t) => setComptees(String(t))} />}
           <Champ libelle="Espèces comptées dans le tiroir">

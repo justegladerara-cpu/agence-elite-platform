@@ -9,6 +9,7 @@ import {
 } from './poids.js';
 import { lireCoupures, ModaleZ, SessionOuverte } from '../cloture/Clotures.jsx';
 import { mesCaisses } from './mesCaisses.js';
+import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import './caisse.css';
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
@@ -281,7 +282,7 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
           </div>
           <div className="panier-total"><span>Total</span><strong>{montant(total)}</strong></div>
         </div>
-        {onAttente && lignes.length > 0 && <Bouton icone="horloge" onClick={onAttente}>Mettre en attente</Bouton>}
+        {onAttente && lignes.length > 0 && <Bouton icone="horloge" onClick={onAttente}>Facture en cours</Bouton>}
         <Bouton variante="principal grand" disabled={!lignes.length} onClick={() => onEncaisser(total)}>
           Encaisser {lignes.length > 0 && montant(total)}
         </Bouton>
@@ -355,22 +356,22 @@ function ModaleMiseEnAttente({ onValider, onFermer }) {
     }
   };
   return (
-    <Modale titre="Mettre la vente en attente" onFermer={onFermer}>
+    <Modale titre="Nouvelle facture en cours" onFermer={onFermer}>
       <form className="formulaire" onSubmit={valider}>
-        <Champ libelle="Nom pour la retrouver (facultatif)" aide="Ex. « Monsieur en bleu », « Table 4 ». Le stock ne bouge pas tant que la vente n’est pas encaissée.">
+        <Champ libelle="Nom de la facture (client ou table)" aide="Ex. « Table 4 », « M. Mavoungou ». Le client continue de consommer ; le stock ne bouge pas tant que la facture n’est pas encaissée.">
           <input value={libelle} maxLength={60} onChange={(e) => setLibelle(e.target.value)} autoFocus />
         </Champ>
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
-          <Bouton type="submit" variante="principal" chargement={enCours}>Mettre en attente</Bouton>
+          <Bouton type="submit" variante="principal" chargement={enCours}>Garder en facture en cours</Bouton>
         </div>
       </form>
     </Modale>
   );
 }
 
-function ModaleAttentes({ attentes, panierOccupe, onAction, onFermer }) {
+function ModaleAttentes({ attentes, panierOccupe, maintenant, onAction, onFermer }) {
   const { montant } = useEspace();
   const [erreur, setErreur] = useState('');
   const agir = async (a, action) => {
@@ -382,24 +383,55 @@ function ModaleAttentes({ attentes, panierOccupe, onAction, onFermer }) {
     }
   };
   return (
-    <Modale titre="Ventes en attente" onFermer={onFermer}>
-      {panierOccupe && <p className="bandeau attention">Le panier en cours n’est pas vide : encaissez-le ou mettez-le en attente avant d’en reprendre un autre.</p>}
+    <Modale titre={`Factures en cours · ${montant(totalFactures(attentes))}`} onFermer={onFermer}>
+      {panierOccupe && <p className="bandeau attention">Le panier n’est pas vide : encaissez-le ou gardez-le en facture en cours avant d’en reprendre une autre.</p>}
       <Erreur message={erreur} />
       <ul className="liste-attentes">
-        {attentes.map((a) => (
-          <li key={a.id}>
-            <span>
-              <strong>{a.libelle}</strong>
-              <small className="texte-doux bloc">{formatDateHeure(a.cree_le)} · {a.lignes.length} ligne(s) · environ {montant(a.total_estime)}</small>
-            </span>
-            <span className="actions-ligne">
-              <Bouton variante="principal" disabled={panierOccupe} onClick={() => agir(a, 'reprendre')}>Reprendre</Bouton>
-              <button type="button" className="lien danger" onClick={() => agir(a, 'abandonner')}>Abandonner</button>
-            </span>
-          </li>
-        ))}
+        {attentes.map((a) => {
+          const attente = attenteFacture(a.cree_le, maintenant);
+          return (
+            <li key={a.id} className={`facture-${attente.ton}`}>
+              <span>
+                <strong>{a.libelle}</strong>
+                <small className="texte-doux bloc">{attente.minutes < 1 ? 'ouverte à l’instant' : `ouverte il y a ${attente.texte}`} · {a.lignes.length} ligne(s) · {montant(a.total_estime)}</small>
+              </span>
+              <span className="actions-ligne">
+                <Bouton variante="principal" disabled={panierOccupe} onClick={() => agir(a, 'reprendre')}>Reprendre</Bouton>
+                <button type="button" className="lien danger" onClick={() => agir(a, 'abandonner')}>Abandonner</button>
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </Modale>
+  );
+}
+
+// Bande toujours visible en haut de la caisse : une carte par facture en cours (nom, montant, temps, couleur).
+function BandeFactures({ attentes, maintenant, panierOccupe, onReprendre, onToutVoir }) {
+  const { montant } = useEspace();
+  if (!attentes?.length) return null;
+  return (
+    <div className="bande-factures" role="region" aria-label="Factures en cours">
+      <button type="button" className="bande-factures-tete" onClick={onToutVoir}>
+        <strong>{attentes.length} facture{attentes.length > 1 ? 's' : ''} en cours</strong>
+        <span>{montant(totalFactures(attentes))}</span>
+      </button>
+      <div className="bande-factures-cartes">
+        {attentes.map((a) => {
+          const attente = attenteFacture(a.cree_le, maintenant);
+          return (
+            <button key={a.id} type="button" className={`carte-facture facture-${attente.ton}`}
+              title={panierOccupe ? 'Encaissez ou gardez d’abord le panier en cours' : 'Reprendre cette facture'}
+              onClick={() => (panierOccupe ? onToutVoir() : onReprendre(a))}>
+              <strong>{a.libelle}</strong>
+              <span className="carte-facture-montant">{montant(a.total_estime)}</span>
+              <small>{attente.texte}</small>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -456,6 +488,12 @@ export default function Caisse({ naviguer }) {
   const [panierMobile, setPanierMobile] = useState(false);
   const [miseEnAttente, setMiseEnAttente] = useState(false);
   const [listeAttente, setListeAttente] = useState(false);
+  // Horloge pour le temps d'attente des factures en cours (rafraîchi chaque minute).
+  const [maintenant, setMaintenant] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setMaintenant(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
   // Fermeture de caisse depuis la caisse : comptage, puis MON ticket Z.
   const [fermeture, setFermeture] = useState(false);
   const [ticketZ, setTicketZ] = useState(null);
@@ -550,16 +588,18 @@ export default function Caisse({ naviguer }) {
     recharger();
   };
 
-  // Les ventes mises en attente sur MA caisse : chaque personne reprend ses propres paniers.
+  // Les factures en cours sur MA caisse : chaque personne reprend ses propres factures.
   const attentes = donnees.attentes?.filter((a) => a.session_caisse_id === session.id) ?? null;
   const mettreEnAttente = async (libelle) => {
+    // Sans nom, la facture s'appelle « Facture 1 », « Facture 2 »…
+    const nom = libelle || `Facture ${(attentes?.length ?? 0) + 1}`;
     await api.rpc('mettre_vente_en_attente', {
-      p_session_id: session.id, p_lignes: lignes, p_libelle: libelle || null, p_contact_id: contactId, p_remise: Number(remise || 0),
+      p_session_id: session.id, p_lignes: lignes, p_libelle: nom, p_contact_id: contactId, p_remise: Number(remise || 0),
     });
     setMiseEnAttente(false);
     setPanierMobile(false);
     vider();
-    notifier('Vente mise en attente');
+    notifier(`Facture en cours : « ${nom} »`);
     recharger();
   };
   const terminerAttente = async (attente, action) => {
@@ -569,8 +609,8 @@ export default function Caisse({ naviguer }) {
       setLignes(r.lignes.filter((l) => parId[l.article_id]).map((l) => ({ article_id: l.article_id, quantite: Number(l.quantite) })));
       setRemise(Number(r.remise) ? String(r.remise) : '');
       setContactId(r.contact_id ?? null);
-      notifier(`« ${r.libelle} » reprise`);
-    } else notifier(`« ${r.libelle} » abandonnée`);
+      notifier(`Facture « ${r.libelle} » reprise`);
+    } else notifier(`Facture « ${r.libelle} » abandonnée`);
     setListeAttente(false);
     recharger();
   };
@@ -597,9 +637,20 @@ export default function Caisse({ naviguer }) {
               </select>
             )}
           </div>
-          {attentes?.length > 0 && <Bouton icone="horloge" onClick={() => setListeAttente(true)}>En attente ({attentes.length})</Bouton>}
+          {attentes?.length > 0 && (
+            <Bouton icone="horloge" onClick={() => setListeAttente(true)}>
+              Factures en cours <span className="pastille-compte" aria-label={`${attentes.length} facture(s)`}>{attentes.length}</span>
+            </Bouton>
+          )}
           <Bouton icone="cloture" variante="principal" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
         </div>
+        <BandeFactures
+          attentes={attentes}
+          maintenant={maintenant}
+          panierOccupe={lignes.length > 0}
+          onReprendre={(a) => terminerAttente(a, 'reprendre').catch((err) => notifier(err.message, 'erreur'))}
+          onToutVoir={() => setListeAttente(true)}
+        />
         <div onKeyDown={recherchePrecise}>
           <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, référence ou code-barres" />
         </div>
@@ -672,7 +723,7 @@ export default function Caisse({ naviguer }) {
       )}
       {modaleTicketZ}
       {listeAttente && attentes && (
-        <ModaleAttentes attentes={attentes} panierOccupe={lignes.length > 0} onAction={terminerAttente} onFermer={() => setListeAttente(false)} />
+        <ModaleAttentes attentes={attentes} panierOccupe={lignes.length > 0} maintenant={maintenant} onAction={terminerAttente} onFermer={() => setListeAttente(false)} />
       )}
       {paiement && (
         <ModalePaiement
