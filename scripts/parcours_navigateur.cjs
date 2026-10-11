@@ -26,6 +26,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Nouvel article' }).click();
       await p.getByLabel('Nom de l’article').fill('Casque test');
       await p.getByLabel('Prix de vente').fill('5000');
+      // Formulaire court par défaut : les autres champs sont sous « Plus d’options ».
+      await p.getByRole('button', { name: /Plus d’options/ }).click();
       await p.getByLabel('Coût d’achat').fill('3000');
       await p.getByLabel(/Suivre les quantités de cet article/).check();
       await p.getByLabel('Stock initial').fill('10');
@@ -581,6 +583,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Nouvel article' }).click({ timeout: 60000 });
       await p.getByLabel('Nom de l’article').fill('Bière test 33 cl');
       await p.getByLabel('Prix de vente').fill('1000');
+      await p.getByRole('button', { name: /Plus d’options/ }).click();
       await p.getByLabel(/Suivre les quantités de cet article/).check();
       await p.getByLabel(/Unités par casier/).fill('24');
       await p.getByRole('button', { name: 'Enregistrer' }).click();

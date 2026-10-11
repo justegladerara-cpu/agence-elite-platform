@@ -1,0 +1,76 @@
+/* Articles : saisie rapide, plusieurs articles d'un coup, changement de prix. Gros boutons, utilisable au téléphone. */
+
+.boutons-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.boutons-photo small { flex-basis: 100%; }
+
+.options-article {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.options-article .lien { min-height: 44px; }
+
+.choix-unite { display: flex; gap: 6px; align-items: center; }
+.choix-unite input { flex: 1; min-width: 0; }
+
+/* Tableau de saisie : une ligne = un article. Sur téléphone, chaque ligne devient une petite fiche. */
+.tableau-saisie {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-x: auto;
+}
+.ligne-saisie {
+  display: grid;
+  grid-template-columns: minmax(130px, 2.2fr) minmax(76px, 1fr) minmax(76px, 1fr) minmax(104px, 1.3fr) minmax(104px, 1.3fr) 44px;
+  gap: 6px;
+  align-items: center;
+}
+.tableau-saisie.avec-stock .ligne-saisie {
+  grid-template-columns: minmax(130px, 2.2fr) minmax(76px, 1fr) minmax(76px, 1fr) minmax(104px, 1.3fr) minmax(104px, 1.3fr) minmax(70px, 0.9fr) 44px;
+}
+.ligne-saisie.entete {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--texte-doux);
+}
+.ligne-saisie input,
+.ligne-saisie select {
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+}
+.ligne-saisie input.manquant { border-color: var(--orange); background: var(--orange-doux); }
+.ligne-saisie.a-revoir input { border-color: var(--orange); }
+.ligne-saisie .note-ligne {
+  grid-column: 1 / -1;
+  color: var(--orange);
+}
+.retirer-ligne {
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+}
+.resume-saisie { margin: 0; }
+
+.apercu-prix { max-height: 50vh; overflow: auto; }
+.apercu-prix tr.fait td { opacity: 0.6; }
+
+@media (max-width: 860px) {
+  .ligne-saisie.entete { display: none; }
+  .tableau-saisie .ligne-saisie,
+  .tableau-saisie.avec-stock .ligne-saisie {
+    grid-template-columns: 1fr 1fr;
+    padding: 10px;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon);
+    background: var(--surface);
+  }
+  .tableau-saisie .ligne-saisie > input:first-child { grid-column: 1 / -1; }
+  .retirer-ligne { justify-self: end; }
+}
