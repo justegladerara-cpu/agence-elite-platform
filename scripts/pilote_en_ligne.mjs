@@ -262,8 +262,9 @@ async function principal() {
       await R.serveur.rpc('avancer_ligne_restaurant', { p_ligne_id: l.id, p_statut: 'servie' });
     }
   });
-  await etape('B · encaissement par la caisse commune', async () => {
-    const session = await B.gerant.rpc('ouvrir_caisse', { p_etablissement_id: B.id, p_point_de_vente_id: B.caisse, p_fond_initial: 0 });
+  // Une caisse par personne (migration 20261011000128) : le serveur encaisse sur SA caisse.
+  await etape('B · encaissement par la caisse du serveur', async () => {
+    const session = await R.serveur.rpc('ouvrir_caisse', { p_etablissement_id: B.id, p_point_de_vente_id: B.caisse, p_fond_initial: 0 });
     const r = await R.serveur.rpc('encaisser_commande_restaurant', { p_commande_id: R.commande, p_session_id: session, p_paiements: [{ mode: 'especes', montant: 10000 }] });
     verifier(Number(r.total) === 10000 && r.commande_close, `total ${r.total}`);
   });
