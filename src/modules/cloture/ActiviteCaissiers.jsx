@@ -4,11 +4,25 @@ import { formatDateHeure } from '../../noyau/format.js';
 import { Badge, Erreur } from '../../ui/composants.jsx';
 
 // Tableau de bord (gérant, responsable, comptable) : qui tient une caisse en ce moment, combien chaque personne a
-// vendu sur la période et le classement (migration 20261011000128, fonction activite_caissiers).
+// vendu sur la période et le classement (migration 20261011000128, fonction activite_caissiers), et les factures
+// en cours de chacune (clients qui consomment encore, table ventes_en_attente).
 export default function ActiviteCaissiers({ espace, du, au, naviguer }) {
   const { api, etablissement, montant } = espace;
   const { donnees, erreur } = useDonnees(
-    () => api.rpc('activite_caissiers', { p_etablissement_id: etablissement.id, p_du: du ?? null, p_au: au ?? null }),
+    async () => {
+      const [personnes, factures] = await Promise.all([
+        api.rpc('activite_caissiers', { p_etablissement_id: etablissement.id, p_du: du ?? null, p_au: au ?? null }),
+        // Factures en cours (clients qui consomment encore) : lues seulement si le rôle y a accès.
+        api.lire('ventes_en_attente', { eq: { etablissement_id: etablissement.id, statut: 'en_attente' }, colonnes: ['cree_par', 'total_estime'] }).catch(() => []),
+      ]);
+      const parPersonne = {};
+      for (const f of factures ?? []) {
+        const n = (parPersonne[f.cree_par] ??= { nombre: 0, total: 0 });
+        n.nombre += 1;
+        n.total += Number(f.total_estime || 0);
+      }
+      return (personnes ?? []).map((p) => ({ ...p, factures: parPersonne[p.id] ?? null }));
+    },
     [etablissement.id, du, au]
   );
   if (erreur) return <Erreur message={erreur} />;
@@ -22,7 +36,7 @@ export default function ActiviteCaissiers({ espace, du, au, naviguer }) {
       </div>
       <div className="tableau-conteneur">
         <table className="tableau cliquable">
-          <thead><tr><th>#</th><th>Personne</th><th>En ce moment</th><th className="nombre">Ventes</th><th className="nombre">Montant</th></tr></thead>
+          <thead><tr><th>#</th><th>Personne</th><th>En ce moment</th><th className="nombre">Factures en cours</th><th className="nombre">Ventes</th><th className="nombre">Montant</th></tr></thead>
           <tbody>
             {donnees.map((p, i) => (
               <tr key={p.id} onClick={() => naviguer?.('clotures')}>
@@ -32,6 +46,9 @@ export default function ActiviteCaissiers({ espace, du, au, naviguer }) {
                   {p.en_caisse
                     ? <><Badge ton="vert">En caisse</Badge> <small className="texte-doux">{p.caisses} · depuis {formatDateHeure(p.depuis)} · {montant(p.caisse_en_cours)}</small></>
                     : <span className="texte-doux">—</span>}
+                </td>
+                <td className="nombre">
+                  {p.factures ? <Badge ton="orange">{p.factures.nombre} · {montant(p.factures.total)}</Badge> : <span className="texte-doux">—</span>}
                 </td>
                 <td className="nombre">{p.nombre_ventes}</td>
                 <td className="nombre"><strong>{montant(p.total_ventes)}</strong></td>

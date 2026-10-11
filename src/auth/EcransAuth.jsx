@@ -192,7 +192,8 @@ function Avis({ titre, texte }) {
   );
 }
 
-// Connexion, invitation et mot de passe oublié. avis : 'expiree' (session terminée) ou 'lien' (lien reçu expiré).
+// Connexion, invitation et mot de passe oublié. avis : 'expiree' (session terminée), 'lien' (lien reçu expiré) ou
+// 'verrouillee' (caisse verrouillée faute d'activité).
 export function ParcoursConnexion({ config, donnees, onConnecte, apercu, vueInitiale = 'connexion', invitationPossible, emailInvitation, avis, erreurInitiale }) {
   const [vue, setVue] = useState(vueInitiale);
   const [info, setInfo] = useState('');
@@ -206,6 +207,7 @@ export function ParcoursConnexion({ config, donnees, onConnecte, apercu, vueInit
       <>
         <Titre config={config} cle="oubli_titre" intro={info ? null : 'oubli_intro'} />
         {avis === 'lien' && <Avis texte={texteAuth(config, 'lien_expire')} />}
+      {avis === 'verrouillee' && <Avis titre="Caisse verrouillée" texte="Personne ne l’a utilisée depuis un moment : le compte a été déconnecté. Votre caisse reste ouverte, reconnectez-vous pour la retrouver." />}
         {info ? <p className="info texte-multiligne" role="status">{info}</p> : (
           <FormulaireOubli config={config} donnees={donnees} apercu={apercu} onEnvoye={() => setInfo(texteAuth(config, 'oubli_envoye'))} />
         )}
@@ -218,6 +220,7 @@ export function ParcoursConnexion({ config, donnees, onConnecte, apercu, vueInit
       <Titre config={config} cle="connexion_titre" intro="connexion_intro" />
       {avis === 'expiree' && <Avis titre={texteAuth(config, 'expiree_titre')} texte={texteAuth(config, 'expiree_texte')} />}
       {avis === 'lien' && <Avis texte={texteAuth(config, 'lien_expire')} />}
+      {avis === 'verrouillee' && <Avis titre="Caisse verrouillée" texte="Personne ne l’a utilisée depuis un moment : le compte a été déconnecté. Votre caisse reste ouverte, reconnectez-vous pour la retrouver." />}
       {invitationPossible && (
         <Onglets onglets={[['connexion', texteAuth(config, 'onglet_connexion')], ['inscription', texteAuth(config, 'onglet_invitation')]]} actif={vue} onChange={aller} />
       )}

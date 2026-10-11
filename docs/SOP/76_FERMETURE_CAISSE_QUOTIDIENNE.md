@@ -4,7 +4,9 @@
 
 ## Le principe
 - Chaque jour, à l'heure de fin de journée, la caisse encore ouverte est **fermée automatiquement** avec un ticket Z.
-  Par défaut : **00:00**, heure locale de l'établissement.
+  **Depuis le 2026-10-11 (migration `20261011000129`) : désactivée par défaut** — chaque personne ferme sa caisse
+  avec son ticket Z, même après minuit ; les établissements restés sur l'ancien défaut 00:00 sont passés à « jamais ».
+  On peut toujours choisir une heure (ex. 04:00). À la place, la caisse se verrouille après 15 min sans activité (SOP 29).
 - Après cette heure, la caisse de la veille n'accepte plus rien (vente, paiement, dépense, retour). Le caissier ouvre
   la caisse du jour ; le panier en cours reste à l'écran.
 - La machine ne peut pas compter les espèces : le ticket Z porte « Fermée automatiquement : espèces à compter ».

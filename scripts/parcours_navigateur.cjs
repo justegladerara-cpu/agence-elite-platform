@@ -80,24 +80,29 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Compte juste' }).click().catch(() => {});
     });
     await etape('vente-validee', async () => {
+      // Servi par (facultatif) : le nom du serveur s'imprime sur le reçu.
+      await p.getByLabel('Servi par (facultatif)').fill('Alex');
       await p.getByRole('button', { name: 'Valider la vente' }).click();
       await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
+      await p.getByRole('dialog').getByText('Alex').first().waitFor({ timeout: 30000 });
     });
     await etape('caisse-attente', async () => {
       await p.getByRole('button', { name: 'Nouvelle vente' }).click();
       await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
       await p.locator('button:has-text("Casque test")').first().click();
-      await p.getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByLabel(/Nom pour la retrouver/).fill('Client en bleu');
-      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByRole('button', { name: 'En attente (1)' }).click();
-      await p.getByText('Client en bleu').waitFor();
-      await p.getByRole('button', { name: 'Reprendre' }).click();
+      await p.getByRole('button', { name: 'Facture en cours', exact: true }).click();
+      await p.getByLabel(/Nom de la facture/).fill('Client en bleu');
+      await p.getByRole('dialog').getByRole('button', { name: 'Garder en facture en cours' }).click();
+      // La bande en haut de la caisse montre la facture : on la reprend d'un geste.
+      await p.getByRole('region', { name: 'Factures en cours' }).getByText('1 facture en cours').waitFor();
+      await p.getByRole('region', { name: 'Factures en cours' }).getByRole('button', { name: /Client en bleu/ }).click();
       await p.locator('.panier-ligne', { hasText: 'Casque test' }).waitFor();
-      // On la remet en attente : la clôture doit le signaler.
-      await p.getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en attente' }).click();
-      await p.getByRole('button', { name: 'En attente (1)' }).waitFor();
+      // On la garde de nouveau en facture en cours : la liste et la fermeture doivent la signaler.
+      await p.getByRole('button', { name: 'Facture en cours', exact: true }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Garder en facture en cours' }).click();
+      await p.getByRole('button', { name: /^Factures en cours/ }).click();
+      await p.getByRole('dialog').getByText(/^Facture \d+$/).waitFor();
+      await p.keyboard.press('Escape');
     });
     await etape('ventes', async () => {
       await p.goto(U + '#/ventes');
@@ -124,7 +129,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('cloture', async () => {
       await p.goto(U + '#/clotures');
       await p.getByLabel('Espèces comptées dans le tiroir').waitFor();
-      await p.getByText(/1 vente\(s\) en attente sur cette caisse/).waitFor();
+      await p.getByText(/Il reste 1 facture\(s\) en cours sur cette caisse/).waitFor();
     });
     await etape('tableau-caissiers', async () => {
       await p.goto(U + '#/tableau-de-bord');
@@ -627,15 +632,17 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     });
 
     await etape('fermeture-caisse-reglage', async () => {
-      // Heure de fin de journée de la caisse : minuit par défaut, réglable (bar de nuit), heure invalide refusée.
+      // Heure de fin de journée de la caisse : jamais par défaut (chacun ferme sa caisse), réglable (bar de nuit).
       await p.goto(U + '#/parametres?onglet=reglages');
       const champ = p.getByLabel(/Fermeture automatique de la caisse chaque jour/);
       await champ.waitFor({ timeout: 60000 });
-      if ((await champ.inputValue()) !== '00:00') throw new Error('minuit attendu par défaut');
+      if ((await champ.inputValue()) !== '') throw new Error('aucune fermeture automatique attendue par défaut');
+      const verrou = p.getByLabel(/Verrouiller la caisse et déconnecter le compte/);
+      if ((await verrou.inputValue()) !== '15') throw new Error('verrouillage à 15 minutes attendu par défaut');
       await champ.fill('04:00');
       await champ.locator('xpath=ancestor::form').getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText(/Réglages .* enregistrés/).first().waitFor({ timeout: 30000 });
-      await champ.fill('00:00');
+      await champ.fill('');
       await champ.locator('xpath=ancestor::form').getByRole('button', { name: 'Enregistrer' }).click();
       await p.goto(U + '#/clotures');
       await p.getByText('Tickets Z').first().waitFor({ timeout: 60000 });
