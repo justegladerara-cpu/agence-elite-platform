@@ -17,3 +17,15 @@ export function etatCommande(c, aujourdhui) {
   if (c.statut === 'envoyee' && c.livraison_prevue && c.livraison_prevue < aujourdhui) return ['Livraison en retard', 'orange'];
   return STATUTS_COMMANDE[c.statut] ?? [c.statut, 'neutre'];
 }
+
+// Prix d'achat en hausse à la réception : marge actuelle (prix de vente, ancien coût) → marge avec le nouveau coût.
+// null si le prix n'augmente pas ou si l'on ne peut pas calculer (pas de prix de vente, pas d'ancien coût).
+export function hausseCoutAchat(prixVente, ancienCout, nouveauCout) {
+  if (ancienCout === null || ancienCout === undefined || ancienCout === '' || String(nouveauCout ?? '').trim() === '') return null;
+  const pv = Number(prixVente);
+  const avant = Number(ancienCout);
+  const apres = Number(String(nouveauCout).replace(',', '.'));
+  if (!(pv > 0) || !Number.isFinite(avant) || !Number.isFinite(apres) || apres <= avant) return null;
+  const marge = (cout) => Math.round(((pv - cout) / pv) * 1000) / 10;
+  return { margeAvant: marge(avant), margeApres: marge(apres) };
+}

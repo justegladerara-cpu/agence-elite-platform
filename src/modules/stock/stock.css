@@ -1,0 +1,18 @@
+/* Stock : pertes et dates de péremption (gros boutons, lisible sur téléphone). */
+.puces.puces-retour { flex-wrap: wrap; overflow-x: visible; margin: 0.5rem 0; }
+.puces.puces-retour button { min-height: 40px; }
+.peremptions { display: grid; gap: 0.75rem; }
+.ligne-peremption { flex-wrap: wrap; gap: 0.5rem; }
+.ligne-peremption .actions-ligne { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ligne-peremption .bouton { min-height: 44px; }
+.choix-perte-liste { display: grid; gap: 0.25rem; max-height: 50vh; overflow-y: auto; }
+.choix-perte-liste button {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; width: 100%;
+  min-height: 48px; padding: 0.5rem 0.75rem; text-align: left;
+  border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); cursor: pointer;
+}
+.choix-perte-liste button:hover, .choix-perte-liste button:focus-visible { border-color: var(--accent); background: var(--accent-doux); }
+.saisie-peremption { width: 9.5rem; }
+@media (max-width: 600px) {
+  .ligne-peremption .actions-ligne, .ligne-peremption .bouton { width: 100%; }
+}

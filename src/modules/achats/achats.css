@@ -1,0 +1,9 @@
+/* Réapprovisionnement : un bloc par fournisseur, bouton WhatsApp large et facile à toucher. */
+.groupe-fournisseur { padding: 0.75rem 0; border-top: 1px solid var(--bordure); }
+.groupe-fournisseur:first-child { border-top: 0; padding-top: 0; }
+.groupe-fournisseur-entete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+.groupe-fournisseur-entete .bouton { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
+@media (max-width: 600px) {
+  .groupe-fournisseur-entete .bouton { width: 100%; justify-content: center; }
+}
+.ligne-alerte-prix td { padding-top: 0; }

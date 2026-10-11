@@ -4,7 +4,10 @@ import { lireParametres } from '../../noyau/routes.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
 import SaisieStock from './SaisieStock.jsx';
+import Peremptions from './Peremptions.jsx';
 import { formatEnCasiers, quantiteHub } from './quantites.js';
+import { lireVueStock, RAISONS_RETRAIT, valeurPerte } from './pertes.js';
+import './stock.css';
 
 export { quantiteHub };
 
@@ -26,6 +29,31 @@ const ACTIONS = {
   retrait: { titre: 'Retirer du stock', libelle: 'Quantité retirée', aide: 'Casse, perte, produit périmé, consommation… La raison est obligatoire.' },
 };
 
+// « J'ai perdu / cassé / périmé » : on choisit d'abord l'article, puis la fenêtre « Retirer du stock » s'ouvre.
+function ChoixPerte({ articles, quantiteDe, onChoisir, onFermer }) {
+  const [texte, setTexte] = useState('');
+  const t = texte.trim().toLowerCase();
+  const visibles = articles.filter((a) => !t || a.nom.toLowerCase().includes(t) || (a.reference ?? '').toLowerCase().includes(t) || (a.code_barres ?? '') === texte.trim()).slice(0, 60);
+  return (
+    <Modale titre="J’ai perdu / cassé / périmé" onFermer={onFermer}>
+      <div className="formulaire">
+        <Champ libelle="Quel article ?" aide="Tapez le nom, la référence ou scannez le code-barres.">
+          <input type="search" value={texte} onChange={(e) => setTexte(e.target.value)} autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter' && visibles.length === 1) { e.preventDefault(); onChoisir(visibles[0]); } }} />
+        </Champ>
+        <div className="choix-perte-liste" role="list">
+          {visibles.map((a) => (
+            <button key={a.id} type="button" role="listitem" onClick={() => onChoisir(a)}>
+              <strong>{a.nom}</strong><span className="texte-doux">{formatEnCasiers(quantiteDe(a.id), a)} en stock</span>
+            </button>
+          ))}
+        </div>
+        {!visibles.length && <p className="texte-doux">Aucun article suivi en stock ne correspond.</p>}
+      </div>
+    </Modale>
+  );
+}
+
 // Stock par Hub, calculé à partir des mouvements (vue stock_hubs, filtrée par la base selon les Hubs autorisés).
 export function useStockHubs() {
   const { api, etablissement } = useEspace();
@@ -42,7 +70,7 @@ export function useStockHubs() {
 }
 
 function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onFermer, onFait }) {
-  const { api } = useEspace();
+  const { api, montant } = useEspace();
   const [hubId, setHubId] = useState(hubInitial ?? hubsStock[0]?.id);
   const [quantite, setQuantite] = useState('');
   const [motif, setMotif] = useState('');
@@ -59,7 +87,8 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
       const nouveau = await api.rpc('ajuster_stock_hub', {
         p_hub_id: hubId, p_article_id: article.id, p_type: 'ajustement', p_quantite: -n, p_motif: motif || null, p_cout_unitaire: null,
       });
-      onFait(`${article.nom} : ${formatQuantite(nouveau, article.unite)} en stock${hubsStock.length > 1 ? ` (${hubsStock.find((h) => h.id === hubId)?.nom})` : ''}`);
+      const perte = valeurPerte(n, article.cout_achat);
+      onFait(`${article.nom} : ${formatQuantite(nouveau, article.unite)} en stock${hubsStock.length > 1 ? ` (${hubsStock.find((h) => h.id === hubId)?.nom})` : ''}${perte != null ? ` · perte de ${montant(perte)} au prix d’achat` : ''}`);
     } catch (err) {
       setErreur(err.message);
       setChargement(false);
@@ -79,9 +108,15 @@ function ModaleMouvement({ article, type, hubInitial, hubsStock, quantiteDe, onF
         <Champ libelle={config.libelle} aide={config.aide}>
           <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} required autoFocus />
         </Champ>
+        <div className="puces puces-retour" role="group" aria-label="Raison">
+          {RAISONS_RETRAIT.map((r) => <button key={r} type="button" className={motif === r ? 'actif' : ''} onClick={() => setMotif(r)}>{r}</button>)}
+        </div>
         <Champ libelle="Raison">
-          <input value={motif} onChange={(e) => setMotif(e.target.value)} required placeholder="Ex. : casse, périmé" />
+          <input value={motif} onChange={(e) => setMotif(e.target.value)} required placeholder="Ex. : cassé, périmé" />
         </Champ>
+        {valeurPerte(String(quantite).replace(',', '.'), article.cout_achat) != null && (
+          <p className="texte-doux">Valeur perdue au prix d’achat : <strong>{montant(valeurPerte(String(quantite).replace(',', '.'), article.cout_achat))}</strong></p>
+        )}
         <Erreur message={erreur} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
@@ -148,13 +183,12 @@ function Inventaires({ hubsParId }) {
 export default function Stock({ naviguer }) {
   const { api, etablissement, peut, notifier, hubs, hub, multiHub, montant } = useEspace();
   const etab = etablissement.id;
-  // Liens profonds : ?vue=mouvements|inventaires|inventaire (ouvre la saisie d'inventaire).
-  const [vue, setVue] = useState(() => {
-    const v = lireParametres().get('vue');
-    return v === 'inventaire' ? 'inventaires' : ['mouvements', 'inventaires'].includes(v) ? v : 'niveaux';
-  });
+  // Liens profonds : ?vue=mouvements|inventaires|peremptions, ?vue=inventaire (ouvre « Je compte mon stock »),
+  // ?vue=reception (« J'ai reçu de la marchandise »), ?vue=perte (« J'ai perdu / cassé / périmé »).
+  const [lien] = useState(() => lireVueStock(lireParametres().get('vue')));
+  const [vue, setVue] = useState(lien.onglet);
   const [action, setAction] = useState(() => (
-    lireParametres().get('vue') === 'inventaire' && peut('stock.ajuster') && etablissement.ecriture ? { type: 'comptage' } : null
+    lien.action && peut('stock.ajuster') && etablissement.ecriture ? { type: lien.action } : null
   ));
   const { donnees: categories } = useDonnees(
     () => api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
@@ -189,7 +223,7 @@ export default function Stock({ naviguer }) {
 
   const onglets = [['niveaux', 'Niveaux']];
   if (multiHub && !hub) onglets.push(['par-hub', 'Par Hub']);
-  onglets.push(['mouvements', 'Mouvements'], ['inventaires', 'Inventaires']);
+  onglets.push(['mouvements', 'Mouvements'], ['inventaires', 'Inventaires'], ['peremptions', 'Dates de péremption']);
 
   return (
     <div className="page">
@@ -199,6 +233,7 @@ export default function Stock({ naviguer }) {
         actions={(
           <>
             {multiHub && peut('stock.transferer') && <Bouton icone="transfert" onClick={() => naviguer('transferts')}>Transférer</Bouton>}
+            {ajuster && <Bouton onClick={() => setAction({ type: 'choix_perte' })} disabled={!donnees}>J’ai perdu / cassé / périmé</Bouton>}
             {ajuster && <Bouton icone="inventaire" onClick={() => setAction({ type: 'comptage' })} disabled={!donnees}>Je compte mon stock</Bouton>}
             {ajuster && <Bouton variante="principal" icone="plus" onClick={() => setAction({ type: 'reception' })} disabled={!donnees}>J’ai reçu de la marchandise</Bouton>}
           </>
@@ -272,6 +307,17 @@ export default function Stock({ naviguer }) {
         />
       ))}
       {vue === 'inventaires' && <Inventaires key={version} hubsParId={hubsParId} />}
+      {donnees && vue === 'peremptions' && (
+        <Peremptions articles={donnees.articles} hubsStock={hubsStock} hubInitial={hub?.id} ajuster={ajuster} onStockChange={() => { recharger(); setVersion((x) => x + 1); }} />
+      )}
+      {action?.type === 'choix_perte' && donnees && (
+        <ChoixPerte
+          articles={donnees.suivis}
+          quantiteDe={(id) => quantiteHub(donnees, id, hub?.id, hubsStock)}
+          onChoisir={(a) => setAction({ type: 'retrait', article: a })}
+          onFermer={() => setAction(null)}
+        />
+      )}
       {action && ['reception', 'comptage'].includes(action.type) && donnees && (
         <SaisieStock
           mode={action.type}
