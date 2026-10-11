@@ -94,7 +94,7 @@ function ComptageApres({ z, onCompte }) {
   );
 }
 
-function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }) {
+export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }) {
   const { etablissement, devise, peut, utilisateur, deconnecter } = useEspace();
   const [z, setZ] = useState(zInitial);
   useEffect(() => {
@@ -150,7 +150,7 @@ function ComptageCoupures({ coupures, onTotal }) {
   );
 }
 
-function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
+export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
   const { api, montant, peut, utilisateur } = useEspace();
   const mienne = session.ouverte_par === utilisateur?.id;
   const { donnees: apercu, chargement, erreur } = useDonnees(() => api.rpc('apercu_cloture', { p_session_id: session.id }), [session.id]);

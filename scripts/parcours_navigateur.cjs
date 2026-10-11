@@ -65,6 +65,10 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('caisse', async () => {
       await p.goto(U + '#/caisse');
       await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
+      // Fermeture de caisse directement depuis la caisse (comptage puis ticket Z de la personne).
+      await p.getByRole('button', { name: 'Fermeture de caisse' }).click();
+      await p.getByRole('dialog').getByLabel('Espèces comptées dans le tiroir').waitFor();
+      await p.keyboard.press('Escape');
     });
     await etape('panier', async () => {
       await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
@@ -98,6 +102,13 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('ventes', async () => {
       await p.goto(U + '#/ventes');
       await p.getByText('10 000 FCFA').first().waitFor().catch(() => {});
+    });
+    await etape('ventes-selection', async () => {
+      await p.getByRole('tab', { name: 'Mes ventes' }).waitFor();
+      await p.getByLabel('Sélectionner toutes les ventes affichées').check();
+      await p.getByText(/vente\(s\) sélectionnée\(s\)/).waitFor();
+      await p.getByRole('button', { name: 'Exporter la sélection' }).waitFor();
+      await p.getByRole('button', { name: 'Tout décocher' }).click();
     });
     await etape('detail-vente', async () => {
       await p.locator('table.tableau tbody tr').first().click();
