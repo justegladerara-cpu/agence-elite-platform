@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Bouton, GraphiqueBarres, Icone } from '../../ui/composants.jsx';
+import { ChiffreAnime } from '../../ui/animations.jsx';
 import { actionsDomaine, bornesPeriode, PERIODES, variation } from './domaines.js';
 
 const CLE_PERIODE = 'ae-cockpit-periode';
@@ -121,7 +122,7 @@ export function Kpi({ kpi, naviguer, mis_en_avant }) {
       title={kpi.route ? 'Voir le détail' : undefined}
     >
       <span className="kpi-libelle">{kpi.libelle}</span>
-      <strong className="kpi-valeur">{formater(kpi.valeur, kpi.format)}</strong>
+      <strong className="kpi-valeur"><ChiffreAnime valeur={formater(kpi.valeur, kpi.format)} /></strong>
       {v && (
         <span className={`kpi-variation ${v.favorable === true ? 'bon' : v.favorable === false ? 'mauvais' : ''}`}>
           {v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='} {Math.abs(v.pourcent)} % <small>vs période précédente</small>
@@ -149,8 +150,8 @@ export function ASurveiller({ elements, naviguer, avecModule, titre = 'À survei
         <p className="cockpit-rien"><Icone nom="coche" /> Rien à signaler sur vos applications.</p>
       ) : (
         <ul className="attention-liste">
-          {elements.map((a) => (
-            <li key={`${a.domaine ?? ''}-${a.cle}`}>
+          {elements.map((a, i) => (
+            <li key={`${a.domaine ?? ''}-${a.cle}`} style={{ '--i': i }}>
               <button type="button" className={`attention niveau-${a.niveau}`} onClick={a.route ? () => naviguer(a.route) : undefined} disabled={!a.route}>
                 <span className="attention-icone"><Icone nom={NIVEAUX[a.niveau]?.[1] ?? 'alerte'} taille={16} /></span>
                 <span className="attention-texte">
@@ -206,8 +207,8 @@ export function Graphique({ g, naviguer }) {
     <section className="carte">
       <div className="titre-ligne"><h2>{g.titre}</h2></div>
       <ul className="cockpit-repartition">
-        {points.map((p) => (
-          <li key={p.libelle}>
+        {points.map((p, i) => (
+          <li key={p.libelle} style={{ '--i': i }}>
             <button type="button" className="repartition-ligne" onClick={p.route ? () => naviguer(p.route) : undefined} disabled={!p.route}>
               <span className="repartition-libelle">{libellePoint(p)}</span>
               <span className="repartition-valeur">{formater(p.valeur, g.format)} <small>{Math.round((100 * (Number(p.valeur) || 0)) / total)} %</small></span>
@@ -230,7 +231,7 @@ export function ListeCockpit({ liste, naviguer }) {
       </div>
       <ul className="cockpit-liste">
         {liste.lignes.map((l, i) => (
-          <li key={`${l.libelle}-${i}`}>
+          <li key={`${l.libelle}-${i}`} style={{ '--i': i }}>
             <button type="button" onClick={l.route ? () => naviguer(l.route) : undefined} disabled={!l.route}>
               <span><strong>{l.libelle}</strong>{l.detail && <small>{l.detail}</small>}</span>
               {l.valeur != null && <span className="cockpit-liste-valeur">{formater(l.valeur, l.format)}</span>}
@@ -250,7 +251,7 @@ export function Activite({ elements, naviguer, avecModule }) {
       <div className="titre-ligne"><h2>Activité récente</h2></div>
       <ul className="cockpit-liste activite">
         {elements.map((a, i) => (
-          <li key={`${a.quand}-${i}`}>
+          <li key={`${a.quand}-${i}`} style={{ '--i': i }}>
             <button type="button" onClick={a.route ? () => naviguer(a.route) : undefined} disabled={!a.route}>
               <span>
                 <strong>{a.titre}</strong>

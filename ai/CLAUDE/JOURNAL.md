@@ -1,5 +1,11 @@
 # Journal de Claude (manager / architecte)
 
+## 2026-10-12 — Animations des tableaux de bord et des écrans
+- Demande de Juste : « Rends tous les dashboards et d'autres fonctionnalités animés de toutes les apps. Bien pro. »
+- `src/ui/animations.jsx` (`ChiffreAnime` : les chiffres comptent jusqu'à leur valeur) branché sur `Kpi`, `StatCard`,
+  `Indicateur` ; section « Mouvement » de `src/styles.css` (pages, cartes, graphiques, listes, tableaux, boutons, modales).
+- Frontend seulement, aucune migration. Même travail dans le CRM interne, dans son propre dépôt, à la demande de Juste.
+
 ## 2026-10-10 — Elite Partners (réseau de partenaires, clés de licence, commissions)
 - Demande de Juste (fil « Système d'affiliation ») : affiliés avec leurs licences, liens et espace de connexion ; clés d'activation générées par le super admin (ex. essai 1 mois après installation payée) ; commissions façon MLM : 20 % / 5 % / 2 %, rangs, pas de prime sur l'installation ; nom « Elite Partners ».
 - Migration `20261010000123_elite_partners.sql` (9 tables, RLS lecture équipe Agence Elite, écriture par RPC, journal), écran `#/editeur/partenaires`, espace `#/partenaire`, activation `#/activer`, page prospect `#/partenaire/demande/CODE`, garde par ordinateur.

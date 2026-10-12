@@ -54,6 +54,19 @@ Composants : `Marque`, `ApercuMarque`, `ChoixCouleur`, `ChampsApparence` (`src/u
 | `GraphiqueBarres` | évolution simple ; prop `vide` si tout est à 0 | deux échelles sur un graphique |
 | `Modale` | saisie courte | formulaire de plus d'un écran |
 
+## Mouvement
+Animations courtes et douces, pour montrer que l'écran est vivant sans ralentir le travail (section « Mouvement » de
+`src/styles.css`, chiffres dans `src/ui/animations.jsx`).
+- Chaque écran arrive en fondu ; en-tête, cartes, indicateurs et blocs montent en cascade (≤ 0,35 s au total).
+- Les chiffres de `Kpi`, `StatCard` et `Indicateur` comptent jusqu'à leur valeur (`ChiffreAnime`) ; le texte final est
+  toujours exactement la valeur formatée, et les lecteurs d'écran ne lisent que celle-ci.
+- Barres de `GraphiqueBarres` et de répartition qui montent l'une après l'autre (`--i` = rang), lignes des listes du
+  tableau de bord et premières lignes des tableaux en cascade, alerte « Urgent » qui pulse 3 fois.
+- Survol des cartes cliquables : elles se soulèvent ; boutons qui s'enfoncent au clic ; modales et notifications avec un
+  léger ressort.
+- Règles : aucune animation ne garde de style à la fin (`animation-fill-mode: backwards`), jamais d'animation en boucle
+  sauf le chargement, tout est coupé avec `prefers-reduced-motion: reduce`.
+
 ## Libellés imposés
 - Montants contractuels (licences) : « Activité contractuelle », jamais « encaissé ».
 - Rôles : Responsable d'établissement, Responsable, Responsable Hub, Gestionnaire dépôt, Caissier, Comptable, Lecteur ;

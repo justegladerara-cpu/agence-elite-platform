@@ -3201,3 +3201,140 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .menu-precision { display: block; margin-top: 4px; width: 100%; font-size: 0.85rem; }
 .menu-suivi ul { padding-left: 1.1rem; }
 .menu-pied { text-align: center; }
+
+/* Mouvement -------------------------------------------------------------------
+   Animations douces et courtes : arrivée des pages, des cartes et des indicateurs en
+   cascade, barres des graphiques qui montent, survols qui soulèvent. Les animations ne
+   gardent aucun style à la fin (fill-mode backwards) pour ne jamais gêner la mise en page.
+   Tout est coupé si l'appareil demande moins d'animations. Les chiffres qui montent sont
+   dans src/ui/animations.jsx. */
+
+:root {
+  --mvt-rapide: 0.16s;
+  --mvt-normal: 0.32s;
+  --mvt-lent: 0.6s;
+  --mvt-courbe: cubic-bezier(0.22, 1, 0.36, 1);
+  --mvt-ressort: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@keyframes mvt-fondu { from { opacity: 0; } }
+@keyframes mvt-monter { from { opacity: 0; transform: translateY(10px); } }
+@keyframes mvt-glisser { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes mvt-zoom { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+@keyframes mvt-barre-v { from { transform: scaleY(0); } }
+@keyframes mvt-barre-h { from { transform: scaleX(0); } }
+@keyframes mvt-pulsation {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rouge) 35%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--rouge) 0%, transparent); }
+}
+@keyframes mvt-brillance { from { background-position: -160% 0, 0 0; } to { background-position: 260% 0, 0 0; } }
+
+/* Pages : fondu à chaque changement d'écran ; en-tête et cartes montent en cascade. */
+.contenu .page { animation: mvt-fondu var(--mvt-normal) ease-out backwards; }
+.page-header, .entete-page { animation: mvt-monter var(--mvt-normal) var(--mvt-courbe) backwards; }
+.page > .carte, .page > section, .page > .kpis, .page > .grille-stats, .page > .cockpit-barre,
+.page > .cockpit-grille, .page > .cockpit-domaines, .page > .cockpit-colonnes, .page > .tableau-conteneur {
+  animation: mvt-monter var(--mvt-normal) var(--mvt-courbe) backwards;
+}
+.page > :nth-child(2) { animation-delay: 40ms; }
+.page > :nth-child(3) { animation-delay: 80ms; }
+.page > :nth-child(4) { animation-delay: 120ms; }
+.page > :nth-child(5) { animation-delay: 160ms; }
+.page > :nth-child(6) { animation-delay: 200ms; }
+.page > :nth-child(n + 7) { animation-delay: 240ms; }
+
+/* Indicateurs et cartes de chiffres : arrivée en cascade, survol qui soulève. */
+.kpis > *, .grille-stats > *, .cockpit-grille > *, .cockpit-domaines > *, .cockpit-colonnes > * {
+  animation: mvt-zoom var(--mvt-normal) var(--mvt-courbe) backwards;
+}
+.kpis > :nth-child(1), .grille-stats > :nth-child(1), .cockpit-grille > :nth-child(1), .cockpit-domaines > :nth-child(1), .cockpit-colonnes > :nth-child(1) { animation-delay: 60ms; }
+.kpis > :nth-child(2), .grille-stats > :nth-child(2), .cockpit-grille > :nth-child(2), .cockpit-domaines > :nth-child(2), .cockpit-colonnes > :nth-child(2) { animation-delay: 110ms; }
+.kpis > :nth-child(3), .grille-stats > :nth-child(3), .cockpit-grille > :nth-child(3), .cockpit-domaines > :nth-child(3), .cockpit-colonnes > :nth-child(3) { animation-delay: 160ms; }
+.kpis > :nth-child(4), .grille-stats > :nth-child(4), .cockpit-domaines > :nth-child(4), .cockpit-colonnes > :nth-child(4) { animation-delay: 210ms; }
+.kpis > :nth-child(5), .grille-stats > :nth-child(5), .cockpit-domaines > :nth-child(5) { animation-delay: 260ms; }
+.kpis > :nth-child(6), .grille-stats > :nth-child(6), .cockpit-domaines > :nth-child(6) { animation-delay: 300ms; }
+.kpis > :nth-child(n + 7), .grille-stats > :nth-child(n + 7), .cockpit-domaines > :nth-child(n + 7) { animation-delay: 340ms; }
+
+.kpi, .stat-card, .indicateur, .carte {
+  transition: border-color var(--mvt-rapide), box-shadow var(--mvt-normal) var(--mvt-courbe), transform var(--mvt-normal) var(--mvt-courbe);
+}
+.kpi.cliquable:hover, .stat-card.cliquable:hover, .carte-etablissement:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 14%, transparent), var(--ombre);
+}
+.kpi.cliquable:active, .stat-card.cliquable:active { transform: translateY(-1px) scale(0.99); transition-duration: 0.08s; }
+.kpi.fort, .stat-card.fort {
+  background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.14) 45%, transparent 60%), linear-gradient(160deg, var(--accent-fort), var(--accent));
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 260% 0, 0 0;
+  animation: mvt-zoom var(--mvt-normal) var(--mvt-courbe) backwards, mvt-brillance 1.6s 0.5s ease-in-out 1 backwards;
+}
+.kpi-variation { animation: mvt-fondu var(--mvt-lent) 0.5s ease-out backwards; }
+
+/* Graphiques : les barres montent depuis l'axe, l'une après l'autre. */
+.graphique-barre {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: mvt-barre-v var(--mvt-lent) var(--mvt-courbe) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms + 120ms);
+  transition: fill var(--mvt-rapide);
+}
+.repartition-barre span {
+  transform-origin: 0 50%;
+  animation: mvt-barre-h var(--mvt-lent) var(--mvt-courbe) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms + 150ms);
+}
+.barre-progression > span, .progression > span, .jauge > span {
+  transform-origin: 0 50%;
+  animation: mvt-barre-h var(--mvt-lent) var(--mvt-courbe) backwards;
+}
+
+/* Listes des tableaux de bord : lignes en cascade, survol qui glisse. */
+.attention-liste > li, .cockpit-liste > li, .cockpit-repartition > li {
+  animation: mvt-glisser var(--mvt-normal) var(--mvt-courbe) backwards;
+  animation-delay: calc(min(var(--i, 0), 10) * 35ms + 120ms);
+}
+.attention, .cockpit-liste button, .repartition-ligne { transition: background var(--mvt-rapide), transform var(--mvt-rapide); }
+.attention:hover:not(:disabled), .cockpit-liste button:hover:not(:disabled) { transform: translateX(3px); }
+.attention.niveau-critique .attention-icone { animation: mvt-pulsation 2s ease-in-out 3; border-radius: 50%; }
+
+/* Tableaux : les premières lignes arrivent en cascade. */
+.tableau tbody tr { animation: mvt-fondu var(--mvt-normal) ease-out backwards; }
+.tableau tbody tr:nth-child(2) { animation-delay: 25ms; }
+.tableau tbody tr:nth-child(3) { animation-delay: 50ms; }
+.tableau tbody tr:nth-child(4) { animation-delay: 75ms; }
+.tableau tbody tr:nth-child(5) { animation-delay: 100ms; }
+.tableau tbody tr:nth-child(6) { animation-delay: 125ms; }
+.tableau tbody tr:nth-child(7) { animation-delay: 150ms; }
+.tableau tbody tr:nth-child(n + 8) { animation-delay: 175ms; }
+.tableau tbody tr { transition: background var(--mvt-rapide); }
+
+/* Boutons, onglets, menus : retour visuel immédiat. */
+.bouton { transition: background var(--mvt-rapide), border-color var(--mvt-rapide), box-shadow var(--mvt-rapide), transform var(--mvt-rapide); }
+.bouton:active:not(:disabled) { transform: scale(0.97); }
+.bouton.principal:hover:not(:disabled) { box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
+.onglets button, .cockpit-onglets button, .cockpit-periodes button { transition: background var(--mvt-rapide), color var(--mvt-rapide), box-shadow var(--mvt-rapide); }
+.cockpit-periodes button.actif { box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+.badge { transition: background var(--mvt-rapide), color var(--mvt-rapide); }
+
+/* Fenêtres et notifications : entrée avec un léger ressort. */
+.modale { animation: mvt-zoom var(--mvt-normal) var(--mvt-ressort) backwards; }
+.notification { animation: mvt-zoom var(--mvt-normal) var(--mvt-ressort) backwards; }
+.vide, .etat-vide { animation: mvt-zoom var(--mvt-lent) var(--mvt-courbe) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .kpi.cliquable:hover, .stat-card.cliquable:hover, .carte-etablissement:hover,
+  .attention:hover:not(:disabled), .cockpit-liste button:hover:not(:disabled) { transform: none; }
+}

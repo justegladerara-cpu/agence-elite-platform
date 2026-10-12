@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { lireParametres } from '../noyau/routes.js';
+import { ChiffreAnime } from './animations.jsx';
 
 const CHEMINS = {
   tableau: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
@@ -231,7 +232,7 @@ export function Indicateur({ libelle, valeur, detail, ton }) {
   return (
     <div className={`indicateur ${ton ?? ''}`}>
       <span className="indicateur-libelle">{libelle}</span>
-      <strong>{valeur}</strong>
+      <strong><ChiffreAnime valeur={valeur} /></strong>
       {detail && <small>{detail}</small>}
     </div>
   );
@@ -331,7 +332,7 @@ export function StatCard({ libelle, valeur, detail, ton, icone, onClick, note })
         {icone && <span className="stat-card-icone"><Icone nom={icone} taille={16} /></span>}
         <span className="stat-card-libelle">{libelle}</span>
       </span>
-      <strong className="stat-card-valeur">{valeur}</strong>
+      <strong className="stat-card-valeur"><ChiffreAnime valeur={valeur} /></strong>
       {detail && <small className="stat-card-detail">{detail}</small>}
       {note && <small className="stat-card-note">{note}</small>}
     </Balise>
@@ -668,7 +669,7 @@ export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, on
         const h = ((Number(d.valeur) || 0) / max) * zoneH;
         const x = marge.gauche + i * pas + (pas - barre) / 2;
         return (
-          <g key={`${d.libelle}-${i}`} className={onBarre ? 'cliquable' : ''} onClick={onBarre ? () => onBarre(d) : undefined}>
+          <g key={`${d.libelle}-${i}`} style={{ '--i': i }} className={onBarre ? 'cliquable' : ''} onClick={onBarre ? () => onBarre(d) : undefined}>
             <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre">
               <title>{d.titre ?? `${d.libelle} : ${format(d.valeur)}`}</title>
             </rect>
