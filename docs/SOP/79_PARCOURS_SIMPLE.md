@@ -14,7 +14,7 @@ Demande de Juste : rendre tout le logiciel aussi simple que « J'ai reçu de la 
 | Point | Écran / fichier |
 |---|---|
 | A1–A4 Accueil gros boutons, « Je veux… », chiffres du jour, à faire | `#/accueil`, `src/modules/accueil/` (premier écran du menu) |
-| A5 Mode simple | case sur l'accueil, `src/noyau/modeSimple.js` (préférence de l'appareil) |
+| A5 Elite Simple (ex-« mode simple ») | case sur l'accueil, `src/noyau/modeSimple.js` : choix de l'appareil, sinon défaut de l'établissement (Paramètres › Tableau de bord › « Elite Simple pour toute l'équipe », 2026-10-12) |
 | B1 Vente au poids (½, ¼, autre poids, pour un montant) | Caisse, `src/modules/caisse/poids.js` |
 | B2 Favoris | Caisse, puce « ★ Favoris » (compté sur l'appareil) |
 | B5/F1 Client rapide par téléphone | fenêtre de paiement de la caisse |

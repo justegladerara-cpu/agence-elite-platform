@@ -145,13 +145,14 @@ describe("contexte d'appel", () => {
     // le site web publié (pages publiées, formulaire de contact)
     // l'ouverture d'un document partagé par lien (jeton aléatoire, expiration, révocation)
     // l'espace client (même principe de jeton ; chaque geste est limité et tracé)
-    // et le lien d'un partenaire Elite Partners (nom affiché, demande de contact limitée à 30 par jour).
+    // le lien d'un partenaire Elite Partners (nom affiché, demande de contact limitée à 30 par jour)
+    // et le menu QR d'une table (menu publié par le gérant, commande limitée par table, suivi avec le jeton de la table).
     expect(executables.map((e) => e.proname).sort()).toEqual([
-      'boutique_publique', 'commander_boutique', 'demande_partenaire', 'envoyer_message_site', 'marque_connexion', 'ouvrir_lien_partage', 'pages_connexion', 'partenaire_public',
+      'boutique_publique', 'commander_boutique', 'commander_par_qr', 'demande_partenaire', 'envoyer_message_site', 'marque_connexion', 'menu_public', 'ouvrir_lien_partage', 'pages_connexion', 'partenaire_public',
       'portail_agenda', 'portail_aide', 'portail_annuler_rdv', 'portail_bilan_vu', 'portail_confirmer_rdv', 'portail_decider_livrable', 'portail_demander_rdv',
       'portail_deplacer_rdv', 'portail_deposer_fichier', 'portail_document_vu', 'portail_envoyer_message', 'portail_ouvrir',
       'portail_recommander', 'portail_repondre_devis', 'portail_suivi', 'portail_telecharger', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',
-      'verifier_coupon_boutique',
+      'suivi_commande_qr', 'verifier_coupon_boutique',
     ]);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select ouvrir_caisse($1)', [etabA]))).rejects.toThrow(/permission denied/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select recu_vente($1)', [venteB]))).rejects.toThrow(/permission denied/);

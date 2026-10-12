@@ -5,6 +5,7 @@ import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
 import SaisieStock from './SaisieStock.jsx';
 import Peremptions from './Peremptions.jsx';
+import Receptions from './Receptions.jsx';
 import { formatEnCasiers, quantiteHub } from './quantites.js';
 import { lireVueStock, RAISONS_RETRAIT, valeurPerte } from './pertes.js';
 import './stock.css';
@@ -183,7 +184,7 @@ function Inventaires({ hubsParId }) {
 export default function Stock({ naviguer }) {
   const { api, etablissement, peut, notifier, hubs, hub, multiHub, montant } = useEspace();
   const etab = etablissement.id;
-  // Liens profonds : ?vue=mouvements|inventaires|peremptions, ?vue=inventaire (ouvre « Je compte mon stock »),
+  // Liens profonds : ?vue=mouvements|receptions|inventaires|peremptions, ?vue=inventaire (ouvre « Je compte mon stock »),
   // ?vue=reception (« J'ai reçu de la marchandise »), ?vue=perte (« J'ai perdu / cassé / périmé »).
   const [lien] = useState(() => lireVueStock(lireParametres().get('vue')));
   const [vue, setVue] = useState(lien.onglet);
@@ -223,7 +224,7 @@ export default function Stock({ naviguer }) {
 
   const onglets = [['niveaux', 'Niveaux']];
   if (multiHub && !hub) onglets.push(['par-hub', 'Par Hub']);
-  onglets.push(['mouvements', 'Mouvements'], ['inventaires', 'Inventaires'], ['peremptions', 'Dates de péremption']);
+  onglets.push(['mouvements', 'Mouvements'], ['receptions', 'Réceptions'], ['inventaires', 'Inventaires'], ['peremptions', 'Dates de péremption']);
 
   return (
     <div className="page">
@@ -306,6 +307,7 @@ export default function Stock({ naviguer }) {
           ].filter(Boolean)}
         />
       ))}
+      {vue === 'receptions' && <Receptions key={version} hubsParId={hubsParId} />}
       {vue === 'inventaires' && <Inventaires key={version} hubsParId={hubsParId} />}
       {donnees && vue === 'peremptions' && (
         <Peremptions articles={donnees.articles} hubsStock={hubsStock} hubInitial={hub?.id} ajuster={ajuster} onStockChange={() => { recharger(); setVersion((x) => x + 1); }} />

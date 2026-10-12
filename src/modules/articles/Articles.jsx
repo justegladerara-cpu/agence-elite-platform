@@ -9,6 +9,7 @@ import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
 import Categories from './Categories.jsx';
 import AjoutMultiple from './AjoutMultiple.jsx';
 import ChangerPrix from './ChangerPrix.jsx';
+import CopierCatalogue from './CopierCatalogue.jsx';
 import ChoixUnite from './ChoixUnite.jsx';
 import './articles.css';
 
@@ -355,7 +356,7 @@ function correspondStock(a, filtre, stock) {
 }
 
 export default function Articles() {
-  const { api, etablissement, montant, peut, notifier, moduleActif } = useEspace();
+  const { api, etablissement, etablissements, montant, peut, notifier, moduleActif } = useEspace();
   const etab = etablissement.id;
   const [filtreStock, setFiltreStock] = useState('');
   const [actionLot, setActionLot] = useState('');
@@ -369,6 +370,7 @@ export default function Articles() {
   const [edition, setEdition] = useState(() => (peut('articles.gerer') && lireParametres().get('nouveau') === '1' ? {} : null));
   const [plusieurs, setPlusieurs] = useState(() => peut('articles.gerer') && lireParametres().get('nouveau') === 'plusieurs');
   const [prix, setPrix] = useState(false);
+  const [copie, setCopie] = useState(false);
   const [importer, setImporter] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [articles, categories, stock] = await Promise.all([
@@ -442,10 +444,12 @@ export default function Articles() {
           ], articles)}>Exporter</Bouton>
         )}
         {peut('articles.gerer') && <Bouton onClick={() => setImporter(true)}>Importer</Bouton>}
+        {peut('articles.gerer') && etablissements.length > 1 && <Bouton onClick={() => setCopie(true)}>Copier d’un autre établissement</Bouton>}
         {peut('articles.gerer') && vue !== 'categories' && donnees?.articles.length > 0 && <Bouton onClick={() => setPrix(true)}>Changer les prix</Bouton>}
         {peut('articles.gerer') && <Bouton icone="plus" onClick={() => setPlusieurs(true)}>Ajouter plusieurs articles</Bouton>}
         {peut('articles.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouvel article</Bouton>}
       </EnTete>
+      {copie && <CopierCatalogue onFermer={() => setCopie(false)} onFait={(m) => { setCopie(false); notifier(m); recharger(); }} />}
       {plusieurs && donnees && (
         <AjoutMultiple
           articles={donnees.articles}

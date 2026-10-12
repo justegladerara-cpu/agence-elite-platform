@@ -16,3 +16,7 @@
 @media (max-width: 600px) {
   .ligne-peremption .actions-ligne, .ligne-peremption .bouton { width: 100%; }
 }
+/* Réception intelligente : conditionnement, prix payé, alertes de prix. */
+.saisie-prix { width: 7rem; text-align: right; }
+.choix-conditionnement { display: block; margin-top: 0.25rem; max-width: 14rem; font-size: 0.85rem; min-height: 36px; }
+.alerte-prix { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.25rem; }
