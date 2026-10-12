@@ -22,12 +22,17 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     const visibles = await p.locator('.erreur:visible').allTextContents();
     if (visibles.length) throw new Error(visibles.join(' | '));
   };
+  // Caisse de démonstration ouverte : « Tu continues ? » peut s'afficher à la connexion (une fois), on continue.
+  const tuContinues = async () => {
+    await p.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 5000 }).catch(() => {});
+  };
   const profil = async (nom) => {
     await p.evaluate(() => { localStorage.removeItem('ae-utilisateur-local'); localStorage.removeItem('ae-session-ouverte'); });
     await p.goto(U);
     await p.reload();
     await p.getByText(nom).first().click({ timeout: 90000 });
     await p.waitForTimeout(1500);
+    await tuContinues();
   };
   let T = 'T1';
   const table = () => p.getByRole('button', { name: new RegExp(`^Table ${T},`) });
@@ -36,6 +41,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('gerante-salle', async () => {
       await p.getByText(/Gisèle/).first().click({ timeout: 90000 });
       await p.waitForTimeout(1500);
+      await tuContinues();
       await p.goto(U + '#/salle');
       await p.getByRole('heading', { name: 'Salle' }).first().waitFor();
       await p.getByRole('button', { name: 'Mes tables' }).waitFor();
