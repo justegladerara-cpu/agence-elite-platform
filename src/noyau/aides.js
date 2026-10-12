@@ -14,6 +14,8 @@ export const AIDES = {
   contacts: 'Ici, vous gardez vos clients et vos fournisseurs. Un numéro de téléphone suffit.',
   factures: 'Ici, vous faites vos devis et vos factures, et vous suivez qui a payé.',
   'tableau-de-bord': 'Ici, vous voyez vos chiffres : ventes, argent encaissé, dépenses et stock.',
+  'menu-qr': 'Ici, vous allumez votre menu en ligne et imprimez un QR code par table : le client scanne et voit vos prix.',
+  'commandes-qr': 'Ici arrivent les commandes envoyées depuis les tables : acceptez-les dans votre caisse ou refusez-les.',
 };
 
 const CLE = 'aides-fermees';

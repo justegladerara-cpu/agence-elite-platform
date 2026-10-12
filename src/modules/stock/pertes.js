@@ -4,7 +4,7 @@
 export const RAISONS_RETRAIT = ['Cassé', 'Périmé', 'Perdu', 'Volé', 'Consommé'];
 
 // Liens profonds de l'écran Stock : ?vue=inventaire|reception|perte|peremptions (la page d'accueil y renvoie).
-export const VUES_STOCK = ['niveaux', 'mouvements', 'inventaires', 'peremptions'];
+export const VUES_STOCK = ['niveaux', 'mouvements', 'receptions', 'inventaires', 'peremptions'];
 export function lireVueStock(vue) {
   if (vue === 'inventaire') return { onglet: 'inventaires', action: 'comptage' };
   if (vue === 'reception') return { onglet: 'niveaux', action: 'reception' };

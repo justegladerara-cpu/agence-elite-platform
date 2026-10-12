@@ -760,6 +760,18 @@ catégorie facultative, code-barres facultatif). SOP 75. Suite prévue : rattrap
 
 **Parcours simple (2026-10-11)** : 45 améliorations « comme J'ai reçu » (accueil gros boutons `#/accueil` = premier écran, mode simple, vente au poids, favoris, reçu WhatsApp, péremptions `20261011000127`, qui me doit / à qui je dois, articles en 3 champs et modèles par métier). SOP 79.
 
+## 45 quinquies. ELITE SIMPLE, RÉCEPTION INTELLIGENTE, MENU QR, MULTI-ÉTABLISSEMENTS (2026-10-12)
+
+Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout construire.
+- Migrations `20261012000130_reception_intelligente.sql` (bons `BR-`, conditionnements et prix retenus, alertes,
+  dette fournisseur automatique, réglage `elite_simple`) et `20261012000131_menu_qr_tables.sql` (menu QR public,
+  commandes des tables, `copier_catalogue`, permission `caisse.menu_qr`).
+- Écrans : Stock › J'ai reçu (fournisseur, conditionnement, prix payé, alertes, « Refaire la dernière livraison »),
+  Stock › Réceptions, Caisse › Menu QR et Commandes des tables, page publique `#/menu/<jeton>`,
+  Articles › Copier d'un autre établissement ; la caisse se rafraîchit seule (stock, prix, commandes QR) toutes les 30 s.
+- SOP 80, 81, 82 ; SOP 79 mise à jour (Elite Simple par défaut pour l'établissement).
+- Pas fait : OCR des factures, paiement en ligne par le client (aucun service choisi).
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

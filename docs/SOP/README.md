@@ -91,6 +91,9 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Saisir après coup les ventes d'un jour passé et fermer la caisse de ce jour (gérant) | [77](77_VENTES_JOUR_PASSE.md) | Gérant, responsable |
 | Boissons en casiers : régler le casier d'un article, recevoir et compter en casiers + unités | [78](78_STOCK_CASIERS.md) | Gérant, responsable, gestionnaire de dépôt |
 | Parcours simple : accueil en gros boutons, mode simple, vente au poids, péremptions, qui me doit, articles en 3 champs | [79](79_PARCOURS_SIMPLE.md) | Tous |
+| Réception intelligente : conditionnements et prix retenus par fournisseur, alertes de prix, dette fournisseur automatique | [80](80_RECEPTION_INTELLIGENTE.md) | Gérant, responsable, gestionnaire de dépôt |
+| Menu QR sur les tables : consulter le menu, puis commander ; commandes reçues en caisse ou en salle | [81](81_MENU_QR_TABLES.md) | Gérant, responsable, caisse |
+| Deuxième établissement : copier le catalogue d'un établissement du même client | [82](82_DEUXIEME_ETABLISSEMENT.md) | Gérant |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :

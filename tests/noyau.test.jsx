@@ -22,7 +22,7 @@ describe('formats', () => {
 describe('registre des écrans', () => {
   test('une page exige module actif et permission', () => {
     const espace = (modules, permissions) => ({ moduleActif: (m) => modules.includes(m), peut: (p) => permissions.includes(p) });
-    expect(pagesAccessibles(espace(['caisse'], ['caisse.utiliser'])).map((p) => p.id)).toEqual(['caisse']);
+    expect(pagesAccessibles(espace(['caisse'], ['caisse.utiliser'])).map((p) => p.id)).toEqual(['caisse', 'commandes-qr']);
     expect(pagesAccessibles(espace([], ['caisse.utiliser']))).toEqual([]);
     expect(pagesAccessibles(espace(PAGES.map((p) => p.module), PAGES.map((p) => p.permission)))).toHaveLength(PAGES.length);
   });
