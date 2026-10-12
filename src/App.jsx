@@ -26,6 +26,7 @@ import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
+import { oublierAccueil } from './modules/caisse/verrouCaisse.js';
 import { ecrireDefautEtablissement, filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
 import { AIDES, aidesFermees, fermerAide } from './noyau/aides.js';
 import {
@@ -742,6 +743,8 @@ export default function App({ demarrer = demarrerDonnees }) {
     ecrireStockage(CLE_SESSION, null);
     // Les brouillons de formulaires peuvent contenir des données de clients : ils ne restent pas après la déconnexion.
     try { effacerBrouillons(window.localStorage); } catch { /* stockage indisponible */ }
+    // « Tu continues ? » reviendra à la prochaine connexion.
+    try { oublierAccueil(window.sessionStorage); } catch { /* stockage indisponible */ }
     await donnees.deconnecter();
     setContexte(null);
     setAvis(raison === 'verrouillee' ? 'verrouillee' : null);

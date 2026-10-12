@@ -37,7 +37,8 @@ describe('argent et relations (démo)', () => {
   test('J’ai payé une dépense : montant, motif en un geste, enregistrée', async () => {
     window.location.hash = '#/depenses?nouveau=1';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
-    const dialogue = await screen.findByRole('dialog', {}, { timeout: 10000 });
+    // La caisse de démonstration est ouverte : « Tu continues ? » peut aussi s'afficher, on vise la fenêtre de la dépense.
+    const dialogue = await screen.findByRole('dialog', { name: 'J’ai payé une dépense' }, { timeout: 10000 });
     fireEvent.change(within(dialogue).getByLabelText('Combien ?'), { target: { value: '2500' } });
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Électricité' }));
     expect(within(dialogue).getByRole('button', { name: 'Électricité' }).getAttribute('aria-pressed')).toBe('true');
