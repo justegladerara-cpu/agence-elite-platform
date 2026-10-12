@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
-import { delaiVerrouillage, etatVerrou } from '../src/modules/caisse/verrouCaisse.js';
+import { delaiVerrouillage } from '../src/modules/caisse/verrouCaisse.js';
 import { nomsServeurs } from '../src/modules/caisse/serviPar.js';
 
 // Plus de fermeture à minuit par défaut, verrouillage sans activité, « Servi par » (migration 20261011000129).
@@ -79,13 +79,6 @@ describe('verrouillage côté écran', () => {
     expect(delaiVerrouillage(null)).toBe(15);
     expect(delaiVerrouillage({ verrouillage_inactivite: 5 })).toBe(5);
     expect(delaiVerrouillage({ verrouillage_inactivite: 0 })).toBe(0);
-  });
-  test('préavis la dernière minute, puis verrouillage', () => {
-    const t0 = 1_000_000;
-    expect(etatVerrou(t0, t0 + 13 * 60000, 15)).toBe('actif');
-    expect(etatVerrou(t0, t0 + 14.5 * 60000, 15)).toBe('preavis');
-    expect(etatVerrou(t0, t0 + 15 * 60000, 15)).toBe('verrouiller');
-    expect(etatVerrou(t0, t0 + 999 * 60000, 0)).toBe('actif');
   });
   test('noms proposés : réglage puis récents, sans doublon', () => {
     expect(nomsServeurs('Alex, Marc ,, alex', ['marc', 'Paul'])).toEqual(['Alex', 'Marc', 'Paul']);

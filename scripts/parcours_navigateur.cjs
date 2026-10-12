@@ -20,12 +20,36 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
   };
   try {
     await p.goto(U);
-    await etape('connexion', async () => { await p.getByText(/Mireille/).click({ timeout: 90000 }); await p.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor(); });
+    // La caisse de démonstration de Mireille est ouverte : « Tu continues ? » s'affiche une fois à la connexion.
+    const tuContinues = async () => {
+      const question = p.getByRole('dialog', { name: /Bonjour Mireille/ });
+      await question.getByText('Tu continues à travailler ?').waitFor({ timeout: 30000 });
+      await question.getByRole('button', { name: 'Oui, je continue' }).click();
+      await question.waitFor({ state: 'detached' });
+    };
+    await etape('connexion', async () => {
+      await p.getByText(/Mireille/).click({ timeout: 90000 });
+      await p.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor();
+      await tuContinues();
+    });
     await etape('accueil', async () => {
       await p.getByRole('button', { name: /J’ai reçu de la marchandise/ }).first().waitFor();
       await p.getByLabel('Je veux').fill('depense');
       await p.locator('.accueil-resultats button').first().waitFor();
       await p.getByLabel('Je veux').fill('');
+    });
+    await etape('reconnexion-caisse-ouverte', async () => {
+      // Déconnexion puis reconnexion, caisse toujours ouverte : la question revient ; une seule fois par connexion.
+      await p.locator('.profil-chip-bouton').click();
+      await p.getByRole('menuitem', { name: 'Se déconnecter' }).click();
+      await p.getByText(/Mireille/).first().click({ timeout: 90000 });
+      await p.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor();
+      await tuContinues();
+      await p.goto(U + '#/caisse');
+      await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
+      await p.waitForTimeout(1500);
+      if (await p.getByRole('dialog').count()) throw new Error('« Tu continues ? » ne doit pas revenir à chaque page');
+      await p.getByText(/Tu es toujours là \?/).first().waitFor();
     });
     await etape('article-cree', async () => {
       await p.goto(U + '#/articles');

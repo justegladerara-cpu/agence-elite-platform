@@ -9,10 +9,11 @@ import {
 } from './poids.js';
 import { lireCoupures, ModaleZ, SessionOuverte } from '../cloture/Clotures.jsx';
 import { mesCaisses } from './mesCaisses.js';
+import { EVENEMENT_CAISSE_FERMEE } from './verrouCaisse.js';
 import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import { lireRecents, nomsServeurs, retenirServeur } from './serviPar.js';
 import './caisse.css';
-import { BandeauNouveau, PastilleNouveau } from '../../ui/Nouveau.jsx';
+import { BandeauNouveau, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
 const FAVORIS = '__favoris__';
@@ -513,6 +514,11 @@ export default function Caisse({ naviguer }) {
     const t = setInterval(() => setMaintenant(Date.now()), 60000);
     return () => clearInterval(t);
   }, []);
+  // Caisse fermée depuis le pop-up « Tu continues ? » / « Tu es toujours là ? » : on recharge.
+  useEffect(() => {
+    window.addEventListener(EVENEMENT_CAISSE_FERMEE, recharger);
+    return () => window.removeEventListener(EVENEMENT_CAISSE_FERMEE, recharger);
+  }, [recharger]);
   // Fermeture de caisse depuis la caisse : comptage, puis MON ticket Z.
   const [fermeture, setFermeture] = useState(false);
   const [ticketZ, setTicketZ] = useState(null);
@@ -672,6 +678,10 @@ export default function Caisse({ naviguer }) {
         <BandeauNouveau>
           Votre caisse à vous : bouton « Fermeture de caisse » pour votre ticket Z, « Factures en cours » toujours visibles ci-dessous,
           « Servi par » à l’encaissement, et verrouillage automatique après 15 min sans activité (la caisse reste ouverte).
+        </BandeauNouveau>
+        <BandeauNouveau jusqua={NOUVEAU_PRESENCE_JUSQUA}>
+          À la connexion, « Tu continues ? » si ta caisse est encore ouverte. Sans activité, « Tu es toujours là ? » avec un compte
+          à rebours avant la déconnexion (la caisse reste ouverte).
         </BandeauNouveau>
         <BandeFactures
           attentes={attentes}

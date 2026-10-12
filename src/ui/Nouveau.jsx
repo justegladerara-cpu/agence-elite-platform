@@ -4,6 +4,8 @@ import React from 'react';
 // « partout où il y a les nouvelles fonctionnalités, mets un bandeau qui mentionne nouveau pendant 72 h »).
 // Pour une prochaine nouveauté : passer sa propre date de fin dans « jusqua ».
 export const NOUVEAUTES_CAISSE_JUSQUA = '2026-10-14T22:30:00Z';
+// Pop-ups « Tu continues ? » et « Tu es toujours là ? » (2026-10-12).
+export const NOUVEAU_PRESENCE_JUSQUA = '2026-10-15T12:00:00Z';
 
 export const estNouveau = (jusqua = NOUVEAUTES_CAISSE_JUSQUA, maintenant = Date.now()) => maintenant < new Date(jusqua).getTime();
 
