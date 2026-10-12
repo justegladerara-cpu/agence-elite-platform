@@ -592,7 +592,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByLabel('Chercher un article').fill('sucre');
       await p.getByLabel('Reçu : Sucre en poudre 1 kg').fill('10');
       await p.getByRole('button', { name: 'Ajouter au stock' }).click();
-      await p.getByText('Stock ajouté : 1 article(s)').first().waitFor({ timeout: 30000 });
+      await p.getByText(/BR-\d+ : 1 article\(s\) ajouté\(s\) au stock/).first().waitFor({ timeout: 30000 });
       // « Je compte mon stock » rempli depuis un fichier au format du modèle (catégorie facultative).
       await p.getByRole('button', { name: 'Je compte mon stock' }).click();
       const [modele] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Télécharger le modèle de fichier' }).click()]);
@@ -627,7 +627,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByLabel('Reçu à l’unité : Bière test 33 cl').fill('3');
       await p.getByRole('row').filter({ hasText: 'Bière test 33 cl' }).getByText('2 casiers + 3').waitFor({ timeout: 10000 });
       await p.getByRole('button', { name: 'Ajouter au stock' }).click();
-      await p.getByText('Stock ajouté : 1 article(s)').first().waitFor({ timeout: 30000 });
+      await p.getByText(/BR-\d+ : 1 article\(s\) ajouté\(s\) au stock/).first().waitFor({ timeout: 30000 });
       await p.getByRole('row').filter({ hasText: 'Bière test 33 cl' }).getByText('2 casiers + 3').first().waitFor({ timeout: 30000 });
     });
 

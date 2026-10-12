@@ -13,6 +13,11 @@ import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import { lireRecents, nomsServeurs, retenirServeur } from './serviPar.js';
 import './caisse.css';
 import { BandeauNouveau, PastilleNouveau } from '../../ui/Nouveau.jsx';
+import { ListeCommandesQr } from './CommandesQr.jsx';
+
+// Stock, prix et commandes des tables relus en arrière-plan : la caisse voit la marchandise reçue, les ventes des autres
+// caisses et les nouvelles commandes des QR codes sans recharger la page.
+const RAFRAICHIR_CAISSE_MS = 30000;
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
 const FAVORIS = '__favoris__';
@@ -457,10 +462,10 @@ export default function Caisse({ naviguer }) {
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
-  const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
+  const { donnees: donneesChargees, chargement, erreur, recharger } = useDonnees(async () => {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
-    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse] = await Promise.all([
+    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -473,16 +478,48 @@ export default function Caisse({ naviguer }) {
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'cloture' } }).catch(() => []),
       // Réglages caisse : noms proposés pour « Servi par ».
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'caisse' } }).catch(() => []),
+      // Commandes envoyées depuis les QR codes des tables, pas encore prises.
+      api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
-      articles, stock, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
+      articles, stock, commandesQr: (commandesQr ?? []).length, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
       // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
       sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees, coupures: lireCoupures(reglagesCloture[0]?.data?.coupures), serveursReglage: reglagesCaisse[0]?.data?.serveurs ?? '',
     };
   }, [etab, hubsCaisse.join(), utilisateur?.id]);
+  // Synchronisation stock ↔ caisse : relecture légère (stock, articles, commandes des tables) toutes les 30 s et au
+  // retour sur l'onglet ; remise à zéro à chaque rechargement complet.
+  const [frais, setFrais] = useState(null);
+  useEffect(() => setFrais(null), [donneesChargees]);
+  useEffect(() => {
+    if (!donneesChargees) return undefined;
+    let actif = true;
+    const relire = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const [articles, stock, commandesQr] = await Promise.all([
+          api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
+          api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
+          api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
+        ]);
+        if (actif) setFrais({ articles, stock, commandesQr: commandesQr.length });
+      } catch {
+        // Réseau coupé un instant : on garde ce qui est affiché.
+      }
+    };
+    const t = setInterval(relire, RAFRAICHIR_CAISSE_MS);
+    window.addEventListener('focus', relire);
+    return () => {
+      actif = false;
+      clearInterval(t);
+      window.removeEventListener('focus', relire);
+    };
+  }, [api, etab, donneesChargees]);
+  const donnees = useMemo(() => (donneesChargees && frais ? { ...donneesChargees, ...frais } : donneesChargees), [donneesChargees, frais]);
+  const [commandesTables, setCommandesTables] = useState(false);
   const [pdvChoisi, setPdvChoisi] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [remise, setRemise] = useState('');
@@ -667,6 +704,11 @@ export default function Caisse({ naviguer }) {
               Factures en cours <span className="pastille-compte" aria-label={`${attentes.length} facture(s)`}>{attentes.length}</span>
             </Bouton>
           )}
+          {donnees.commandesQr > 0 && (
+            <Bouton icone="table" onClick={() => setCommandesTables(true)}>
+              Commandes des tables <span className="pastille-compte" aria-label={`${donnees.commandesQr} commande(s)`}>{donnees.commandesQr}</span>
+            </Bouton>
+          )}
           <Bouton icone="cloture" variante="principal" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
         </div>
         <BandeauNouveau>
@@ -751,6 +793,11 @@ export default function Caisse({ naviguer }) {
         </Modale>
       )}
       {modaleTicketZ}
+      {commandesTables && (
+        <Modale titre="Commandes des tables" onFermer={() => { setCommandesTables(false); recharger(); }} large>
+          <ListeCommandesQr session={session} onPris={() => recharger()} />
+        </Modale>
+      )}
       {listeAttente && attentes && (
         <ModaleAttentes attentes={attentes} panierOccupe={lignes.length > 0} maintenant={maintenant} onAction={terminerAttente} onFermer={() => setListeAttente(false)} />
       )}

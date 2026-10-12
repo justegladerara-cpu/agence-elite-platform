@@ -1,0 +1,36 @@
+/* Menu QR : réglages, feuille de QR codes à imprimer, commandes des tables. */
+.case-grande { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.5rem 0; cursor: pointer; }
+.case-grande input { width: 22px; height: 22px; margin-top: 0.15rem; flex: none; }
+.feuille-qr { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
+.carte-qr {
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding: 1rem;
+  border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); text-align: center;
+}
+.carte-qr.inactive { opacity: 0.55; }
+.image-qr { width: 150px; height: 150px; background: #fff; }
+.image-qr svg { width: 100%; height: 100%; display: block; }
+.carte-qr-nom { font-size: 1.15rem; }
+.carte-qr-consigne { color: var(--texte-doux, #666); }
+.carte-qr-badges, .carte-qr-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 0.6rem; }
+.carte-qr-actions .lien { font-size: 0.85rem; }
+.liste-visibilite { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.15rem; max-height: 420px; overflow-y: auto; }
+.liste-visibilite label { display: flex; align-items: center; gap: 0.6rem; min-height: 40px; cursor: pointer; }
+.liste-visibilite label span:nth-child(2) { flex: 1; }
+.commandes-qr { display: grid; gap: 0.75rem; }
+.carte-commande-qr { border: 1px solid var(--bordure); border-left: 4px solid var(--orange, #e8a33d); border-radius: var(--rayon); background: var(--surface); padding: 0.75rem 1rem; }
+.carte-commande-qr header, .carte-commande-qr footer { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; justify-content: space-between; }
+.carte-commande-qr ul { margin: 0.5rem 0; padding-left: 1.1rem; }
+.carte-commande-qr footer .actions-ligne { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.commandes-qr-historique ul { padding-left: 1.1rem; }
+@media print {
+  body * { visibility: hidden; }
+  .feuille-qr, .feuille-qr * { visibility: visible; }
+  .feuille-qr { position: absolute; inset: 0; grid-template-columns: repeat(3, 1fr); gap: 0.5cm; }
+  .carte-qr { break-inside: avoid; border: 1px dashed #999; }
+  .carte-qr.inactive { display: none; }
+  .no-print { display: none !important; }
+  .image-qr { width: 5cm; height: 5cm; }
+}
+@media (max-width: 600px) {
+  .carte-commande-qr footer .actions-ligne, .carte-commande-qr footer .bouton { width: 100%; }
+}

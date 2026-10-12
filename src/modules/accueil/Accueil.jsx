@@ -9,13 +9,13 @@ import { aFaire, boutonsAccessibles, chercherIntention, lienWhatsapp, texteBilan
 import './accueil.css';
 
 // Accueil (#/accueil) : « Qu'est-ce que vous voulez faire ? ». Gros boutons selon les droits, barre « Je veux… »,
-// chiffres du jour, liste « À faire aujourd'hui », bilan du jour sur WhatsApp et mode simple.
+// chiffres du jour, liste « À faire aujourd'hui », bilan du jour sur WhatsApp et Elite Simple.
 // Tout vient de fonctions existantes de la base : aucune donnée n'est calculée ici sans elle.
 export default function Accueil({ naviguer }) {
   const espace = useEspace();
   const { api, etablissement, hub, peut, moduleActif, montant, devise, utilisateur } = espace;
   const etab = etablissement.id;
-  const modeSimple = useModeSimple();
+  const modeSimple = useModeSimple(etab);
   const [texte, setTexte] = useState('');
   const pages = pagesAccessibles(espace);
   const boutons = boutonsAccessibles(pages, peut);
@@ -23,7 +23,7 @@ export default function Accueil({ naviguer }) {
 
   const { donnees, erreur } = useDonnees(async () => {
     const jour = dateLocale();
-    const [tdb, sessions, factures, peremptions, articles, ventes] = await Promise.all([
+    const [tdb, sessions, factures, peremptions, articles, ventes, commandesQr] = await Promise.all([
       voitChiffres ? api.rpc('tableau_de_bord_hub', { p_etablissement_id: etab, p_hub_id: hub?.id ?? null, p_du: jour, p_au: jour }).catch(() => null) : null,
       moduleActif('caisse') ? api.lire('sessions_caisse', { eq: { etablissement_id: etab, statut: 'ouverte' } }).catch(() => []) : [],
       moduleActif('facturation') && peut('facturation.lire')
@@ -32,10 +32,12 @@ export default function Accueil({ naviguer }) {
       peut('stock.lire') ? api.rpc('peremptions_proches', { p_etablissement_id: etab, p_jours: 7 }).catch(() => null) : null,
       peut('articles.lire') ? api.lire('articles', { eq: { etablissement_id: etab }, limite: 5 }).catch(() => null) : null,
       peut('ventes.lire') ? api.lire('ventes', { eq: { etablissement_id: etab }, limite: 1 }).catch(() => null) : null,
+      // Commandes envoyées depuis les QR codes des tables (migration 20261012000131).
+      peut('caisse.utiliser') ? api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []) : [],
     ]);
     const caissesAnciennes = sessions.filter((s) => String(s.ouverte_le).slice(0, 10) < jour).length;
     const facturesEnRetard = Number(factures?.nb_en_retard ?? 0);
-    return { tdb, caissesAnciennes, facturesEnRetard, peremptions, articles, ventes };
+    return { tdb, caissesAnciennes, facturesEnRetard, peremptions, articles, ventes, commandesQr: commandesQr.length };
   }, [etab, hub?.id]);
 
   const resultats = useMemo(
@@ -59,7 +61,7 @@ export default function Accueil({ naviguer }) {
         </div>
         <label className="accueil-mode">
           <input type="checkbox" checked={modeSimple} onChange={(e) => ecrireModeSimple(e.target.checked)} />
-          <span>Mode simple <small className="texte-doux">(menu réduit à l’essentiel)</small></span>
+          <span>Elite Simple <small className="texte-doux">(menu réduit à l’essentiel)</small></span>
         </label>
       </header>
 

@@ -19,13 +19,14 @@ import { AnnonceMiseAJour, BandeauConnexion } from './ui/Etat.jsx';
 import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
 import { SitePublic } from './public/RenduSite.jsx';
 import { PartagePublic } from './public/Partage.jsx';
+import { MenuPublic } from './public/MenuPublic.jsx';
 import { EspaceClientPublic } from './public/EspaceClient.jsx';
 import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
-import { filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
+import { ecrireDefautEtablissement, filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
 import { AIDES, aidesFermees, fermerAide } from './noyau/aides.js';
 import {
   Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, lireImageReduite, Modale, Onglets, useFilAriane, Vide,
@@ -533,7 +534,14 @@ function Coquille() {
   const ouvrirAide = useCallback(() => setAide(true), []);
   useRaccourcis({ ouvrirRecherche, ouvrirCreation, ouvrirAide, actif: Boolean(etablissement) && !palette });
   const pages = etablissement ? pagesAccessibles(espace) : [];
-  const modeSimple = useModeSimple();
+  const modeSimple = useModeSimple(etablissement?.id);
+  // Elite Simple réglé pour tout l'établissement : lu une fois par établissement (le choix de l'appareil passe avant).
+  useEffect(() => {
+    if (!etablissement?.id) return;
+    api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id, module_id: 'tableau_de_bord' } })
+      .then((r) => ecrireDefautEtablissement(etablissement.id, r[0]?.data?.elite_simple === true))
+      .catch(() => {});
+  }, [api, etablissement?.id]);
   const menu = etablissement ? filtrerModeSimple(pagesDuMenu(espace), modeSimple) : [];
   const surEditeur = editeur && (route.startsWith('editeur') || !etablissement);
   const premier = route.split('/')[0];
@@ -742,11 +750,12 @@ export default function App({ demarrer = demarrerDonnees }) {
 
   if (etape === 'demarrage' || (etape !== 'erreur' && !config)) return <div className="ecran-centre"><Chargement texte="Préparation de la base…" /></div>;
   if (etape === 'erreur') return <div className="ecran-centre"><Erreur message={erreur} /></div>;
-  // Pages publiques (sans compte) : site web, boutique en ligne, suivi de commande, document partagé par lien et espace client.
+  // Pages publiques (sans compte) : site web, boutique en ligne, suivi de commande, menu QR d'une table, document partagé par lien et espace client.
   const [publique, cle, sousPage] = route.split('/');
   if (publique === 'site' && cle) return <SitePublic donnees={donnees} adresse={cle.toLowerCase()} slug={sousPage} />;
   if (publique === 'commander' && cle) return <BoutiquePublique key={cle} donnees={donnees} adresse={cle.toLowerCase()} />;
   if (publique === 'suivi' && cle) return <SuiviCommande key={cle} donnees={donnees} suivi={cle} />;
+  if (publique === 'menu' && cle) return <MenuPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
   if (publique === 'partage' && cle) return <PartagePublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'espace' && cle) return <EspaceClientPublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'partenaire' && cle === 'demande' && sousPage) return <DemandePartenaire key={sousPage} donnees={donnees} code={sousPage} />;

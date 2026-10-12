@@ -15,6 +15,7 @@ export const GROS_BOUTONS = [
   { id: 'je-dois', libelle: 'À qui je dois ?', detail: 'Fournisseurs à payer', icone: 'echeance', route: 'achats?onglet=a_payer', permission: 'achats.lire', mots: 'fournisseur payer dette' },
   { id: 'article', libelle: 'Ajouter des articles', detail: 'Un nom et un prix suffisent', icone: 'articles', route: 'articles?nouveau=1', permission: 'articles.gerer', mots: 'article produit prix catalogue nouveau' },
   { id: 'facture', libelle: 'Faire une facture', detail: 'Ou un devis', icone: 'facture', route: 'factures/nouvelle-facture', permission: 'facturation.gerer', mots: 'facture devis facturer' },
+  { id: 'menu-qr', libelle: 'Menu QR des tables', detail: 'Le client scanne, voit le menu, commande', icone: 'table', route: 'menu-qr', permission: 'caisse.menu_qr', mots: 'qr code menu carte table scanner commander restaurant bar' },
   { id: 'chiffres', libelle: 'Voir mes chiffres', detail: 'Tableau de bord', icone: 'graphique', route: 'tableau-de-bord', permission: 'tableau_de_bord.lire', mots: 'chiffres tableau bord statistiques benefice' },
 ];
 
@@ -44,8 +45,9 @@ export function chercherIntention(texte, { boutons = [], actions = [], pages = [
 }
 
 // Liste « À faire aujourd'hui » à partir des chiffres déjà chargés. Chaque ligne mène à l'écran qui règle le point.
-export function aFaire({ tdb, caissesAnciennes = 0, facturesEnRetard = 0, peremptions = null, devise }) {
+export function aFaire({ tdb, caissesAnciennes = 0, facturesEnRetard = 0, peremptions = null, commandesQr = 0, devise }) {
   const liste = [];
+  if (commandesQr > 0) liste.push({ id: 'commandes-qr', ton: 'rouge', texte: `${commandesQr} commande(s) des tables à prendre`, route: 'commandes-qr' });
   if (caissesAnciennes > 0) liste.push({ id: 'caisse', ton: 'rouge', texte: `${caissesAnciennes} caisse(s) d’un jour précédent pas encore fermée(s)`, route: 'clotures' });
   const bas = tdb?.stock_bas ?? [];
   if (bas.length) liste.push({ id: 'stock', ton: 'orange', texte: `${bas.length >= 10 ? '10 ou plus' : bas.length} article(s) à commander (${bas.slice(0, 3).map((a) => a.nom).join(', ')}${bas.length > 3 ? '…' : ''})`, route: 'achats?onglet=reappro' });
