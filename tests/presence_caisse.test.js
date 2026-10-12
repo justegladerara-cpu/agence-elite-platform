@@ -5,7 +5,7 @@ import {
   noterAccueilVu, oublierAccueil, prenomCaisse, resteAvantDeconnexion,
 } from '../src/modules/caisse/verrouCaisse.js';
 
-// « Tu continues ? » à la connexion et « Tu es toujours là ? » après le délai sans activité (migration 20261012000130).
+// « Tu continues ? » à la connexion et « Tu es toujours là ? » après le délai sans activité (migration 20261012000132).
 const MIN = 60000;
 
 describe('réglages', () => {

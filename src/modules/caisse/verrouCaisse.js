@@ -1,5 +1,5 @@
 // Présence à la caisse (réglages Clôture « verrouillage_inactivite », migration 20261011000129, et
-// « delai_reponse_presence », migration 20261012000130) :
+// « delai_reponse_presence », migration 20261012000132) :
 // - à la connexion, si la personne a SA caisse ouverte : « Tu continues ? » ;
 // - au bout de N minutes sans toucher l'écran : « Tu es toujours là ? » avec un compte à rebours, puis déconnexion.
 // La caisse reste ouverte : elle la retrouve en se reconnectant, et seule elle (ou un responsable) peut la fermer avec

@@ -52,7 +52,7 @@ Quand une personne se connecte et que SA caisse est encore ouverte, un grand pop
 Une seule fois par connexion (pas à chaque page ; un rechargement de la page ne le remontre pas). Le prénom vient du
 nom du compte, sinon du début de l'adresse e-mail. Plusieurs caisses ouvertes : la plus récente est proposée.
 
-## Verrouillage sans activité (migrations `20261011000129` et `20261012000130`)
+## Verrouillage sans activité (migrations `20261011000129` et `20261012000132`)
 Si personne ne touche l'écran pendant **15 minutes** (Paramètres › Réglages des modules › Clôture › « Verrouiller la
 caisse… », 0 = jamais) et que la personne a SA caisse ouverte : pop-up « Awa, tu es toujours là ? » avec les mêmes
 trois boutons et un compte à rebours visible « Déconnexion automatique dans 4:59 ». Le temps laissé pour répondre se
