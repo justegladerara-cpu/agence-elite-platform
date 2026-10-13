@@ -110,6 +110,22 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
       await p.getByRole('dialog').getByText('Alex').first().waitFor({ timeout: 30000 });
     });
+    await etape('recu-imprimable', async () => {
+      // Le 2026-10-12, une règle d'impression du menu QR rendait les reçus blancs : on vérifie le rendu « impression ».
+      await p.evaluate(() => { window.print = () => {}; });
+      await p.getByRole('dialog').getByRole('button', { name: 'Imprimer' }).click();
+      await p.emulateMedia({ media: 'print' });
+      const etat = await p.evaluate(() => {
+        const ticket = document.querySelector('.zone-impression .ticket');
+        const total = ticket && [...ticket.querySelectorAll('.ticket-total span')].pop();
+        if (!ticket || !total) return 'ticket absent';
+        const r = total.getBoundingClientRect();
+        const s = getComputedStyle(total);
+        return s.visibility === 'visible' && s.display !== 'none' && r.width > 0 && r.height > 0 ? 'ok' : `ticket caché (${s.visibility}, ${s.display})`;
+      });
+      await p.emulateMedia({ media: 'screen' });
+      if (etat !== 'ok') throw new Error(`reçu non imprimable : ${etat}`);
+    });
     await etape('serveur-retenu', async () => {
       // « Servi par » tapé une fois : le prénom rejoint la liste des serveurs et reste choisi pour la commande suivante.
       await p.getByRole('button', { name: 'Nouvelle vente' }).click();
