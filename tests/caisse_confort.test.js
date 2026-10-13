@@ -30,6 +30,8 @@ beforeAll(async () => {
   const client = await valeur(admin, "select creer_client('Caisse Confort Démo')");
   etab = await valeur(admin, "select creer_etablissement($1, 'commerce', 'Boutique attente')", [client]);
   autreEtab = await valeur(admin, "select creer_etablissement($1, 'commerce', 'Autre boutique')", [client]);
+  // Plusieurs caisses ouvertes en même temps sur le même point de vente (réglage « caisse_unique », migration 133).
+  await db.query("insert into etablissement_parametres(etablissement_id, module_id, data) values ($1, 'cloture', '{\"caisse_unique\": false}')", [etab]);
   await db.query("insert into etablissement_membres(etablissement_id,user_id,role_id) values ($1,$2,'gerant'),($1,$3,'employe'),($4,$5,'gerant')", [etab, gerant, caissier, autreEtab, autre]);
   article = await valeur(gerant, 'select enregistrer_article($1,$2::jsonb)', [etab, json({ nom: 'Pagne wax', prix_vente: 10000, stock_initial: 50 })]);
   articleAutre = await valeur(autre, 'select enregistrer_article($1,$2::jsonb)', [autreEtab, json({ nom: 'Article ailleurs', prix_vente: 500 })]);
