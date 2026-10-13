@@ -3,7 +3,7 @@
 ## 2026-10-13 — Dream : une seule caisse, alerte ticket Z, serveurs, Encaisser sur tablette
 - Demande de Juste (fil « caissières du Dream ») : caissières après minuit, une seule caisse ouverte, rien chez une autre caissière, suivi en direct, alerte Z non tiré, serveurs choisis à la commande, bouton Encaisser peu visible sur tablette. Réponses : une caisse physique, ouvert 24 h/24, serveur facultatif.
 - Constaté en production (lecture seule) : 1 point de vente, fermeture automatique déjà « jamais », une caisse ouverte depuis le 12/10 02:51 UTC sans ticket Z.
-- Migration `20261013000133_caisse_unique_serveurs.sql`, écrans Caisse (barre Encaisser, serveur, caisse occupée, factures transmises), Clôture (fermer sans compter, factures sur le Z), Tableau de bord (direct, alerte, serveurs). SOP 83.
+- Migration `20261013100133_caisse_unique_serveurs.sql`, écrans Caisse (barre Encaisser, serveur, caisse occupée, factures transmises), Clôture (fermer sans compter, factures sur le Z), Tableau de bord (direct, alerte, serveurs). SOP 83.
 - Vérifié : tests dédiés, suite complète, builds, parcours navigateur (dont tablette 768×1024, 1280×800, 1024×700).
 
 ## 2026-10-10 — Elite Partners (réseau de partenaires, clés de licence, commissions)

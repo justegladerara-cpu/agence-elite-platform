@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Erreur } from '../../ui/composants.jsx';
 
-// Serveurs (migration 20261013000133) : liste partagée par toutes les tablettes de l'établissement. Le serveur se choisit
+// Serveurs (migration 20261013100133) : liste partagée par toutes les tablettes de l'établissement. Le serveur se choisit
 // d'un geste au début de la commande ; « + Nouveau serveur » ne sert qu'une fois par prénom. Le choix est facultatif.
 const cle = (etab) => `serveur-choisi:${etab}`;
 

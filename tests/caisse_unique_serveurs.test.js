@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Caisse du Dream (migration 20261013000133) : une seule caisse ouverte à la fois, caisse oubliée fermée sans compter,
+// Caisse du Dream (migration 20261013100133) : une seule caisse ouverte à la fois, caisse oubliée fermée sans compter,
 // factures en cours notées sur le ticket Z, tableau de bord par service, alerte « ticket Z non tiré », serveurs.
 let db;
 let gerant;

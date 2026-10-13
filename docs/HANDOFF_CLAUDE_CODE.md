@@ -774,7 +774,7 @@ Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout co
 
 ## 45 sexies. DREAM : CAISSE UNIQUE, ALERTE Z, SERVEURS, TABLETTE (2026-10-13)
 
-- Migration `20261013000133_caisse_unique_serveurs.sql` : une seule caisse ouverte par point de vente (réglage
+- Migration `20261013100133_caisse_unique_serveurs.sql` : une seule caisse ouverte par point de vente (réglage
   `caisse_unique`), `caisse_occupee`, `fermer_caisse_oubliee` (Z « espèces à compter »), factures en cours notées sur le Z,
   `activite_caissiers` par service, alertes (`caisse_alertes`, `alertes_caisses`, tâche pg_cron toutes les 15 min),
   serveurs (`serveurs_caisse`, `ventes.serveur_id`, `ventes_en_attente.serveur_id`, statistiques, fusion).

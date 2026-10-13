@@ -21,7 +21,7 @@ export function depuis(date, maintenant = Date.now()) {
 // Tableau de bord (gérant, responsable, comptable) : qui tient une caisse en ce moment, combien chaque personne a
 // vendu sur la période et le classement (migration 20261011000128, fonction activite_caissiers), et les factures
 // en cours de chacune (clients qui consomment encore, table ventes_en_attente).
-// Depuis la migration 20261013000133 : comptage par service (une soirée de 18 h à 3 h reste au jour d'ouverture de la
+// Depuis la migration 20261013100133 : comptage par service (une soirée de 18 h à 3 h reste au jour d'ouverture de la
 // caisse), service en cours en direct, et alerte « ticket Z non tiré ».
 export default function ActiviteCaissiers({ espace, du, au, naviguer }) {
   const { api, etablissement, montant } = espace;

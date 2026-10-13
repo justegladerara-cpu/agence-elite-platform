@@ -41,7 +41,7 @@ export function VignetteArticle({ article, taille = 'normale' }) {
   return <span className={`vignette ${taille}`} style={{ background: couleurDe(article.nom) }}>{initiales(article.nom)}</span>;
 }
 
-// Une seule caisse ouverte à la fois (migration 20261013000133) : la caisse d'une autre personne est encore ouverte.
+// Une seule caisse ouverte à la fois (migration 20261013100133) : la caisse d'une autre personne est encore ouverte.
 // Elle tire son ticket Z ; sinon un responsable ferme la caisse oubliée (en comptant, ou « espèces à compter »).
 function CaisseOccupee({ occupee, coupures, onFermee }) {
   const { peut, notifier } = useEspace();
@@ -533,7 +533,7 @@ export default function Caisse({ naviguer }) {
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'caisse' } }).catch(() => []),
       // Commandes envoyées depuis les QR codes des tables, pas encore prises.
       api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
-      // Serveurs enregistrés (migration 20261013000133) et caisse occupée par une autre personne.
+      // Serveurs enregistrés (migration 20261013100133) et caisse occupée par une autre personne.
       api.lire('serveurs_caisse', { eq: { etablissement_id: etab, actif: true }, ordre: ['prenom'] }).catch(() => []),
       api.rpc('caisse_occupee', { p_etablissement_id: etab }).catch(() => []),
     ]);

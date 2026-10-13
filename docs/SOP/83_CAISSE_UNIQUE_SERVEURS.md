@@ -2,7 +2,7 @@
 
 **Qui :** caissière, gérant, responsable. **Où :** Caisse, Clôture de caisse, Tableau de bord, Paramètres › Réglages des
 modules › Clôture. Demande de Juste pour le Dream (bar ouvert 24 h/24, une seule caisse physique), 2026-10-13.
-Migration `supabase/migrations/20261013000133_caisse_unique_serveurs.sql`.
+Migration `supabase/migrations/20261013100133_caisse_unique_serveurs.sql`.
 
 ## Une seule caisse ouverte à la fois
 - Par point de vente, une seule caisse ouverte. La caissière suivante ouvre **après le ticket Z** de la précédente.

@@ -4,7 +4,7 @@ import { Badge, Bouton, Erreur } from '../../ui/composants.jsx';
 import { NOUVEAU_CAISSE_UNIQUE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
 import './activite-caissiers.css';
 
-// Tableau de bord (gérant, responsable) : ventes par serveur sur la période (migration 20261013000133, jour du service
+// Tableau de bord (gérant, responsable) : ventes par serveur sur la période (migration 20261013100133, jour du service
 // comme pour les caissières), et gestion de la liste : désactiver un serveur parti, fusionner un doublon.
 export default function ServeursCaisse({ espace, du, au }) {
   const { api, etablissement, montant, notifier } = espace;

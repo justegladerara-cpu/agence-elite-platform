@@ -222,7 +222,7 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
   );
 }
 
-// Caisse oubliée et personne pour compter le tiroir (migration 20261013000133) : ticket Z « espèces à compter » au nom
+// Caisse oubliée et personne pour compter le tiroir (migration 20261013100133) : ticket Z « espèces à compter » au nom
 // de la caissière ; elle (ou un responsable) compte ensuite.
 function FermerSansCompter({ session, caissier, onCloturee }) {
   const { api } = useEspace();
