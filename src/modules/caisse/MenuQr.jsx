@@ -69,6 +69,15 @@ function AjoutTables({ restaurant, onFermer, onFait }) {
   );
 }
 
+// La feuille de QR codes ne s'imprime que pendant cet appel : la classe est retirée juste après,
+// pour ne jamais gêner l'impression des reçus, tickets Z et factures.
+function imprimerQr() {
+  const fin = () => { document.body.classList.remove('impression-qr'); window.removeEventListener('afterprint', fin); };
+  document.body.classList.add('impression-qr');
+  window.addEventListener('afterprint', fin);
+  setTimeout(() => { window.print(); if (!('onafterprint' in window)) fin(); }, 50);
+}
+
 // Réglages du menu en ligne : allumer le menu, ouvrir la commande depuis la table, QR codes à imprimer, articles cachés.
 export default function MenuQr({ naviguer }) {
   const { api, etablissement, notifier, moduleActif, peut, montant } = useEspace();
@@ -128,7 +137,7 @@ export default function MenuQr({ naviguer }) {
         actions={(
           <>
             {donnees.nouvelles > 0 && <Bouton onClick={() => naviguer('commandes-qr')}>Commandes des tables <span className="pastille-compte">{donnees.nouvelles}</span></Bouton>}
-            {actifs.length > 0 && <Bouton icone="imprimer" onClick={() => window.print()}>Imprimer les QR codes</Bouton>}
+            {actifs.length > 0 && <Bouton icone="imprimer" onClick={imprimerQr}>Imprimer les QR codes</Bouton>}
             <Bouton variante="principal" icone="plus" onClick={() => setAjout(true)}>Ajouter des QR codes</Bouton>
           </>
         )}
