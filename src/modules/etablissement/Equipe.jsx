@@ -118,6 +118,56 @@ function ModaleCompteDirect({ etablissementId, nomEtablissement, roles, hubs, on
   );
 }
 
+// Nouveau mot de passe pour quelqu'un de l'équipe (migration 20261013000133) : provisoire, à changer à la connexion
+// suivante ; ses sessions ouvertes sont fermées, ses caisses restent ouvertes.
+function ModaleMotDePasse({ etablissementId, nomEtablissement, membre, onFermer }) {
+  const { api } = useEspace();
+  const [mdp, setMdp] = useState('');
+  const [fait, setFait] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
+  const identifiant = identifiantDepuisEmail(membre.email) ?? membre.email;
+  const valider = async (e) => {
+    e.preventDefault();
+    setChargement(true);
+    setErreur('');
+    try {
+      await api.rpc('reinitialiser_mot_de_passe_membre', { p_etablissement_id: etablissementId, p_user_id: membre.user_id, p_mot_de_passe_temporaire: mdp });
+      setFait(true);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setChargement(false);
+    }
+  };
+  return (
+    <Modale titre={`Nouveau mot de passe · ${membre.nom || identifiant}`} onFermer={onFermer}>
+      {fait ? (
+        <div className="formulaire">
+          <p>C’est fait. {membre.nom || 'La personne'} choisira son propre mot de passe à sa prochaine connexion. Envoyez-lui ce message :</p>
+          <CopierTexte texte={messageIdentifiants({ etablissement: nomEtablissement, identifiant, motDePasse: mdp })} />
+          <div className="actions"><Bouton variante="principal" onClick={onFermer}>Terminé</Bouton></div>
+        </div>
+      ) : (
+        <form className="formulaire" onSubmit={valider}>
+          <p className="texte-doux">
+            Mot de passe provisoire, valable 7 jours : la personne choisira le sien à la connexion suivante. Elle est
+            déconnectée de ses appareils ; sa caisse reste ouverte.
+          </p>
+          <Champ libelle="Mot de passe provisoire" aide="4 caractères au moins.">
+            <input value={mdp} onChange={(e) => setMdp(e.target.value)} required minLength={4} autoComplete="off" autoFocus />
+          </Champ>
+          <Erreur message={erreur} />
+          <div className="actions">
+            <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+            <Bouton type="submit" variante="principal" chargement={chargement}>Changer le mot de passe</Bouton>
+          </div>
+        </form>
+      )}
+    </Modale>
+  );
+}
+
 function ModaleInvitation({ etablissementId, nomEtablissement, roles, onFermer, onInvite }) {
   const { api } = useEspace();
   const [email, setEmail] = useState('');
@@ -299,6 +349,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
   const [compteDirect, setCompteDirect] = useState(false);
   const [membre, setMembre] = useState(null);
   const [partage, setPartage] = useState(null);
+  const [motDePasse, setMotDePasse] = useState(null);
   const [erreurAction, setErreurAction] = useState('');
   // Rôles proposés : lus en base, limités à ceux dont les modules requis sont actifs
   // et, pour un membre, à son rang ou en dessous (la base le vérifie aussi).
@@ -348,6 +399,9 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
                   <td>{m.actif ? <Badge ton="vert">Actif</Badge> : <Badge>Désactivé</Badge>}</td>
                   <td className="actions-ligne">
                     {peutGerer && !m.moi && <button className="lien" onClick={() => setMembre(m)}>Modifier</button>}
+                    {peutGerer && !m.moi && (rangActuel == null || (donnees.roles.find((r) => r.id === m.role_id)?.ordre ?? 0) > rangActuel) && (
+                      <button className="lien" onClick={() => setMotDePasse(m)}>Nouveau mot de passe</button>
+                    )}
                     {m.moi && <span className="texte-doux">vous</span>}
                   </td>
                 </tr>
@@ -413,6 +467,9 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
         <Modale titre={`Invitation de ${partage.email}`} onFermer={() => setPartage(null)}>
           <CopierTexte texte={messageInvitation({ etablissement: nomEtablissement, email: partage.email, role: partage.role_id })} />
         </Modale>
+      )}
+      {motDePasse && (
+        <ModaleMotDePasse etablissementId={etablissementId} nomEtablissement={nomEtablissement} membre={motDePasse} onFermer={() => setMotDePasse(null)} />
       )}
       {membre && donnees && (
         <ModaleMembre
