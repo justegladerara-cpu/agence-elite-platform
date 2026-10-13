@@ -5,6 +5,7 @@ export const AIDES = {
   caisse: 'Ici, vous vendez : touchez un article pour le mettre dans le panier, puis « Encaisser ».',
   ventes: 'Ici, vous retrouvez toutes vos ventes. Vous pouvez réimprimer un reçu ou enregistrer un retour.',
   clotures: 'Ici, vous fermez votre caisse : comptez vos billets, le logiciel compare avec ce qu’il attendait.',
+  'rapport-du-soir': 'Ici, vous voyez le résumé de la journée et vous l’envoyez au patron sur WhatsApp en un geste.',
   'qui-me-doit': 'Ici, vous voyez les clients qui vous doivent de l’argent et vous pouvez leur envoyer un rappel.',
   'a-qui-je-dois': 'Ici, vous voyez ce que vous devez à vos fournisseurs et quand le payer.',
   articles: 'Ici, vous créez vos articles : un nom et un prix suffisent pour commencer.',

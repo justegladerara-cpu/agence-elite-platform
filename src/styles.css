@@ -3201,3 +3201,10 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .menu-precision { display: block; margin-top: 4px; width: 100%; font-size: 0.85rem; }
 .menu-suivi ul { padding-left: 1.1rem; }
 .menu-pied { text-align: center; }
+/* Rapport du soir (#/rapport-du-soir) : gros chiffres lisibles, envoi au patron sur WhatsApp. */
+.rapport-soir .stat-card-valeur { font-size: 26px; }
+.rapport-soir-top { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+.rapport-soir-top li strong { float: right; font-variant-numeric: tabular-nums; }
+.rapport-soir-numero { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.rapport-soir-numero .champ { flex: 1 1 220px; max-width: 320px; }
+.rapport-soir textarea { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; }
