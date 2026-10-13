@@ -9,6 +9,12 @@ import { STATUTS_LIGNE, minutesDepuis, nomArticle, trierArticles, trierCategorie
 import Reglages from './Reglages.jsx';
 import Serveurs, { ModaleAffectation, ModaleTransfertServeur, ServiceEnCours } from './Serveurs.jsx';
 import { mesCaisses } from '../caisse/mesCaisses.js';
+import { BandeauNouveau } from '../../ui/Nouveau.jsx';
+import { estArticleTechnique, resteMinimum } from './vip.js';
+import '../../ui/grosBoutons.css';
+
+// Tables VIP (minimum de consommation, migration 20261013000136) : bandeau « Nouveau » jusqu'à cette date fixe.
+export const NOUVEAU_VIP_JUSQUA = '2026-10-16T12:00:00Z';
 
 // Données de la salle : tables, commandes ouvertes, plats, articles, caisses ouvertes (Hubs autorisés).
 function useSalle(dependances = []) {
@@ -32,7 +38,8 @@ function useSalle(dependances = []) {
     return {
       tables: tables.filter((t) => hubsVisibles.includes(t.hub_id)),
       commandes: commandes.filter((c) => hubsVisibles.includes(c.hub_id)),
-      lignes, articles: trierArticles(articles, categories), categories: trierCategories(categories), sessions: mesCaisses(sessions, utilisateur),
+      // L'article technique « Complément minimum » ne s'affiche pas comme un plat, mais son prix compte dans les totaux.
+      lignes, articles: trierArticles(articles.filter((a) => !estArticleTechnique(a)), categories), categories: trierCategories(categories), sessions: mesCaisses(sessions, utilisateur),
       reservations: reservations.filter((r) => hubsVisibles.includes(r.hub_id)),
       article: Object.fromEntries(articles.map((a) => [a.id, a])),
       // Serveur affecté à chaque table (affectation en cours) ; serveurs : null si la fonction n'est pas encore déployée.
@@ -123,6 +130,9 @@ function PlanDeSalle({ naviguer }) {
           </>
         )}
       />
+      <BandeauNouveau jusqua={NOUVEAU_VIP_JUSQUA}>
+        Tables VIP : un minimum de consommation par table (Tables et postes) ou par réservation ; la salle affiche ce qu’il reste à consommer.
+      </BandeauNouveau>
       {t && (
         <div className="grille-stats">
           <StatCard icone="table" libelle="Tables occupées" valeur={`${t.tables_occupees} / ${t.tables}`} detail={t.serveurs_actifs != null ? `${t.serveurs_actifs} serveur(s) en service` : undefined} />
@@ -175,7 +185,7 @@ function PlanDeSalle({ naviguer }) {
                   <button key={table.id} type="button" className={`table-resto ${etat} ${serveur && serveur === moi ? 'mienne' : ''}`}
                     aria-label={`Table ${table.nom}, ${libelleEtat}${serveur ? `, serveur ${d.nomServeur[serveur] ?? ''}` : ''}`}
                     onClick={() => toucher(table)}>
-                    <strong>{table.nom}</strong>
+                    <strong>{table.nom}{(c?.minimum_consommation ?? table.minimum_consommation) ? <> <Badge ton="orange">VIP</Badge></> : null}</strong>
                     {c ? (
                       <>
                         <span>{c.couverts ? `${c.couverts} couv. · ` : ''}{minutesDepuis(c.ouverte_le)} min</span>
@@ -211,7 +221,7 @@ function PlanDeSalle({ naviguer }) {
         {!d.reservations.filter((r) => ['confirmee', 'arrivee'].includes(r.statut)).length && <p className="texte-doux">Aucune réservation à venir.</p>}
         <div className="liste-simple">{d.reservations.filter((r) => ['confirmee', 'arrivee'].includes(r.statut)).slice(0, 12).map((r) => {
           const table = d.tables.find((x) => x.id === r.table_id);
-          return <div key={r.id} className="liste-ligne"><span><strong>{r.nom_client}</strong><br /><small className="texte-doux">{formatDateHeure(r.debut)} · {r.couverts} couvert(s){table ? ` · table ${table.nom}` : ''}</small></span>
+          return <div key={r.id} className="liste-ligne"><span><strong>{r.nom_client}</strong><br /><small className="texte-doux">{formatDateHeure(r.debut)} · {r.couverts} couvert(s){table ? ` · table ${table.nom}` : ''}{r.minimum_consommation ? ` · minimum ${montant(r.minimum_consommation)}` : ''}</small></span>
             <Badge ton={r.statut === 'arrivee' ? 'vert' : 'bleu'}>{r.statut === 'arrivee' ? 'Arrivé' : 'Confirmé'}</Badge>
             <span className="groupe-boutons">{r.statut === 'confirmee' && <Bouton onClick={() => api.rpc('statut_reservation_restaurant', { p_id: r.id, p_statut: 'arrivee', p_motif: null }).then(() => { notifier('Arrivée enregistrée'); recharger(); })}>Arrivée</Bouton>}
               <button type="button" className="lien" onClick={() => setReservation(r)}>Modifier</button></span></div>;
@@ -241,10 +251,17 @@ function ModaleReservationRestaurant({ reservation, tables, hubs, onFermer, onFa
   const local = (date) => { const d = date ? new Date(date) : new Date(Date.now() + 3600000); d.setMinutes(Math.ceil(d.getMinutes() / 15) * 15, 0, 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   const [v, setV] = useState({ nom_client: reservation?.nom_client ?? '', telephone: reservation?.telephone ?? '', debut: local(reservation?.debut),
     duree_minutes: reservation?.duree_minutes ?? 120, couverts: reservation?.couverts ?? 2, hub_id: reservation?.hub_id ?? hub?.id ?? hubs[0]?.id ?? '', table_id: reservation?.table_id ?? '', note: reservation?.note ?? '' });
+  // Minimum de consommation (table VIP) : réglé à part, par sa propre fonction, après l'enregistrement.
+  const [minimum, setMinimum] = useState(reservation?.minimum_consommation ? String(Number(reservation.minimum_consommation)) : '');
   const [erreur, setErreur] = useState('');
   const changer = (cle) => (e) => setV({ ...v, [cle]: e.target.value });
   const valider = async (e) => { e.preventDefault(); setErreur(''); try {
-    await api.rpc('enregistrer_reservation_restaurant', { p_etablissement_id: etablissement.id, p: { id: reservation?.id, ...v, debut: new Date(v.debut).toISOString() } }); onFait();
+    const id = await api.rpc('enregistrer_reservation_restaurant', { p_etablissement_id: etablissement.id, p: { id: reservation?.id, ...v, debut: new Date(v.debut).toISOString() } });
+    const montantMinimum = minimum.trim() === '' ? null : Number(minimum.replace(/\s/g, '').replace(',', '.'));
+    if (montantMinimum !== (reservation?.minimum_consommation != null ? Number(reservation.minimum_consommation) : null)) {
+      await api.rpc('regler_minimum_reservation', { p_reservation_id: id ?? reservation?.id, p_montant: montantMinimum });
+    }
+    onFait();
   } catch (err) { setErreur(err.message); } };
   const tablesHub = tables.filter((t) => t.hub_id === v.hub_id && t.places >= Number(v.couverts));
   return <Modale titre={reservation ? 'Modifier la réservation' : 'Nouvelle réservation'} onFermer={onFermer}>
@@ -256,6 +273,7 @@ function ModaleReservationRestaurant({ reservation, tables, hubs, onFermer, onFa
       <Champ libelle="Couverts"><input type="number" min="1" max="200" required value={v.couverts} onChange={changer('couverts')} /></Champ>
       <Champ libelle="Salle / Hub"><select value={v.hub_id} onChange={(e) => setV({ ...v, hub_id: e.target.value, table_id: '' })}>{hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}</select></Champ>
       <Champ libelle="Table (facultatif)"><select value={v.table_id} onChange={changer('table_id')}><option value="">À affecter à l’arrivée</option>{tablesHub.map((t) => <option key={t.id} value={t.id}>{t.zone} · {t.nom} ({t.places} places)</option>)}</select></Champ>
+      <Champ libelle="Minimum de consommation (facultatif)" aide="Table VIP : montant à consommer au minimum. Il passe sur la commande à l’arrivée."><input inputMode="numeric" value={minimum} onChange={(e) => setMinimum(e.target.value)} placeholder="ex. 100000" /></Champ>
     </div><Champ libelle="Note"><textarea rows={2} maxLength={500} value={v.note} onChange={changer('note')} /></Champ><Erreur message={erreur} />
     <div className="actions"><Bouton type="button" onClick={onFermer}>Annuler</Bouton><Bouton type="submit" variante="principal">Enregistrer</Bouton></div></form>
   </Modale>;
@@ -354,6 +372,11 @@ function Commande({ commandeId, naviguer }) {
   };
   const servir = peut('restaurant_salle.servir');
   const lignesAddition = choix.length ? aPayer.filter((l) => choix.includes(l.id)) : aPayer;
+  // Table VIP : ce qui reste à consommer (prix actuels, comme la caisse). La base fait le même contrôle à la clôture.
+  const minimumActif = Boolean(c.minimum_consommation) && !c.minimum_leve_le;
+  const resteVip = minimumActif ? resteMinimum(c.minimum_consommation, totalLignes(actives, d.article)) : 0;
+  // Dernière addition (tout ce qui reste à payer) sous le minimum : avertir avant le paiement.
+  const allerAuPaiement = () => setAction(resteVip > 0 && lignesAddition.length === aPayer.length ? 'minimum' : 'paiement');
   const encaisser = async (paiements) => {
     const r = await api.rpc('encaisser_commande_restaurant', {
       p_commande_id: c.id, p_session_id: session.id, p_paiements: paiements, p_lignes_ids: choix.length ? choix : null, p_contact_id: contactId,
@@ -383,6 +406,8 @@ function Commande({ commandeId, naviguer }) {
             <MenuActions actions={[
               servir && c.table_id && { libelle: 'Changer de table', icone: 'table', onClick: () => setAction('transfert') },
               peut('restaurant_salle.transferer') && d.serveurs.length > 1 && { libelle: 'Transférer à un autre serveur', icone: 'membres', onClick: () => setAction('transfertServeur') },
+              peut('restaurant_salle.minimum') && { libelle: c.minimum_consommation ? 'Changer le minimum (table VIP)' : 'Fixer un minimum (table VIP)', icone: 'etoile', onClick: () => setAction('regleMinimum') },
+              peut('restaurant_salle.minimum') && minimumActif && { libelle: 'Lever le minimum', onClick: () => setAction('leverMinimum') },
               servir && !aPayer.length && !enAttente.length && actives.some((l) => l.vente_id) && { libelle: 'Libérer la table', onClick: () => executer('clore_commande_restaurant', { p_commande_id: c.id }, 'Table libérée').then(() => naviguer('salle')) },
               peut('restaurant_salle.annuler') && !actives.some((l) => l.vente_id) && { libelle: 'Annuler la commande', danger: true, onClick: () => setAction('annuler') },
             ]} />
@@ -390,6 +415,15 @@ function Commande({ commandeId, naviguer }) {
         )}
       />
       <Erreur message={erreurAction} />
+      {Boolean(c.minimum_consommation) && (
+        <div className={`minimum-vip ${resteVip > 0 ? '' : 'atteint'}`} role="status">
+          <span>Table VIP · minimum {montant(c.minimum_consommation)}</span>
+          <strong>
+            {c.minimum_leve_le ? `Minimum levé : ${c.minimum_motif}`
+              : resteVip > 0 ? `Encore ${montant(resteVip)} à consommer pour atteindre le minimum` : 'Minimum atteint'}
+          </strong>
+        </div>
+      )}
       <div className="commande-resto">
         {servir && (
           <section className="commande-catalogue">
@@ -475,7 +509,7 @@ function Commande({ commandeId, naviguer }) {
           pied={(
             <>
               <Bouton onClick={() => setAction(null)}>Fermer</Bouton>
-              <Bouton variante="principal" disabled={!lignesAddition.length} onClick={() => setAction('paiement')}>
+              <Bouton variante="principal" disabled={!lignesAddition.length} onClick={allerAuPaiement}>
                 Encaisser {montant(totalLignes(lignesAddition, d.article))}
               </Bouton>
             </>
@@ -501,6 +535,34 @@ function Commande({ commandeId, naviguer }) {
           </div>
           <Erreur message={erreurAction} />
         </Modale>
+      )}
+      {action === 'minimum' && (
+        <Modale titre="Minimum de consommation non atteint" onFermer={() => setAction('addition')}>
+          <p className="minimum-vip"><strong>Encore {montant(resteVip)} à consommer</strong> pour atteindre le minimum de {montant(c.minimum_consommation)}.</p>
+          <p className="texte-doux">Ajoutez le complément minimum (une ligne de {montant(resteVip)} sur l’addition), ou demandez à un responsable de lever le minimum avec un motif.</p>
+          <Erreur message={erreurAction} />
+          <div className="gros-boutons">
+            {peut('restaurant_salle.encaisser') && (
+              <button type="button" className="gros-bouton principal" onClick={async () => {
+                if ((await executer('ajouter_complement_minimum', { p_commande_id: c.id }, 'Complément minimum ajouté')) !== undefined) { setChoix([]); setAction('addition'); }
+              }}>Ajouter le complément ({montant(resteVip)})</button>
+            )}
+            {peut('restaurant_salle.minimum') && <button type="button" className="gros-bouton" onClick={() => setAction('leverMinimum')}>Lever le minimum (responsable)</button>}
+          </div>
+          {!peut('restaurant_salle.minimum') && <p className="texte-doux">Seul un responsable peut lever le minimum.</p>}
+        </Modale>
+      )}
+      {action === 'leverMinimum' && (
+        <ModaleMotif titre="Lever le minimum de consommation" texte="Le client paie seulement ce qu’il a consommé. Votre nom, l’heure et le motif sont conservés."
+          libelleAction="Lever le minimum" onFermer={() => setAction(null)}
+          onValider={async (motif) => { await api.rpc('lever_minimum_commande', { p_commande_id: c.id, p_motif: motif }); notifier('Minimum levé'); recharger(); }} />
+      )}
+      {action === 'regleMinimum' && (
+        <ModaleMinimum valeur={c.minimum_consommation} onFermer={() => setAction(null)}
+          onValider={async (montantMinimum) => {
+            await api.rpc('regler_minimum_commande', { p_commande_id: c.id, p_montant: montantMinimum });
+            setAction(null); notifier(montantMinimum ? 'Minimum enregistré' : 'Minimum retiré'); recharger();
+          }} />
       )}
       {action === 'paiement' && (
         <ModalePaiement total={totalLignes(lignesAddition, d.article)} contacts={d.contacts} contactId={contactId} onContact={setContactId}
@@ -535,6 +597,35 @@ function Commande({ commandeId, naviguer }) {
       )}
       {recu && <ModaleRecu venteId={recu.vente_id} monnaie={recu.monnaie} onFermer={() => setRecu(null)} />}
     </div>
+  );
+}
+
+// Saisie d'un minimum de consommation (vide = aucun minimum). Utilisé sur la commande et sur la fiche d'une table.
+export function ModaleMinimum({ valeur, onValider, onFermer }) {
+  const [v, setV] = useState(valeur ? String(Number(valeur)) : '');
+  const [erreur, setErreur] = useState('');
+  const valider = async (e) => {
+    e.preventDefault();
+    setErreur('');
+    try {
+      await onValider(v.trim() === '' ? null : Number(v.replace(/\s/g, '').replace(',', '.')));
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
+  return (
+    <Modale titre="Minimum de consommation" onFermer={onFermer}>
+      <form className="formulaire" onSubmit={valider}>
+        <Champ libelle="Montant minimum" aide="Laissez vide pour retirer le minimum.">
+          <input inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} autoFocus placeholder="ex. 100000" />
+        </Champ>
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal">Enregistrer</Bouton>
+        </div>
+      </form>
+    </Modale>
   );
 }
 

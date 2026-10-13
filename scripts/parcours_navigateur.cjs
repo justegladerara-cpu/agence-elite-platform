@@ -231,6 +231,9 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('palette-ecran', async () => {
       await p.goto(U + '#/tableau-de-bord');
       await p.getByText('Chiffre d’affaires').first().waitFor();
+      // Souris dans un coin : la palette choisit la ligne survolée, et le pointeur laissé par l'étape précédente
+      // pourrait se retrouver sur une autre ligne que « Stock » (la liste a grandi avec « Emballages consignés »).
+      await p.mouse.move(0, 0);
       await p.keyboard.press('Control+k');
       const champ = p.getByRole('combobox', { name: 'Rechercher partout' });
       await champ.fill('stock');
@@ -688,6 +691,36 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.keyboard.press('Escape');
     });
 
+    // Emballages consignés et bouteilles en réserve (migration 20261013000136) : données fictives de la démo.
+    await etape('emballages-consignes', async () => {
+      await p.goto(U + '#/emballages');
+      await p.getByRole('heading', { name: 'Emballages consignés' }).first().waitFor();
+      await p.getByRole('article', { name: 'Emballage Casier 12 bouteilles' }).waitFor();
+      await p.getByRole('button', { name: 'Un client rapporte des vides' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Casier 12 bouteilles' }).click();
+      await p.getByRole('dialog').getByLabel('Nom du client (facultatif)').fill('Client du parcours');
+      await p.getByRole('dialog').getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText(/Un client rapporte des vides : 1 Casier 12 bouteilles/).first().waitFor();
+      if (await p.locator('.erreur:visible').count()) throw new Error(await p.locator('.erreur:visible').first().textContent());
+    });
+    await etape('bouteilles-en-reserve', async () => {
+      await p.goto(U + '#/reserves');
+      await p.getByRole('heading', { name: 'Bouteilles en réserve' }).first().waitFor();
+      await p.getByPlaceholder('Nom ou téléphone du client').fill('fidèle');
+      const carte = p.getByRole('article', { name: 'Réserve de Client fidèle Démo' });
+      await carte.getByText(/Reste : 1\/2 bouteille/).waitFor();
+      await carte.getByRole('button', { name: 'Servir' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: '1/4' }).click();
+      await p.getByText(/Servi\. Reste : 1\/4 bouteille/).first().waitFor();
+      await p.getByPlaceholder('Nom ou téléphone du client').fill('');
+      await p.getByRole('button', { name: 'Mettre une bouteille en réserve' }).click();
+      await p.getByRole('dialog').getByLabel('Nom du client').fill('Client du parcours');
+      await p.getByRole('dialog').getByLabel('Nom de la bouteille').fill('Champagne de démonstration');
+      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en réserve' }).click();
+      await p.getByText(/Bouteille en réserve \(RB-/).first().waitFor();
+      await p.getByRole('article', { name: 'Réserve de Client du parcours' }).waitFor();
+      if (await p.locator('.erreur:visible').count()) throw new Error(await p.locator('.erreur:visible').first().textContent());
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();

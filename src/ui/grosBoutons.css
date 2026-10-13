@@ -1,0 +1,45 @@
+/* Gros boutons des écrans de comptoir (emballages consignés, bouteilles en réserve) : lisibles au téléphone,
+   au doigt, en thème clair comme sombre (couleurs prises dans les variables de styles.css). */
+.gros-boutons { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 4px 0 18px; }
+.gros-bouton {
+  display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 14px 16px; border-radius: var(--rayon, 10px);
+  border: 1px solid var(--bordure-forte); background: var(--surface); color: var(--texte); font: inherit; font-size: 1.05rem;
+  font-weight: 600; text-align: left; cursor: pointer; box-shadow: var(--ombre);
+}
+.gros-bouton:hover { border-color: var(--accent); }
+.gros-bouton:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.gros-bouton.principal { background: var(--accent); border-color: var(--accent); color: #fff; }
+.gros-bouton.principal:hover { background: var(--accent-fort); }
+.gros-bouton svg { flex: none; }
+
+.cartes-emballages, .cartes-reserves { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.carte-emballage, .carte-reserve {
+  border: 1px solid var(--bordure); border-radius: var(--rayon, 10px); background: var(--surface); padding: 14px; display: grid; gap: 8px;
+  min-width: 0;
+}
+.carte-emballage header, .carte-reserve header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.carte-emballage dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.carte-emballage dt { font-size: 0.8rem; color: var(--texte-doux); }
+.carte-emballage dd { margin: 0; }
+.carte-emballage p, .carte-reserve p { margin: 0; overflow-wrap: anywhere; }
+.gros-chiffre { font-size: 1.6rem; font-weight: 700; color: var(--texte); }
+.carte-reserve.expiree { border-color: var(--rouge); }
+.carte-reserve img { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; }
+.reste-bouteille { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+.jauge { height: 10px; border-radius: 999px; background: var(--surface-douce); border: 1px solid var(--bordure); overflow: hidden; }
+.jauge > span { display: block; height: 100%; background: var(--vert); }
+
+.compteur-gros { display: flex; align-items: center; gap: 8px; }
+.compteur-gros input { width: 110px; min-height: 52px; font-size: 1.5rem; text-align: center; }
+.compteur-gros .icone-bouton { min-width: 52px; min-height: 52px; font-size: 1.6rem; }
+
+.portions { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+.portions button { min-height: 56px; font: inherit; font-size: 1.1rem; font-weight: 600; border-radius: var(--rayon, 10px);
+  border: 1px solid var(--bordure-forte); background: var(--surface); color: var(--texte); cursor: pointer; }
+.portions button.actif { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Table VIP : rappel du minimum sur la commande et dans l'addition. */
+.minimum-vip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px;
+  border-radius: var(--rayon, 10px); border: 1px solid var(--orange); background: var(--orange-doux); color: var(--texte); margin: 0 0 12px; }
+.minimum-vip.atteint { border-color: var(--vert); background: var(--vert-doux); }
+.minimum-vip strong { font-size: 1.05rem; }
