@@ -180,3 +180,107 @@
 
 /* « Servi par » à l'encaissement : noms proposés en puces. */
 .serveurs-rapides { margin-top: 6px; }
+
+/* Lot 3 : happy hour, offerts, pourboire, alerte de stock (migration 20261013000135). */
+.bandeau-happy-hour {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--rayon);
+  background: var(--vert-doux);
+  color: var(--vert);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.panier-ligne.offerte {
+  background: var(--vert-doux);
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.panier-offert,
+.panier-happy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.panier-happy {
+  color: var(--vert) !important;
+}
+
+.panier-montant {
+  display: grid;
+  justify-items: end;
+}
+
+.panier-montant s {
+  font-size: 12px;
+}
+
+.panier-actions-ligne {
+  grid-area: retirer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panier-actions-ligne .icone-bouton {
+  width: 28px;
+  height: 28px;
+}
+
+.bouton-offrir {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--vert);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vert);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton-offrir:hover,
+.bouton-offrir:focus-visible {
+  background: var(--vert-doux);
+}
+
+.puces-raisons button {
+  min-height: 44px;
+}
+
+.pourboire {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+}
+
+.pourboire legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.pourboire-ouvrir {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.tuile-alerte {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--orange-doux);
+}
