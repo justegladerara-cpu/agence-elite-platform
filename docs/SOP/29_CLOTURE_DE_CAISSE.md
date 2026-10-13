@@ -71,3 +71,7 @@ Code : `src/modules/caisse/VerrouCaisse.jsx` (pop-ups) et `src/modules/caisse/ve
 À l'encaissement, champ « Servi par » : nom du serveur (Alex…). Noms proposés : Paramètres › Réglages des modules ›
 Caisse › « Serveurs » (séparés par des virgules) + derniers noms utilisés sur l'appareil. Le nom s'imprime sur le reçu
 et s'affiche dans Ventes. Correction : la personne qui a vendu, ou un responsable (`indiquer_serveur_vente`).
+
+## Caisse sans internet (2026-10-13)
+Pendant une coupure, la caisse garde les ventes sur l'appareil et les envoie au retour de la connexion. Tant qu'une vente
+de SA caisse attend sur l'appareil, la clôture (ticket Z) est bloquée avec un message. Voir [SOP 87](87_CAISSE_SANS_INTERNET.md).

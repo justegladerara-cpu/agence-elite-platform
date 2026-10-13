@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { nomUtilisateur, useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, Erreur, Icone, Modale, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
@@ -21,6 +21,11 @@ import {
   RAISONS_OFFERT, remiseLigne, texteRaison, totauxPanier,
 } from './offerts.js';
 import { alerteStock } from '../stock/preparerCommande.js';
+import {
+  ajouterVente, chargerAvecCopie, controlerVenteLocale, estErreurPassagere, FONCTION_ENVOI, horsLigneMaintenant, nouvelleCle,
+  quantitesNonEnvoyees, ventesAVerifier, ventesEnAttente, ventesNonEnvoyees,
+} from './horsLigne.js';
+import { BandeauHorsLigne, ModaleRecuHorsLigne, ModaleVentesAVerifier, useEnLigne, useEnvoiHorsLigne, useFileHorsLigne } from './EcransHorsLigne.jsx';
 
 // Devises sans centimes : la remise du happy hour s'arrondit au franc.
 const decimalesDevise = (devise) => (['XAF', 'XOF', 'GNF', 'CDF'].includes(devise) ? 0 : 2);
@@ -559,7 +564,8 @@ export default function Caisse({ naviguer }) {
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
-  const { donnees: donneesChargees, chargement, erreur, recharger } = useDonnees(async () => {
+  // Sans internet, la dernière copie gardée sur l'appareil permet de continuer à vendre (horsLigne.js).
+  const { donnees: donneesChargees, chargement, erreur, recharger } = useDonnees(() => chargerAvecCopie(`${etab}:${utilisateur?.id ?? ''}`, async () => {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
     const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr, happyHours] = await Promise.all([
@@ -587,8 +593,9 @@ export default function Caisse({ naviguer }) {
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
       // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
       sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees, coupures: lireCoupures(reglagesCloture[0]?.data?.coupures), serveursReglage: reglagesCaisse[0]?.data?.serveurs ?? '',
+      stockNegatif: reglagesCaisse[0]?.data?.stock_negatif === true,
     };
-  }, [etab, hubsCaisse.join(), utilisateur?.id]);
+  }), [etab, hubsCaisse.join(), utilisateur?.id]);
   // Synchronisation stock ↔ caisse : relecture légère (stock, articles, commandes des tables) toutes les 30 s et au
   // retour sur l'onglet ; remise à zéro à chaque rechargement complet.
   const [frais, setFrais] = useState(null);
@@ -663,11 +670,18 @@ export default function Caisse({ naviguer }) {
 
   const parId = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
   const session = donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
-  // Le stock affiché est celui du Hub de la caisse ouverte (c'est lui que la vente débitera).
-  const stockParId = useMemo(
-    () => Object.fromEntries((donnees?.stock ?? []).filter((s) => s.hub_id === session?.hub_id).map((s) => [s.article_id, Number(s.quantite)])),
-    [donnees, session?.hub_id]
-  );
+  // Caisse sans internet : ventes gardées sur cet appareil, envoyées automatiquement au retour de la connexion.
+  const fileHorsLigne = useFileHorsLigne(etab);
+  const enLigne = useEnLigne();
+  const { envoi: envoiHorsLigne, envoyer: envoyerHorsLigne } = useEnvoiHorsLigne({ etab, liste: fileHorsLigne, enLigne, apresEnvoi: recharger });
+  const [voirAVerifier, setVoirAVerifier] = useState(false);
+  const nonEnvoyees = ventesNonEnvoyees(fileHorsLigne, session?.id);
+  // Le stock affiché est celui du Hub de la caisse ouverte (c'est lui que la vente débitera), moins les ventes pas encore envoyées.
+  const stockParId = useMemo(() => {
+    const parArticle = Object.fromEntries((donnees?.stock ?? []).filter((s) => s.hub_id === session?.hub_id).map((s) => [s.article_id, Number(s.quantite)]));
+    for (const [id, q] of Object.entries(quantitesNonEnvoyees(ventesNonEnvoyees(fileHorsLigne, session?.id)))) parArticle[id] = (parArticle[id] ?? 0) - q;
+    return parArticle;
+  }, [donnees, session?.hub_id, session?.id, fileHorsLigne]);
 
   if (chargement && !donnees) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
@@ -724,18 +738,61 @@ export default function Caisse({ naviguer }) {
     let resultat;
     const offerts = offertsPourVente(lignes);
     const note = noteOfferts(lignes, parId);
-    try {
-      resultat = await api.rpc('enregistrer_vente', {
-        p_etablissement_id: etab,
-        p_session_id: session.id,
-        // Remise par ligne : offert (prix complet) ou happy hour.
-        p_lignes: lignesPourVente(lignes, parId, { ...optionsRemise, date: new Date() }),
-        p_paiements: paiements,
-        p_contact_id: contactId,
-        p_remise: Number(remise || 0),
-        ...(note ? { p_note: note } : {}),
+    // Remise par ligne : offert (prix complet) ou happy hour.
+    const lignesVente = lignesPourVente(lignes, parId, { ...optionsRemise, date: new Date() });
+    // Une clé par vente, tirée avant le premier envoi : la même vente renvoyée après une coupure n'est jamais doublée.
+    // Servi par, raison des offerts (aussi écrite dans la note) et pourboire partent dans le même appel : la base les
+    // enregistre avec la vente, et leur échec ne la remet pas en cause (« avertissements »).
+    const params = {
+      p_cle: nouvelleCle(),
+      p_etablissement_id: etab,
+      p_session_id: session.id,
+      p_lignes: lignesVente,
+      p_paiements: paiements,
+      p_contact_id: contactId,
+      p_remise: Number(remise || 0),
+      p_note: note || null,
+      p_vendue_le: new Date().toISOString(),
+      p_serveur: serviPar || null,
+      p_offerts: offerts.length ? offerts : null,
+      p_pourboire: pourboire ? { montant: pourboire.montant, mode: pourboire.mode } : null,
+    };
+    const lignesVendues = lignes;
+    const terminer = () => {
+      if (serviPar) retenirServeur(etab, serviPar);
+      compterFavoris(lignesVendues, 1);
+      setPaiement(null);
+      setPanierMobile(false);
+      vider();
+    };
+    // Pas d'internet : contrôle sur l'appareil, vente gardée, ticket « hors ligne ». Après un envoi coupé en route, le
+    // stock n'est pas recontrôlé (la base a peut-être déjà reçu la vente : la même clé la retrouvera).
+    const garderSurAppareil = (apresEnvoiCoupe) => {
+      const montants = controlerVenteLocale({
+        lignes: lignesVente, articles: parId, paiements, contactId, remise: params.p_remise,
+        stock: apresEnvoiCoupe ? null : stockParId, stockNegatif: donnees.stockNegatif,
       });
+      const contact = donnees.contacts.find((c) => c.id === contactId);
+      const ticket = {
+        ...montants, cree_le: params.p_vendue_le, servi_par: serviPar || null, point_de_vente: pdvNom,
+        vendeur: nomUtilisateur(utilisateur), contact: contact ? { nom: contact.nom } : null,
+      };
+      ajouterVente(etab, { params, utilisateur_id: utilisateur?.id ?? null, ticket });
+      terminer();
+      setRecu({ horsLigne: true, ticket, monnaie: montants.monnaie });
+      notifier('Pas d’internet : vente gardée sur cet appareil, elle partira au retour de la connexion');
+    };
+    if (horsLigneMaintenant()) {
+      garderSurAppareil(false);
+      return;
+    }
+    try {
+      resultat = await api.rpc(FONCTION_ENVOI, params);
     } catch (err) {
+      if (estErreurPassagere(err)) {
+        garderSurAppareil(true);
+        return;
+      }
       // Heure de fin de journée passée : la caisse se ferme, le panier reste pour la caisse du jour.
       if (/Journée de caisse terminée|déjà clôturée/.test(err.message)) {
         setPaiement(null);
@@ -743,27 +800,10 @@ export default function Caisse({ naviguer }) {
       }
       throw err;
     }
-    // Servi par : la vente est déjà enregistrée ; un échec ici ne la remet pas en cause.
-    if (serviPar) {
-      retenirServeur(etab, serviPar);
-      await api.rpc('indiquer_serveur_vente', { p_vente_id: resultat.vente_id, p_nom: serviPar })
-        .catch((err) => notifier(`Serveur non enregistré : ${err.message}`, 'erreur'));
-    }
-    // Raison des offerts (aussi écrite dans la note de la vente) et pourboire : la vente reste valable si l'un échoue.
-    if (offerts.length) {
-      await api.rpc('enregistrer_offerts_vente', { p_vente_id: resultat.vente_id, p_offerts: offerts })
-        .catch((err) => notifier(`Raison de l’offert non enregistrée : ${err.message}`, 'erreur'));
-    }
-    if (pourboire) {
-      await api.rpc('enregistrer_pourboire', { p_vente_id: resultat.vente_id, p_montant: pourboire.montant, p_mode: pourboire.mode, p_serveur: serviPar || null })
-        .then(() => notifier(`Pourboire de ${montant(pourboire.montant)} enregistré`))
-        .catch((err) => notifier(`Pourboire non enregistré : ${err.message}`, 'erreur'));
-    }
-    const lignesVendues = lignes;
-    compterFavoris(lignesVendues, 1);
-    setPaiement(null);
-    setPanierMobile(false);
-    vider();
+    const avertissements = resultat.avertissements ?? [];
+    avertissements.forEach((a) => notifier(a, 'erreur'));
+    if (pourboire && !avertissements.some((a) => a.startsWith('Pourboire'))) notifier(`Pourboire de ${montant(pourboire.montant)} enregistré`);
+    terminer();
     setRecu({ ...resultat, lignesVendues });
     notifier(`Vente ${resultat.numero} enregistrée`);
     recharger();
@@ -839,6 +879,14 @@ export default function Caisse({ naviguer }) {
           À la connexion, « Tu continues ? » si ta caisse est encore ouverte. Sans activité, « Tu es toujours là ? » avec un compte
           à rebours avant la déconnexion (la caisse reste ouverte).
         </BandeauNouveau>
+        <BandeauHorsLigne
+          enLigne={enLigne}
+          enAttente={ventesEnAttente(nonEnvoyees).length}
+          aVerifier={ventesAVerifier(fileHorsLigne).filter((v) => peut('cloture.cloturer') || v.utilisateur_id === utilisateur?.id).length}
+          envoi={envoiHorsLigne}
+          onEnvoyer={envoyerHorsLigne}
+          onVoir={() => setVoirAVerifier(true)}
+        />
         {happyHour && <p className="bandeau-happy-hour" role="status">{texteBandeau(happyHour)}</p>}
         <BandeauNouveau jusqua={NOUVEAU_LOT3_JUSQUA}>
           Happy hour automatique, bouton « Offrir » avec la raison, pourboire à l’encaissement et « Plus que N » quand le stock
@@ -948,7 +996,12 @@ export default function Caisse({ naviguer }) {
           avecPourboire
         />
       )}
-      {recu && (
+      {voirAVerifier && <ModaleVentesAVerifier etab={etab} liste={fileHorsLigne} onFermer={() => setVoirAVerifier(false)} />}
+      {recu?.horsLigne && (
+        <ModaleRecuHorsLigne ticket={recu.ticket} monnaie={recu.monnaie} onFermer={() => setRecu(null)}
+          piedSupplementaire={<Bouton onClick={() => setRecu(null)}>Nouvelle vente</Bouton>} />
+      )}
+      {recu && !recu.horsLigne && (
         <ModaleRecu
           venteId={recu.vente_id}
           monnaie={recu.monnaie}
