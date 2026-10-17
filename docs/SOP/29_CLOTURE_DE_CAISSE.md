@@ -14,7 +14,8 @@ n'encaisse sur la caisse d'une autre personne. Il n'y a plus de ticket X : seule
    Sinon saisir directement le montant compté.
 4. L'écart (compté − attendu) s'affiche. Un écart doit être expliqué dans le commentaire.
 5. **Clôturer ma caisse et éditer mon ticket Z** : non modifiable, imprimable. Le ticket indique qui a tenu la caisse
-   (« Tenue par »). **Terminer et me déconnecter** ferme la session de travail.
+   (« Tenue par »). **Terminer et me déconnecter** ferme la session de travail. Le gérant / responsable a aussi
+   **Envoyer le rapport du soir** : résumé de la journée envoyé au patron sur WhatsApp (SOP 86).
 6. Une caissière ne voit que **ses** tickets Z. Le gérant / responsable (droit « Clôturer une caisse ») et les rôles
    de lecture sans caisse (comptable) voient tout le monde : tableau **Personne / Tickets Z / Ventes** et filtre
    « Afficher les tickets Z de ».
@@ -71,3 +72,7 @@ Code : `src/modules/caisse/VerrouCaisse.jsx` (pop-ups) et `src/modules/caisse/ve
 À l'encaissement, champ « Servi par » : nom du serveur (Alex…). Noms proposés : Paramètres › Réglages des modules ›
 Caisse › « Serveurs » (séparés par des virgules) + derniers noms utilisés sur l'appareil. Le nom s'imprime sur le reçu
 et s'affiche dans Ventes. Correction : la personne qui a vendu, ou un responsable (`indiquer_serveur_vente`).
+
+## Caisse sans internet (2026-10-13)
+Pendant une coupure, la caisse garde les ventes sur l'appareil et les envoie au retour de la connexion. Tant qu'une vente
+de SA caisse attend sur l'appareil, la clôture (ticket Z) est bloquée avec un message. Voir [SOP 87](87_CAISSE_SANS_INTERNET.md).

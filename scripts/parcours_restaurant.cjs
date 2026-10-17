@@ -23,9 +23,9 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     if (visibles.length) throw new Error(visibles.join(' | '));
   };
   // Caisse de démonstration ouverte : « Tu continues ? » peut s'afficher à la connexion (une fois), on continue.
-  // La question peut arriver tard quand la machine est chargée : on lui laisse le temps d'apparaître.
   const tuContinues = async () => {
-    await p.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 12000 }).catch(() => {});
+    // 15 s : sur une machine chargée, la question peut arriver après 5 s (la caisse est relue après la connexion).
+    await p.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 15000 }).catch(() => {});
   };
   const profil = async (nom) => {
     await p.evaluate(() => { localStorage.removeItem('ae-utilisateur-local'); localStorage.removeItem('ae-session-ouverte'); });
@@ -105,6 +105,18 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Transferts de commandes').waitFor();
       await aucuneErreurVisible();
     });
+    // Table VIP (migration 20261017000136) : la gérante règle le minimum de « Terrasse 2 » (50 000 dans la démo).
+    await etape('table-vip-reglage', async () => {
+      await p.goto(U + '#/salle/reglages');
+      await p.getByRole('heading', { name: 'Tables et postes' }).first().waitFor();
+      await p.getByText('Terrasse 2', { exact: true }).first().click();
+      const minimum = p.getByRole('dialog').getByLabel(/Minimum de consommation/);
+      await minimum.fill('30000');
+      await p.getByRole('dialog').getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText('Table enregistrée').first().waitFor();
+      await p.getByText(/30\s000/).first().waitFor();
+      await aucuneErreurVisible();
+    });
     await etape('categories', async () => {
       await p.goto(U + '#/articles');
       await p.getByRole('heading', { name: 'Articles' }).first().waitFor();
@@ -151,6 +163,29 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/salle/serveurs');
       await p.getByText('Votre activité sur la période.').waitFor();
       await aucuneErreurVisible();
+    });
+    // Le serveur (caisse ouverte dans la démo) sert la table VIP : rappel du minimum, puis complément à l'addition.
+    await etape('table-vip-complement', async () => {
+      await p.goto(U + '#/salle');
+      await p.getByRole('button', { name: 'Toutes', exact: true }).click();
+      await p.getByRole('button', { name: /^Table Terrasse 2,/ }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Ouvrir' }).click();
+      await p.getByText(/Encore .* à consommer pour atteindre le minimum/).first().waitFor();
+      await p.locator('.tuile-article:not([disabled])').first().click();
+      await p.getByRole('button', { name: /Envoyer \(1\)/ }).click();
+      await p.getByText('Envoyé en cuisine').first().waitFor();
+      await p.getByRole('button', { name: 'Addition' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: /^Encaisser/ }).click();
+      await p.getByRole('dialog', { name: 'Minimum de consommation non atteint' }).waitFor();
+      await p.getByRole('button', { name: /Ajouter le complément/ }).click();
+      await p.getByText('Complément minimum ajouté').first().waitFor();
+      await p.getByRole('dialog').getByText(/Complément minimum de consommation/).waitFor();
+      await p.getByRole('dialog').getByRole('button', { name: /^Encaisser/ }).click();
+      await p.getByRole('button', { name: 'Compte juste' }).click();
+      await p.getByRole('button', { name: 'Valider la vente' }).click();
+      await p.getByText(/Addition .* encaissée/).first().waitFor({ timeout: 30000 });
+      await aucuneErreurVisible();
+      await p.keyboard.press('Escape');
     });
     for (const [nom, largeur, hauteur] of [['tablette', 820, 1180], ['telephone', 390, 844]]) {
       await p.setViewportSize({ width: largeur, height: hauteur });
