@@ -1,5 +1,5 @@
 // Super admin : copier des articles d'un client vers un autre, ou depuis la bibliothèque Agence Elite
-// (migration 20261013000134, SOP 83). Photos et catégories suivent ; jamais le coût d'achat, le stock ni les ventes.
+// (migration 20261017000134, SOP 89). Photos et catégories suivent ; jamais le coût d'achat, le stock ni les ventes.
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';

@@ -772,6 +772,15 @@ Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout co
 - SOP 80, 81, 82 ; SOP 79 mise à jour (Elite Simple par défaut pour l'établissement).
 - Pas fait : OCR des factures, paiement en ligne par le client (aucun service choisi).
 
+## 45 sexies. DREAM : CAISSE UNIQUE, ALERTE Z, SERVEURS, TABLETTE (2026-10-13)
+
+- Migration `20261013100133_caisse_unique_serveurs.sql` : une seule caisse ouverte par point de vente (réglage
+  `caisse_unique`), `caisse_occupee`, `fermer_caisse_oubliee` (Z « espèces à compter »), factures en cours notées sur le Z,
+  `activite_caissiers` par service, alertes (`caisse_alertes`, `alertes_caisses`, tâche pg_cron toutes les 15 min),
+  serveurs (`serveurs_caisse`, `ventes.serveur_id`, `ventes_en_attente.serveur_id`, statistiques, fusion).
+- Tests qui ouvrent deux caisses sur le même point de vente : réglage `caisse_unique` à non dans leur préparation.
+- SOP 89. Pas fait : code PIN par caissière (voir DECISIONS 2026-10-13).
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

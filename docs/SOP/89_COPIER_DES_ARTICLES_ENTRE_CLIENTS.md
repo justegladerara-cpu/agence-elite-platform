@@ -1,8 +1,8 @@
-# SOP 83 — Copier des articles d'un client à un autre, bibliothèque Agence Elite (2026-10-13)
+# SOP 89 — Copier des articles d'un client à un autre, bibliothèque Agence Elite (2026-10-13)
 
 **Qui :** super administrateur Agence Elite uniquement. **Où :** espace Agence Elite › **Copier des articles**.
 Fonctions : `articles_a_copier`, `copier_articles`, `articles_de_copie`, `fixer_prix_copie`, `annuler_copie_articles`,
-`ajouter_a_bibliotheque`, `retirer_de_bibliotheque` (migration `20261013000134`).
+`ajouter_a_bibliotheque`, `retirer_de_bibliotheque` (migration `20261017000134`).
 
 Pourquoi : la Primus 65 cl vendue à The Dream est la même que chez Hôtel 2i ; seul le prix change. On copie la photo,
 la catégorie et le format au lieu de tout ressaisir.

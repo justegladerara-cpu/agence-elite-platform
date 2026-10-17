@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Super admin : copier des articles d'un client vers un autre, bibliothèque Agence Elite (migration 20261013000134).
+// Super admin : copier des articles d'un client vers un autre, bibliothèque Agence Elite (migration 20261017000134).
 let db;
 let superAdmin;
 let admin;
