@@ -10,7 +10,7 @@ Compte bloqué après 5 erreurs : la réinitialisation le débloque.
 Avec e-mail et SMTP configuré : la personne peut aussi utiliser « Mot de passe oublié ».
 Personne n'est jamais capable de lire un mot de passe : Supabase Auth ne garde que l'empreinte.
 
-## Par le responsable de l'établissement (2026-10-13, migration `20261013000133`)
+## Par le responsable de l'établissement (2026-10-13, migration `20261017000133`)
 Équipe → la personne → **Nouveau mot de passe** (droit « gérer l'équipe », gérant par défaut ; aussi dans la fiche
 établissement côté Agence Elite).
 1. Saisir un mot de passe provisoire (4 caractères au moins), valable 7 jours.

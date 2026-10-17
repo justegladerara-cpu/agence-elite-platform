@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Le responsable donne un mot de passe provisoire à son équipe (migration 20261013000133).
+// Le responsable donne un mot de passe provisoire à son équipe (migration 20261017000133).
 let db;
 let superAdmin;
 let gerant;
