@@ -1609,7 +1609,7 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------
--- Lot 4 (migration 20261013000136) : emballages consignés et bouteille en réserve sur « Commerce Démo », table VIP avec
+-- Lot 4 (migration 20261017000136) : emballages consignés et bouteille en réserve sur « Commerce Démo », table VIP avec
 -- minimum de consommation et bouteille en réserve sur « Restaurant Démo ». Tout est fictif.
 -- ---------------------------------------------------------------------------
 do $$

@@ -13,7 +13,7 @@ import { BandeauNouveau } from '../../ui/Nouveau.jsx';
 import { estArticleTechnique, resteMinimum } from './vip.js';
 import '../../ui/grosBoutons.css';
 
-// Tables VIP (minimum de consommation, migration 20261013000136) : bandeau « Nouveau » jusqu'à cette date fixe.
+// Tables VIP (minimum de consommation, migration 20261017000136) : bandeau « Nouveau » jusqu'à cette date fixe.
 export const NOUVEAU_VIP_JUSQUA = '2026-10-16T12:00:00Z';
 
 // Données de la salle : tables, commandes ouvertes, plats, articles, caisses ouvertes (Hubs autorisés).

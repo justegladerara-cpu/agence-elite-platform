@@ -4,7 +4,7 @@ import { resteMinimum } from '../src/modules/restaurant/vip.js';
 import { filtrerReserves, formatReste } from '../src/modules/caisse/reserves.js';
 import { situationClient, totalConsignes } from '../src/modules/stock/emballages.js';
 
-// Emballages consignés, bouteilles en réserve, tables VIP avec minimum (migration 20261013000136). Données fictives.
+// Emballages consignés, bouteilles en réserve, tables VIP avec minimum (migration 20261017000136). Données fictives.
 let db;
 let sa;
 let gerant;

@@ -22,14 +22,16 @@
 .carte-commande-qr ul { margin: 0.5rem 0; padding-left: 1.1rem; }
 .carte-commande-qr footer .actions-ligne { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .commandes-qr-historique ul { padding-left: 1.1rem; }
+/* Impression des QR codes : seulement quand la page Menu QR le demande (classe sur body).
+   Sans cette classe, la règle cachait TOUTE impression du logiciel (reçus, ticket Z, factures). */
 @media print {
-  body * { visibility: hidden; }
-  .feuille-qr, .feuille-qr * { visibility: visible; }
-  .feuille-qr { position: absolute; inset: 0; grid-template-columns: repeat(3, 1fr); gap: 0.5cm; }
-  .carte-qr { break-inside: avoid; border: 1px dashed #999; }
-  .carte-qr.inactive { display: none; }
-  .no-print { display: none !important; }
-  .image-qr { width: 5cm; height: 5cm; }
+  body.impression-qr * { visibility: hidden; }
+  body.impression-qr .feuille-qr, body.impression-qr .feuille-qr * { visibility: visible; }
+  body.impression-qr .feuille-qr { position: absolute; inset: 0; grid-template-columns: repeat(3, 1fr); gap: 0.5cm; }
+  body.impression-qr .carte-qr { break-inside: avoid; border: 1px dashed #999; }
+  body.impression-qr .carte-qr.inactive { display: none; }
+  body.impression-qr .no-print { display: none !important; }
+  body.impression-qr .image-qr { width: 5cm; height: 5cm; }
 }
 @media (max-width: 600px) {
   .carte-commande-qr footer .actions-ligne, .carte-commande-qr footer .bouton { width: 100%; }

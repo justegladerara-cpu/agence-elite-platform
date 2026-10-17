@@ -9,7 +9,7 @@ export default {
   module: 'stock',
   pages: [
     { id: 'stock', libelle: 'Stock', icone: 'stock', groupe: 'Catalogue et stock', ordre: 20, permission: 'stock.lire', composant: Stock },
-    // Emballages consignés : casiers et bouteilles vides (migration 20261013000136).
+    // Emballages consignés : casiers et bouteilles vides (migration 20261017000136).
     { id: 'emballages', libelle: 'Emballages consignés', icone: 'depot', groupe: 'Catalogue et stock', ordre: 25, permission: ['stock.emballages', 'stock.lire'], composant: Emballages },
     // Les Transferts n'existent pour l'utilisateur que s'il voit plusieurs Hubs.
     { id: 'transferts', libelle: 'Transferts', icone: 'transfert', groupe: 'Catalogue et stock', ordre: 30, permission: 'stock.lire', composant: Transferts, horsMenuSi: (e, espace) => !espace?.multiHub },

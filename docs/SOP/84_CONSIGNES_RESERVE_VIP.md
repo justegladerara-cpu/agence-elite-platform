@@ -1,6 +1,6 @@
 # SOP 84 — Emballages consignés, bouteilles en réserve, tables VIP avec minimum
 
-**Pour :** bars, maquis, lounges, restaurants. **Migration :** `supabase/migrations/20261013000136_consignes_reserve_vip.sql`.
+**Pour :** bars, maquis, lounges, restaurants. **Migration :** `supabase/migrations/20261017000136_consignes_reserve_vip.sql`.
 Rien n'est propre à un client : chaque établissement crée ses emballages, ses réserves et ses minimums.
 
 ## 1. Emballages consignés (casiers, bouteilles vides)

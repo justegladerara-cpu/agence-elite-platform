@@ -104,7 +104,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Transferts de commandes').waitFor();
       await aucuneErreurVisible();
     });
-    // Table VIP (migration 20261013000136) : la gérante règle le minimum de « Terrasse 2 » (50 000 dans la démo).
+    // Table VIP (migration 20261017000136) : la gérante règle le minimum de « Terrasse 2 » (50 000 dans la démo).
     await etape('table-vip-reglage', async () => {
       await p.goto(U + '#/salle/reglages');
       await p.getByRole('heading', { name: 'Tables et postes' }).first().waitFor();

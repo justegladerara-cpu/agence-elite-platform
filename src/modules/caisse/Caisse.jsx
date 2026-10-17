@@ -12,9 +12,10 @@ import { estArticleTechnique } from '../restaurant/vip.js';
 import { mesCaisses } from './mesCaisses.js';
 import { EVENEMENT_CAISSE_FERMEE } from './verrouCaisse.js';
 import { attenteFacture, totalFactures } from './facturesEnCours.js';
-import { lireRecents, nomsServeurs, retenirServeur } from './serviPar.js';
+import { nomsServeurs } from './serviPar.js';
+import { ChoixServeur, listeServeurs, lireServeurChoisi, retenirServeurChoisi } from './ChoixServeur.jsx';
 import './caisse.css';
-import { BandeauNouveau, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
+import { BandeauNouveau, NOUVEAU_CAISSE_UNIQUE_JUSQUA, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
 import { ListeCommandesQr } from './CommandesQr.jsx';
 
 // Stock, prix et commandes des tables relus en arrière-plan : la caisse voit la marchandise reçue, les ventes des autres
@@ -44,7 +45,32 @@ export function VignetteArticle({ article, taille = 'normale' }) {
   return <span className={`vignette ${taille}`} style={{ background: couleurDe(article.nom) }}>{initiales(article.nom)}</span>;
 }
 
-function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0 }) {
+// Une seule caisse ouverte à la fois (migration 20261013100133) : la caisse d'une autre personne est encore ouverte.
+// Elle tire son ticket Z ; sinon un responsable ferme la caisse oubliée (en comptant, ou « espèces à compter »).
+function CaisseOccupee({ occupee, coupures, onFermee }) {
+  const { peut, notifier } = useEspace();
+  const [fermer, setFermer] = useState(false);
+  return (
+    <div className="caisse-occupee" role="status">
+      <strong>La caisse de {occupee.caissier} est encore ouverte</strong>
+      <span>Depuis le {formatDateHeure(occupee.ouverte_le)}. Elle doit d’abord tirer son ticket Z : une seule caisse ouverte à la fois.</span>
+      {peut('cloture.cloturer') && (
+        <Bouton type="button" variante="principal" onClick={() => setFermer(true)}>Fermer la caisse de {occupee.caissier}</Bouton>
+      )}
+      {fermer && (
+        <Modale titre={`Fermer la caisse de ${occupee.caissier}`} onFermer={() => setFermer(false)}>
+          <SessionOuverte
+            session={{ id: occupee.session_id, ouverte_par: null }}
+            coupures={coupures}
+            onCloturee={(z) => { setFermer(false); notifier(`Caisse fermée : ${z.numero}`); onFermee(z); }}
+          />
+        </Modale>
+      )}
+    </div>
+  );
+}
+
+function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0, occupees = [], coupures = [], onFermee }) {
   const { hubs, multiHub } = useEspace();
   const [fond, setFond] = useState('');
   const [pdv, setPdv] = useState(pointsDeVente[0]?.id ?? '');
@@ -69,8 +95,10 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0 }) {
     );
   }
   const nomHub = (p) => (multiHub ? ` · ${hubs.find((h) => h.id === p.hub_id)?.nom ?? ''}` : '');
+  const occupee = occupees.find((o) => o.point_de_vente_id === (pdv || pointsDeVente[0]?.id));
   return (
     <div className="ouverture-caisse">
+      {occupee && <CaisseOccupee occupee={occupee} coupures={coupures} onFermee={onFermee} />}
       <form className="carte formulaire" onSubmit={valider}>
         <h2>Ouvrir la caisse</h2>
         {fermees > 0 && (
@@ -146,14 +174,15 @@ export function ClientRapide({ onCree }) {
   );
 }
 
-// serveurs : liste de noms pour « Servi par » (facultatif) ; sans elle, le champ n'apparaît pas.
-export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs }) {
+// serveurs : liste de noms pour « Servi par » (facultatif) ; sans elle, le champ n'apparaît pas. serviParInitial : serveur
+// déjà choisi à la commande.
+export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs, serviParInitial = '' }) {
   const { montant, devise, peut } = useEspace();
   // Clients créés dans cette fenêtre : visibles tout de suite, avant le rechargement des données.
   const [nouveaux, setNouveaux] = useState([]);
   const tousContacts = [...contacts, ...nouveaux.filter((n) => !contacts.some((c) => c.id === n.id))];
   const [paiements, setPaiements] = useState([{ mode: 'especes', montant: String(total), reference: '' }]);
-  const [serviPar, setServiPar] = useState('');
+  const [serviPar, setServiPar] = useState(serviParInitial);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const verse = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
@@ -179,7 +208,7 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
       pied={(
         <>
           <Bouton onClick={onFermer}>{libelleRetour}</Bouton>
-          <Bouton variante="principal" onClick={valider} chargement={chargement}>Valider la vente</Bouton>
+          <Bouton variante="principal" className="bouton principal bouton-valider-vente" onClick={valider} chargement={chargement}>Valider la vente</Bouton>
         </>
       )}
     >
@@ -187,9 +216,18 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
         <span>À payer</span>
         <strong>{montant(total)}</strong>
       </div>
+      {paiements.length === 1 && (
+        <div className="modes-paiement" role="group" aria-label="Mode de paiement">
+          {Object.entries(MODES_PAIEMENT).map(([id, libelle]) => (
+            <button key={id} type="button" className={paiements[0].mode === id ? 'actif' : ''} aria-pressed={paiements[0].mode === id} onClick={() => modifier(0, 'mode', id)}>
+              {libelle}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="paiements-liste">
         {paiements.map((p, i) => (
-          <div key={i} className="paiement-ligne">
+          <div key={i} className={`paiement-ligne ${paiements.length === 1 ? 'seul' : ''}`}>
             <select value={p.mode} onChange={(e) => modifier(i, 'mode', e.target.value)} aria-label="Mode de paiement">
               {Object.entries(MODES_PAIEMENT).map(([id, libelle]) => <option key={id} value={id}>{libelle}</option>)}
             </select>
@@ -213,11 +251,14 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
           <button type="button" onClick={() => modifier(0, 'montant', String(total))}>Compte juste</button>
         </div>
       )}
-      <div className="modes-rapides">
-        {Object.entries(MODES_PAIEMENT).map(([id, libelle]) => (
-          <button key={id} type="button" onClick={() => ajouter(id)}>+ {libelle}</button>
-        ))}
-      </div>
+      <details className="modes-rapides-plus" open={paiements.length > 1}>
+        <summary>Payer avec deux moyens (ex. espèces + mobile money)</summary>
+        <div className="modes-rapides">
+          {Object.entries(MODES_PAIEMENT).map(([id, libelle]) => (
+            <button key={id} type="button" onClick={() => ajouter(id)}>+ {libelle}</button>
+          ))}
+        </div>
+      </details>
       {serveurs && (
         <Champ libelle={<>Servi par (facultatif)<PastilleNouveau /></>}>
           <input list="liste-serveurs" value={serviPar} maxLength={60} onChange={(e) => setServiPar(e.target.value)} placeholder="Nom du serveur" />
@@ -260,7 +301,8 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
   );
 }
 
-function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRemise, contacts, contactId, onContact, onEncaisser, onAttente }) {
+// serveur : bloc « Serveur » affiché en haut du panier (choix au début de la commande).
+function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRemise, contacts, contactId, onContact, onEncaisser, onAttente, serveur }) {
   const { montant } = useEspace();
   const sousTotal = lignes.reduce((s, l) => s + articles[l.article_id].prix_vente * l.quantite, 0);
   const total = Math.max(sousTotal - Number(remise || 0), 0);
@@ -270,6 +312,7 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
         <h2><Icone nom="panier" /> Panier</h2>
         {lignes.length > 0 && <button className="lien" onClick={onVider}>Vider</button>}
       </div>
+      {serveur}
       <div className="panier-lignes">
         {lignes.length === 0 && <Vide titre="Panier vide" texte="Touchez un article pour l’ajouter." />}
         {lignes.map((l) => {
@@ -295,24 +338,33 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
         })}
       </div>
       <div className="panier-pied">
-        <Champ libelle="Contact (facultatif)">
-          <select value={contactId ?? ''} onChange={(e) => onContact(e.target.value || null)}>
-            <option value="">Client de passage</option>
-            {contacts.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
-        </Champ>
-        <div className="panier-totaux">
-          <div><span>Sous-total</span><span>{montant(sousTotal)}</span></div>
-          <div className="remise">
-            <span>Remise</span>
-            <input type="number" min="0" step="any" value={remise} onChange={(e) => onRemise(e.target.value)} placeholder="0" aria-label="Remise" />
+        {/* Client et remise : repliés pour laisser le bouton Encaisser toujours visible sur tablette. */}
+        <details className="panier-options" open={Boolean(contactId) || Number(remise) > 0 ? true : undefined}>
+          <summary>
+            Client et remise
+            <small>{[contacts.find((c) => c.id === contactId)?.nom ?? 'Client de passage', Number(remise) > 0 ? `remise ${montant(Number(remise))}` : null].filter(Boolean).join(' · ')}</small>
+          </summary>
+          <Champ libelle="Contact (facultatif)">
+            <select value={contactId ?? ''} onChange={(e) => onContact(e.target.value || null)}>
+              <option value="">Client de passage</option>
+              {contacts.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+            </select>
+          </Champ>
+          <div className="panier-totaux">
+            <div><span>Sous-total</span><span>{montant(sousTotal)}</span></div>
+            <div className="remise">
+              <span>Remise</span>
+              <input type="number" min="0" step="any" value={remise} onChange={(e) => onRemise(e.target.value)} placeholder="0" aria-label="Remise" />
+            </div>
           </div>
-          <div className="panier-total"><span>Total</span><strong>{montant(total)}</strong></div>
+        </details>
+        <div className="panier-total"><span>Total</span><strong>{montant(total)}</strong></div>
+        <div className="panier-actions">
+          {onAttente && lignes.length > 0 && <Bouton icone="horloge" onClick={onAttente}>Facture en cours</Bouton>}
+          <Bouton variante="principal grand" className="bouton principal grand bouton-encaisser" disabled={!lignes.length} onClick={() => onEncaisser(total)}>
+            Encaisser {lignes.length > 0 && montant(total)}
+          </Bouton>
         </div>
-        {onAttente && lignes.length > 0 && <Bouton icone="horloge" onClick={onAttente}>Facture en cours</Bouton>}
-        <Bouton variante="principal grand" disabled={!lignes.length} onClick={() => onEncaisser(total)}>
-          Encaisser {lignes.length > 0 && montant(total)}
-        </Bouton>
       </div>
     </aside>
   );
@@ -420,7 +472,7 @@ function ModaleAttentes({ attentes, panierOccupe, maintenant, onAction, onFermer
             <li key={a.id} className={`facture-${attente.ton}`}>
               <span>
                 <strong>{a.libelle}</strong>
-                <small className="texte-doux bloc">{attente.minutes < 1 ? 'ouverte à l’instant' : `ouverte il y a ${attente.texte}`} · {a.lignes.length} ligne(s) · {montant(a.total_estime)}</small>
+                <small className="texte-doux bloc">{attente.minutes < 1 ? 'ouverte à l’instant' : `ouverte il y a ${attente.texte}`} · {a.lignes.length} ligne(s) · {montant(a.total_estime)}{a.transmise ? ' · reçue de la caisse précédente' : ''}</small>
               </span>
               <span className="actions-ligne">
                 <Bouton variante="principal" disabled={panierOccupe} onClick={() => agir(a, 'reprendre')}>Reprendre</Bouton>
@@ -453,7 +505,7 @@ function BandeFactures({ attentes, maintenant, panierOccupe, onReprendre, onTout
               onClick={() => (panierOccupe ? onToutVoir() : onReprendre(a))}>
               <strong>{a.libelle}</strong>
               <span className="carte-facture-montant">{montant(a.total_estime)}</span>
-              <small>{attente.texte}</small>
+              <small>{attente.texte}{a.transmise ? ' · caisse précédente' : ''}</small>
             </button>
           );
         })}
@@ -470,7 +522,7 @@ export default function Caisse({ naviguer }) {
   const { donnees: donneesChargees, chargement, erreur, recharger } = useDonnees(async () => {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
-    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr] = await Promise.all([
+    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr, serveurs, occupees] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).then(sansArticleTechnique),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -485,6 +537,9 @@ export default function Caisse({ naviguer }) {
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'caisse' } }).catch(() => []),
       // Commandes envoyées depuis les QR codes des tables, pas encore prises.
       api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
+      // Serveurs enregistrés (migration 20261013100133) et caisse occupée par une autre personne.
+      api.lire('serveurs_caisse', { eq: { etablissement_id: etab, actif: true }, ordre: ['prenom'] }).catch(() => []),
+      api.rpc('caisse_occupee', { p_etablissement_id: etab }).catch(() => []),
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
@@ -493,6 +548,10 @@ export default function Caisse({ naviguer }) {
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
       // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
       sessions: mesCaisses(sessions, utilisateur).filter((x) => caisses.some((p) => p.id === x.point_de_vente_id)), pointsDeVente: caisses, attentes, fermees, coupures: lireCoupures(reglagesCloture[0]?.data?.coupures), serveursReglage: reglagesCaisse[0]?.data?.serveurs ?? '',
+      // Caisses ouvertes (toutes personnes) : une facture en cours d'une caisse fermée passe à la caissière suivante.
+      ouvertes: (sessions ?? []).map((x) => x.id),
+      serveurs: serveurs ?? [],
+      occupees: (occupees ?? []).filter((o) => !o.mienne),
     };
   }, [etab, hubsCaisse.join(), utilisateur?.id]);
   // Synchronisation stock ↔ caisse : relecture légère (stock, articles, commandes des tables) toutes les 30 s et au
@@ -545,6 +604,13 @@ export default function Caisse({ naviguer }) {
     setCompteurs(suivant);
   };
   const [paiement, setPaiement] = useState(null);
+  // Serveur choisi au début de la commande ; le dernier choix reste sur cette tablette.
+  const [serveur, setServeurEtat] = useState(() => lireServeurChoisi(etab));
+  const setServeur = (prenom) => {
+    setServeurEtat(prenom);
+    retenirServeurChoisi(etab, prenom);
+  };
+  useEffect(() => setServeurEtat(lireServeurChoisi(etab)), [etab]);
   const [recu, setRecu] = useState(null);
   const [panierMobile, setPanierMobile] = useState(false);
   const [miseEnAttente, setMiseEnAttente] = useState(false);
@@ -582,6 +648,9 @@ export default function Caisse({ naviguer }) {
         <OuvertureCaisse
           pointsDeVente={donnees.pointsDeVente}
           fermees={donnees.fermees}
+          occupees={donnees.occupees}
+          coupures={donnees.coupures ?? []}
+          onFermee={(z) => { setTicketZ(z); recharger(); }}
           onOuvrir={async (pdv, fond) => {
             await api.rpc('ouvrir_caisse', { p_etablissement_id: etab, p_point_de_vente_id: pdv, p_fond_initial: fond });
             notifier('Caisse ouverte');
@@ -603,6 +672,9 @@ export default function Caisse({ naviguer }) {
       && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.code_barres ?? '') === texte));
   const pdvNom = donnees.pointsDeVente.find((p) => p.id === session.point_de_vente_id)?.nom;
   const nombreArticles = lignes.reduce((s, l) => s + l.quantite, 0);
+  const totalPanier = Math.max(lignes.filter((l) => parId[l.article_id]).reduce((s, l) => s + parId[l.article_id].prix_vente * l.quantite, 0) - Number(remise || 0), 0);
+  // Le serveur choisi reste affiché même avant la relecture de la liste (prénom tout juste créé).
+  const serveursListe = listeServeurs(donnees.serveurs, [...nomsServeurs(donnees.serveursReglage), serveur].filter(Boolean));
 
   const ajouter = (article, quantite = 1) => {
     setLignes((liste) => {
@@ -644,9 +716,10 @@ export default function Caisse({ naviguer }) {
       }
       throw err;
     }
-    // Servi par : la vente est déjà enregistrée ; un échec ici ne la remet pas en cause.
+    // Servi par : la vente est déjà enregistrée ; un échec ici ne la remet pas en cause. Un prénom nouveau rejoint la
+    // liste des serveurs (pour toutes les tablettes) et reste choisi pour la commande suivante.
     if (serviPar) {
-      retenirServeur(etab, serviPar);
+      setServeur(serviPar);
       await api.rpc('indiquer_serveur_vente', { p_vente_id: resultat.vente_id, p_nom: serviPar })
         .catch((err) => notifier(`Serveur non enregistré : ${err.message}`, 'erreur'));
     }
@@ -660,14 +733,24 @@ export default function Caisse({ naviguer }) {
     recharger();
   };
 
-  // Les factures en cours sur MA caisse : chaque personne reprend ses propres factures.
-  const attentes = donnees.attentes?.filter((a) => a.session_caisse_id === session.id) ?? null;
+  // Les factures en cours sur MA caisse, et celles d'une caisse déjà fermée (ticket Z tiré) : elles passent à la
+  // caissière suivante, qui les encaisse sur SA caisse.
+  const attentes = donnees.attentes
+    ?.filter((a) => a.session_caisse_id === session.id || !donnees.ouvertes.includes(a.session_caisse_id))
+    .map((a) => (a.session_caisse_id === session.id ? a : { ...a, transmise: true })) ?? null;
+  const prenomServeur = (id) => donnees.serveurs.find((x) => x.id === id)?.prenom ?? '';
   const mettreEnAttente = async (libelle) => {
     // Sans nom, la facture s'appelle « Facture 1 », « Facture 2 »…
     const nom = libelle || `Facture ${(attentes?.length ?? 0) + 1}`;
-    await api.rpc('mettre_vente_en_attente', {
+    const id = await api.rpc('mettre_vente_en_attente', {
       p_session_id: session.id, p_lignes: lignes, p_libelle: nom, p_contact_id: contactId, p_remise: Number(remise || 0),
     });
+    // Le serveur suit la facture jusqu'à l'encaissement.
+    if (serveur) {
+      await api.rpc('enregistrer_serveur', { p_etablissement_id: etab, p_prenom: serveur })
+        .then((s) => api.rpc('indiquer_serveur_attente', { p_attente_id: id, p_serveur_id: s.id }))
+        .catch((err) => notifier(`Serveur non noté sur la facture : ${err.message}`, 'erreur'));
+    }
     setMiseEnAttente(false);
     setPanierMobile(false);
     vider();
@@ -681,6 +764,7 @@ export default function Caisse({ naviguer }) {
       setLignes(r.lignes.filter((l) => parId[l.article_id]).map((l) => ({ article_id: l.article_id, quantite: Number(l.quantite) })));
       setRemise(Number(r.remise) ? String(r.remise) : '');
       setContactId(r.contact_id ?? null);
+      if (attente.serveur_id && prenomServeur(attente.serveur_id)) setServeur(prenomServeur(attente.serveur_id));
       notifier(`Facture « ${r.libelle} » reprise`);
     } else notifier(`Facture « ${r.libelle} » abandonnée`);
     setListeAttente(false);
@@ -721,9 +805,9 @@ export default function Caisse({ naviguer }) {
           )}
           <Bouton icone="cloture" variante="principal" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
         </div>
-        <BandeauNouveau>
-          Votre caisse à vous : bouton « Fermeture de caisse » pour votre ticket Z, « Factures en cours » toujours visibles ci-dessous,
-          « Servi par » à l’encaissement, et verrouillage automatique après 15 min sans activité (la caisse reste ouverte).
+        <BandeauNouveau jusqua={NOUVEAU_CAISSE_UNIQUE_JUSQUA}>
+          Une seule caisse ouverte à la fois : la suivante ouvre après ton ticket Z. Choisis le serveur en haut du panier
+          (« + Nouveau serveur » une seule fois). Sur tablette, le bouton Encaisser reste toujours en bas de l’écran.
         </BandeauNouveau>
         <BandeauNouveau jusqua={NOUVEAU_PRESENCE_JUSQUA}>
           À la connexion, « Tu continues ? » si ta caisse est encore ouverte. Sans activité, « Tu es toujours là ? » avec un compte
@@ -784,19 +868,28 @@ export default function Caisse({ naviguer }) {
           onContact={setContactId}
           onEncaisser={(total) => setPaiement({ total })}
           onAttente={attentes ? () => setMiseEnAttente(true) : null}
+          serveur={<ChoixServeur serveurs={serveursListe} valeur={serveur} onChange={setServeur} onCree={() => recharger()} compact />}
         />
         <button className="panier-fermer-mobile" onClick={() => setPanierMobile(false)}>Continuer les achats</button>
       </div>
-      <button className="panier-mobile" onClick={() => setPanierMobile(true)}>
-        <Icone nom="panier" /> {formatQuantite(nombreArticles)} article(s) · voir le panier
-      </button>
+      {/* Tablette debout et téléphone : barre toujours visible en bas, on encaisse sans ouvrir le panier. */}
+      <div className="barre-encaisser">
+        <button type="button" className="barre-encaisser-panier" onClick={() => setPanierMobile(true)}>
+          <Icone nom="panier" />
+          <span>{formatQuantite(nombreArticles)} article(s){serveur ? ` · ${serveur}` : ''}</span>
+          <small>voir le panier</small>
+        </button>
+        <button type="button" className="barre-encaisser-bouton" disabled={!lignes.length} onClick={() => setPaiement({ total: totalPanier })}>
+          Encaisser {lignes.length > 0 && montant(totalPanier)}
+        </button>
+      </div>
       {miseEnAttente && <ModaleMiseEnAttente onValider={mettreEnAttente} onFermer={() => setMiseEnAttente(false)} />}
       {fermeture && (
         <Modale titre="Fermeture de caisse" onFermer={() => setFermeture(false)}>
           <SessionOuverte
             session={session}
             coupures={donnees.coupures ?? []}
-            attentes={attentes?.length ?? 0}
+            attentes={attentes?.filter((a) => !a.transmise).length ?? 0}
             onCloturee={(z) => {
               setFermeture(false);
               notifier(`Caisse fermée : ${z.numero}`);
@@ -824,7 +917,8 @@ export default function Caisse({ naviguer }) {
           onContactCree={() => recharger()}
           onValider={validerVente}
           onFermer={() => setPaiement(null)}
-          serveurs={nomsServeurs(donnees.serveursReglage, lireRecents(etab))}
+          serveurs={serveursListe}
+          serviParInitial={serveur}
         />
       )}
       {recu && (

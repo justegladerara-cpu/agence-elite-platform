@@ -14,7 +14,7 @@ export default {
     { id: 'menu-qr', libelle: 'Menu QR des tables', icone: 'table', groupe: 'Vente', ordre: 12, permission: 'caisse.menu_qr', composant: MenuQr },
     // Commandes envoyées depuis les tables : ouvertes depuis la caisse, la notification ou le menu QR.
     { id: 'commandes-qr', libelle: 'Commandes des tables', icone: 'table', groupe: 'Vente', ordre: 13, permission: 'caisse.utiliser', composant: CommandesQr, horsMenuSi: () => true },
-    // Bouteilles en réserve au nom d'un client (migration 20261013000136).
+    // Bouteilles en réserve au nom d'un client (migration 20261017000136).
     { id: 'reserves', libelle: 'Bouteilles en réserve', icone: 'etoile', groupe: 'Vente', ordre: 14, permission: 'caisse.reserve', composant: Reserves },
   ],
   widgets: [],
