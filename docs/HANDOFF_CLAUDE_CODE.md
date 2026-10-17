@@ -779,7 +779,7 @@ Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout co
   `activite_caissiers` par service, alertes (`caisse_alertes`, `alertes_caisses`, tâche pg_cron toutes les 15 min),
   serveurs (`serveurs_caisse`, `ventes.serveur_id`, `ventes_en_attente.serveur_id`, statistiques, fusion).
 - Tests qui ouvrent deux caisses sur le même point de vente : réglage `caisse_unique` à non dans leur préparation.
-- SOP 83. Pas fait : code PIN par caissière (voir DECISIONS 2026-10-13).
+- SOP 89. Pas fait : code PIN par caissière (voir DECISIONS 2026-10-13).
 
 ## 46–47. Prompt pour la nouvelle session
 

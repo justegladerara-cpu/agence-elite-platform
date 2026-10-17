@@ -714,7 +714,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Bilans' }).click({ timeout: 60000 });
       await p.getByText(/lu par le client le/).first().waitFor();
     });
-    await etape('devise-rapprochement-tresorerie', async () => {
+    await etape('devise-tresorerie', async () => {
       // Taux de change saisis : historique visible dans Devis et factures.
       await p.goto(U + '#/factures?onglet=taux');
       await p.getByText('Taux de démonstration').first().waitFor({ timeout: 60000 });
@@ -723,13 +723,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('DE-00001-V2').first().click();
       await p.getByText(/^Soit .+/).first().waitFor({ timeout: 60000 });
       await p.getByText(/au .*\(Taux de démonstration\)/).first().waitFor();
-      // Rapprochement : la ligne du relevé retrouve le paiement Mobile Money par sa référence.
-      await p.goto(U + '#/rapprochement');
-      const ligneReleve = p.locator('section').filter({ hasText: 'MM-DEMO-001' }).last();
-      await ligneReleve.getByText('Référence retrouvée').first().waitFor({ timeout: 60000 });
-      await ligneReleve.getByRole('button', { name: 'Rapprocher' }).first().click();
-      await p.getByText('Ligne rapprochée').first().waitFor({ timeout: 30000 });
-      await p.locator('section').filter({ hasText: 'MM-DEMO-001' }).first().waitFor({ state: 'detached', timeout: 30000 });
+      // Rapprochement retiré du menu (demande de Juste, 2026-10-12 : « ça ne sert à rien »).
+      if (await p.locator('aside.menu').getByText('Rapprochement', { exact: true }).count()) throw new Error('Rapprochement ne doit plus être dans le menu');
       // Trésorerie prévue : trois scénarios dans le Pilotage.
       await p.goto(U + '#/pilotage?vue=tresorerie');
       await p.getByText('Prudent : fin de période').first().waitFor({ timeout: 60000 });
@@ -815,12 +810,51 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.keyboard.press('Escape');
     });
 
+    // Emballages consignés et bouteilles en réserve (migration 20261017000136) : données fictives de la démo.
+    await etape('emballages-consignes', async () => {
+      await p.goto(U + '#/emballages');
+      await p.getByRole('heading', { name: 'Emballages consignés' }).first().waitFor();
+      await p.getByRole('article', { name: 'Emballage Casier 12 bouteilles' }).waitFor();
+      await p.getByRole('button', { name: 'Un client rapporte des vides' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Casier 12 bouteilles' }).click();
+      await p.getByRole('dialog').getByLabel('Nom du client (facultatif)').fill('Client du parcours');
+      await p.getByRole('dialog').getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText(/Un client rapporte des vides : 1 Casier 12 bouteilles/).first().waitFor();
+      if (await p.locator('.erreur:visible').count()) throw new Error(await p.locator('.erreur:visible').first().textContent());
+    });
+    await etape('bouteilles-en-reserve', async () => {
+      await p.goto(U + '#/reserves');
+      await p.getByRole('heading', { name: 'Bouteilles en réserve' }).first().waitFor();
+      await p.getByPlaceholder('Nom ou téléphone du client').fill('fidèle');
+      const carte = p.getByRole('article', { name: 'Réserve de Client fidèle Démo' });
+      await carte.getByText(/Reste : 1\/2 bouteille/).waitFor();
+      await carte.getByRole('button', { name: 'Servir' }).click();
+      await p.getByRole('dialog').getByRole('button', { name: '1/4' }).click();
+      await p.getByText(/Servi\. Reste : 1\/4 bouteille/).first().waitFor();
+      await p.getByPlaceholder('Nom ou téléphone du client').fill('');
+      await p.getByRole('button', { name: 'Mettre une bouteille en réserve' }).click();
+      await p.getByRole('dialog').getByLabel('Nom du client').fill('Client du parcours');
+      await p.getByRole('dialog').getByLabel('Nom de la bouteille').fill('Champagne de démonstration');
+      await p.getByRole('dialog').getByRole('button', { name: 'Mettre en réserve' }).click();
+      await p.getByText(/Bouteille en réserve \(RB-/).first().waitFor();
+      await p.getByRole('article', { name: 'Réserve de Client du parcours' }).waitFor();
+      if (await p.locator('.erreur:visible').count()) throw new Error(await p.locator('.erreur:visible').first().textContent());
+    });
     await etape('connexions', async () => {
       await p.goto(U + '#/parametres');
       await p.getByRole('tab', { name: 'Connexions' }).click();
       await p.getByText('Bac à sable Agence Elite').waitFor();
       await p.getByText(/Démonstration locale/).waitFor();
       if ((await p.locator('.carte.integration').count()) !== 11) throw new Error('11 services attendus');
+    });
+    await etape('mot-de-passe-equipe', async () => {
+      // Le gérant donne un mot de passe provisoire à quelqu'un de son équipe (rôle en dessous du sien).
+      await p.goto(U + '#/equipe');
+      await p.getByRole('button', { name: 'Nouveau mot de passe' }).first().click({ timeout: 60000 });
+      await p.getByRole('dialog').getByLabel('Mot de passe provisoire').fill('demo1234');
+      await p.getByRole('dialog').getByRole('button', { name: 'Changer le mot de passe' }).click();
+      await p.getByText(/choisira son propre mot de passe à sa prochaine connexion/).waitFor({ timeout: 30000 });
+      await p.getByRole('button', { name: 'Terminé' }).click();
     });
     await etape('export-listes-simples', async () => {
       for (const [ecran, nom] of [['articles', /^articles-/], ['contacts', /^contacts-/], ['depenses', /^depenses-/], ['clotures', /^tickets-z/]]) {

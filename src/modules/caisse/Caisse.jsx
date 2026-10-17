@@ -8,6 +8,7 @@ import {
   quantitePourMontant,
 } from './poids.js';
 import { lireCoupures, ModaleZ, SessionOuverte } from '../cloture/Clotures.jsx';
+import { estArticleTechnique } from '../restaurant/vip.js';
 import { mesCaisses } from './mesCaisses.js';
 import { EVENEMENT_CAISSE_FERMEE } from './verrouCaisse.js';
 import { attenteFacture, totalFactures } from './facturesEnCours.js';
@@ -34,6 +35,9 @@ const decimalesDevise = (devise) => (['XAF', 'XOF', 'GNF', 'CDF'].includes(devis
 // Stock, prix et commandes des tables relus en arrière-plan : la caisse voit la marchandise reçue, les ventes des autres
 // caisses et les nouvelles commandes des QR codes sans recharger la page.
 const RAFRAICHIR_CAISSE_MS = 30000;
+
+// « Complément minimum » (tables VIP) : ligne de montant ajoutée en salle, jamais une tuile de la caisse.
+const sansArticleTechnique = (articles) => articles.filter((a) => !estArticleTechnique(a));
 
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
 const FAVORIS = '__favoris__';
@@ -621,7 +625,7 @@ export default function Caisse({ naviguer }) {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
     const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr, happyHours, serveurs, occupees] = await Promise.all([
-      api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
+      api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).then(sansArticleTechnique),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('contacts', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -666,7 +670,7 @@ export default function Caisse({ naviguer }) {
       if (document.visibilityState === 'hidden') return;
       try {
         const [articles, stock, commandesQr, happyHours] = await Promise.all([
-          api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
+          api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).then(sansArticleTechnique),
           api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
           api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
           api.lire('happy_hours', { eq: { etablissement_id: etab, actif: true } }).catch(() => []),
