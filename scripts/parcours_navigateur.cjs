@@ -330,6 +330,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('palette-ecran', async () => {
       await p.goto(U + '#/tableau-de-bord');
       await p.getByText('Chiffre d’affaires').first().waitFor();
+      // Souris hors de la palette : survoler une ligne la choisirait à la place de « Stock » (échec intermittent).
+      await p.mouse.move(0, 0);
       await p.keyboard.press('Control+k');
       const champ = p.getByRole('combobox', { name: 'Rechercher partout' });
       await champ.fill('stock');
