@@ -95,6 +95,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Menu QR sur les tables : consulter le menu, puis commander ; commandes reçues en caisse ou en salle | [81](81_MENU_QR_TABLES.md) | Gérant, responsable, caisse |
 | Deuxième établissement : copier le catalogue d'un établissement du même client | [82](82_DEUXIEME_ETABLISSEMENT.md) | Gérant |
 | Une seule caisse ouverte à la fois, caisse oubliée, alerte ticket Z, serveurs, caisse sur tablette | [83](83_CAISSE_UNIQUE_SERVEURS.md) | Caissière, gérant, responsable |
+| Copier des articles d'un client à un autre (photos comprises), bibliothèque d'articles Agence Elite | [89](89_COPIER_DES_ARTICLES_ENTRE_CLIENTS.md) | Super admin |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :
