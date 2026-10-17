@@ -627,7 +627,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('tab', { name: 'Bilans' }).click({ timeout: 60000 });
       await p.getByText(/lu par le client le/).first().waitFor();
     });
-    await etape('devise-rapprochement-tresorerie', async () => {
+    await etape('devise-tresorerie', async () => {
       // Taux de change saisis : historique visible dans Devis et factures.
       await p.goto(U + '#/factures?onglet=taux');
       await p.getByText('Taux de démonstration').first().waitFor({ timeout: 60000 });
@@ -636,13 +636,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('DE-00001-V2').first().click();
       await p.getByText(/^Soit .+/).first().waitFor({ timeout: 60000 });
       await p.getByText(/au .*\(Taux de démonstration\)/).first().waitFor();
-      // Rapprochement : la ligne du relevé retrouve le paiement Mobile Money par sa référence.
-      await p.goto(U + '#/rapprochement');
-      const ligneReleve = p.locator('section').filter({ hasText: 'MM-DEMO-001' }).last();
-      await ligneReleve.getByText('Référence retrouvée').first().waitFor({ timeout: 60000 });
-      await ligneReleve.getByRole('button', { name: 'Rapprocher' }).first().click();
-      await p.getByText('Ligne rapprochée').first().waitFor({ timeout: 30000 });
-      await p.locator('section').filter({ hasText: 'MM-DEMO-001' }).first().waitFor({ state: 'detached', timeout: 30000 });
+      // Rapprochement retiré du menu (demande de Juste, 2026-10-12 : « ça ne sert à rien »).
+      if (await p.locator('aside.menu').getByText('Rapprochement', { exact: true }).count()) throw new Error('Rapprochement ne doit plus être dans le menu');
       // Trésorerie prévue : trois scénarios dans le Pilotage.
       await p.goto(U + '#/pilotage?vue=tresorerie');
       await p.getByText('Prudent : fin de période').first().waitFor({ timeout: 60000 });
@@ -734,6 +729,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Bac à sable Agence Elite').waitFor();
       await p.getByText(/Démonstration locale/).waitFor();
       if ((await p.locator('.carte.integration').count()) !== 11) throw new Error('11 services attendus');
+    });
+    await etape('mot-de-passe-equipe', async () => {
+      // Le gérant donne un mot de passe provisoire à quelqu'un de son équipe (rôle en dessous du sien).
+      await p.goto(U + '#/equipe');
+      await p.getByRole('button', { name: 'Nouveau mot de passe' }).first().click({ timeout: 60000 });
+      await p.getByRole('dialog').getByLabel('Mot de passe provisoire').fill('demo1234');
+      await p.getByRole('dialog').getByRole('button', { name: 'Changer le mot de passe' }).click();
+      await p.getByText(/choisira son propre mot de passe à sa prochaine connexion/).waitFor({ timeout: 30000 });
+      await p.getByRole('button', { name: 'Terminé' }).click();
     });
     await etape('export-listes-simples', async () => {
       for (const [ecran, nom] of [['articles', /^articles-/], ['contacts', /^contacts-/], ['depenses', /^depenses-/], ['clotures', /^tickets-z/]]) {
