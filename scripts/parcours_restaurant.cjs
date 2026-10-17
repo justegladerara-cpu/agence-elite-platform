@@ -23,7 +23,6 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     if (visibles.length) throw new Error(visibles.join(' | '));
   };
   // Caisse de démonstration ouverte : « Tu continues ? » peut s'afficher à la connexion (une fois), on continue.
-  // La question peut arriver tard quand la machine est chargée : on lui laisse le temps d'apparaître.
   const tuContinues = async () => {
     // 15 s : sur une machine chargée, la question peut arriver après 5 s (la caisse est relue après la connexion).
     await p.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 15000 }).catch(() => {});
