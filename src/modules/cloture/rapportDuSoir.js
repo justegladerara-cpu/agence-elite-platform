@@ -1,4 +1,4 @@
-// Rapport du soir envoyé au patron sur WhatsApp (migration 20261013000137, fonction rapport_du_soir).
+// Rapport du soir envoyé au patron sur WhatsApp (migration 20261017000137, fonction rapport_du_soir).
 // Fonctions pures (aucun accès réseau ni à la page) : testées dans tests/rapport_du_soir.test.js.
 // Rien ne part tout seul : l'écran ouvre WhatsApp avec le texte prêt, la personne appuie sur « Envoyer ».
 import { formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';

@@ -94,6 +94,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Réception intelligente : conditionnements et prix retenus par fournisseur, alertes de prix, dette fournisseur automatique | [80](80_RECEPTION_INTELLIGENTE.md) | Gérant, responsable, gestionnaire de dépôt |
 | Menu QR sur les tables : consulter le menu, puis commander ; commandes reçues en caisse ou en salle | [81](81_MENU_QR_TABLES.md) | Gérant, responsable, caisse |
 | Deuxième établissement : copier le catalogue d'un établissement du même client | [82](82_DEUXIEME_ETABLISSEMENT.md) | Gérant |
+| Une seule caisse ouverte à la fois, caisse oubliée, alerte ticket Z, serveurs, caisse sur tablette | [83](83_CAISSE_UNIQUE_SERVEURS.md) | Caissière, gérant, responsable |
 | Envoyer au patron le rapport du soir sur WhatsApp (ventes, encaissements, top 5, écart de caisse, caissières) | [86](86_RAPPORT_DU_SOIR_WHATSAPP.md) | Gérant, responsable |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 

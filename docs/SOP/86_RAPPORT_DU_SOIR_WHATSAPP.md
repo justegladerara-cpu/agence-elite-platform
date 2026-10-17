@@ -45,7 +45,7 @@ appuie sur « Envoyer ». Rien ne part tout seul.
 - Envoyer le rapport avant d'avoir fermé les caisses : l'écart de caisse serait incomplet.
 - Mettre un numéro qui n'est pas celui du patron : le texte contient le chiffre d'affaires.
 
-Code : `supabase/migrations/20261013000137_rapport_du_soir.sql` (fonction `rapport_du_soir`, réglage
+Code : `supabase/migrations/20261017000137_rapport_du_soir.sql` (fonction `rapport_du_soir`, réglage
 `whatsapp_patron` du module Clôture), `src/modules/cloture/RapportDuSoir.jsx` (écran),
 `src/modules/cloture/rapportDuSoir.js` (texte et lien, fonctions pures). Tests : `tests/rapport_du_soir.test.js`,
 `tests/rapport_du_soir_ecran.test.jsx`, étape `rapport-du-soir` de `scripts/parcours_navigateur.cjs`.

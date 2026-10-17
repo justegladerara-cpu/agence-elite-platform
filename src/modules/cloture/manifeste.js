@@ -3,6 +3,7 @@ import { lazy } from 'react';
 // Écrans chargés à la demande : l'application démarre plus vite (moins de code au premier affichage).
 const Clotures = lazy(() => import('./Clotures.jsx'));
 const ActiviteCaissiers = lazy(() => import('./ActiviteCaissiers.jsx'));
+const ServeursCaisse = lazy(() => import('./ServeursCaisse.jsx'));
 const RapportDuSoir = lazy(() => import('./RapportDuSoir.jsx'));
 
 export default {
@@ -15,5 +16,7 @@ export default {
   widgets: [
     // Qui tient une caisse maintenant, montant par personne et classement : réservé aux responsables.
     { id: 'activite-caissiers', zone: 'section', ordre: 20, permission: 'cloture.cloturer', composant: ActiviteCaissiers },
+    // Ventes par serveur (choisi à la caisse) et gestion de la liste : réservé aux responsables.
+    { id: 'serveurs-caisse', zone: 'section', ordre: 21, permission: 'cloture.cloturer', composant: ServeursCaisse },
   ],
 };

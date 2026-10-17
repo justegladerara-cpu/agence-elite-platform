@@ -8,7 +8,7 @@ import { dateEnLettres, dateRapportParDefaut, ecartEnMots, lienRapportWhatsApp, 
 // Fin du bandeau « Nouveau » de cet écran (72 h environ).
 export const NOUVEAU_RAPPORT_SOIR_JUSQUA = '2026-10-16T12:00:00Z';
 
-// Rapport du soir (migration 20261013000137, fonction rapport_du_soir) : le résumé de la journée en gros blocs, puis
+// Rapport du soir (migration 20261017000137, fonction rapport_du_soir) : le résumé de la journée en gros blocs, puis
 // « Envoyer au patron sur WhatsApp » (lien wa.me, rien ne part tout seul) ou « Copier le texte ».
 export default function RapportDuSoir() {
   const { api, etablissement, devise, montant, notifier, peut } = useEspace();

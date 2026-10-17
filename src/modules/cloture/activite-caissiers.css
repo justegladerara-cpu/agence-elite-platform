@@ -1,0 +1,59 @@
+/* Tableau de bord : caisse en direct, alerte « ticket Z non tiré », serveurs. */
+.alerte-caisse {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border: 2px solid var(--rouge, #b91c1c);
+  border-radius: var(--rayon);
+  background: var(--rouge-doux, #fde8e8);
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.caisse-en-direct {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border-radius: var(--rayon);
+  background: var(--vert-doux);
+}
+
+.caisse-en-direct-point {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vert);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vert) 25%, transparent);
+}
+
+.caisse-en-direct-montant {
+  display: grid;
+  justify-items: end;
+}
+
+.caisse-en-direct-montant strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cockpit-caissiers tfoot td {
+  border-top: 2px solid var(--bordure-forte);
+}
+
+.serveurs-caisse-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.serveurs-caisse-actions select {
+  max-width: 160px;
+}

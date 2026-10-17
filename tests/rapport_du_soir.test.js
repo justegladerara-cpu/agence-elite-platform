@@ -4,7 +4,7 @@ import {
   dateEnLettres, dateRapportParDefaut, ecartEnMots, lienRapportWhatsApp, texteRapportDuSoir,
 } from '../src/modules/cloture/rapportDuSoir.js';
 
-// Rapport du soir envoyé au patron sur WhatsApp (migration 20261013000137, fonction rapport_du_soir).
+// Rapport du soir envoyé au patron sur WhatsApp (migration 20261017000137, fonction rapport_du_soir).
 // Données fictives uniquement.
 let db;
 let gerant;
