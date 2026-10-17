@@ -28,6 +28,8 @@ beforeAll(async () => {
   await db.query("insert into etablissement_membres(etablissement_id, user_id, role_id) values ($1, $2, 'gerant'), ($1, $3, 'employe'), ($1, $4, 'employe')", [etab, gerant, awa, binta]);
   await db.query("insert into profils(id, nom_complet) values ($1, 'Awa'), ($2, 'Binta') on conflict (id) do update set nom_complet = excluded.nom_complet", [awa, binta]);
   article = await valeur(gerant, 'select enregistrer_article($1, $2::jsonb)', [etab, JSON.stringify({ nom: 'Savon test', prix_vente: 500, suivi_stock: false })]);
+  // Deux caisses physiques : plusieurs caisses ouvertes en même temps (réglage « caisse_unique », migration 133).
+  await comme(gerant, "select enregistrer_parametres_module($1, 'cloture', '{\"caisse_unique\": false}'::jsonb)", [etab]);
 });
 
 afterAll(async () => db.close());

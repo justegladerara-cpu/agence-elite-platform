@@ -1,6 +1,6 @@
 // Caisse sans internet (2026-10-13) : file des ventes faites sur l'appareil pendant une coupure de connexion.
 // Chaque vente reçoit une clé (uuid) au moment où elle est faite ; elle part par enregistrer_vente_hors_ligne
-// (migration 20261013000138) qui ne crée jamais deux ventes pour la même clé. Une vente n'est retirée de la file que
+// (migration 20261017000138) qui ne crée jamais deux ventes pour la même clé. Une vente n'est retirée de la file que
 // quand la base l'a reçue. Refusée pour une raison de caisse (stock, droit, caisse fermée…) : elle reste, marquée
 // « à vérifier » avec le message, jusqu'à ce qu'un responsable décide.
 // Tout est dans le stockage de l'appareil (localStorage), par établissement ; chaque vente garde sa caisse (session) et

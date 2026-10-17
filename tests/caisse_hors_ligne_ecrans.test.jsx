@@ -3,7 +3,7 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-// Caisse sans internet (migration 20261013000138) : bandeau, reçu « hors ligne », ventes à vérifier, sans base.
+// Caisse sans internet (migration 20261017000138) : bandeau, reçu « hors ligne », ventes à vérifier, sans base.
 const espace = {
   api: { rpc: vi.fn() },
   etablissement: { id: 'etab-ecrans', nom: 'Bar Test', devise: 'XAF' },

@@ -26,6 +26,9 @@ export function TicketZ({ z, identite, nomEtablissement, devise }) {
       <div className="ticket-ligne"><span>Remises</span><span>{m(z.total_remises)}</span></div>
       <div className="ticket-ligne"><span>Annulations ({z.nombre_annulations})</span><span>{m(z.total_annulations)}</span></div>
       <div className="ticket-ligne"><span>Crédit accordé</span><span>{m(z.credit_accorde)}</span></div>
+      {z.factures_en_cours > 0 && (
+        <div className="ticket-ligne"><span>Factures en cours transmises ({z.factures_en_cours})</span><span>{m(z.total_factures_en_cours)}</span></div>
+      )}
       <div className="ticket-sep" />
       <div className="ticket-petit">ENCAISSEMENTS</div>
       {Object.entries(z.encaissements ?? {}).map(([mode, montant]) => (
@@ -200,7 +203,7 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
       {(mienne ? peut('caisse.utiliser') : peut('cloture.cloturer')) ? (
         <form className="formulaire cloture-formulaire" onSubmit={cloturer}>
           {attentes > 0 && (
-            <p className="bandeau attention">Il reste {attentes} facture(s) en cours sur cette caisse : encaissez-les ou abandonnez-les depuis la caisse avant de fermer.</p>
+            <p className="bandeau attention">Il reste {attentes} facture(s) en cours sur cette caisse : encaissez-les depuis la caisse, ou elles passeront à la caissière suivante (notées sur le ticket Z).</p>
           )}
           {nonEnvoyees > 0 && (
             <p className="bandeau attention" role="alert">
@@ -225,6 +228,32 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
           <small className="texte-doux">Après clôture, les ventes de cette caisse ne peuvent plus être annulées.</small>
         </form>
       ) : <p className="texte-doux">Chaque personne clôture sa propre caisse.</p>}
+      {!mienne && peut('cloture.cloturer') && <FermerSansCompter session={session} caissier={apercu.caissier} onCloturee={onCloturee} />}
+    </div>
+  );
+}
+
+// Caisse oubliée et personne pour compter le tiroir (migration 20261013100133) : ticket Z « espèces à compter » au nom
+// de la caissière ; elle (ou un responsable) compte ensuite.
+function FermerSansCompter({ session, caissier, onCloturee }) {
+  const { api } = useEspace();
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const fermer = async () => {
+    setEnCours(true);
+    setErreur('');
+    try {
+      onCloturee(await api.rpc('fermer_caisse_oubliee', { p_session_id: session.id, p_motif: null }));
+    } catch (err) {
+      setErreur(err.message);
+      setEnCours(false);
+    }
+  };
+  return (
+    <div className="fermer-sans-compter">
+      <p className="texte-doux">Personne ne peut compter le tiroir maintenant ? Le ticket Z est créé au nom de {caissier ?? 'cette personne'} avec « espèces à compter ».</p>
+      <Erreur message={erreur} />
+      <Bouton type="button" onClick={fermer} chargement={enCours}>Fermer sans compter</Bouton>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 // Happy hour (prix réduits selon l'heure) : règles pures, sans accès à la base, testées dans
-// tests/offerts_happyhour_pourboires.test.js. Même règle que public.pourcentage_happy_hour (migration 20261013000135).
+// tests/offerts_happyhour_pourboires.test.js. Même règle que public.pourcentage_happy_hour (migration 20261017000135).
 // L'heure est celle de l'appareil de la caisse (il est dans l'établissement).
 
 // 1 = lundi … 7 = dimanche (comme dans la base).

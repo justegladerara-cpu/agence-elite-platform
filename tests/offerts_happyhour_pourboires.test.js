@@ -14,7 +14,7 @@ import { lienWhatsApp } from '../src/noyau/messagesWhatsapp.js';
 import { semerDemo } from '../src/noyau/donnees/demo.js';
 import { creerBaseLocale } from './helpers/locale.js';
 
-// Lot 3 bars et restaurants (migration 20261013000135) : happy hour, offerts avec raison, pourboires, alerte de stock.
+// Lot 3 bars et restaurants (migration 20261017000135) : happy hour, offerts avec raison, pourboires, alerte de stock.
 
 // Vendredi 16 octobre 2026, heure locale de l'appareil.
 const vendredi = (h, m = 0) => new Date(2026, 9, 16, h, m);
@@ -197,6 +197,8 @@ beforeAll(async () => {
   await db.query("insert into etablissement_membres(etablissement_id, user_id, role_id) values ($1, $2, 'gerant'), ($1, $3, 'employe'), ($1, $4, 'employe'), ($1, $5, 'comptable')", [etab, gerant, caissier, autre, comptable]);
   await db.query("insert into profils(id, nom_complet) values ($1, 'Gérant Test'), ($2, 'Caissier Test') on conflict (id) do update set nom_complet = excluded.nom_complet", [gerant, caissier]);
   boissons = await valeur(gerant, "select enregistrer_categorie($1, 'Boissons')", [etab]);
+  // Plusieurs caisses ouvertes en même temps sur le même point de vente (réglage « caisse_unique », migration 20261013100133).
+  await db.query("insert into etablissement_parametres(etablissement_id, module_id, data) values ($1, 'cloture', '{\"caisse_unique\": false}')", [etab]);
   biere = await valeur(gerant, 'select enregistrer_article($1, $2::jsonb)', [etab, json({ nom: 'Bière test', prix_vente: 1000, suivi_stock: false, categorie_id: boissons })]);
   plat = await valeur(gerant, 'select enregistrer_article($1, $2::jsonb)', [etab, json({ nom: 'Plat test', prix_vente: 5000, suivi_stock: false })]);
 });

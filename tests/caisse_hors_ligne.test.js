@@ -5,7 +5,7 @@ import {
   marquerEchecReseau, quantitesNonEnvoyees, reessayer, retirerVente, ventesAVerifier, ventesEnAttente,
 } from '../src/modules/caisse/horsLigne.js';
 
-// Caisse sans internet (migration 20261013000138) : même clé deux fois = une seule vente ; file de l'appareil.
+// Caisse sans internet (migration 20261017000138) : même clé deux fois = une seule vente ; file de l'appareil.
 let db;
 let gerant;
 let awa;

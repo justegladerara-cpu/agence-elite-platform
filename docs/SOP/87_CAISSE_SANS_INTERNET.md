@@ -4,7 +4,7 @@
 **Pourquoi :** dans les bars et restaurants, la connexion coupe souvent. La caisse continue de vendre ; les ventes
 partent toutes seules quand internet revient, **sans doublon et sans vente perdue**.
 
-Migration `20261013000138_caisse_hors_ligne.sql` (une seule, additive). Code : `src/modules/caisse/horsLigne.js`
+Migration `20261017000138_caisse_hors_ligne.sql` (une seule, additive). Code : `src/modules/caisse/horsLigne.js`
 (file, contrôles, copie de la caisse) et `src/modules/caisse/EcransHorsLigne.jsx` (bandeau, reçu, liste à vérifier).
 Tests : `tests/caisse_hors_ligne.test.js` (base PGlite et file) et `tests/caisse_hors_ligne_ecrans.test.jsx`.
 

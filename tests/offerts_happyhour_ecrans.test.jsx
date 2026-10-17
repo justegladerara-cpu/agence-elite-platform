@@ -3,7 +3,7 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-// Lot 3 (migration 20261013000135) : fenêtres « Offrir » et « Encaissement » avec pourboire, sans base.
+// Lot 3 (migration 20261017000135) : fenêtres « Offrir » et « Encaissement » avec pourboire, sans base.
 const espace = {
   api: { rpc: vi.fn() },
   etablissement: { id: 'etab-test', nom: 'Bar Test' },
@@ -44,7 +44,7 @@ describe('Encaissement avec pourboire', () => {
     const fenetre = screen.getByRole('dialog', { name: 'Encaissement' });
     fireEvent.click(within(fenetre).getByRole('button', { name: '+ Pourboire' }));
     fireEvent.change(within(fenetre).getByLabelText(/^Montant du pourboire/), { target: { value: '500' } });
-    fireEvent.click(within(fenetre).getByRole('button', { name: 'Mobile Money' }));
+    fireEvent.click(within(within(fenetre).getByRole('group', { name: 'Pourboire reçu en' })).getByRole('button', { name: 'Mobile Money' }));
     fireEvent.click(within(fenetre).getByRole('button', { name: 'Alex' }));
     fireEvent.click(within(fenetre).getByRole('button', { name: 'Valider la vente' }));
     await waitFor(() => expect(onValider).toHaveBeenCalled());
