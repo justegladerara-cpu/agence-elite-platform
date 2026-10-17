@@ -23,8 +23,9 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     if (visibles.length) throw new Error(visibles.join(' | '));
   };
   // Caisse de démonstration ouverte : « Tu continues ? » peut s'afficher à la connexion (une fois), on continue.
+  // La question peut arriver tard quand la machine est chargée : on lui laisse le temps d'apparaître.
   const tuContinues = async () => {
-    await p.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 5000 }).catch(() => {});
+    await p.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 12000 }).catch(() => {});
   };
   const profil = async (nom) => {
     await p.evaluate(() => { localStorage.removeItem('ae-utilisateur-local'); localStorage.removeItem('ae-session-ouverte'); });
