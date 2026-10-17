@@ -14,8 +14,17 @@ import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import { nomsServeurs } from './serviPar.js';
 import { ChoixServeur, listeServeurs, lireServeurChoisi, retenirServeurChoisi } from './ChoixServeur.jsx';
 import './caisse.css';
-import { BandeauNouveau, NOUVEAU_CAISSE_UNIQUE_JUSQUA, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
+import { BandeauNouveau, NOUVEAU_CAISSE_UNIQUE_JUSQUA, NOUVEAU_LOT3_JUSQUA, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
 import { ListeCommandesQr } from './CommandesQr.jsx';
+import { happyHourEnCours, texteBandeau } from './happyHour.js';
+import {
+  ajouterAuPanier, annulerOffert, changerQuantiteLigne, cleLigne, fusionnerLignes, lignesPourVente, noteOfferts, offertsPourVente, offrirLigne,
+  RAISONS_OFFERT, remiseLigne, texteRaison, totauxPanier,
+} from './offerts.js';
+import { alerteStock } from '../stock/preparerCommande.js';
+
+// Devises sans centimes : la remise du happy hour s'arrondit au franc.
+const decimalesDevise = (devise) => (['XAF', 'XOF', 'GNF', 'CDF'].includes(devise) ? 0 : 2);
 
 // Stock, prix et commandes des tables relus en arrière-plan : la caisse voit la marchandise reçue, les ventes des autres
 // caisses et les nouvelles commandes des QR codes sans recharger la page.
@@ -172,13 +181,15 @@ export function ClientRapide({ onCree }) {
 
 // serveurs : liste de noms pour « Servi par » (facultatif) ; sans elle, le champ n'apparaît pas. serviParInitial : serveur
 // déjà choisi à la commande.
-export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs, serviParInitial = '' }) {
+// avecPourboire : champ « Pourboire » facultatif (information seulement : le total de la vente ne change pas).
+export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs, serviParInitial = '', avecPourboire = false }) {
   const { montant, devise, peut } = useEspace();
   // Clients créés dans cette fenêtre : visibles tout de suite, avant le rechargement des données.
   const [nouveaux, setNouveaux] = useState([]);
   const tousContacts = [...contacts, ...nouveaux.filter((n) => !contacts.some((c) => c.id === n.id))];
   const [paiements, setPaiements] = useState([{ mode: 'especes', montant: String(total), reference: '' }]);
   const [serviPar, setServiPar] = useState(serviParInitial);
+  const [pourboire, setPourboire] = useState({ ouvert: false, montant: '', mode: 'especes' });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const verse = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
@@ -191,7 +202,12 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
     setChargement(true);
     setErreur('');
     try {
-      await onValider(paiements.filter((p) => Number(p.montant) > 0).map((p) => ({ ...p, montant: Number(p.montant) })), { serviPar: serviPar.trim() });
+      const montantPourboire = Number(String(pourboire.montant).replace(',', '.'));
+      if (pourboire.montant !== '' && !(montantPourboire > 0)) throw new Error('Montant du pourboire invalide');
+      await onValider(paiements.filter((p) => Number(p.montant) > 0).map((p) => ({ ...p, montant: Number(p.montant) })), {
+        serviPar: serviPar.trim(),
+        pourboire: avecPourboire && montantPourboire > 0 ? { montant: montantPourboire, mode: pourboire.mode } : null,
+      });
     } catch (err) {
       setErreur(err.message);
       setChargement(false);
@@ -268,6 +284,23 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
           )}
         </Champ>
       )}
+      {avecPourboire && (pourboire.ouvert ? (
+        <fieldset className="pourboire">
+          <legend>Pourboire (facultatif)<PastilleNouveau jusqua={NOUVEAU_LOT3_JUSQUA} /></legend>
+          <Champ libelle="Montant du pourboire" aide="Pour le serveur : le total de la vente et le ticket Z ne changent pas.">
+            <input type="number" min="0" step="any" inputMode="decimal" value={pourboire.montant}
+              onChange={(e) => setPourboire((b) => ({ ...b, montant: e.target.value }))} placeholder="0" />
+          </Champ>
+          <div className="puces" role="group" aria-label="Pourboire reçu en">
+            {[['especes', 'Espèces'], ['mobile_money', 'Mobile Money']].map(([id, libelle]) => (
+              <button key={id} type="button" className={pourboire.mode === id ? 'actif' : ''} aria-pressed={pourboire.mode === id}
+                onClick={() => setPourboire((b) => ({ ...b, mode: id }))}>{libelle}</button>
+            ))}
+          </div>
+        </fieldset>
+      ) : (
+        <button type="button" className="lien pourboire-ouvrir" onClick={() => setPourboire((b) => ({ ...b, ouvert: true }))}>+ Pourboire</button>
+      ))}
       <div className="paiement-resume">
         <div><span>Versé</span><strong>{montant(verse)}</strong></div>
         {monnaie > 0 && <div className="vert"><span>Monnaie à rendre</span><strong>{montant(monnaie)}</strong></div>}
@@ -297,11 +330,12 @@ export function ModalePaiement({ total, contacts, contactId, onContact, onContac
   );
 }
 
+// Lignes offertes (bouton « Offrir », raison obligatoire) et happy hour (remise automatique) : voir offerts.js.
 // serveur : bloc « Serveur » affiché en haut du panier (choix au début de la commande).
-function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRemise, contacts, contactId, onContact, onEncaisser, onAttente, serveur }) {
+function Panier({ lignes, articles, options, onQuantite, onRetirer, onOffrir, onAnnulerOffert, onVider, remise, onRemise, contacts, contactId, onContact, onEncaisser, onAttente, serveur }) {
   const { montant } = useEspace();
-  const sousTotal = lignes.reduce((s, l) => s + articles[l.article_id].prix_vente * l.quantite, 0);
-  const total = Math.max(sousTotal - Number(remise || 0), 0);
+  const totaux = totauxPanier(lignes, articles, options);
+  const total = Math.max(totaux.sousTotal - Number(remise || 0), 0);
   return (
     <aside className="panier">
       <div className="panier-tete">
@@ -313,22 +347,40 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
         {lignes.length === 0 && <Vide titre="Panier vide" texte="Touchez un article pour l’ajouter." />}
         {lignes.map((l) => {
           const a = articles[l.article_id];
+          const cle = cleLigne(l);
+          const brut = a.prix_vente * l.quantite;
+          const reduction = remiseLigne(l, a, options);
           return (
-            <div key={l.article_id} className="panier-ligne">
+            <div key={cle} className={`panier-ligne ${l.offert ? 'offerte' : ''}`}>
               <div className="panier-libelle">
                 <strong>{a.nom}</strong>
                 <small>
                   {estVenteAuPoids(a.unite) && <span className="panier-poids">{formatQuantite(l.quantite, a.unite)} × </span>}
                   {montant(a.prix_vente)}{a.unite !== 'unité' ? ` / ${a.unite}` : ''}
                 </small>
+                {l.offert && (
+                  <small className="panier-offert">
+                    <Badge ton="vert">Offert</Badge> {texteRaison(l.offert)}
+                    <button type="button" className="lien" onClick={() => onAnnulerOffert(cle)}>Ne plus offrir</button>
+                  </small>
+                )}
+                {!l.offert && reduction > 0 && <small className="panier-happy">Happy hour : -{montant(reduction)}</small>}
               </div>
               <div className="quantite">
-                <button onClick={() => onQuantite(l.article_id, l.quantite - 1)} aria-label="Moins"><Icone nom="moins" taille={14} /></button>
-                <input type="number" min="0" step="any" value={l.quantite} onChange={(e) => onQuantite(l.article_id, Number(e.target.value))} aria-label={`Quantité ${a.nom}`} />
-                <button onClick={() => onQuantite(l.article_id, l.quantite + 1)} aria-label="Plus"><Icone nom="plus" taille={14} /></button>
+                <button onClick={() => onQuantite(cle, l.quantite - 1)} aria-label="Moins"><Icone nom="moins" taille={14} /></button>
+                <input type="number" min="0" step="any" value={l.quantite} onChange={(e) => onQuantite(cle, Number(e.target.value))} aria-label={`Quantité ${a.nom}${l.offert ? ' offert' : ''}`} />
+                <button onClick={() => onQuantite(cle, l.quantite + 1)} aria-label="Plus"><Icone nom="plus" taille={14} /></button>
               </div>
-              <strong className="panier-montant">{montant(a.prix_vente * l.quantite)}</strong>
-              <button className="icone-bouton" onClick={() => onRetirer(l.article_id)} aria-label={`Retirer ${a.nom}`}><Icone nom="fermer" taille={14} /></button>
+              <span className="panier-montant">
+                {reduction > 0 && <s className="texte-doux">{montant(brut)}</s>}
+                <strong>{montant(brut - reduction)}</strong>
+              </span>
+              <span className="panier-actions-ligne">
+                {onOffrir && !l.offert && Number(a.prix_vente) > 0 && (
+                  <button type="button" className="bouton-offrir" onClick={() => onOffrir(l)} aria-label={`Offrir ${a.nom}`}>Offrir</button>
+                )}
+                <button className="icone-bouton" onClick={() => onRetirer(cle)} aria-label={`Retirer ${a.nom}${l.offert ? ' offert' : ''}`}><Icone nom="fermer" taille={14} /></button>
+              </span>
             </div>
           );
         })}
@@ -347,7 +399,9 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
             </select>
           </Champ>
           <div className="panier-totaux">
-            <div><span>Sous-total</span><span>{montant(sousTotal)}</span></div>
+            <div><span>Sous-total</span><span>{montant(totaux.brut)}</span></div>
+            {totaux.happyHour > 0 && <div className="vert"><span>Happy hour</span><span>-{montant(totaux.happyHour)}</span></div>}
+            {totaux.offerts > 0 && <div className="vert"><span>Offerts</span><span>-{montant(totaux.offerts)}</span></div>}
             <div className="remise">
               <span>Remise</span>
               <input type="number" min="0" step="any" value={remise} onChange={(e) => onRemise(e.target.value)} placeholder="0" aria-label="Remise" />
@@ -363,6 +417,48 @@ function Panier({ lignes, articles, onQuantite, onRetirer, onVider, remise, onRe
         </div>
       </div>
     </aside>
+  );
+}
+
+// « Offrir » : la raison est obligatoire (« Autre » demande une précision) ; quantité à offrir si la ligne en a plusieurs.
+export function ModaleOffrir({ ligne, article, onValider, onFermer }) {
+  const { montant } = useEspace();
+  const [raison, setRaison] = useState('');
+  const [precision, setPrecision] = useState('');
+  const [quantite, setQuantite] = useState(String(ligne.quantite));
+  const [erreur, setErreur] = useState('');
+  const q = Math.min(Number(String(quantite).replace(',', '.')) || 0, ligne.quantite);
+  const valider = (e) => {
+    e.preventDefault();
+    if (!raison) return setErreur('Choisissez la raison.');
+    if (raison === 'Autre' && !precision.trim()) return setErreur('Précisez la raison.');
+    if (!(q > 0)) return setErreur('Indiquez combien offrir.');
+    return onValider(q, { raison, precision });
+  };
+  return (
+    <Modale titre="Offrir" onFermer={onFermer}>
+      <form className="formulaire" onSubmit={valider}>
+        <p><strong>{article.nom}</strong> · {formatQuantite(q, article.unite)} offert(s) = {montant(article.prix_vente * q)}</p>
+        {ligne.quantite > 1 && (
+          <Champ libelle="Combien offrir ?" aide={`Le reste (${formatQuantite(Math.max(ligne.quantite - q, 0))}) reste payant.`}>
+            <input type="number" min="0" max={ligne.quantite} step="any" inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} />
+          </Champ>
+        )}
+        <div className="puces puces-raisons" role="group" aria-label="Raison de l’offert">
+          {RAISONS_OFFERT.map((r) => (
+            <button key={r} type="button" className={raison === r ? 'actif' : ''} aria-pressed={raison === r} onClick={() => { setRaison(r); setErreur(''); }}>{r}</button>
+          ))}
+        </div>
+        <Champ libelle={raison === 'Autre' ? 'Précisez la raison' : 'Précision (facultatif)'}>
+          <input value={precision} maxLength={120} onChange={(e) => setPrecision(e.target.value)} placeholder="Ex. anniversaire, plat refroidi" />
+        </Champ>
+        <Erreur message={erreur} />
+        <div className="actions">
+          <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
+          <Bouton type="submit" variante="principal">Offrir</Bouton>
+        </div>
+      </form>
+    </Modale>
   );
 }
 
@@ -511,14 +607,14 @@ function BandeFactures({ attentes, maintenant, panierOccupe, onReprendre, onTout
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise } = useEspace();
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
   const { donnees: donneesChargees, chargement, erreur, recharger } = useDonnees(async () => {
     // Fin de journée (Paramètres › Clôture, minuit par défaut) : la caisse de la veille est fermée avant d'afficher la caisse.
     const fermees = await api.rpc('fermer_caisses_du_jour', { p_etablissement_id: etab }).catch(() => 0);
-    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr, serveurs, occupees] = await Promise.all([
+    const [articles, stock, categories, contacts, sessions, pointsDeVente, attentes, reglagesCloture, reglagesCaisse, commandesQr, happyHours, serveurs, occupees] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
       api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
@@ -533,13 +629,15 @@ export default function Caisse({ naviguer }) {
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab, module_id: 'caisse' } }).catch(() => []),
       // Commandes envoyées depuis les QR codes des tables, pas encore prises.
       api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
+      // Happy hours (migration 20261017000135) : sans la table, aucune remise automatique.
+      api.lire('happy_hours', { eq: { etablissement_id: etab, actif: true } }).catch(() => []),
       // Serveurs enregistrés (migration 20261013100133) et caisse occupée par une autre personne.
       api.lire('serveurs_caisse', { eq: { etablissement_id: etab, actif: true }, ordre: ['prenom'] }).catch(() => []),
       api.rpc('caisse_occupee', { p_etablissement_id: etab }).catch(() => []),
     ]);
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
-      articles, stock, commandesQr: (commandesQr ?? []).length, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
+      articles, stock, happyHours: happyHours ?? [], commandesQr: (commandesQr ?? []).length, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
       // Ordre choisi dans Articles › Catégories, puis alphabétique.
       categories: [...categories].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.nom.localeCompare(b.nom, 'fr')),
       // Seules les caisses ouvertes avec MON compte : personne ne vend sur la caisse d'une autre personne.
@@ -560,12 +658,13 @@ export default function Caisse({ naviguer }) {
     const relire = async () => {
       if (document.visibilityState === 'hidden') return;
       try {
-        const [articles, stock, commandesQr] = await Promise.all([
+        const [articles, stock, commandesQr, happyHours] = await Promise.all([
           api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
           api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
           api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
+          api.lire('happy_hours', { eq: { etablissement_id: etab, actif: true } }).catch(() => []),
         ]);
-        if (actif) setFrais({ articles, stock, commandesQr: commandesQr.length });
+        if (actif) setFrais({ articles, stock, commandesQr: commandesQr.length, happyHours });
       } catch {
         // Réseau coupé un instant : on garde ce qui est affiché.
       }
@@ -588,6 +687,8 @@ export default function Caisse({ naviguer }) {
   // null = choix automatique : « Favoris » s'il y en a assez, sinon « Tout ».
   const [categorie, setCategorie] = useState(null);
   const [combien, setCombien] = useState(null);
+  // Ligne à offrir (fenêtre « Offrir » : raison obligatoire).
+  const [aOffrir, setAOffrir] = useState(null);
   // Favoris : quantités vendues par article, retenues sur cet appareil pour cet établissement.
   const [compteurs, setCompteurs] = useState(() => lireFavoris(etab));
   useEffect(() => {
@@ -668,41 +769,44 @@ export default function Caisse({ naviguer }) {
       && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.code_barres ?? '') === texte));
   const pdvNom = donnees.pointsDeVente.find((p) => p.id === session.point_de_vente_id)?.nom;
   const nombreArticles = lignes.reduce((s, l) => s + l.quantite, 0);
-  const totalPanier = Math.max(lignes.filter((l) => parId[l.article_id]).reduce((s, l) => s + parId[l.article_id].prix_vente * l.quantite, 0) - Number(remise || 0), 0);
+  // Happy hour : évalué à l'heure de l'appareil, rafraîchie chaque minute (« maintenant »).
+  const optionsRemise = { creneaux: donnees.happyHours ?? [], date: new Date(maintenant), decimales: decimalesDevise(devise) };
+  const happyHour = happyHourEnCours(donnees.happyHours ?? [], new Date(maintenant));
+  // Total de la barre du bas (téléphone, tablette debout) : mêmes remises que le panier (happy hour, offerts).
+  const totalPanier = Math.max(totauxPanier(lignes.filter((l) => parId[l.article_id]), parId, optionsRemise).sousTotal - Number(remise || 0), 0);
   // Le serveur choisi reste affiché même avant la relecture de la liste (prénom tout juste créé).
   const serveursListe = listeServeurs(donnees.serveurs, [...nomsServeurs(donnees.serveursReglage), serveur].filter(Boolean));
 
   const ajouter = (article, quantite = 1) => {
-    setLignes((liste) => {
-      const existante = liste.find((l) => l.article_id === article.id);
-      if (existante) return liste.map((l) => (l.article_id === article.id ? { ...l, quantite: arrondirQuantite(l.quantite + quantite) } : l));
-      return [...liste, { article_id: article.id, quantite }];
-    });
+    setLignes((liste) => ajouterAuPanier(liste, article.id, arrondirQuantite(quantite)));
   };
   // Article au poids : on demande « Combien ? » ; article à l'unité : une touche = un de plus.
   const toucher = (article) => {
     if (estVenteAuPoids(article.unite)) setCombien(article);
     else ajouter(article);
   };
-  const changerQuantite = (id, quantite) => {
-    setLignes((liste) => (quantite > 0 ? liste.map((l) => (l.article_id === id ? { ...l, quantite } : l)) : liste.filter((l) => l.article_id !== id)));
-  };
+  // cle : article_id, ou article_id + « :offert » pour la ligne offerte du même article.
+  const changerQuantite = (cle, quantite) => setLignes((liste) => changerQuantiteLigne(liste, cle, quantite));
   const vider = () => {
     setLignes([]);
     setRemise('');
     setContactId(null);
   };
 
-  const validerVente = async (paiements, { serviPar } = {}) => {
+  const validerVente = async (paiements, { serviPar, pourboire } = {}) => {
     let resultat;
+    const offerts = offertsPourVente(lignes);
+    const note = noteOfferts(lignes, parId);
     try {
       resultat = await api.rpc('enregistrer_vente', {
         p_etablissement_id: etab,
         p_session_id: session.id,
-        p_lignes: lignes,
+        // Remise par ligne : offert (prix complet) ou happy hour.
+        p_lignes: lignesPourVente(lignes, parId, { ...optionsRemise, date: new Date() }),
         p_paiements: paiements,
         p_contact_id: contactId,
         p_remise: Number(remise || 0),
+        ...(note ? { p_note: note } : {}),
       });
     } catch (err) {
       // Heure de fin de journée passée : la caisse se ferme, le panier reste pour la caisse du jour.
@@ -718,6 +822,16 @@ export default function Caisse({ naviguer }) {
       setServeur(serviPar);
       await api.rpc('indiquer_serveur_vente', { p_vente_id: resultat.vente_id, p_nom: serviPar })
         .catch((err) => notifier(`Serveur non enregistré : ${err.message}`, 'erreur'));
+    }
+    // Raison des offerts (aussi écrite dans la note de la vente) et pourboire : la vente reste valable si l'un échoue.
+    if (offerts.length) {
+      await api.rpc('enregistrer_offerts_vente', { p_vente_id: resultat.vente_id, p_offerts: offerts })
+        .catch((err) => notifier(`Raison de l’offert non enregistrée : ${err.message}`, 'erreur'));
+    }
+    if (pourboire) {
+      await api.rpc('enregistrer_pourboire', { p_vente_id: resultat.vente_id, p_montant: pourboire.montant, p_mode: pourboire.mode, p_serveur: serviPar || null })
+        .then(() => notifier(`Pourboire de ${montant(pourboire.montant)} enregistré`))
+        .catch((err) => notifier(`Pourboire non enregistré : ${err.message}`, 'erreur'));
     }
     const lignesVendues = lignes;
     compterFavoris(lignesVendues, 1);
@@ -757,7 +871,8 @@ export default function Caisse({ naviguer }) {
     const r = await api.rpc('terminer_vente_en_attente', { p_id: attente.id, p_action: action });
     if (action === 'reprendre') {
       // Un article archivé entre-temps n'est pas repris ; le prix est celui du moment de la vente.
-      setLignes(r.lignes.filter((l) => parId[l.article_id]).map((l) => ({ article_id: l.article_id, quantite: Number(l.quantite) })));
+      // Les offerts ne sont pas gardés dans une facture en cours : on les refait à l'encaissement.
+      setLignes(fusionnerLignes(r.lignes.filter((l) => parId[l.article_id]).map((l) => ({ article_id: l.article_id, quantite: Number(l.quantite) }))));
       setRemise(Number(r.remise) ? String(r.remise) : '');
       setContactId(r.contact_id ?? null);
       if (attente.serveur_id && prenomServeur(attente.serveur_id)) setServeur(prenomServeur(attente.serveur_id));
@@ -809,6 +924,11 @@ export default function Caisse({ naviguer }) {
           À la connexion, « Tu continues ? » si ta caisse est encore ouverte. Sans activité, « Tu es toujours là ? » avec un compte
           à rebours avant la déconnexion (la caisse reste ouverte).
         </BandeauNouveau>
+        {happyHour && <p className="bandeau-happy-hour" role="status">{texteBandeau(happyHour)}</p>}
+        <BandeauNouveau jusqua={NOUVEAU_LOT3_JUSQUA}>
+          Happy hour automatique, bouton « Offrir » avec la raison, pourboire à l’encaissement et « Plus que N » quand le stock
+          atteint son minimum.
+        </BandeauNouveau>
         <BandeFactures
           attentes={attentes}
           maintenant={maintenant}
@@ -834,15 +954,17 @@ export default function Caisse({ naviguer }) {
         <div className="grille-articles">
           {visibles.map((a) => {
             const quantite = stockParId[a.id] ?? 0;
-            const dansPanier = lignes.find((l) => l.article_id === a.id)?.quantite ?? 0;
+            const dansPanier = lignes.filter((l) => l.article_id === a.id).reduce((t, l) => t + l.quantite, 0);
             const epuise = a.suivi_stock && quantite - dansPanier <= 0;
+            const alerte = a.suivi_stock && !epuise ? alerteStock(quantite - dansPanier, a.stock_minimum) : null;
             return (
               <button key={a.id} className={`tuile-article ${epuise ? 'epuise' : ''}`} onClick={() => toucher(a)}>
                 <VignetteArticle article={a} />
                 <span className="tuile-nom">{a.nom}</span>
                 <strong className="tuile-prix">{montant(a.prix_vente)}</strong>
-                {a.suivi_stock && (
-                  <span className={`tuile-stock ${quantite <= a.stock_minimum ? 'bas' : ''}`}>{formatQuantite(quantite - dansPanier, a.unite)} en stock</span>
+                {a.suivi_stock && (alerte
+                  ? <span className="tuile-stock bas tuile-alerte">{alerte}</span>
+                  : <span className={`tuile-stock ${quantite <= a.stock_minimum ? 'bas' : ''}`}>{formatQuantite(quantite - dansPanier, a.unite)} en stock</span>
                 )}
                 {dansPanier > 0 && <span className="tuile-compte">{formatQuantite(dansPanier, estVenteAuPoids(a.unite) ? a.unite : undefined)}</span>}
               </button>
@@ -854,8 +976,11 @@ export default function Caisse({ naviguer }) {
         <Panier
           lignes={lignes.filter((l) => parId[l.article_id])}
           articles={parId}
+          options={optionsRemise}
           onQuantite={changerQuantite}
-          onRetirer={(id) => changerQuantite(id, 0)}
+          onRetirer={(cle) => changerQuantite(cle, 0)}
+          onOffrir={peut('caisse.remise_libre') ? setAOffrir : null}
+          onAnnulerOffert={(cle) => setLignes((liste) => annulerOffert(liste, cle))}
           onVider={vider}
           remise={remise}
           onRemise={setRemise}
@@ -915,6 +1040,7 @@ export default function Caisse({ naviguer }) {
           onFermer={() => setPaiement(null)}
           serveurs={serveursListe}
           serviParInitial={serveur}
+          avecPourboire
         />
       )}
       {recu && (
@@ -930,6 +1056,17 @@ export default function Caisse({ naviguer }) {
             setRecu(null);
             recharger();
           } : null}
+        />
+      )}
+      {aOffrir && parId[aOffrir.article_id] && (
+        <ModaleOffrir
+          ligne={aOffrir}
+          article={parId[aOffrir.article_id]}
+          onValider={(quantite, raison) => {
+            setLignes((liste) => offrirLigne(liste, cleLigne(aOffrir), quantite, raison));
+            setAOffrir(null);
+          }}
+          onFermer={() => setAOffrir(null)}
         />
       )}
       {combien && (

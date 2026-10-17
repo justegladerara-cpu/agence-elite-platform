@@ -8,6 +8,8 @@ export const NOUVEAUTES_CAISSE_JUSQUA = '2026-10-14T22:30:00Z';
 export const NOUVEAU_PRESENCE_JUSQUA = '2026-10-15T12:00:00Z';
 // Caisse unique, serveurs, bouton Encaisser toujours visible sur tablette, alerte ticket Z (2026-10-13).
 export const NOUVEAU_CAISSE_UNIQUE_JUSQUA = '2026-10-18T12:00:00Z';
+// Lot 3 bars et restaurants : happy hour, offerts, pourboires, alerte de stock, commande WhatsApp (2026-10-13).
+export const NOUVEAU_LOT3_JUSQUA = '2026-10-16T12:00:00Z';
 
 export const estNouveau = (jusqua = NOUVEAUTES_CAISSE_JUSQUA, maintenant = Date.now()) => maintenant < new Date(jusqua).getTime();
 

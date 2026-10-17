@@ -60,6 +60,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByLabel('Coût d’achat').fill('3000');
       await p.getByLabel(/Suivre les quantités de cet article/).check();
       await p.getByLabel('Stock initial').fill('10');
+      // Minimum au-dessus du stock : « Plus que N » dans la caisse et l'article dans « Préparer la commande ».
+      await p.getByLabel('Alerte stock bas à').fill('12');
       await p.getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText('Casque test').first().waitFor();
     });
@@ -189,6 +191,63 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.locator('.modale button[type=submit], [role=dialog] button[type=submit]').last().click();
       await p.getByText(/Annulée/).first().waitFor();
     });
+    // Lot 3 bars et restaurants : happy hour, offert avec raison, pourboire, rapport « Offerts et pertes », commande WhatsApp.
+    await etape('happy-hour-reglage', async () => {
+      await p.goto(U + '#/happy-hour');
+      await p.getByRole('heading', { name: 'Happy hour' }).first().waitFor();
+      await p.getByText('Fin de journée').first().waitFor();
+      await p.getByRole('button', { name: 'Nouveau happy hour' }).click();
+      const fenetre = p.getByRole('dialog', { name: 'Nouveau happy hour' });
+      await fenetre.getByLabel('Nom').fill('Happy hour test');
+      await fenetre.getByLabel('Heure de début').fill('22:00');
+      await fenetre.getByLabel('Heure de fin').fill('02:00');
+      await fenetre.getByText(/passe minuit/).waitFor();
+      // Créé éteint : les étapes suivantes gardent leurs prix, quelle que soit l'heure du parcours.
+      await fenetre.getByLabel('Actif').uncheck();
+      await fenetre.getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByText('Happy hour créé').first().waitFor();
+      await p.locator('.liste-ligne', { hasText: 'Happy hour test' }).getByText('Désactivé').waitFor();
+    });
+    await etape('offert-pourboire', async () => {
+      await p.goto(U + '#/caisse');
+      await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
+      await p.locator('button.tuile-article', { hasText: 'Casque test' }).locator('.tuile-alerte', { hasText: /Plus que \d+/ }).waitFor();
+      await p.locator('button.tuile-article', { hasText: 'Casque test' }).first().click();
+      await p.getByRole('button', { name: 'Offrir Casque test' }).click();
+      const offrir = p.getByRole('dialog', { name: 'Offrir' });
+      await offrir.getByRole('button', { name: 'Client fidèle' }).click();
+      await offrir.getByRole('button', { name: 'Offrir', exact: true }).click();
+      await p.locator('.panier-ligne.offerte', { hasText: 'Client fidèle' }).waitFor();
+      await p.getByRole('button', { name: /Encaisser/ }).click();
+      const encaissement = p.getByRole('dialog', { name: 'Encaissement' });
+      await encaissement.getByRole('button', { name: '+ Pourboire' }).click();
+      await encaissement.getByLabel(/Montant du pourboire/).fill('1000');
+      await encaissement.getByLabel(/Servi par \(facultatif\)/).fill('Alex');
+      await encaissement.getByRole('button', { name: 'Valider la vente' }).click();
+      await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
+      await p.getByText(/Pourboire de .* enregistré/).first().waitFor();
+      await p.getByRole('button', { name: 'Nouvelle vente' }).click();
+    });
+    await etape('offerts-pertes', async () => {
+      await p.goto(U + '#/offerts-pertes');
+      await p.getByRole('heading', { name: 'Offerts et pertes' }).first().waitFor();
+      await p.locator('table', { hasText: 'Casque test' }).getByText('Client fidèle').first().waitFor();
+      await p.locator('table', { hasText: 'Alex' }).first().waitFor();
+      const erreursVisibles = await p.locator('.erreur:visible').allTextContents();
+      if (erreursVisibles.length) throw new Error(erreursVisibles.join(' | '));
+    });
+    await etape('preparer-commande', async () => {
+      await p.goto(U + '#/preparer-commande');
+      await p.getByRole('heading', { name: 'Préparer la commande' }).first().waitFor();
+      // Casque test (stock sous son minimum de 12) : quantité proposée modifiable, texte prêt, lien wa.me.
+      await p.getByLabel('Quantité à commander Casque test').fill('15');
+      const groupe = p.locator('.groupe-commande', { hasText: 'Casque test' });
+      const texte = await groupe.locator('textarea').inputValue();
+      if (!texte.includes('- Casque test : 15')) throw new Error('Message de commande inattendu : ' + texte);
+      const lien = await groupe.getByRole('link', { name: 'Envoyer sur WhatsApp' }).getAttribute('href');
+      if (!/^https:\/\/wa\.me\/\d*\?text=.*Casque%20test%20%3A%2015/.test(lien ?? '')) throw new Error('Lien WhatsApp inattendu : ' + lien);
+      await groupe.getByRole('button', { name: 'Copier le texte' }).waitFor();
+    });
     await etape('stock-apres', async () => { await p.goto(U + '#/stock'); await p.getByText('Casque test').first().waitFor(); });
     await etape('cloture', async () => {
       await p.goto(U + '#/clotures');
@@ -271,6 +330,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('palette-ecran', async () => {
       await p.goto(U + '#/tableau-de-bord');
       await p.getByText('Chiffre d’affaires').first().waitFor();
+      // Souris hors de la palette : survoler une ligne la choisirait à la place de « Stock » (échec intermittent).
+      await p.mouse.move(0, 0);
       await p.keyboard.press('Control+k');
       const champ = p.getByRole('combobox', { name: 'Rechercher partout' });
       await champ.fill('stock');
