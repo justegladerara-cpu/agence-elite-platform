@@ -90,6 +90,27 @@ fs.mkdirSync('captures-parcours', { recursive: true });
         .slice(0, 8)
         .map((e) => `${e.tagName}.${e.className} droite=${Math.round(e.getBoundingClientRect().right)}`);
     });
+    await etape('copie-articles', async () => {
+      // Super admin : copier des articles d'un établissement vers un autre client (prix à saisir), puis mettre un prix.
+      await p.goto(`${U}#/editeur/copie-articles`);
+      const source = p.getByLabel('Copier depuis');
+      await source.waitFor({ timeout: 60000 });
+      const optionSource = await source.locator('option', { hasText: 'Commerce Démo · Commerce Démo' }).first().getAttribute('value');
+      await source.selectOption(optionSource);
+      await p.getByRole('button', { name: /^Tout cocher/ }).click({ timeout: 60000 });
+      const cible = p.getByLabel('Copier vers');
+      const optionCible = await cible.locator('option', { hasText: 'Pilote Boutique Centre' }).first().getAttribute('value');
+      await cible.selectOption(optionCible);
+      await p.getByLabel(/Je mets les prix après/).check();
+      await p.getByRole('button', { name: 'Voir l’aperçu' }).click();
+      await p.getByText(/Aperçu, rien n’est encore copié/).waitFor({ timeout: 30000 });
+      await p.getByRole('button', { name: /^Copier \d+ article/ }).click();
+      await p.getByRole('heading', { name: 'Mettre les prix' }).waitFor({ timeout: 30000 });
+      await p.locator('.copie-prix-ligne input').first().fill('1500');
+      await p.getByRole('button', { name: 'Enregistrer les prix' }).click();
+      await p.getByText(/prix enregistré\(s\)/).first().waitFor({ timeout: 30000 });
+      await p.getByText('Copies faites').waitFor();
+    });
     await etape('mobile-editeur', async () => {
       await p.goto(`${U}#/editeur`);
       await p.getByRole('heading', { name: /Bonjour/ }).waitFor();
