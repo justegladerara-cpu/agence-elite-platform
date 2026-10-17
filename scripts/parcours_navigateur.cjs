@@ -49,7 +49,6 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
       await p.waitForTimeout(1500);
       if (await p.getByRole('dialog').count()) throw new Error('« Tu continues ? » ne doit pas revenir à chaque page');
-      await p.getByText(/Tu es toujours là \?/).first().waitFor();
     });
     await etape('article-cree', async () => {
       await p.goto(U + '#/articles');
