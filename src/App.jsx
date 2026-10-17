@@ -20,6 +20,7 @@ import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
 import { SitePublic } from './public/RenduSite.jsx';
 import { PartagePublic } from './public/Partage.jsx';
 import { MenuPublic } from './public/MenuPublic.jsx';
+import { QrPublic } from './public/QrPublic.jsx';
 import { EspaceClientPublic } from './public/EspaceClient.jsx';
 import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
@@ -753,12 +754,14 @@ export default function App({ demarrer = demarrerDonnees }) {
 
   if (etape === 'demarrage' || (etape !== 'erreur' && !config)) return <div className="ecran-centre"><Chargement texte="Préparation de la base…" /></div>;
   if (etape === 'erreur') return <div className="ecran-centre"><Erreur message={erreur} /></div>;
-  // Pages publiques (sans compte) : site web, boutique en ligne, suivi de commande, menu QR d'une table, document partagé par lien et espace client.
+  // Pages publiques (sans compte) : site web, boutique en ligne, suivi de commande, menu QR d'une table, QR code suivi, document partagé par lien et espace client.
   const [publique, cle, sousPage] = route.split('/');
   if (publique === 'site' && cle) return <SitePublic donnees={donnees} adresse={cle.toLowerCase()} slug={sousPage} />;
   if (publique === 'commander' && cle) return <BoutiquePublique key={cle} donnees={donnees} adresse={cle.toLowerCase()} />;
   if (publique === 'suivi' && cle) return <SuiviCommande key={cle} donnees={donnees} suivi={cle} />;
   if (publique === 'menu' && cle) return <MenuPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
+  // QR code suivi (lien, WhatsApp, menu sans table) : le scan est compté puis le client est envoyé vers la cible.
+  if (publique === 'q' && cle) return <QrPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
   if (publique === 'partage' && cle) return <PartagePublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'espace' && cle) return <EspaceClientPublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'partenaire' && cle === 'demande' && sousPage) return <DemandePartenaire key={sousPage} donnees={donnees} code={sousPage} />;

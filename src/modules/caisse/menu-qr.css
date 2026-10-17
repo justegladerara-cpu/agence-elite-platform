@@ -36,3 +36,32 @@
 @media (max-width: 600px) {
   .carte-commande-qr footer .actions-ligne, .carte-commande-qr footer .bouton { width: 100%; }
 }
+/* Écran « QR codes » : QR codes libres, aperçu, statistiques des scans (2026-10-17). */
+.liste-qr { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1rem; }
+.carte-qr-cible { max-width: 100%; overflow-wrap: anywhere; }
+.formulaire-qr { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 1.25rem; align-items: start; }
+.apercu-qr { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; position: sticky; top: 0; }
+.apercu-qr .image-qr { width: 180px; height: 180px; }
+.stats-qr { display: grid; gap: 1rem; }
+.stats-qr tr.selectionnee td { background: var(--surface-douce); }
+.feuille-qr.impression-unique { display: none; }
+@media print {
+  body.impression-qr .feuille-qr.impression-unique { display: grid; grid-template-columns: 1fr; justify-items: center; }
+  body.impression-qr .impression-unique .carte-qr { border: 0; }
+  body.impression-qr .impression-unique .image-qr { width: 9cm; height: 9cm; }
+  body.impression-qr .impression-unique .carte-qr-nom { font-size: 1.6rem; }
+}
+@media (max-width: 600px) {
+  .formulaire-qr { grid-template-columns: minmax(0, 1fr); }
+  .apercu-qr { position: static; order: -1; }
+}
+.editeur-style { display: grid; gap: 0.5rem; }
+.ligne-couleur { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-height: 40px; }
+.ligne-couleur input[type="color"] { width: 48px; height: 36px; padding: 2px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
+.ligne-couleur label { display: inline-flex; align-items: center; gap: 0.35rem; }
+.actions-gauche { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.controle-qr { display: grid; gap: 0.2rem; padding: 0.5rem 0.65rem; border-radius: var(--rayon); border: 1px solid var(--bordure); text-align: left; font-size: 0.85rem; }
+.controle-qr.ok strong { color: var(--vert); }
+.controle-qr.ko { border-color: var(--rouge); }
+.controle-qr.ko strong, .controle-qr small.grave { color: var(--rouge); }
+.historique-qr ul { margin: 0.35rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; overflow-wrap: anywhere; }
