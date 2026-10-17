@@ -14,7 +14,8 @@ n'encaisse sur la caisse d'une autre personne. Il n'y a plus de ticket X : seule
    Sinon saisir directement le montant compté.
 4. L'écart (compté − attendu) s'affiche. Un écart doit être expliqué dans le commentaire.
 5. **Clôturer ma caisse et éditer mon ticket Z** : non modifiable, imprimable. Le ticket indique qui a tenu la caisse
-   (« Tenue par »). **Terminer et me déconnecter** ferme la session de travail.
+   (« Tenue par »). **Terminer et me déconnecter** ferme la session de travail. Le gérant / responsable a aussi
+   **Envoyer le rapport du soir** : résumé de la journée envoyé au patron sur WhatsApp (SOP 86).
 6. Une caissière ne voit que **ses** tickets Z. Le gérant / responsable (droit « Clôturer une caisse ») et les rôles
    de lecture sans caisse (comptable) voient tout le monde : tableau **Personne / Tickets Z / Ventes** et filtre
    « Afficher les tickets Z de ».

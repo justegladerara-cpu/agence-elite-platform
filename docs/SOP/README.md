@@ -98,6 +98,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Copier des articles d'un client à un autre (photos comprises), bibliothèque d'articles Agence Elite | [89](89_COPIER_DES_ARTICLES_ENTRE_CLIENTS.md) | Super admin |
 | Bar / restaurant : happy hour automatique, offerts avec raison, pourboires par serveur, rapport « Offerts et pertes », alerte « Plus que N » et commande fournisseur WhatsApp | [85](85_OFFERTS_HAPPYHOUR_POURBOIRES.md) | Gérant, responsable, caisse |
 | Emballages consignés (casiers, vides), bouteille en réserve au nom d'un client, table VIP avec minimum de consommation | [84](84_CONSIGNES_RESERVE_VIP.md) | Gérant, responsable, caisse, serveurs |
+| Envoyer au patron le rapport du soir sur WhatsApp (ventes, encaissements, top 5, écart de caisse, caissières) | [86](86_RAPPORT_DU_SOIR_WHATSAPP.md) | Gérant, responsable |
 | Caisse sans internet : vendre pendant une coupure, envoi automatique sans doublon au retour, ventes « à vérifier », ticket Z bloqué tant qu'une vente attend | [87](87_CAISSE_SANS_INTERNET.md) | Caisse, gérant, responsable |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
