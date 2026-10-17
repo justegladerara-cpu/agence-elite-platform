@@ -49,7 +49,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
       await p.waitForTimeout(1500);
       if (await p.getByRole('dialog').count()) throw new Error('« Tu continues ? » ne doit pas revenir à chaque page');
-      await p.getByText(/Tu es toujours là \?/).first().waitFor();
+      // Bandeau « Nouveau » qui présente « Tu es toujours là ? » : affiché seulement jusqu'à sa date de fin (72 h).
+      if (Date.now() < Date.parse('2026-10-15T12:00:00Z')) await p.getByText(/Tu es toujours là \?/).first().waitFor();
     });
     await etape('article-cree', async () => {
       await p.goto(U + '#/articles');
