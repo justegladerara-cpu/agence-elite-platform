@@ -197,6 +197,8 @@ beforeAll(async () => {
   await db.query("insert into etablissement_membres(etablissement_id, user_id, role_id) values ($1, $2, 'gerant'), ($1, $3, 'employe'), ($1, $4, 'employe'), ($1, $5, 'comptable')", [etab, gerant, caissier, autre, comptable]);
   await db.query("insert into profils(id, nom_complet) values ($1, 'Gérant Test'), ($2, 'Caissier Test') on conflict (id) do update set nom_complet = excluded.nom_complet", [gerant, caissier]);
   boissons = await valeur(gerant, "select enregistrer_categorie($1, 'Boissons')", [etab]);
+  // Plusieurs caisses ouvertes en même temps sur le même point de vente (réglage « caisse_unique », migration 20261013100133).
+  await db.query("insert into etablissement_parametres(etablissement_id, module_id, data) values ($1, 'cloture', '{\"caisse_unique\": false}')", [etab]);
   biere = await valeur(gerant, 'select enregistrer_article($1, $2::jsonb)', [etab, json({ nom: 'Bière test', prix_vente: 1000, suivi_stock: false, categorie_id: boissons })]);
   plat = await valeur(gerant, 'select enregistrer_article($1, $2::jsonb)', [etab, json({ nom: 'Plat test', prix_vente: 5000, suivi_stock: false })]);
 });

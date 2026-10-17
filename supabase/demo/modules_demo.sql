@@ -1614,7 +1614,7 @@ $$;
 -- sa caisse fermée (aucune caisse laissée ouverte). Tout est fictif.
 -- ---------------------------------------------------------------------------
 do $$
-declare etab uuid; gerante uuid; boissons uuid; primus uuid; poulet uuid; session uuid; vente jsonb; commerce uuid; mireille uuid;
+declare etab uuid; gerante uuid; boissons uuid; primus uuid; poulet uuid; session uuid; vente jsonb; commerce uuid; mireille uuid; reglage jsonb;
 begin
   select id into etab from public.etablissements where nom = 'Restaurant Démo' order by cree_le limit 1;
   if etab is null or exists (select 1 from public.happy_hours where etablissement_id = etab) then
@@ -1632,6 +1632,11 @@ begin
     'debut', '18:00', 'fin', '20:00', 'pourcentage', 20, 'categories', jsonb_build_array(boissons)));
   perform public.enregistrer_happy_hour(etab, jsonb_build_object('nom', 'Nuit du samedi', 'jours', jsonb_build_array(6),
     'debut', '22:00', 'fin', '02:00', 'pourcentage', 10, 'categories', jsonb_build_array(boissons), 'actif', false));
+  -- La caisse d'un serveur de démonstration reste ouverte (caisse unique, migration 20261013100133) : le temps de ce
+  -- service, deux caisses sont permises, puis le réglage reprend sa valeur.
+  select data into reglage from public.etablissement_parametres where etablissement_id = etab and module_id = 'cloture';
+  insert into public.etablissement_parametres (etablissement_id, module_id, data) values (etab, 'cloture', '{"caisse_unique": false}')
+  on conflict (etablissement_id, module_id) do update set data = public.etablissement_parametres.data || '{"caisse_unique": false}';
   session := public.ouvrir_caisse(etab, null, 10000);
   vente := public.enregistrer_vente(etab, session, jsonb_build_array(
       jsonb_build_object('article_id', poulet, 'quantite', 1),
@@ -1643,6 +1648,11 @@ begin
     jsonb_build_array(jsonb_build_object('article_id', primus, 'quantite', 1, 'raison', 'Client fidèle')));
   perform public.enregistrer_pourboire((vente ->> 'vente_id')::uuid, 500, 'especes', 'Rodrigue');
   perform public.cloturer_caisse(session, 17500, 'Service de démonstration');
+  if reglage is null then
+    delete from public.etablissement_parametres where etablissement_id = etab and module_id = 'cloture';
+  else
+    update public.etablissement_parametres set data = reglage where etablissement_id = etab and module_id = 'cloture';
+  end if;
 
   -- Commerce Démo : un happy hour sur les boissons en fin de journée.
   select id into commerce from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;

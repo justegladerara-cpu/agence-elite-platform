@@ -44,7 +44,7 @@ describe('Encaissement avec pourboire', () => {
     const fenetre = screen.getByRole('dialog', { name: 'Encaissement' });
     fireEvent.click(within(fenetre).getByRole('button', { name: '+ Pourboire' }));
     fireEvent.change(within(fenetre).getByLabelText(/^Montant du pourboire/), { target: { value: '500' } });
-    fireEvent.click(within(fenetre).getByRole('button', { name: 'Mobile Money' }));
+    fireEvent.click(within(within(fenetre).getByRole('group', { name: 'Pourboire reçu en' })).getByRole('button', { name: 'Mobile Money' }));
     fireEvent.click(within(fenetre).getByRole('button', { name: 'Alex' }));
     fireEvent.click(within(fenetre).getByRole('button', { name: 'Valider la vente' }));
     await waitFor(() => expect(onValider).toHaveBeenCalled());
