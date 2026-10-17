@@ -36,6 +36,8 @@ beforeAll(async () => {
   const c2 = await valeur(sa, "select creer_client('Client Voisin')");
   etab = await valeur(sa, "select creer_etablissement($1, 'commerce', 'Comptoir Complément')", [c1]);
   autreEtab = await valeur(sa, "select creer_etablissement($1, 'commerce', 'Comptoir Voisin')", [c2]);
+  // Plusieurs caisses ouvertes en même temps sur le même point de vente (réglage « caisse_unique », migration 133).
+  await db.query("insert into etablissement_parametres(etablissement_id, module_id, data) values ($1, 'cloture', '{\"caisse_unique\": false}')", [etab]);
   await db.query(
     `insert into etablissement_membres(etablissement_id, user_id, role_id) values
      ($1, $2, 'gerant'), ($1, $3, 'serveur'), ($1, $4, 'serveur'), ($1, $5, 'cuisinier'), ($6, $7, 'gerant')`,
