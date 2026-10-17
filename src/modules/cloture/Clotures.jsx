@@ -98,8 +98,8 @@ function ComptageApres({ z, onCompte }) {
   );
 }
 
-export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }) {
-  const { etablissement, devise, peut, utilisateur, deconnecter } = useEspace();
+export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false, apresCloture = false }) {
+  const { etablissement, devise, peut, utilisateur, deconnecter, moduleActif } = useEspace();
   const [z, setZ] = useState(zInitial);
   useEffect(() => {
     document.body.classList.add('impression-ticket');
@@ -112,6 +112,10 @@ export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }
     <>
       <Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>
       {deconnexion && deconnecter && <Bouton onClick={deconnecter}>Terminer et me déconnecter</Bouton>}
+      {/* Juste après une clôture : le résumé de la journée à envoyer au patron (écran « Rapport du soir »). */}
+      {(apresCloture || deconnexion) && moduleActif?.('cloture') && (peut('cloture.cloturer') || peut('rapports.lire')) && (
+        <Bouton icone="message" onClick={() => { onFermer?.(); window.location.hash = '/rapport-du-soir'; }}>Envoyer le rapport du soir</Bouton>
+      )}
     </>
   );
   return (
@@ -306,7 +310,7 @@ export default function Clotures() {
       attentes={donnees.attentesParSession[s.id] ?? 0}
       onCloturee={(z) => {
         notifier(`Caisse clôturée : ${z.numero}`);
-        setZOuvert({ ...z, deconnexion: s.ouverte_par === utilisateur?.id });
+        setZOuvert({ ...z, deconnexion: s.ouverte_par === utilisateur?.id, apresCloture: true });
         recharger();
       }}
     />
@@ -406,7 +410,7 @@ export default function Clotures() {
         />
       )}
       {zOuvert && (
-        <ModaleZ key={zOuvert.id ?? 'z'} z={zOuvert} deconnexion={zOuvert.deconnexion} onFermer={() => setZOuvert(null)}
+        <ModaleZ key={zOuvert.id ?? 'z'} z={zOuvert} deconnexion={zOuvert.deconnexion} apresCloture={zOuvert.apresCloture} onFermer={() => setZOuvert(null)}
           onCompte={() => { notifier('Comptage enregistré'); recharger(); }} />
       )}
     </div>

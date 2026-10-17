@@ -271,7 +271,20 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/Z-0000/).first().waitFor();
       await p.locator('.ticket-apercu').getByText('Tenue par').waitFor();
       await p.getByRole('button', { name: 'Terminer et me déconnecter' }).waitFor();
+      await p.getByRole('button', { name: 'Envoyer le rapport du soir' }).waitFor();
       await p.keyboard.press('Escape');
+    });
+    await etape('rapport-du-soir', async () => {
+      // Résumé de la journée pour le patron : on vérifie le lien WhatsApp sans l'ouvrir (pas de navigation vers wa.me).
+      await p.goto(U + '#/rapport-du-soir');
+      await p.getByRole('heading', { name: 'Rapport du soir' }).waitFor({ timeout: 60000 });
+      await p.locator('.stat-card-valeur', { hasText: 'FCFA' }).first().waitFor();
+      await p.getByText('Top 5 des articles').first().waitFor();
+      const whatsapp = p.getByRole('link', { name: 'Envoyer au patron sur WhatsApp' });
+      await whatsapp.waitFor();
+      const href = await whatsapp.getAttribute('href');
+      if (!/^https:\/\/wa\.me\/\d*\?text=\*Rapport%20du%20soir/.test(href ?? '')) throw new Error(`Lien WhatsApp inattendu : ${href}`);
+      await p.getByRole('button', { name: 'Copier le texte' }).waitFor();
     });
     await etape('contacts', async () => { await p.goto(U + '#/contacts'); await p.locator('table.tableau tbody tr, .fiche-liste-ligne').first().waitFor(); });
     await etape('contact-fiche', async () => { await p.locator('table.tableau tbody tr, .fiche-liste-ligne').first().click(); });
