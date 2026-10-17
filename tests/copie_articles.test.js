@@ -54,7 +54,8 @@ describe('copier des articles entre clients', () => {
   test('la liste des articles à copier ne montre jamais le coût d’achat', async () => {
     const liste = await valeur(superAdmin, 'select articles_a_copier($1)', [bar]);
     expect(liste.map((a) => a.nom)).toEqual(['Primus', 'Jus maison']);
-    expect(JSON.stringify(liste)).not.toMatch(/cout_achat|900/);
+    // Valeur 900 seulement (pas un morceau d'identifiant aléatoire, qui peut contenir « 900 »).
+    expect(JSON.stringify(liste)).not.toMatch(/cout_achat|:900[,}]/);
   });
 
   test('aperçu d’abord : rien n’est écrit ; un article déjà présent (même code-barres) est ignoré', async () => {
