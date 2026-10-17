@@ -1,7 +1,7 @@
 // Panier de la caisse avec lignes offertes et happy hour : règles pures, testées dans
 // tests/offerts_happyhour_pourboires.test.js. Une ligne du panier : { article_id, quantite, offert?: { raison, precision } }.
 // Une ligne offerte part à enregistrer_vente avec une remise égale à son prix (total 0) ; la raison est ensuite gardée
-// par enregistrer_offerts_vente (migration 20261013000135).
+// par enregistrer_offerts_vente (migration 20261017000135).
 import { pourcentageArticle, remiseHappyHour } from './happyHour.js';
 
 export const RAISONS_OFFERT = ['Client fidèle', 'Geste commercial', 'Erreur de service', 'Patron', 'Autre'];

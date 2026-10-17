@@ -14,7 +14,7 @@ import { lienWhatsApp } from '../src/noyau/messagesWhatsapp.js';
 import { semerDemo } from '../src/noyau/donnees/demo.js';
 import { creerBaseLocale } from './helpers/locale.js';
 
-// Lot 3 bars et restaurants (migration 20261013000135) : happy hour, offerts avec raison, pourboires, alerte de stock.
+// Lot 3 bars et restaurants (migration 20261017000135) : happy hour, offerts avec raison, pourboires, alerte de stock.
 
 // Vendredi 16 octobre 2026, heure locale de l'appareil.
 const vendredi = (h, m = 0) => new Date(2026, 9, 16, h, m);

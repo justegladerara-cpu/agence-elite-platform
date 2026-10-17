@@ -10,7 +10,7 @@ export default {
   pages: [
     { id: 'stock', libelle: 'Stock', icone: 'stock', groupe: 'Catalogue et stock', ordre: 20, permission: 'stock.lire', composant: Stock },
     // Les Transferts n'existent pour l'utilisateur que s'il voit plusieurs Hubs.
-    // Commande fournisseur WhatsApp à partir des articles au minimum (migration 20261013000135, lot 3).
+    // Commande fournisseur WhatsApp à partir des articles au minimum (migration 20261017000135, lot 3).
     { id: 'preparer-commande', libelle: 'Préparer la commande', icone: 'panier', groupe: 'Catalogue et stock', ordre: 25, permission: 'stock.lire', composant: PreparerCommande },
     { id: 'transferts', libelle: 'Transferts', icone: 'transfert', groupe: 'Catalogue et stock', ordre: 30, permission: 'stock.lire', composant: Transferts, horsMenuSi: (e, espace) => !espace?.multiHub },
   ],

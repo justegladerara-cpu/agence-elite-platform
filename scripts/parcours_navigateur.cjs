@@ -112,8 +112,49 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Nouvelle vente' }).waitFor();
       await p.getByRole('dialog').getByText('Alex').first().waitFor({ timeout: 30000 });
     });
-    await etape('caisse-attente', async () => {
+    await etape('recu-imprimable', async () => {
+      // Le 2026-10-12, une règle d'impression du menu QR rendait les reçus blancs : on vérifie le rendu « impression ».
+      await p.evaluate(() => { window.print = () => {}; });
+      await p.getByRole('dialog').getByRole('button', { name: 'Imprimer' }).click();
+      await p.emulateMedia({ media: 'print' });
+      const etat = await p.evaluate(() => {
+        const ticket = document.querySelector('.zone-impression .ticket');
+        const total = ticket && [...ticket.querySelectorAll('.ticket-total span')].pop();
+        if (!ticket || !total) return 'ticket absent';
+        const r = total.getBoundingClientRect();
+        const s = getComputedStyle(total);
+        return s.visibility === 'visible' && s.display !== 'none' && r.width > 0 && r.height > 0 ? 'ok' : `ticket caché (${s.visibility}, ${s.display})`;
+      });
+      await p.emulateMedia({ media: 'screen' });
+      if (etat !== 'ok') throw new Error(`reçu non imprimable : ${etat}`);
+    });
+    await etape('serveur-retenu', async () => {
+      // « Servi par » tapé une fois : le prénom rejoint la liste des serveurs et reste choisi pour la commande suivante.
       await p.getByRole('button', { name: 'Nouvelle vente' }).click();
+      await p.getByRole('group', { name: 'Serveur' }).getByRole('button', { name: 'Alex', pressed: true }).waitFor({ timeout: 30000 });
+      await p.getByRole('button', { name: '+ Nouveau serveur' }).click();
+      await p.getByLabel('Prénom du nouveau serveur').fill('Brice');
+      await p.getByRole('group', { name: 'Serveur' }).getByRole('button', { name: 'Enregistrer' }).click();
+      await p.getByRole('group', { name: 'Serveur' }).getByRole('button', { name: 'Brice', pressed: true }).waitFor();
+    });
+    await etape('tablette', async () => {
+      // Tablette debout puis couchée : le bouton Encaisser est toujours à l'écran, sans faire défiler.
+      await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
+      await p.locator('button:has-text("Casque test")').first().click();
+      for (const [width, height] of [[768, 1024], [1280, 800], [1024, 700]]) {
+        await p.setViewportSize({ width, height });
+        await p.waitForTimeout(300);
+        const visibles = [];
+        for (const b of await p.locator('button', { hasText: /^Encaisser/ }).all()) {
+          const r = await b.boundingBox();
+          if (r && r.y >= 0 && r.y + r.height <= height && await b.isVisible()) visibles.push(r);
+        }
+        if (!visibles.length) throw new Error(`bouton Encaisser hors de l'écran en ${width}x${height}`);
+      }
+      await p.setViewportSize({ width: 1366, height: 820 });
+      await p.getByRole('button', { name: 'Vider' }).click();
+    });
+    await etape('caisse-attente', async () => {
       await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
       await p.locator('button:has-text("Casque test")').first().click();
       await p.getByRole('button', { name: 'Facture en cours', exact: true }).click();

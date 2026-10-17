@@ -3,7 +3,7 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-// Lot 3 (migration 20261013000135) : fenêtres « Offrir » et « Encaissement » avec pourboire, sans base.
+// Lot 3 (migration 20261017000135) : fenêtres « Offrir » et « Encaissement » avec pourboire, sans base.
 const espace = {
   api: { rpc: vi.fn() },
   etablissement: { id: 'etab-test', nom: 'Bar Test' },

@@ -1,6 +1,6 @@
 # SOP 85 — Bars et restaurants : happy hour, offerts, pourboires, alerte de stock, commande WhatsApp (2026-10-13)
 
-Migration `20261013000135_offerts_happyhour_pourboires.sql` (une seule, additive). `enregistrer_vente` n'est pas
+Migration `20261017000135_offerts_happyhour_pourboires.sql` (une seule, additive). `enregistrer_vente` n'est pas
 modifiée : elle accepte déjà une remise par ligne. Tests : `tests/offerts_happyhour_pourboires.test.js` (base PGlite et
 règles pures) et `tests/offerts_happyhour_ecrans.test.jsx` (fenêtres « Offrir » et « Encaissement »).
 

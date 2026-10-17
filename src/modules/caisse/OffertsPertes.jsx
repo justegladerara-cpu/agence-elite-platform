@@ -26,7 +26,7 @@ function Tableau({ colonnes, lignes, vide }) {
 }
 
 // « Offerts et pertes » : ce que la maison a donné, remis ou perdu, et les pourboires de chaque serveur, sur une période.
-// Données : rapport_offerts_pertes (migration 20261013000135) ; les ventes annulées ne comptent pas.
+// Données : rapport_offerts_pertes (migration 20261017000135) ; les ventes annulées ne comptent pas.
 export default function OffertsPertes() {
   const { api, etablissement, montant } = useEspace();
   const [du, setDu] = useState(() => dateLocale());

@@ -1609,7 +1609,7 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------
--- Lot 3 bars et restaurants (migration 20261013000135) : un happy hour sur les boissons (Restaurant Démo et Commerce
+-- Lot 3 bars et restaurants (migration 20261017000135) : un happy hour sur les boissons (Restaurant Démo et Commerce
 -- Démo), une vente de Gisèle avec une boisson offerte (raison « Client fidèle ») et un pourboire pour Rodrigue, puis
 -- sa caisse fermée (aucune caisse laissée ouverte). Tout est fictif.
 -- ---------------------------------------------------------------------------
