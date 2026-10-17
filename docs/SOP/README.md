@@ -97,6 +97,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Une seule caisse ouverte à la fois, caisse oubliée, alerte ticket Z, serveurs, caisse sur tablette | [83](83_CAISSE_UNIQUE_SERVEURS.md) | Caissière, gérant, responsable |
 | Copier des articles d'un client à un autre (photos comprises), bibliothèque d'articles Agence Elite | [89](89_COPIER_DES_ARTICLES_ENTRE_CLIENTS.md) | Super admin |
 | Bar / restaurant : happy hour automatique, offerts avec raison, pourboires par serveur, rapport « Offerts et pertes », alerte « Plus que N » et commande fournisseur WhatsApp | [85](85_OFFERTS_HAPPYHOUR_POURBOIRES.md) | Gérant, responsable, caisse |
+| Emballages consignés (casiers, vides), bouteille en réserve au nom d'un client, table VIP avec minimum de consommation | [84](84_CONSIGNES_RESERVE_VIP.md) | Gérant, responsable, caisse, serveurs |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
 Modèles prêts à copier : [`templates/`](templates/). Exemples de missions déroulées :

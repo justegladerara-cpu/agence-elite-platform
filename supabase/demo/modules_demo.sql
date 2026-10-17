@@ -1609,6 +1609,59 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Lot 4 (migration 20261017000136) : emballages consignés et bouteille en réserve sur « Commerce Démo », table VIP avec
+-- minimum de consommation et bouteille en réserve sur « Restaurant Démo ». Tout est fictif.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; fournisseur uuid; client uuid; casier uuid; bouteille uuid; r jsonb;
+begin
+  select id into etab from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.emballages where etablissement_id = etab) or not public.module_actif(etab, 'stock') then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  select id into fournisseur from public.contacts where etablissement_id = etab and nom = 'Grossiste Démo';
+  select id into client from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  casier := public.enregistrer_emballage(etab, jsonb_build_object('nom', 'Casier 12 bouteilles', 'consigne', 2000));
+  bouteille := public.enregistrer_emballage(etab, jsonb_build_object('nom', 'Bouteille 65 cl', 'consigne', 0));
+  if fournisseur is not null then
+    perform public.noter_mouvement_emballage(etab, jsonb_build_object('emballage_id', casier, 'type', 'recu_fournisseur', 'quantite', 8, 'contact_id', fournisseur));
+    perform public.noter_mouvement_emballage(etab, jsonb_build_object('emballage_id', casier, 'type', 'rendu_fournisseur', 'quantite', 3, 'contact_id', fournisseur));
+    perform public.noter_mouvement_emballage(etab, jsonb_build_object('emballage_id', bouteille, 'type', 'recu_fournisseur', 'quantite', 24, 'contact_id', fournisseur));
+  end if;
+  perform public.noter_mouvement_emballage(etab, jsonb_build_object('emballage_id', casier, 'type', 'donne_client', 'quantite', 2, 'contact_id', client));
+  perform public.noter_mouvement_emballage(etab, jsonb_build_object('emballage_id', casier, 'type', 'rendu_client', 'quantite', 1, 'contact_id', client, 'montant', 2000));
+  if public.module_actif(etab, 'caisse') then
+    r := public.mettre_bouteille_en_reserve(etab, jsonb_build_object('contact_id', client, 'libelle', 'Whisky de démonstration 70 cl',
+      'reste', 0.75, 'expire_le', public.date_locale(etab) + 60, 'note', 'Bouteille de démonstration'));
+    perform public.servir_depuis_reserve((r ->> 'id')::uuid, 0.25, null);
+  end if;
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
+
+do $$
+declare etab uuid; gerante uuid; vip uuid;
+begin
+  select id into etab from public.etablissements where nom = 'Restaurant Démo' order by cree_le limit 1;
+  if etab is null or exists (select 1 from public.rest_tables where etablissement_id = etab and minimum_consommation is not null) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'resto@demo.agence-elite.fr';
+  select id into vip from public.rest_tables where etablissement_id = etab and nom = 'Terrasse 2';
+  if gerante is null or vip is null then
+    return;
+  end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  perform public.regler_minimum_table(vip, 50000);
+  perform public.mettre_bouteille_en_reserve(etab, jsonb_build_object('nom_client', 'M. Mavoungou (fictif)', 'telephone', '+242 06 900 00 01',
+    'libelle', 'Cognac de démonstration 70 cl', 'unite', 'verre', 'quantite_initiale', 12, 'reste', 7));
+  perform set_config('request.jwt.claims', '', true);
+end
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Lot 3 bars et restaurants (migration 20261017000135) : un happy hour sur les boissons (Restaurant Démo et Commerce
 -- Démo), une vente de Gisèle avec une boisson offerte (raison « Client fidèle ») et un pourboire pour Rodrigue, puis
 -- sa caisse fermée (aucune caisse laissée ouverte). Tout est fictif.

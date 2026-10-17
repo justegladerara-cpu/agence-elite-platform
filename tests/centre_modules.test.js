@@ -34,7 +34,7 @@ describe('centre des modules', () => {
     expect(caisse.depend_de).toEqual(['paiements', 'stock', 'ventes']);
     expect(caisse.requis_par).toEqual(['cloture', 'restaurant_salle']);
     expect(caisse.etablissements_actifs).toBe(1);
-    expect(caisse.permissions.map((p) => p.id)).toEqual(['caisse.happy_hour', 'caisse.menu_qr', 'caisse.offerts_pertes', 'caisse.rattraper', 'caisse.remise_libre', 'caisse.utiliser']);
+    expect(caisse.permissions.map((p) => p.id)).toEqual(['caisse.happy_hour', 'caisse.menu_qr', 'caisse.offerts_pertes', 'caisse.rattraper', 'caisse.remise_libre', 'caisse.reserve', 'caisse.reserve_annuler', 'caisse.utiliser']);
     expect(caisse.utilisateurs).toBe(1);
   });
 
