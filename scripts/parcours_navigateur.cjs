@@ -228,6 +228,32 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/Pourboire de .* enregistré/).first().waitFor();
       await p.getByRole('button', { name: 'Nouvelle vente' }).click();
     });
+    // Caisse sans internet : la vente est gardée sur l'appareil, puis envoyée toute seule au retour de la connexion.
+    await etape('caisse-hors-ligne', async () => {
+      await p.goto(U + '#/caisse');
+      await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
+      await p.context().setOffline(true);
+      try {
+        await p.getByText(/Pas d’internet : 0 vente\(s\) en attente d’envoi/).waitFor();
+        await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
+        await p.locator('button.tuile-article', { hasText: 'Casque test' }).first().click();
+        await p.getByRole('button', { name: /Encaisser/ }).click();
+        const encaissement = p.getByRole('dialog', { name: 'Encaissement' });
+        await encaissement.getByRole('button', { name: 'Valider la vente' }).click();
+        const recu = p.getByRole('dialog', { name: 'Reçu hors ligne' });
+        await recu.getByText(/HORS LIGNE/).first().waitFor();
+        await recu.getByRole('button', { name: 'Nouvelle vente' }).click();
+        await p.getByText(/Pas d’internet : 1 vente\(s\) en attente d’envoi/).waitFor();
+        // Pas de ticket Z tant qu'une vente attend sur l'appareil.
+        await p.getByRole('button', { name: 'Fermeture de caisse' }).click();
+        await p.getByRole('dialog', { name: 'Fermeture de caisse' }).getByText(/pas encore envoyées/).waitFor();
+        await p.keyboard.press('Escape');
+      } finally {
+        await p.context().setOffline(false);
+      }
+      await p.getByText(/1 vente\(s\) faite\(s\) sans internet envoyée\(s\)/).first().waitFor({ timeout: 30000 });
+      await p.getByText(/vente\(s\) en attente d’envoi/).waitFor({ state: 'detached' });
+    });
     await etape('offerts-pertes', async () => {
       await p.goto(U + '#/offerts-pertes');
       await p.getByRole('heading', { name: 'Offerts et pertes' }).first().waitFor();

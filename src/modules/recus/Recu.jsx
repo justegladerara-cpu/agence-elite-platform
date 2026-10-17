@@ -46,6 +46,7 @@ export function Ticket({ recu }) {
       {recu.vendeur && <div className="ticket-ligne"><span>Vendeur</span><span>{recu.vendeur}</span></div>}
       {vente.servi_par && <div className="ticket-ligne"><span>Servi par</span><span>{vente.servi_par}</span></div>}
       {recu.contact && <div className="ticket-ligne"><span>Contact</span><span>{recu.contact.nom}</span></div>}
+      {recu.horsLigne && <div className="ticket-annule">HORS LIGNE : vente gardée sur l’appareil, son numéro est donné à l’envoi</div>}
       {vente.statut === 'annulee' && <div className="ticket-annule">VENTE ANNULÉE — {vente.motif_annulation}</div>}
       <div className="ticket-sep" />
       {lignes.map((l, i) => (
@@ -73,7 +74,7 @@ export function Ticket({ recu }) {
   );
 }
 
-function ZoneImpression({ children }) {
+export function ZoneImpression({ children }) {
   return createPortal(<div className="zone-impression">{children}</div>, document.body);
 }
 
