@@ -3,6 +3,9 @@
 **Qui :** gérant, responsable, comptable. **Où :** Devis et factures, Rapprochement, Pilotage. Aucune connexion
 bancaire : les relevés s'importent à la main depuis un fichier exporté par la banque ou l'opérateur Mobile Money.
 
+> **2026-10-13 : l'écran Rapprochement est retiré du menu** (demande de Juste : « ça ne sert à rien »). Les données et
+> les fonctions en base restent ; la partie « rapprochement des relevés » ci-dessous n'est plus accessible.
+
 ## Saisir un taux de change (droit `facturation.gerer`)
 1. Devis et factures › onglet **Taux de change** › **Saisir un taux**.
 2. Devise du client (code à 3 lettres, ex. EUR, USD), date du taux, valeur de 1 unité dans la devise de

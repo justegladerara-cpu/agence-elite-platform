@@ -20,3 +20,52 @@
 .saisie-prix { width: 7rem; text-align: right; }
 .choix-conditionnement { display: block; margin-top: 0.25rem; max-width: 14rem; font-size: 0.85rem; min-height: 36px; }
 .alerte-prix { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.25rem; }
+
+/* Préparer la commande (lot 3) : une ligne par article, quantité à droite ; boutons pleine largeur sur téléphone. */
+.ligne-commande {
+  align-items: center;
+  gap: 12px;
+}
+
+.ligne-commande .champ {
+  flex: none;
+  width: 140px;
+  margin: 0;
+}
+
+.ligne-commande input {
+  min-height: 44px;
+  font-size: 1.05rem;
+}
+
+.groupe-commande textarea {
+  width: 100%;
+  font-family: inherit;
+  background: var(--surface-douce);
+  color: var(--texte);
+}
+
+.groupe-commande .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bouton.desactive {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .ligne-commande {
+    flex-wrap: wrap;
+  }
+
+  .ligne-commande .champ {
+    width: 100%;
+  }
+
+  .groupe-commande .actions > * {
+    flex: 1 1 100%;
+  }
+}

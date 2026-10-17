@@ -4,6 +4,9 @@ import { lazy } from 'react';
 const Caisse = lazy(() => import('./Caisse.jsx'));
 const MenuQr = lazy(() => import('./MenuQr.jsx'));
 const CommandesQr = lazy(() => import('./CommandesQr.jsx'));
+const HappyHour = lazy(() => import('./HappyHour.jsx'));
+const OffertsPertes = lazy(() => import('./OffertsPertes.jsx'));
+const Reserves = lazy(() => import('./Reserves.jsx'));
 
 export default {
   module: 'caisse',
@@ -13,6 +16,11 @@ export default {
     { id: 'menu-qr', libelle: 'Menu QR des tables', icone: 'table', groupe: 'Vente', ordre: 12, permission: 'caisse.menu_qr', composant: MenuQr },
     // Commandes envoyées depuis les tables : ouvertes depuis la caisse, la notification ou le menu QR.
     { id: 'commandes-qr', libelle: 'Commandes des tables', icone: 'table', groupe: 'Vente', ordre: 13, permission: 'caisse.utiliser', composant: CommandesQr, horsMenuSi: () => true },
+    // Lot 3 bars et restaurants (migration 20261017000135) : prix par horaire et rapport des offerts, pertes, pourboires.
+    { id: 'happy-hour', libelle: 'Happy hour', icone: 'horloge', groupe: 'Vente', ordre: 14, permission: 'caisse.happy_hour', composant: HappyHour },
+    { id: 'offerts-pertes', libelle: 'Offerts et pertes', icone: 'etoile', groupe: 'Vente', ordre: 15, permission: 'caisse.offerts_pertes', composant: OffertsPertes },
+    // Bouteilles en réserve au nom d'un client (migration 20261017000136).
+    { id: 'reserves', libelle: 'Bouteilles en réserve', icone: 'etoile', groupe: 'Vente', ordre: 16, permission: 'caisse.reserve', composant: Reserves },
   ],
   widgets: [],
 };

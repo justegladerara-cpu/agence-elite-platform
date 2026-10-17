@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, Champ, DataTable, Erreur, Modale, PageHeader, Section, Squelette, Tabs } from '../../ui/composants.jsx';
 import { POSTES } from './commun.js';
+import { estArticleTechnique } from './vip.js';
 
 // Réglages de la salle : tables par zone et par Hub, poste de préparation de chaque article.
 export default function Reglages() {
@@ -12,7 +13,7 @@ export default function Reglages() {
       api.lire('rest_tables', { eq: { etablissement_id: etab }, ordre: ['zone', 'ordre', 'nom'] }),
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
     ]);
-    return { tables, articles };
+    return { tables, articles: articles.filter((a) => !estArticleTechnique(a)) };
   }, [etab]);
   const [onglet, setOnglet] = useState('tables');
   const [table, setTable] = useState(null);
@@ -47,6 +48,7 @@ export default function Reglages() {
               { id: 'zone', libelle: 'Zone' },
               { id: 'hub', libelle: 'Hub', rendu: (t) => hubs.find((h) => h.id === t.hub_id)?.nom ?? '—' },
               { id: 'places', libelle: 'Places', classe: 'nombre' },
+              { id: 'minimum', libelle: 'Minimum (VIP)', classe: 'nombre', rendu: (t) => (t.minimum_consommation ? montant(t.minimum_consommation) : '—') },
               { id: 'actif', libelle: 'État', rendu: (t) => <Badge ton={t.actif ? 'vert' : 'neutre'}>{t.actif ? 'Active' : 'Retirée'}</Badge> },
             ]}
           />
@@ -80,7 +82,9 @@ export default function Reglages() {
 }
 
 function ModaleTable({ table, hubs, onFermer, onFait }) {
-  const { api, etablissement, hub } = useEspace();
+  const { api, etablissement, hub, peut } = useEspace();
+  // Table VIP : minimum de consommation, réglé par sa propre fonction (droit « restaurant_salle.minimum »).
+  const [minimum, setMinimum] = useState(table.minimum_consommation ? String(Number(table.minimum_consommation)) : '');
   const [v, setV] = useState({
     nom: table.nom ?? '', zone: table.zone ?? 'Salle', places: String(table.places ?? 4), ordre: String(table.ordre ?? 0),
     hub_id: table.hub_id ?? hub?.id ?? hubs[0]?.id ?? '', actif: table.actif ?? true,
@@ -90,7 +94,11 @@ function ModaleTable({ table, hubs, onFermer, onFait }) {
   const valider = async (e) => {
     e.preventDefault();
     try {
-      await api.rpc('enregistrer_table_restaurant', { p_etablissement_id: etablissement.id, p: { id: table.id, ...v } });
+      const id = await api.rpc('enregistrer_table_restaurant', { p_etablissement_id: etablissement.id, p: { id: table.id, ...v } });
+      const montantMinimum = minimum.trim() === '' ? null : Number(minimum.replace(/\s/g, '').replace(',', '.'));
+      if (peut('restaurant_salle.minimum') && montantMinimum !== (table.minimum_consommation != null ? Number(table.minimum_consommation) : null)) {
+        await api.rpc('regler_minimum_table', { p_table_id: id ?? table.id, p_montant: montantMinimum });
+      }
       onFait();
     } catch (err) {
       setErreur(err.message);
@@ -104,6 +112,11 @@ function ModaleTable({ table, hubs, onFermer, onFait }) {
           <Champ libelle="Zone"><input value={v.zone} onChange={changer('zone')} maxLength={60} placeholder="Salle, Terrasse, VIP…" /></Champ>
           <Champ libelle="Places"><input type="number" min="1" max="100" value={v.places} onChange={changer('places')} /></Champ>
           <Champ libelle="Ordre d’affichage"><input type="number" value={v.ordre} onChange={changer('ordre')} /></Champ>
+          {peut('restaurant_salle.minimum') && (
+            <Champ libelle="Minimum de consommation (table VIP)" aide="Facultatif. Vide = pas de minimum.">
+              <input inputMode="numeric" value={minimum} onChange={(e) => setMinimum(e.target.value)} placeholder="ex. 100000" />
+            </Champ>
+          )}
           {hubs.length > 1 && (
             <Champ libelle="Hub">
               <select value={v.hub_id} onChange={changer('hub_id')}>{hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}</select>
