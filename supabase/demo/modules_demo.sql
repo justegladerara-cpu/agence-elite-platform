@@ -1607,3 +1607,48 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- QR codes (migration 20261017000139) : logo fictif de « Commerce Démo » (boutique dessinée), style par défaut,
+-- trois QR codes libres (Instagram avec logo et UTM, WhatsApp, Wi-Fi) et quelques scans fictifs sur 30 jours.
+-- ---------------------------------------------------------------------------
+do $$
+declare etab uuid; gerante uuid; insta uuid; wa uuid; tz text; j integer; k integer; n integer; moment timestamptz;
+begin
+  select id, fuseau into etab, tz from public.etablissements where nom = 'Commerce Démo' order by cree_le limit 1;
+  if etab is null or not public.module_actif(etab, 'caisse') or exists (select 1 from public.qr_codes where etablissement_id = etab) then
+    return;
+  end if;
+  select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
+  perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
+  if (select logo_url from public.etablissement_identite where etablissement_id = etab) is null then
+    perform public.enregistrer_identite(etab, (select to_jsonb(i) - 'etablissement_id' from public.etablissement_identite i where i.etablissement_id = etab)
+      || jsonb_build_object('logo_url', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAABRUlEQVR42u3cMapCMRCG0ezEJblct+JGrBULwUJMRMP8MefCdJLnfKeRF7it/eg5HM/XnaZVPrvFjkARuBBD0CIEEQshhCtEEKwQQahiBJEKAQQqRBCmGEEUAPsCCFKMIAYAAAbAngBCFCOIAACAAQDALA4w+lxObWjSzwMAAAAAAAAAAAAAAAAAAAAAAAAAAMCuAKMI98+NLph+XuR9QG+5x4wul35e5IVMb7l3S654XuSNWG+5V0uufF7klWRvuecl/+E8d8Iu5T//WbrKAwAAAAAAAAAAAAAAgO8BZv+d1O8LAAAAAAAAAAAAAAAAAAAAAACwI0DaP88AAAAAAAAAAAAAAAAAAAAA451xAAwA74823p4OwAAAYKYBQCiODwAAAAjF8SEExAcQAAChOD6EgPgQAuKDCAgPISQ+jIDoUObEvgELeNpLrJVbJAAAAABJRU5ErkJggg=='));
+  end if;
+  -- Style par défaut : modules arrondis, yeux arrondis, bleu de l'établissement, cadre « Scannez-moi ».
+  perform public.regler_apparence_qr(etab, jsonb_build_object('logo', true, 'style', jsonb_build_object(
+    'modules', 'arrondi', 'yeux', 'arrondi', 'couleur', '#1f4fd8', 'couleurYeux', '#0b2a7a', 'fond', '#ffffff', 'marge', 2,
+    'cadre', 'scannez', 'couleurCadre', '#1f4fd8')));
+  insta := public.enregistrer_qr_code(etab, jsonb_build_object('nom', 'Instagram', 'type', 'lien', 'url', 'https://www.instagram.com/commerce.demo.fictif',
+    'utm', true, 'avec_logo', true, 'style', jsonb_build_object('modules', 'points', 'yeux', 'cercle', 'couleur', '#1f4fd8', 'degrade', '#7a1fd8',
+    'cadre', 'perso', 'texteCadre', 'Suivez-nous', 'couleurCadre', '#1f4fd8')));
+  wa := public.enregistrer_qr_code(etab, jsonb_build_object('nom', 'WhatsApp de la boutique', 'type', 'whatsapp',
+    'contenu', jsonb_build_object('numero', '+242 06 000 00 00', 'message', 'Bonjour, je voudrais savoir si vous avez ce produit'),
+    'style', jsonb_build_object('couleur', '#0f6b3a', 'cadre', 'scannez', 'couleurCadre', '#0f6b3a')));
+  perform public.enregistrer_qr_code(etab, jsonb_build_object('nom', 'Wi-Fi clients', 'type', 'wifi',
+    'contenu', jsonb_build_object('reseau', 'CommerceDemo-Invites', 'cle', 'demo-wifi-2026', 'securite', 'WPA')));
+  perform set_config('request.jwt.claims', '', true);
+  -- Scans fictifs : plus nombreux le midi et le soir, surtout sur mobile.
+  for j in 0..29 loop
+    for k in 0..((j * 7) % 5) loop
+      n := (j * 13 + k * 7) % 10;
+      moment := ((public.date_locale(etab) - j)::timestamp
+        + make_interval(hours => (array[12, 13, 19, 20, 20, 21, 18, 12, 17, 10])[n + 1], mins => (j * 11 + k * 17) % 60)) at time zone tz;
+      if moment < now() then
+        insert into public.qr_scans (etablissement_id, qr_code_id, scanne_le, appareil)
+        values (etab, case when k % 3 = 2 then wa else insta end, moment, (array['mobile', 'mobile', 'mobile', 'tablette', 'ordinateur'])[(n % 5) + 1]);
+      end if;
+    end loop;
+  end loop;
+end
+$$;

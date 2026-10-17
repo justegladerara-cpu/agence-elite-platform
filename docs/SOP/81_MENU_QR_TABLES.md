@@ -11,6 +11,8 @@ gérant et responsable) et « Commandes des tables » (bouton dans la caisse, `#
 5. Phase 2 : allumer « **Commandes** » → le client ajoute au panier, envoie ; la caisse reçoit une notification.
 6. Masquer un article du menu : liste « Visible sur le menu » (n'empêche pas de le vendre en caisse).
 7. QR perdu ou copié : « Nouveau code » (l'ancien lien cesse de marcher).
+8. Logo au centre (facultatif), formes, couleurs, cadre « Voir le menu » et scans par table : voir
+   [SOP 88](88_QR_CODES_LOGO_SCANS.md) (écran « QR codes », onglets « Style par défaut » et « Statistiques des scans »).
 
 ## Pendant le service (caisse)
 - Bouton « Commandes des tables (n) » dans la caisse, rafraîchi toutes les 15 s.

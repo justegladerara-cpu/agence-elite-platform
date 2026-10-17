@@ -8,6 +8,8 @@ export const NOUVEAUTES_CAISSE_JUSQUA = '2026-10-14T22:30:00Z';
 export const NOUVEAU_PRESENCE_JUSQUA = '2026-10-15T12:00:00Z';
 // Caisse unique, serveurs, bouton Encaisser toujours visible sur tablette, alerte ticket Z (2026-10-13).
 export const NOUVEAU_CAISSE_UNIQUE_JUSQUA = '2026-10-18T12:00:00Z';
+// QR codes avec logo, QR codes libres (lien, WhatsApp, menu, Wi-Fi) et suivi des scans (2026-10-17).
+export const NOUVEAU_QR_JUSQUA = '2026-10-21T12:00:00Z';
 
 export const estNouveau = (jusqua = NOUVEAUTES_CAISSE_JUSQUA, maintenant = Date.now()) => maintenant < new Date(jusqua).getTime();
 

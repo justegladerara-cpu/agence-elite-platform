@@ -38,6 +38,8 @@ export async function demarrerLocal() {
     ...api,
     comptes: () => listerComptesDemo(db),
     utilisateur: () => utilisateur,
+    // Avant de quitter la page (QR code suivi qui redirige) : l'écriture doit être sur le disque du navigateur.
+    attendreEcriture: () => db.syncToFs(),
     async connecter(id) {
       utilisateur = id;
       ecrireStockage(CLE_UTILISATEUR, id);

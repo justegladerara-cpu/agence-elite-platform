@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { appliquerMarque } from '../noyau/marque.js';
 import { formatMontant } from '../noyau/format.js';
+import { identifiantVisiteur, typeAppareil } from '../noyau/qrContenus.js';
 import { Badge, Bouton, Champ, Chargement, Erreur } from '../ui/composants.jsx';
 
 // Menu d'une table (#/menu/<jeton>), ouvert en scannant le QR code, sans compte. Consultation d'abord ; commande si
@@ -85,6 +86,14 @@ export function MenuPublic({ donnees, jeton }) {
     .catch((e) => setErreur(e.message));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { charger(); }, [donnees, jeton]);
+  // Scan compté (migration 20261017000139) : un échec ne gêne jamais le menu.
+  useEffect(() => {
+    Promise.resolve()
+      .then(() => donnees.rpc('noter_scan_menu', {
+        p_jeton: jeton, p_appareil: typeAppareil(navigator.userAgent, navigator.maxTouchPoints ?? 0), p_visiteur: identifiantVisiteur(),
+      }))
+      .catch(() => {});
+  }, [donnees, jeton]);
   useEffect(() => ecrire(clePanier(jeton), panier), [jeton, panier]);
 
   const montant = (n) => formatMontant(n, menu?.devise ?? 'XAF');

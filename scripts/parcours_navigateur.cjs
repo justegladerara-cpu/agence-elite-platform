@@ -49,7 +49,9 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByPlaceholder('Nom, référence ou code-barres').waitFor();
       await p.waitForTimeout(1500);
       if (await p.getByRole('dialog').count()) throw new Error('« Tu continues ? » ne doit pas revenir à chaque page');
-      await p.getByText(/Tu es toujours là \?/).first().waitFor();
+      // Le bandeau « Nouveau » qui citait « Tu es toujours là ? » a expiré le 2026-10-15 (NOUVEAU_PRESENCE_JUSQUA) :
+      // on vérifie seulement que la caisse est là, sans pop-up.
+      await p.getByRole('button', { name: 'Fermeture de caisse' }).waitFor();
     });
     await etape('article-cree', async () => {
       await p.goto(U + '#/articles');
@@ -727,6 +729,63 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/2 vente\(s\) enregistrée\(s\), caisse du .* fermée : Z-/).first().waitFor({ timeout: 30000 });
       await p.locator('.ticket-apercu').getByText(/Saisie après coup du/).waitFor();
       await p.keyboard.press('Escape');
+    });
+
+    await etape('qr-codes', async () => {
+      // QR code libre avec logo et style, contrôlé avant téléchargement ; son scan passe par #/q/, compte, puis redirige.
+      await p.route('https://exemple-parcours.test/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Page cible du parcours</h1>' }));
+      await p.goto(U + '#/qr-codes');
+      await p.getByRole('heading', { name: 'QR codes', exact: true }).waitFor({ timeout: 60000 });
+      // QR codes fictifs de la démo, avec des scans.
+      await p.getByRole('article', { name: 'QR code Instagram' }).getByText(/[1-9]\d* scan\(s\) sur 30 jours/).waitFor();
+      await p.getByRole('button', { name: 'Nouveau QR code' }).first().click();
+      const d = p.getByRole('dialog', { name: 'Nouveau QR code' });
+      await d.getByLabel('Nom du QR code').fill('Parcours Instagram');
+      await d.getByLabel('Adresse du lien').fill('https://exemple-parcours.test/page');
+      await d.getByLabel(/Logo au centre/).check();
+      await d.getByRole('button', { name: 'Plus d’options' }).click();
+      await d.getByLabel('Forme des modules').selectOption('points');
+      await d.getByLabel('Forme des yeux (coins)').selectOption('cercle');
+      await d.getByLabel('Cadre et appel à l’action').selectOption('scannez');
+      await d.getByText('✓ Se lit bien').waitFor({ timeout: 30000 });
+      // Couleurs inversées : la vérification le voit.
+      await d.getByLabel('Couleur des modules').fill('#ffffff');
+      await d.getByLabel('Couleur du fond').fill('#111111');
+      await d.getByText('✗ Ne se lit pas bien').waitFor({ timeout: 30000 });
+      await d.getByLabel('Couleur des modules').fill('#1f4fd8');
+      await d.getByLabel('Couleur du fond').fill('#ffffff');
+      await d.getByText('✓ Se lit bien').waitFor({ timeout: 30000 });
+      await d.getByRole('button', { name: 'Créer le QR code' }).click();
+      await d.waitFor({ state: 'detached' });
+      const carte = p.getByRole('article', { name: 'QR code Parcours Instagram' });
+      await carte.getByText('modifiable après impression').waitFor();
+      for (const [bouton, nom] of [['PNG', /^parcours-instagram-1024\.png$/], ['SVG', /^parcours-instagram\.svg$/]]) {
+        const [fichier] = await Promise.all([p.waitForEvent('download'), carte.getByRole('button', { name: bouton, exact: true }).click()]);
+        if (!nom.test(fichier.suggestedFilename())) throw new Error(`Téléchargement ${bouton} : ${fichier.suggestedFilename()}`);
+      }
+      await p.evaluate(() => { navigator.clipboard.writeText = async (t) => { window.copieParcours = t; }; });
+      await carte.getByRole('button', { name: 'Copier le lien' }).click();
+      const lien = await p.evaluate(() => window.copieParcours);
+      if (!/#\/q\/[0-9a-f]{20}$/.test(lien ?? '')) throw new Error('Lien du QR code inattendu : ' + lien);
+      // Le scan : la page publique #/q/ (même onglet : la démo garde sa base dans ce navigateur, un autre contexte
+      // aurait une autre base) compte le scan puis envoie vers la cible, avec les balises UTM si cochées.
+      await p.goto(lien);
+      await p.waitForURL(/exemple-parcours\.test\/page/, { timeout: 60000 });
+      await p.getByText('Page cible du parcours').waitFor();
+      await p.goto(U + '#/qr-codes?vue=stats');
+      const ligne = p.getByRole('table', { name: 'Scans par QR code' }).getByRole('row').filter({ hasText: 'Parcours Instagram' });
+      await ligne.waitFor({ timeout: 60000 });
+      const cellules = await ligne.getByRole('cell').allTextContents();
+      if (cellules[1] !== '1' || cellules[6] === '—') throw new Error('Scan non compté : ' + cellules.join(' | '));
+      await p.getByRole('heading', { name: 'Heures de pointe' }).waitFor();
+      // Désactivé : la page publique le dit, rien n'est compté.
+      await p.getByRole('tab', { name: /Mes QR codes/ }).click();
+      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByRole('button', { name: 'Désactiver' }).click();
+      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByText('désactivé').waitFor();
+      await p.goto(lien);
+      await p.getByText(/Ce QR code n.est plus actif/).waitFor({ timeout: 60000 });
+      await p.goto(U + '#/qr-codes?vue=style');
+      await p.getByRole('heading', { name: 'Style par défaut' }).waitFor({ timeout: 60000 });
     });
 
     await etape('connexions', async () => {
