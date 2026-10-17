@@ -1,4 +1,4 @@
-# SOP 83 — Une seule caisse ouverte, alerte ticket Z, serveurs, caisse sur tablette
+# SOP 89 — Une seule caisse ouverte, alerte ticket Z, serveurs, caisse sur tablette
 
 **Qui :** caissière, gérant, responsable. **Où :** Caisse, Clôture de caisse, Tableau de bord, Paramètres › Réglages des
 modules › Clôture. Demande de Juste pour le Dream (bar ouvert 24 h/24, une seule caisse physique), 2026-10-13.

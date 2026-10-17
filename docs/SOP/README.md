@@ -32,7 +32,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Créer un client | [18](18_CREER_UN_CLIENT.md) | Agence Elite |
 | Créer un établissement | [19](19_CREER_UN_ETABLISSEMENT.md) | Agence Elite |
 | Créer ou gérer des utilisateurs | [20](20_CREER_GERER_UTILISATEURS.md) | Agence Elite, responsable |
-| Réinitialiser un mot de passe | [21](21_REINITIALISER_UN_MOT_DE_PASSE.md) | Agence Elite |
+| Réinitialiser un mot de passe (Agence Elite, ou le gérant pour son équipe) | [21](21_REINITIALISER_UN_MOT_DE_PASSE.md) | Agence Elite, gérant |
 | Vendre / attribuer une licence | [22](22_ATTRIBUER_UNE_LICENCE.md) | Agence Elite |
 | Suspendre ou réactiver | [23](23_SUSPENDRE_REACTIVER.md) | Agence Elite |
 | Accorder un module en plus | [24](24_ACCORDER_UN_MODULE.md) | Agence Elite |
@@ -85,7 +85,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Photographier et recadrer un document, envoi qui reprend après une coupure de réseau | [72](72_PHOTOGRAPHIER_UN_DOCUMENT.md) | Toute l'équipe |
 | Espace client : ouvrir un lien, répondre aux messages, traiter les dépôts, révoquer, rendez-vous en ligne, aide publiée | [71](71_OUVRIR_UN_ESPACE_CLIENT.md) | Gérant, responsable, commercial |
 | Propositions types du CRM, parrainage, bilan de collaboration publié au client, maintenance annoncée | [73](73_PARRAINAGE_BILAN_MAINTENANCE.md) | Gérant, responsable, commercial |
-| Devise du client et taux de change, rapprochement des relevés de banque ou de Mobile Money, trésorerie prévue par scénario | [74](74_DEVISE_RAPPROCHEMENT_TRESORERIE.md) | Gérant, responsable, comptable |
+| Devise du client et taux de change, trésorerie prévue par scénario (rapprochement retiré du menu le 2026-10-13) | [74](74_DEVISE_RAPPROCHEMENT_TRESORERIE.md) | Gérant, responsable, comptable |
 | Enregistrer son stock simplement : marchandise reçue, comptage, fichier de stock (code-barres facultatif), retrait | [75](75_STOCK_SIMPLIFIE.md) | Gérant, responsable, gestionnaire de dépôt |
 | Fermeture automatique de la caisse chaque jour (minuit par défaut, heure réglable), espèces comptées après coup | [76](76_FERMETURE_CAISSE_QUOTIDIENNE.md) | Gérant, responsable |
 | Saisir après coup les ventes d'un jour passé et fermer la caisse de ce jour (gérant) | [77](77_VENTES_JOUR_PASSE.md) | Gérant, responsable |
@@ -95,6 +95,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Menu QR sur les tables : consulter le menu, puis commander ; commandes reçues en caisse ou en salle | [81](81_MENU_QR_TABLES.md) | Gérant, responsable, caisse |
 | Deuxième établissement : copier le catalogue d'un établissement du même client | [82](82_DEUXIEME_ETABLISSEMENT.md) | Gérant |
 | Une seule caisse ouverte à la fois, caisse oubliée, alerte ticket Z, serveurs, caisse sur tablette | [83](83_CAISSE_UNIQUE_SERVEURS.md) | Caissière, gérant, responsable |
+| Copier des articles d'un client à un autre (photos comprises), bibliothèque d'articles Agence Elite | [89](89_COPIER_DES_ARTICLES_ENTRE_CLIENTS.md) | Super admin |
 | Bar / restaurant : happy hour automatique, offerts avec raison, pourboires par serveur, rapport « Offerts et pertes », alerte « Plus que N » et commande fournisseur WhatsApp | [85](85_OFFERTS_HAPPYHOUR_POURBOIRES.md) | Gérant, responsable, caisse |
 | Elite Partners : recruter, générer des clés, installer, renouveler, payer les commissions | [76](76_ELITE_PARTNERS.md) | Agence Elite + partenaires |
 
