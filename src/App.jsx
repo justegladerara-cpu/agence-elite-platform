@@ -30,6 +30,7 @@ import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
 import { oublierAccueil } from './modules/caisse/verrouCaisse.js';
 import { ecrireDefautEtablissement, filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
+import { ecrirePlusOuvert, noterPageOuverte, separerMenu, useMenuEssentiel } from './noyau/menuEssentiel.js';
 import { AIDES, aidesFermees, fermerAide } from './noyau/aides.js';
 import {
   Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, lireImageReduite, Modale, Onglets, useFilAriane, Vide,
@@ -568,6 +569,13 @@ function Coquille() {
     if (routeAttendue && route !== routeAttendue) window.history.replaceState(null, '', `#/${routeAttendue}`);
   }, [routeAttendue, route]);
 
+  // Menu court : écrans de tous les jours d'abord, le reste replié dans « Plus d'outils ».
+  const { recents, plusOuvert } = useMenuEssentiel();
+  const { courtes: menuCourt, autres: menuPlus } = separerMenu(menu, { recents, pageActive: surEditeur ? null : page?.id });
+  useEffect(() => {
+    if (!surEditeur && page?.id) noterPageOuverte(page.id);
+  }, [surEditeur, page?.id]);
+
   const aller = (id) => {
     setMenuOuvert(false);
     naviguer(id);
@@ -611,21 +619,16 @@ function Coquille() {
                     <strong>{nomEtablissement}</strong>
                   </div>
                 )}
-                {groupesDuMenu(menu).map((groupe) => {
-                  const liens = menu.filter((p) => p.groupe === groupe);
-                  if (!liens.length) return null;
-                  return (
-                    <div key={groupe} className="menu-groupe">
-                      <span className="menu-groupe-titre">{groupe}</span>
-                      {liens.map((p) => (
-                        <button key={p.id} className={!surEditeur && p.id === page?.id ? 'actif' : ''} aria-current={!surEditeur && p.id === page?.id ? 'page' : undefined} onClick={() => aller(p.id)}>
-                          <Icone nom={p.icone} />
-                          <span>{p.libelle}</span>
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })}
+                <GroupesMenu pages={menuCourt} pageActive={surEditeur ? null : page?.id} aller={aller} />
+                {menuPlus.length > 0 && (
+                  <>
+                    <button type="button" className="menu-plus" aria-expanded={plusOuvert} onClick={() => ecrirePlusOuvert(!plusOuvert)}>
+                      <Icone nom={plusOuvert ? 'moins' : 'plus'} />
+                      <span>{plusOuvert ? 'Moins d’outils' : `Plus d’outils (${menuPlus.length})`}</span>
+                    </button>
+                    {plusOuvert && <GroupesMenu pages={menuPlus} pageActive={null} aller={aller} />}
+                  </>
+                )}
               </>
             )}
           </nav>
@@ -807,4 +810,18 @@ export default function App({ demarrer = demarrerDonnees }) {
     );
   }
   return <ContexteAuth.Provider value={config}>{ecran}</ContexteAuth.Provider>;
+}
+
+function GroupesMenu({ pages, pageActive, aller }) {
+  return groupesDuMenu(pages).map((groupe) => (
+    <div key={groupe} className="menu-groupe">
+      <span className="menu-groupe-titre">{groupe}</span>
+      {pages.filter((p) => p.groupe === groupe).map((p) => (
+        <button key={p.id} className={p.id === pageActive ? 'actif' : ''} aria-current={p.id === pageActive ? 'page' : undefined} onClick={() => aller(p.id)}>
+          <Icone nom={p.icone} />
+          <span>{p.libelle}</span>
+        </button>
+      ))}
+    </div>
+  ));
 }
