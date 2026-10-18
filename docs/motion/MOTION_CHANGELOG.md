@@ -11,4 +11,5 @@
   notifications illimitée.
 - Mouvement réduit étendu à toute l'interface (avant : squelette et survol des indicateurs seulement).
 - Mesure reproductible : `scripts/mesure_motion.cjs` ; parcours navigateur : `scripts/parcours_motion.cjs` (CI).
+- Après mesure : fenêtre d'encaissement affichée sans aucune animation (elle retardait l'affichage de ~50 ms).
 - Aucune dépendance ajoutée, aucune migration, aucune logique métier modifiée.

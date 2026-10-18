@@ -25,5 +25,6 @@
 | **Caisse** : ligne du panier | — | la ligne ajoutée s'éclaire 700 ms (couleur seulement) | `motion.css` |
 | **Caisse** : compteur de la tuile | — | se pose (160 ms) au premier ajout | `motion.css` |
 | **Caisse** : total, monnaie, reste dû, Encaisser, Valider | — | **jamais animés** | — |
+| **Caisse** : fenêtre d'encaissement | voile en fondu | **affichée d'un coup** (mesure : l'entrée retardait l'affichage de ~50 ms) | `motion.css` |
 
 Non animés exprès : retraits de lignes, fermetures de fenêtres (voir MOTION_ROADMAP.md), impression, reçus.

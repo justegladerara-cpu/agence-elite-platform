@@ -324,3 +324,10 @@ textarea {
   animation: ems-pop var(--ems-duree-rapide) var(--ems-courbe-ressort) backwards;
 }
 /* Le total, la monnaie, le reste dû et les boutons Encaisser / Valider ne sont jamais animés. */
+/* Fenêtre d'encaissement : affichée d'un coup, sans fondu du voile ni entrée de la fenêtre (mesure : l'entrée
+   retardait son affichage complet de 35 à 50 ms sur une machine sans carte graphique ; voir MOTION_PERFORMANCE.md). */
+.voile:has(.bouton-valider-vente),
+.voile:has(.bouton-valider-vente) > .modale,
+.voile:has(.bouton-valider-vente) .carte {
+  animation: none !important;
+}
