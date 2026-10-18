@@ -43,3 +43,13 @@ E2 clôture, E5 rapprochement Mobile Money, F2 fidélité, H4 assistant, H5 affi
 - E6/G3 envoi automatique (20 h, J+7) : aucun canal d'envoi WhatsApp/SMS ; on prépare le message en un clic.
 - B9 vente hors connexion : l'application s'ouvre sans réseau, mais enregistrer une vente exige la base (risque de double vente et de stock faux) ; chantier à part.
 - D4 n'est pas « tout ou rien » : `modifier_articles_lot` n'accepte pas le prix ; une migration future pourra l'ajouter.
+
+## Menu court (2026-10-18)
+Juste : « Simplifie au maximum toutes les fonctionnalités ». Le menu de gauche montre d'abord les écrans de tous
+les jours (`PAGES_ESSENTIELLES` dans `src/noyau/menuEssentiel.js` : accueil, tableau de bord, caisse, salle,
+cuisine, réception et chambres de l'hôtel, boutique, ventes, clôtures, qui me doit, factures, articles, stock,
+dépenses, contacts, paramètres). Les autres écrans sont rangés sous « Plus d'outils (N) », replié par défaut.
+- Rien n'est retiré : mêmes écrans, mêmes droits, mêmes adresses. La base n'est pas concernée.
+- Un écran ouvert ces 30 derniers jours sur l'appareil remonte tout seul dans le menu court ; l'écran affiché aussi.
+- Moins de 3 écrans en plus : rien n'est replié. Elite Simple continue de réduire le menu en plus.
+- Test : `tests/menu_essentiel.test.js`. Un caissier de la démo passe de 20 à 10 entrées.
