@@ -5,7 +5,7 @@
 | Unitaires, avant | `npm test` (`main` `74bfdef`) | 115 fichiers, 1 034 tests : tous verts |
 | Unitaires, après | `npm test` | 116 fichiers, 1 054 tests : tous verts (+20 : `tests/motion.test.jsx`) ; CI verte après fusion de `main` |
 | Build | `npm run build`, `npm run build:demo` | OK |
-| Parcours navigateur (tous domaines, bureau, tablette, téléphone, console) | `npm run test:e2e` | OK, aucune erreur console |
+| Parcours navigateur (tous domaines, bureau, tablette, téléphone, console) | `npm run test:e2e` | OK, aucune erreur console (une fois : délai de 20 s dépassé sur « module-factures » juste après le redémarrage de la base de démo, titre pourtant affiché sur la capture ; relancé : 94/94 OK) |
 | Parcours restaurant, éditeur | `scripts/parcours_restaurant.cjs`, `scripts/parcours_editeur.cjs` | OK |
 | **Parcours animations** (nouveau, en CI) | `scripts/parcours_motion.cjs` | 7/7 OK |
 
