@@ -112,7 +112,7 @@ fs.mkdirSync('captures-parcours', { recursive: true });
       await p.getByText('Copies faites').waitFor();
     });
     await etape('mobile-editeur', async () => {
-      await p.goto(`${U}#/editeur`);
+      await p.goto(`${U}#/editeur/tableau`);
       await p.getByRole('heading', { name: /Bonjour/ }).waitFor();
       await p.waitForTimeout(800);
       const trop = await debordements();

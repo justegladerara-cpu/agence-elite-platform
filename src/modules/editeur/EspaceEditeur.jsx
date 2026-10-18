@@ -17,20 +17,45 @@ import IdentiteEditeur from './PagesAuthEditeur.jsx';
 import TableauEditeur from './TableauEditeur.jsx';
 
 // Menu de l'espace Agence Elite (le rôle Admin n'a ni tarifs ni administrateurs : la base le refuse aussi).
+// Depuis le 2026-10-18, l'administration se fait dans le CRM (crm.agence-elite.fr › Plateforme) : le menu ne montre plus
+// qu'« Administration (CRM) ». Les autres écrans (secours: true) restent ouverts par lien direct, depuis la boîte à
+// outils du CRM ou la liste « Accès de secours », au cas où le CRM serait indisponible.
 export const MENU_EDITEUR = [
-  { id: 'editeur', libelle: 'Tableau de bord', icone: 'tableau' },
-  { id: 'editeur/clients', libelle: 'Clients', icone: 'clients' },
-  { id: 'editeur/hubs', libelle: 'Hubs', icone: 'hub' },
-  { id: 'editeur/modules', libelle: 'Catalogue', icone: 'modules' },
-  { id: 'editeur/comptes', libelle: 'Comptes', icone: 'comptes' },
-  { id: 'editeur/offres', libelle: 'Offres et prix', icone: 'offres' },
-  { id: 'editeur/partenaires', libelle: 'Elite Partners', icone: 'etoile' },
-  { id: 'editeur/identite', libelle: 'Identité et apparence', icone: 'cle' },
-  { id: 'editeur/adresses', libelle: 'Adresses web', icone: 'globe', superAdmin: true },
-  { id: 'editeur/sites', libelle: 'Sites clients', icone: 'dossier', superAdmin: true },
-  { id: 'editeur/crm', libelle: 'CRM Agence Elite', icone: 'clients', superAdmin: true },
-  { id: 'editeur/copie-articles', libelle: 'Copier des articles', icone: 'articles', superAdmin: true },
+  { id: 'editeur', libelle: 'Administration (CRM)', icone: 'clients' },
+  { id: 'editeur/tableau', libelle: 'Tableau de bord', icone: 'tableau', secours: true },
+  { id: 'editeur/clients', libelle: 'Clients', icone: 'clients', secours: true },
+  { id: 'editeur/hubs', libelle: 'Hubs', icone: 'hub', secours: true },
+  { id: 'editeur/modules', libelle: 'Catalogue', icone: 'modules', secours: true },
+  { id: 'editeur/comptes', libelle: 'Comptes', icone: 'comptes', secours: true },
+  { id: 'editeur/offres', libelle: 'Offres et prix', icone: 'offres', secours: true },
+  { id: 'editeur/partenaires', libelle: 'Elite Partners', icone: 'etoile', secours: true },
+  { id: 'editeur/identite', libelle: 'Identité et apparence', icone: 'cle', secours: true },
+  { id: 'editeur/adresses', libelle: 'Adresses web', icone: 'globe', superAdmin: true, secours: true },
+  { id: 'editeur/sites', libelle: 'Sites clients', icone: 'dossier', superAdmin: true, secours: true },
+  { id: 'editeur/crm', libelle: 'CRM Agence Elite', icone: 'clients', superAdmin: true, secours: true },
+  { id: 'editeur/copie-articles', libelle: 'Copier des articles', icone: 'articles', superAdmin: true, secours: true },
 ];
+
+// Page d'accueil de l'espace Agence Elite : renvoi vers le CRM, et les écrans de secours
+function AdministrationDansLeCrm() {
+  const { roleEditeur } = useEspace();
+  const ecrans = MENU_EDITEUR.filter((m) => m.secours && (!m.superAdmin || roleEditeur === 'super_admin') && m.id !== 'editeur/crm');
+  return (
+    <>
+      <CrmEditeur accueil />
+      <div className="page">
+        <details className="acces-secours">
+          <summary>Accès de secours (si le CRM est indisponible)</summary>
+          <ul>
+            {ecrans.map((m) => (
+              <li key={m.id}><a href={`#/${m.id}`}>{m.libelle}</a></li>
+            ))}
+          </ul>
+        </details>
+      </div>
+    </>
+  );
+}
 
 export function routeEditeurActive(route) {
   const segments = route.split('/');
@@ -45,6 +70,8 @@ export default function EspaceEditeur({ route, naviguer }) {
   switch (section) {
     case undefined:
     case '':
+      return <AdministrationDansLeCrm />;
+    case 'tableau':
       return <TableauEditeur naviguer={naviguer} />;
     case 'clients':
       return id ? <PageClient key={id} clientId={id} naviguer={naviguer} /> : <ListeClients naviguer={naviguer} />;

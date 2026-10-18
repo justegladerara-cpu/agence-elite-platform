@@ -12,7 +12,7 @@ export function lienPorteCrm(jeton, adresse = ADRESSE_CRM) {
   return `${adresse}#porte=${encodeURIComponent(jeton)}`;
 }
 
-export default function CrmEditeur() {
+export default function CrmEditeur({ accueil = false }) {
   const { roleEditeur, api } = useEspace();
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -45,13 +45,15 @@ export default function CrmEditeur() {
     <div className="page">
       <PageHeader
         fil={[{ libelle: 'Agence Elite', href: '#/editeur' }, { libelle: 'CRM Agence Elite' }]}
-        titre="CRM Agence Elite"
-        sousTitre="L’outil interne de prospection, de clients et de factures d’Agence Elite. Il ne s’ouvre que d’ici."
+        titre={accueil ? 'Administration Agence Elite' : 'CRM Agence Elite'}
+        sousTitre={accueil
+          ? 'L’administration de la plateforme se fait maintenant dans le CRM : tour de contrôle, clients, licences, comptes, paiements.'
+          : 'L’outil interne de prospection, de clients et de factures d’Agence Elite.'}
       />
       <Section titre="Accès">
         <p className="texte-doux">
-          Le CRM s’ouvre dans un nouvel onglet. Cet appareil reste autorisé pendant 12 heures ; ensuite, repassez par ce bouton.
-          Le CRM garde sa propre connexion et ses données.
+          Le CRM s’ouvre dans un nouvel onglet. Vous pouvez aussi aller directement sur crm.agence-elite.fr et vous connecter
+          avec ce compte super admin. Le CRM garde sa propre connexion et ses données.
         </p>
         <Bouton variante="principal" icone="clients" chargement={envoi} onClick={ouvrir}>Ouvrir le CRM</Bouton>
         <Erreur message={erreur?.message} />

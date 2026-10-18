@@ -24,6 +24,11 @@ describe('CRM Agence Elite (porte unique)', () => {
     expect(MENU_EDITEUR.find((m) => m.id === 'editeur/crm')?.superAdmin).toBe(true);
   });
 
+  test('le menu ne montre plus que l’administration dans le CRM ; les autres écrans restent en secours', () => {
+    expect(MENU_EDITEUR.filter((m) => !m.secours).map((m) => m.id)).toEqual(['editeur']);
+    expect(MENU_EDITEUR.filter((m) => m.secours).map((m) => m.id)).toContain('editeur/clients');
+  });
+
   test('le lien porte le jeton dans le fragment (jamais envoyé au serveur)', () => {
     expect(ADRESSE_CRM).toBe('https://crm.agence-elite.fr/');
     expect(lienPorteCrm('a.b+c')).toBe('https://crm.agence-elite.fr/#porte=a.b%2Bc');

@@ -622,7 +622,7 @@ function Coquille() {
             {editeur && (
               <div className="menu-groupe">
                 <span className="menu-groupe-titre">{nomEditeur}</span>
-                {MENU_EDITEUR.filter((m) => !m.superAdmin || roleEditeur === 'super_admin').map((m) => (
+                {MENU_EDITEUR.filter((m) => !m.secours && (!m.superAdmin || roleEditeur === 'super_admin')).map((m) => (
                   <button key={m.id} className={actifEditeur === m.id ? 'actif' : ''} aria-current={actifEditeur === m.id ? 'page' : undefined} onClick={() => aller(m.id)}>
                     <Icone nom={m.icone} />
                     <span>{m.libelle}</span>
