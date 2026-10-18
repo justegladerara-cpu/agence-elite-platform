@@ -447,6 +447,13 @@ fieldset {
   color: #fff;
 }
 
+.menu nav button.menu-plus {
+  margin-top: 6px;
+  color: var(--menu-texte);
+  opacity: 0.8;
+  font-size: 13px;
+}
+
 .menu nav button.actif {
   background: var(--menu-actif);
   color: #fff;
