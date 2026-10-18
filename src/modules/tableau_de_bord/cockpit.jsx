@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Bouton, GraphiqueBarres, Icone } from '../../ui/composants.jsx';
+import { NombreAnime } from '../../motion/NombreAnime.jsx';
 import { actionsDomaine, bornesPeriode, PERIODES, variation } from './domaines.js';
 
 const CLE_PERIODE = 'ae-cockpit-periode';
@@ -121,7 +122,7 @@ export function Kpi({ kpi, naviguer, mis_en_avant }) {
       title={kpi.route ? 'Voir le détail' : undefined}
     >
       <span className="kpi-libelle">{kpi.libelle}</span>
-      <strong className="kpi-valeur">{formater(kpi.valeur, kpi.format)}</strong>
+      <strong className="kpi-valeur"><NombreAnime valeur={kpi.valeur} format={(v) => formater(v, kpi.format)} /></strong>
       {v && (
         <span className={`kpi-variation ${v.favorable === true ? 'bon' : v.favorable === false ? 'mauvais' : ''}`}>
           {v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='} {Math.abs(v.pourcent)} % <small>vs période précédente</small>

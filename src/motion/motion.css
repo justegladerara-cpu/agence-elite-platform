@@ -1,0 +1,333 @@
+/* ==========================================================================
+   Elite Motion System (EMS) — couche de présentation, chargée après styles.css (src/main.jsx).
+   Docs : docs/motion/. Interrupteur : <html data-animations="complet|equilibre|leger|reduit">
+   (src/motion/preferences.js). Retirer l'import de ce fichier dans src/main.jsx = retour à l'interface d'avant.
+
+   Règles de construction :
+   - seulement opacity et transform pour ce qui bouge (aucune propriété de mise en page animée) ;
+   - aucune animation en boucle ajoutée ; aucun will-change permanent ;
+   - remplissage « backwards » : l'effet n'existe que pendant l'animation (pas de couche ni de bloc conteneur ensuite) ;
+   - couleurs : uniquement les variables (--accent… redéfinies par la marque blanche), jamais de couleur en dur ;
+   - caisse : micro-interactions seulement, rien ne retarde la saisie, le panier, le total ou l'encaissement.
+   ========================================================================== */
+
+/* --- Jetons --------------------------------------------------------------- */
+:root {
+  --ems-duree-instant: 80ms;
+  --ems-duree-rapide: 140ms;
+  --ems-duree-moyenne: 200ms;
+  --ems-duree-lente: 320ms;
+  --ems-courbe-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ems-courbe-sortie: cubic-bezier(0.16, 1, 0.3, 1);
+  --ems-courbe-ressort: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ems-distance: 6px;
+  --ems-distance-toast: 12px;
+  --ems-echelle-modale: 0.98;
+  --ems-echelle-menu: 0.97;
+  --ems-echelle-pop: 0.6;
+  --ems-appui: 0.98;
+  --ems-appui-tuile: 0.97;
+  --ems-leve: -1px;
+  --ems-glisse-icone: 2px;
+  --ems-decalage: 30ms;
+  --ems-decalage-barre: 18ms;
+  --ems-barre-depart: 0;
+  /* Durée de vie d'une notification : doit rester égale au délai de FournisseurEspace (src/noyau/espace.jsx). */
+  --ems-toast-vie: 4200ms;
+}
+
+:root[data-animations='complet'] {
+  --ems-duree-rapide: 160ms;
+  --ems-duree-moyenne: 240ms;
+  --ems-duree-lente: 420ms;
+  --ems-distance: 10px;
+  --ems-distance-toast: 18px;
+  --ems-echelle-modale: 0.96;
+  --ems-decalage: 40ms;
+  --ems-decalage-barre: 24ms;
+}
+
+/* Léger : fondus courts, aucun déplacement ni changement d'échelle. */
+:root[data-animations='leger'] {
+  --ems-duree-rapide: 100ms;
+  --ems-duree-moyenne: 140ms;
+  --ems-duree-lente: 200ms;
+  --ems-distance: 0px;
+  --ems-distance-toast: 0px;
+  --ems-echelle-modale: 1;
+  --ems-echelle-menu: 1;
+  --ems-echelle-pop: 1;
+  --ems-appui: 1;
+  --ems-appui-tuile: 1;
+  --ems-leve: 0px;
+  --ems-glisse-icone: 0px;
+  --ems-decalage: 0ms;
+  --ems-decalage-barre: 0ms;
+  --ems-barre-depart: 1;
+  --ems-courbe-ressort: var(--ems-courbe-sortie);
+}
+
+/* Réduit : aucun mouvement. Les animations existantes (voile, rouet, squelette) se figent sur leur état final. */
+:root[data-animations='reduit'] {
+  --ems-distance: 0px;
+  --ems-distance-toast: 0px;
+  --ems-echelle-modale: 1;
+  --ems-echelle-menu: 1;
+  --ems-echelle-pop: 1;
+  --ems-appui: 1;
+  --ems-appui-tuile: 1;
+  --ems-leve: 0px;
+  --ems-glisse-icone: 0px;
+  --ems-barre-depart: 1;
+}
+:root[data-animations='reduit'] *,
+:root[data-animations='reduit'] *::before,
+:root[data-animations='reduit'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Onglet caché : les animations en boucle s'arrêtent (data-page-cachee posé par suivreSysteme). */
+:root[data-page-cachee] .rouet,
+:root[data-page-cachee] .squelette span,
+:root[data-page-cachee] .bouton[aria-busy='true']::before {
+  animation-play-state: paused;
+}
+
+/* --- Images clés --------------------------------------------------------- */
+@keyframes ems-fondu { from { opacity: 0; } }
+@keyframes ems-entree { from { opacity: 0; transform: translate3d(0, var(--ems-distance), 0); } }
+@keyframes ems-modale { from { opacity: 0; transform: translate3d(0, var(--ems-distance), 0) scale(var(--ems-echelle-modale)); } }
+@keyframes ems-menu { from { opacity: 0; transform: translate3d(0, calc(var(--ems-distance) * -0.5), 0) scale(var(--ems-echelle-menu)); } }
+@keyframes ems-toast-entree { from { opacity: 0; transform: translate3d(var(--ems-distance-toast), 0, 0); } }
+@keyframes ems-toast-sortie { to { opacity: 0; } }
+@keyframes ems-pop { from { opacity: 0; transform: scale(var(--ems-echelle-pop)); } }
+@keyframes ems-barre { from { transform: scaleY(var(--ems-barre-depart)); opacity: 0.4; } }
+@keyframes ems-jauge { from { transform: scaleX(var(--ems-barre-depart)); } }
+@keyframes ems-surlignage { from { background-color: var(--accent-doux); } }
+@keyframes ems-surlignage-panier { from { background-color: var(--accent-doux); } }
+
+/* --- Boutons et commandes ------------------------------------------------- */
+.bouton,
+.icone-bouton,
+.lien,
+.profil-chip-bouton,
+.barre-haut-recherche,
+.gros-bouton,
+.puce-filtre,
+.attention,
+.cloche-element,
+.palette-ligne,
+.menu-actions-liste button {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: var(--ems-duree-rapide);
+  transition-timing-function: var(--ems-courbe-standard);
+}
+.bouton:active:not(:disabled),
+.gros-bouton:active:not(:disabled),
+.icone-bouton:active:not(:disabled) {
+  transform: scale(var(--ems-appui));
+  transition-duration: var(--ems-duree-instant);
+}
+.bouton.principal:hover:not(:disabled) {
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.bouton:focus-visible,
+.icone-bouton:focus-visible,
+.lien:focus-visible,
+.onglets button:focus-visible,
+.cockpit-periodes button:focus-visible,
+.cockpit-onglets button:focus-visible,
+.puces button:focus-visible,
+.tuile-article:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Enregistrement en cours (état réel de la requête : Bouton chargement) : petit rouet devant « Patientez… ». */
+.bouton[aria-busy='true']::before {
+  content: '';
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: tourner 0.7s linear infinite;
+}
+
+/* Champs : le cadre et l'anneau de focus suivent les jetons. */
+input,
+select,
+textarea {
+  transition-property: border-color, box-shadow, background-color;
+  transition-duration: var(--ems-duree-rapide);
+  transition-timing-function: var(--ems-courbe-standard);
+}
+
+/* --- Onglets, périodes, puces -------------------------------------------- */
+.onglets button,
+.cockpit-periodes button,
+.cockpit-onglets button,
+.puces button {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: var(--ems-duree-rapide);
+  transition-timing-function: var(--ems-courbe-standard);
+}
+
+/* --- Menu latéral --------------------------------------------------------- */
+.menu nav button {
+  transition-property: background-color, color, box-shadow;
+  transition-duration: var(--ems-duree-moyenne);
+  transition-timing-function: var(--ems-courbe-standard);
+}
+.menu nav button .icone {
+  transition: transform var(--ems-duree-rapide) var(--ems-courbe-sortie);
+}
+.menu nav button:hover:not(.actif):not(.menu-plus) .icone {
+  transform: translateX(var(--ems-glisse-icone));
+}
+/* « Plus d'outils » (menu court) : les groupes dépliés arrivent en fondu montant, en cascade courte. */
+:root:not([data-animations='reduit']) .menu-plus ~ .menu-groupe {
+  animation: ems-entree var(--ems-duree-moyenne) var(--ems-courbe-sortie) backwards;
+}
+:root:not([data-animations='reduit']) .menu-plus ~ .menu-groupe + .menu-groupe { animation-delay: var(--ems-decalage); }
+:root:not([data-animations='reduit']) .menu-plus ~ .menu-groupe + .menu-groupe + .menu-groupe { animation-delay: calc(var(--ems-decalage) * 2); }
+.menu-plus .icone { transition: transform var(--ems-duree-moyenne) var(--ems-courbe-sortie); }
+.menu-plus[aria-expanded='true'] .icone { transform: rotate(180deg); }
+@media (max-width: 860px) {
+  .menu {
+    transition: transform var(--ems-duree-lente) var(--ems-courbe-sortie);
+  }
+  :root:not([data-animations='reduit']) .voile-menu {
+    animation: ems-fondu var(--ems-duree-moyenne) var(--ems-courbe-standard) backwards;
+  }
+  .panier-conteneur {
+    transition: transform var(--ems-duree-lente) var(--ems-courbe-sortie);
+  }
+}
+
+/* --- Cartes, indicateurs, pages ------------------------------------------ */
+.stat-card.cliquable,
+.kpi.cliquable,
+.carte-etablissement {
+  transition-property: border-color, box-shadow, transform;
+  transition-duration: var(--ems-duree-rapide);
+  transition-timing-function: var(--ems-courbe-standard);
+}
+.stat-card.cliquable:hover,
+.kpi.cliquable:hover {
+  transform: translateY(var(--ems-leve));
+}
+
+:root:not([data-animations='reduit']) .page {
+  animation: ems-fondu var(--ems-duree-moyenne) var(--ems-courbe-standard) backwards;
+}
+:root:not([data-animations='reduit']) .carte {
+  animation: ems-fondu var(--ems-duree-moyenne) var(--ems-courbe-standard) backwards;
+}
+:root:not([data-animations='reduit']) :is(.kpi, .stat-card, .indicateur, .carte-hub) {
+  animation: ems-entree var(--ems-duree-lente) var(--ems-courbe-sortie) backwards;
+}
+/* Décalage en cascade limité aux 6 premiers éléments (au-delà : même départ, rien n'attend). */
+:root:not([data-animations='reduit']) :is(.kpis, .grille-stats, .grille-indicateurs, .cartes-hubs) > :nth-child(2) { animation-delay: calc(var(--ems-decalage) * 1); }
+:root:not([data-animations='reduit']) :is(.kpis, .grille-stats, .grille-indicateurs, .cartes-hubs) > :nth-child(3) { animation-delay: calc(var(--ems-decalage) * 2); }
+:root:not([data-animations='reduit']) :is(.kpis, .grille-stats, .grille-indicateurs, .cartes-hubs) > :nth-child(4) { animation-delay: calc(var(--ems-decalage) * 3); }
+:root:not([data-animations='reduit']) :is(.kpis, .grille-stats, .grille-indicateurs, .cartes-hubs) > :nth-child(5) { animation-delay: calc(var(--ems-decalage) * 4); }
+:root:not([data-animations='reduit']) :is(.kpis, .grille-stats, .grille-indicateurs, .cartes-hubs) > :nth-child(n + 6) { animation-delay: calc(var(--ems-decalage) * 5); }
+
+/* Chiffre clé qui change (NombreAnime) : chiffres de même largeur, rien ne saute pendant le glissement. */
+.ems-nombre { font-variant-numeric: tabular-nums; }
+
+/* --- États : vide, erreur, chargement ------------------------------------ */
+:root:not([data-animations='reduit']) .vide {
+  animation: ems-entree var(--ems-duree-lente) var(--ems-courbe-sortie) backwards;
+}
+:root:not([data-animations='reduit']) .vide-icone {
+  animation: ems-pop var(--ems-duree-lente) var(--ems-courbe-ressort) backwards;
+  animation-delay: var(--ems-duree-instant);
+}
+:root:not([data-animations='reduit']) .erreur,
+:root:not([data-animations='reduit']) .bandeau-etat,
+:root:not([data-animations='reduit']) .bulle-aide {
+  animation: ems-entree var(--ems-duree-moyenne) var(--ems-courbe-sortie) backwards;
+}
+/* Squelette : reflet plus doux (le dégradé suit le thème au lieu de couleurs fixes claires). */
+.squelette span {
+  --ems-squelette: color-mix(in srgb, var(--bordure) 60%, var(--surface));
+  background: linear-gradient(90deg, var(--ems-squelette) 0%, var(--surface-douce) 50%, var(--ems-squelette) 100%);
+  background-size: 200% 100%;
+}
+
+/* --- Fenêtres (Modale, palette) et menus déroulants ---------------------- */
+/* Le voile ne se déplace plus (avant : il glissait de 8 px avec la fenêtre) : seul le fondu reste. */
+.voile {
+  animation: ems-fondu var(--ems-duree-rapide) var(--ems-courbe-standard) backwards;
+}
+:root:not([data-animations='reduit']) .voile > .modale,
+:root:not([data-animations='reduit']) .voile > .palette-recherche {
+  animation: ems-modale var(--ems-duree-moyenne) var(--ems-courbe-sortie) backwards;
+}
+:root:not([data-animations='reduit']) .menu-actions-liste {
+  transform-origin: top right;
+  animation: ems-menu var(--ems-duree-rapide) var(--ems-courbe-sortie) backwards;
+}
+
+/* --- Notifications : entrée, sortie juste avant leur retrait, 3 visibles au plus -------- */
+.notifications > .notification:nth-last-child(n + 4) { display: none; }
+:root:not([data-animations='reduit']) .notification {
+  animation:
+    ems-toast-entree var(--ems-duree-moyenne) var(--ems-courbe-sortie) backwards,
+    ems-toast-sortie var(--ems-duree-moyenne) var(--ems-courbe-standard) calc(var(--ems-toast-vie) - var(--ems-duree-moyenne) - 60ms) forwards;
+}
+
+/* --- Tableaux ------------------------------------------------------------- */
+.tableau tr.cliquable td,
+.tableau.cliquable tbody tr {
+  transition: background-color var(--ems-duree-rapide) var(--ems-courbe-standard);
+}
+/* Ligne ajoutée après le premier affichage (useLignesNouvelles) : bref fond d'accent qui s'efface. */
+:root:not([data-animations='reduit']) .tableau tr.ems-ligne-nouvelle > td {
+  animation: ems-surlignage 1600ms var(--ems-courbe-standard);
+}
+
+/* --- Graphiques ----------------------------------------------------------- */
+.graphique-barre {
+  transition: fill var(--ems-duree-rapide) var(--ems-courbe-standard);
+}
+:root:not([data-animations='reduit']) .graphique-barre {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ems-barre var(--ems-duree-lente) var(--ems-courbe-sortie) backwards;
+  animation-delay: calc(min(var(--i, 0), 12) * var(--ems-decalage-barre));
+}
+:root:not([data-animations='reduit']) :is(.repartition-barre, .jauge) > span {
+  transform-origin: left center;
+  animation: ems-jauge var(--ems-duree-lente) var(--ems-courbe-sortie) backwards;
+}
+
+/* --- Caisse : micro-interactions seulement -------------------------------- */
+/* Appui sur une tuile : déjà présent (styles.css), durée alignée sur les jetons. */
+.tuile-article {
+  transition-property: transform, border-color, box-shadow;
+  transition-duration: var(--ems-duree-instant), var(--ems-duree-rapide), var(--ems-duree-rapide);
+}
+.tuile-article:active:not(:disabled) { transform: scale(var(--ems-appui-tuile)); }
+/* Article ajouté : la nouvelle ligne du panier s'éclaire puis revient (couleur seulement, aucun déplacement). */
+:root:not([data-animations='reduit']) .panier-ligne {
+  animation: ems-surlignage-panier 700ms var(--ems-courbe-standard);
+}
+/* Compteur posé sur la tuile au premier ajout. */
+:root:not([data-animations='reduit']) .tuile-compte {
+  animation: ems-pop var(--ems-duree-rapide) var(--ems-courbe-ressort) backwards;
+}
+/* Le total, la monnaie, le reste dû et les boutons Encaisser / Valider ne sont jamais animés. */
+/* Fenêtre d'encaissement : affichée d'un coup, sans fondu du voile ni entrée de la fenêtre (mesure : l'entrée
+   retardait son affichage complet de 35 à 50 ms sur une machine sans carte graphique ; voir MOTION_PERFORMANCE.md). */
+.voile:has(.bouton-valider-vente),
+.voile:has(.bouton-valider-vente) > .modale,
+.voile:has(.bouton-valider-vente) .carte {
+  animation: none !important;
+}

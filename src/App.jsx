@@ -10,6 +10,7 @@ import {
 import { Cloche } from './ui/communs.jsx';
 import { Palette, RACCOURCIS, useRaccourcis } from './ui/Palette.jsx';
 import { CHOIX_AFFICHAGE, enregistrerAffichage, lireAffichage } from './noyau/affichage.js';
+import { CHOIX_ANIMATIONS, enregistrerChoixAnimations, lireChoixAnimations } from './motion/preferences.js';
 
 export { verifierNouveauMotDePasse } from './auth/EcransAuth.jsx';
 import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
@@ -290,6 +291,7 @@ function Bandeaux({ naviguer }) {
 // Affichage sur cet appareil : appliqué tout de suite, mémorisé dans ce navigateur seulement.
 function ReglagesAffichage() {
   const [affichage, setAffichage] = useState(lireAffichage);
+  const [animations, setAnimations] = useState(lireChoixAnimations);
   const regler = (cle) => (e) => setAffichage(enregistrerAffichage({ [cle]: e.target.value }));
   const libelles = { theme: 'Thème', texte: 'Taille du texte', contraste: 'Contraste', tactile: 'Boutons' };
   return (
@@ -304,6 +306,11 @@ function ReglagesAffichage() {
             </select>
           </Champ>
         ))}
+        <Champ libelle="Animations" aide="« Réduites » : aucun mouvement. Si l’appareil demande de réduire les animations, aucun déplacement n’est joué.">
+          <select value={animations} onChange={(e) => setAnimations(enregistrerChoixAnimations(e.target.value))}>
+            {CHOIX_ANIMATIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </Champ>
       </div>
     </fieldset>
   );

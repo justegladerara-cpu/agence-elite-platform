@@ -59,3 +59,9 @@ Composants : `Marque`, `ApercuMarque`, `ChoixCouleur`, `ChampsApparence` (`src/u
 - Rôles : Responsable d'établissement, Responsable, Responsable Hub, Gestionnaire dépôt, Caissier, Comptable, Lecteur ;
   plateforme : Super Admin, Admin, Support.
 - Hub : « Point de vente », « Dépôt », « Mixte ».
+
+## Animations (Elite Motion System)
+Jetons de durée, de courbe et de distance, niveaux (Complètes / Équilibrées / Légères / Réduites), composants animés,
+mouvement réduit, mesures et retour arrière : [`docs/motion/`](motion/MOTION_STRATEGY.md) (code : `src/motion/`).
+Règles courtes : seulement `opacity` et `transform` ; durées par les variables `--ems-*` ; jamais de compteur au
+premier affichage ni dans la caisse ; rien qui retarde une saisie ou un paiement.
