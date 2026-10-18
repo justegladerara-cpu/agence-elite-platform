@@ -3211,3 +3211,26 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .menu-precision { display: block; margin-top: 4px; width: 100%; font-size: 0.85rem; }
 .menu-suivi ul { padding-left: 1.1rem; }
 .menu-pied { text-align: center; }
+
+/* Copier des articles (espace Agence Elite) : grille de cartes à cocher avec photo. */
+.copie-filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.copie-filtres input[type=search] { flex: 1 1 200px; }
+.copie-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.copie-carte { position: relative; display: grid; gap: 4px; padding: 8px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); cursor: pointer; }
+.copie-carte.cochee { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-doux); }
+.copie-carte input[type=checkbox] { position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; }
+.copie-vignette { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: calc(var(--rayon) - 2px); background: var(--accent-doux); }
+.copie-vignette-vide { display: grid; place-items: center; font-weight: 700; color: var(--accent); }
+.copie-nom { font-weight: 600; line-height: 1.2; }
+.copie-prix { display: grid; gap: 8px; }
+.copie-prix-ligne { display: grid; grid-template-columns: 48px 1fr 140px; gap: 10px; align-items: center; }
+.copie-prix-ligne .copie-vignette { width: 48px; }
+.copie-prix-choix { display: grid; gap: 6px; border: 0; padding: 0; margin: 8px 0; }
+.copie-pourcentage { width: 80px; margin: 0 6px; }
+/* Rapport du soir (#/rapport-du-soir) : gros chiffres lisibles, envoi au patron sur WhatsApp. */
+.rapport-soir .stat-card-valeur { font-size: 26px; }
+.rapport-soir-top { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+.rapport-soir-top li strong { float: right; font-variant-numeric: tabular-nums; }
+.rapport-soir-numero { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.rapport-soir-numero .champ { flex: 1 1 220px; max-width: 320px; }
+.rapport-soir textarea { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; }

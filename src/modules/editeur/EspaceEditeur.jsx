@@ -6,6 +6,7 @@ import AdressesEditeur from './AdressesEditeur.jsx';
 import { ListeClients, PageClient } from './ClientsEditeur.jsx';
 import ComptesEditeur from './ComptesEditeur.jsx';
 import CrmEditeur from './CrmEditeur.jsx';
+import CopieArticlesEditeur from './CopieArticlesEditeur.jsx';
 import { PageEtablissementEditeur } from './EtablissementEditeur.jsx';
 import HubsEditeur from './HubsEditeur.jsx';
 import ModulesEditeur from './ModulesEditeur.jsx';
@@ -28,6 +29,7 @@ export const MENU_EDITEUR = [
   { id: 'editeur/adresses', libelle: 'Adresses web', icone: 'globe', superAdmin: true },
   { id: 'editeur/sites', libelle: 'Sites clients', icone: 'dossier', superAdmin: true },
   { id: 'editeur/crm', libelle: 'CRM Agence Elite', icone: 'clients', superAdmin: true },
+  { id: 'editeur/copie-articles', libelle: 'Copier des articles', icone: 'articles', superAdmin: true },
 ];
 
 export function routeEditeurActive(route) {
@@ -64,6 +66,8 @@ export default function EspaceEditeur({ route, naviguer }) {
       return <SitesEditeur key={id ?? ''} siteId={id} naviguer={naviguer} />;
     case 'crm':
       return <CrmEditeur />;
+    case 'copie-articles':
+      return <CopieArticlesEditeur />;
     case 'identite':
       return <IdentiteEditeur route={route} naviguer={naviguer} />;
     default:

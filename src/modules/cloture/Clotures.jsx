@@ -7,6 +7,8 @@ import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
 import VentesPassees from './VentesPassees.jsx';
 import { BandeauNouveau } from '../../ui/Nouveau.jsx';
+import { EncartHorsLigne, useFileHorsLigne } from '../caisse/EcransHorsLigne.jsx';
+import { ventesNonEnvoyees } from '../caisse/horsLigne.js';
 
 // Ticket Z : le bilan figé d'UNE caisse, donc d'une seule personne (migration 20261011000128).
 export function TicketZ({ z, identite, nomEtablissement, devise }) {
@@ -98,8 +100,8 @@ function ComptageApres({ z, onCompte }) {
   );
 }
 
-export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }) {
-  const { etablissement, devise, peut, utilisateur, deconnecter } = useEspace();
+export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false, apresCloture = false }) {
+  const { etablissement, devise, peut, utilisateur, deconnecter, moduleActif } = useEspace();
   const [z, setZ] = useState(zInitial);
   useEffect(() => {
     document.body.classList.add('impression-ticket');
@@ -112,6 +114,10 @@ export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false }
     <>
       <Bouton icone="imprimer" variante="principal" onClick={imprimer}>Imprimer</Bouton>
       {deconnexion && deconnecter && <Bouton onClick={deconnecter}>Terminer et me déconnecter</Bouton>}
+      {/* Juste après une clôture : le résumé de la journée à envoyer au patron (écran « Rapport du soir »). */}
+      {(apresCloture || deconnexion) && moduleActif?.('cloture') && (peut('cloture.cloturer') || peut('rapports.lire')) && (
+        <Bouton icone="message" onClick={() => { onFermer?.(); window.location.hash = '/rapport-du-soir'; }}>Envoyer le rapport du soir</Bouton>
+      )}
     </>
   );
   return (
@@ -155,13 +161,15 @@ function ComptageCoupures({ coupures, onTotal }) {
 }
 
 export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) {
-  const { api, montant, peut, utilisateur } = useEspace();
+  const { api, montant, peut, utilisateur, etablissement } = useEspace();
   const mienne = session.ouverte_par === utilisateur?.id;
   const { donnees: apercu, chargement, erreur } = useDonnees(() => api.rpc('apercu_cloture', { p_session_id: session.id }), [session.id]);
   const [comptees, setComptees] = useState('');
   const [commentaire, setCommentaire] = useState('');
   const [erreurCloture, setErreurCloture] = useState('');
   const [enCours, setEnCours] = useState(false);
+  // Caisse sans internet : tant que des ventes de cette caisse attendent sur cet appareil, pas de ticket Z (il serait faux).
+  const nonEnvoyees = ventesNonEnvoyees(useFileHorsLigne(etablissement.id), session.id).length;
   if (chargement && !apercu) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
   const ecart = comptees === '' ? null : Number(comptees) - apercu.especes_attendues;
@@ -170,6 +178,7 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
     setEnCours(true);
     setErreurCloture('');
     try {
+      if (nonEnvoyees > 0) throw new Error('Des ventes faites sans internet attendent encore leur envoi');
       const z = await api.rpc('cloturer_caisse', { p_session_id: session.id, p_especes_comptees: Number(comptees), p_commentaire: commentaire || null });
       onCloturee(z);
     } catch (err) {
@@ -200,6 +209,12 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
           {attentes > 0 && (
             <p className="bandeau attention">Il reste {attentes} facture(s) en cours sur cette caisse : encaissez-les depuis la caisse, ou elles passeront à la caissière suivante (notées sur le ticket Z).</p>
           )}
+          {nonEnvoyees > 0 && (
+            <p className="bandeau attention" role="alert">
+              {nonEnvoyees} vente(s) faite(s) sans internet sur cet appareil ne sont pas encore envoyées : attendez le retour de la
+              connexion (ou faites vérifier les ventes refusées) avant de fermer la caisse.
+            </p>
+          )}
           {coupures.length > 0 && <ComptageCoupures coupures={coupures} onTotal={(t) => setComptees(String(t))} />}
           <Champ libelle="Espèces comptées dans le tiroir">
             <input type="number" min="0" step="any" inputMode="decimal" value={comptees} onChange={(e) => setComptees(e.target.value)} required />
@@ -211,7 +226,7 @@ export function SessionOuverte({ session, onCloturee, coupures, attentes = 0 }) 
           )}
           <Champ libelle="Commentaire (facultatif)"><input value={commentaire} onChange={(e) => setCommentaire(e.target.value)} /></Champ>
           <Erreur message={erreurCloture} />
-          <Bouton type="submit" variante="principal" chargement={enCours} disabled={comptees === ''}>
+          <Bouton type="submit" variante="principal" chargement={enCours} disabled={comptees === '' || nonEnvoyees > 0}>
             {mienne ? 'Clôturer ma caisse et éditer mon ticket Z' : `Clôturer à la place de ${apercu.caissier ?? 'cette personne'} (caisse oubliée)`}
           </Bouton>
           <small className="texte-doux">Après clôture, les ventes de cette caisse ne peuvent plus être annulées.</small>
@@ -306,7 +321,7 @@ export default function Clotures() {
       attentes={donnees.attentesParSession[s.id] ?? 0}
       onCloturee={(z) => {
         notifier(`Caisse clôturée : ${z.numero}`);
-        setZOuvert({ ...z, deconnexion: s.ouverte_par === utilisateur?.id });
+        setZOuvert({ ...z, deconnexion: s.ouverte_par === utilisateur?.id, apresCloture: true });
         recharger();
       }}
     />
@@ -333,6 +348,7 @@ export default function Clotures() {
           ], affiches)}>Exporter</Bouton>
         )}
       </EnTete>
+      <EncartHorsLigne />
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {donnees && (
@@ -406,7 +422,7 @@ export default function Clotures() {
         />
       )}
       {zOuvert && (
-        <ModaleZ key={zOuvert.id ?? 'z'} z={zOuvert} deconnexion={zOuvert.deconnexion} onFermer={() => setZOuvert(null)}
+        <ModaleZ key={zOuvert.id ?? 'z'} z={zOuvert} deconnexion={zOuvert.deconnexion} apresCloture={zOuvert.apresCloture} onFermer={() => setZOuvert(null)}
           onCompte={() => { notifier('Comptage enregistré'); recharger(); }} />
       )}
     </div>

@@ -1,14 +1,37 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { lienMenu, svgQr } from '../../noyau/qr.js';
+import { lienMenu } from '../../noyau/qr.js';
 import { Badge, Bouton, Champ, EmptyState, Erreur, Modale, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
+import { BandeauNouveau, NOUVEAU_QR_JUSQUA } from '../../ui/Nouveau.jsx';
+import { ImageQr, imprimerQr, useApparenceQr } from './qrOutils.jsx';
 import './menu-qr.css';
 
-// QR code d'une table, dessiné dans le navigateur.
-export function ImageQr({ texte, libelle }) {
-  const svg = useMemo(() => svgQr(texte), [texte]);
-  // eslint-disable-next-line react/no-danger
-  return <div className="image-qr" role="img" aria-label={`QR code ${libelle}`} dangerouslySetInnerHTML={{ __html: svg }} />;
+// QR code d'une table, dessiné dans le navigateur (logo et couleur : voir qrOutils.jsx).
+export { ImageQr };
+
+// Logo au centre des QR codes des tables (facultatif) ; le style vient du « style par défaut » (écran QR codes).
+// Migration 20261017000139.
+export function ReglagesApparenceQr({ menu, apparence, onChanger, enCours, naviguer }) {
+  return (
+    <div className="formulaire">
+      <label className="case-grande">
+        <input type="checkbox" checked={Boolean(menu.qr_logo) && Boolean(apparence.logo)} disabled={enCours || !apparence.logo}
+          onChange={(e) => onChanger({ logo: e.target.checked })} />
+        <span><strong>Logo au centre des QR codes des tables</strong>
+          <small className="bloc texte-doux">
+            {apparence.logoAbsent ? 'Ajoutez d’abord votre logo dans Paramètres › Entreprise.'
+              : apparence.logoIllisible ? 'Votre logo n’a pas pu être lu : renvoyez-le dans Paramètres › Entreprise.'
+                : 'Facultatif. Le QR code devient plus résistant pour garder sa lecture avec le logo.'}
+          </small>
+        </span>
+      </label>
+      {naviguer && (
+        <p className="texte-doux">
+          Formes, couleurs et cadre : <button type="button" className="lien" onClick={() => naviguer('qr-codes?vue=style')}>style par défaut des QR codes</button>.
+        </p>
+      )}
+    </div>
+  );
 }
 
 function AjoutTables({ restaurant, onFermer, onFait }) {
@@ -69,33 +92,31 @@ function AjoutTables({ restaurant, onFermer, onFait }) {
   );
 }
 
-// La feuille de QR codes ne s'imprime que pendant cet appel : la classe est retirée juste après,
-// pour ne jamais gêner l'impression des reçus, tickets Z et factures.
-function imprimerQr() {
-  const fin = () => { document.body.classList.remove('impression-qr'); window.removeEventListener('afterprint', fin); };
-  document.body.classList.add('impression-qr');
-  window.addEventListener('afterprint', fin);
-  setTimeout(() => { window.print(); if (!('onafterprint' in window)) fin(); }, 50);
-}
-
 // Réglages du menu en ligne : allumer le menu, ouvrir la commande depuis la table, QR codes à imprimer, articles cachés.
 export default function MenuQr({ naviguer }) {
   const { api, etablissement, notifier, moduleActif, peut, montant } = useEspace();
   const etab = etablissement.id;
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [menus, emplacements, articles, commandes] = await Promise.all([
+    const [menus, emplacements, articles, commandes, libres] = await Promise.all([
       api.lire('menus_qr', { eq: { etablissement_id: etab } }),
       api.lire('emplacements_qr', { eq: { etablissement_id: etab }, ordre: ['ordre', 'libelle'] }),
       api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }),
       api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
+      api.lire('qr_codes', { eq: { etablissement_id: etab }, colonnes: ['emplacement_id'] }).catch(() => []),
     ]);
-    return { menu: menus[0] ?? { actif: false, commandes_actives: false, afficher_epuises: true }, emplacements, articles, nouvelles: commandes.length };
+    // Les menus sans table (écran « QR codes ») ne sont pas des tables.
+    const sansTable = new Set(libres.map((q) => q.emplacement_id).filter(Boolean));
+    return {
+      menu: menus[0] ?? { actif: false, commandes_actives: false, afficher_epuises: true, qr_logo: false, qr_style: {} },
+      emplacements: emplacements.filter((e) => !sansTable.has(e.id)), articles, nouvelles: commandes.length,
+    };
   }, [etab]);
   const [reglages, setReglages] = useState(null);
   const [ajout, setAjout] = useState(false);
   const [recherche, setRecherche] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [erreurAction, setErreurAction] = useState('');
+  const apparence = useApparenceQr();
   if (chargement && !donnees) return <Squelette lignes={6} />;
   if (erreur) return <Erreur message={erreur} />;
   const menu = { ...donnees.menu, ...(reglages ?? {}) };
@@ -117,6 +138,13 @@ export default function MenuQr({ naviguer }) {
     setReglages(null);
     setEnCours(false);
   };
+  const reglerApparence = async (changement) => {
+    setEnCours(true);
+    await action(() => api.rpc('regler_apparence_qr', { p_etablissement_id: etab, p: changement }), 'Apparence des QR codes enregistrée');
+    setEnCours(false);
+  };
+  const logoQr = menu.qr_logo ? apparence.logo : null;
+  const styleQr = menu.qr_style ?? {};
   const copier = async (texte) => {
     try {
       await navigator.clipboard.writeText(texte);
@@ -137,11 +165,15 @@ export default function MenuQr({ naviguer }) {
         actions={(
           <>
             {donnees.nouvelles > 0 && <Bouton onClick={() => naviguer('commandes-qr')}>Commandes des tables <span className="pastille-compte">{donnees.nouvelles}</span></Bouton>}
+            <Bouton onClick={() => naviguer('qr-codes')}>Autres QR codes et scans</Bouton>
             {actifs.length > 0 && <Bouton icone="imprimer" onClick={imprimerQr}>Imprimer les QR codes</Bouton>}
             <Bouton variante="principal" icone="plus" onClick={() => setAjout(true)}>Ajouter des QR codes</Bouton>
           </>
         )}
       />
+      <BandeauNouveau jusqua={NOUVEAU_QR_JUSQUA}>
+        Votre logo peut aller au centre des QR codes (facultatif), avec vos couleurs et un cadre « Voir le menu » ; chaque scan est compté (écran « QR codes »).
+      </BandeauNouveau>
       <Erreur message={erreurAction} />
       <Section titre="1. Votre menu en ligne" sousTitre="Le client scanne le QR code de sa table et voit vos articles, vos prix et ce qui est disponible, en direct.">
         <div className="formulaire">
@@ -166,6 +198,7 @@ export default function MenuQr({ naviguer }) {
       </Section>
 
       <Section titre="2. Les QR codes" sousTitre="Imprimez-les et collez-en un sur chaque table. Un QR code perdu ou copié ? « Nouveau QR code » : l’ancien ne marche plus.">
+        <ReglagesApparenceQr menu={menu} apparence={apparence} onChanger={reglerApparence} enCours={enCours} naviguer={naviguer} />
         {!donnees.emplacements.length ? (
           <EmptyState icone="table" titre="Aucun QR code" texte="Ajoutez vos tables : Table 1 à Table 10 en un clic." action={<Bouton variante="principal" onClick={() => setAjout(true)}>Ajouter des QR codes</Bouton>} />
         ) : (
@@ -174,7 +207,7 @@ export default function MenuQr({ naviguer }) {
               const lien = lienMenu(e.jeton);
               return (
                 <article key={e.id} className={`carte-qr ${e.actif ? '' : 'inactive'}`}>
-                  <ImageQr texte={lien} libelle={e.libelle} />
+                  <ImageQr texte={lien} libelle={e.libelle} logo={logoQr} style={styleQr} />
                   <strong className="carte-qr-nom">{e.libelle}</strong>
                   <small className="carte-qr-consigne">Scannez pour voir le menu{menu.commandes_actives && e.commande ? ' et commander' : ''}</small>
                   <div className="carte-qr-badges no-print">

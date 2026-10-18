@@ -5,6 +5,7 @@ export const AIDES = {
   caisse: 'Ici, vous vendez : touchez un article pour le mettre dans le panier, puis « Encaisser ».',
   ventes: 'Ici, vous retrouvez toutes vos ventes. Vous pouvez réimprimer un reçu ou enregistrer un retour.',
   clotures: 'Ici, vous fermez votre caisse : comptez vos billets, le logiciel compare avec ce qu’il attendait.',
+  'rapport-du-soir': 'Ici, vous voyez le résumé de la journée et vous l’envoyez au patron sur WhatsApp en un geste.',
   'qui-me-doit': 'Ici, vous voyez les clients qui vous doivent de l’argent et vous pouvez leur envoyer un rappel.',
   'a-qui-je-dois': 'Ici, vous voyez ce que vous devez à vos fournisseurs et quand le payer.',
   articles: 'Ici, vous créez vos articles : un nom et un prix suffisent pour commencer.',
@@ -15,6 +16,7 @@ export const AIDES = {
   factures: 'Ici, vous faites vos devis et vos factures, et vous suivez qui a payé.',
   'tableau-de-bord': 'Ici, vous voyez vos chiffres : ventes, argent encaissé, dépenses et stock.',
   'menu-qr': 'Ici, vous allumez votre menu en ligne et imprimez un QR code par table : le client scanne et voit vos prix.',
+  'qr-codes': 'Ici, vous créez vos QR codes (Instagram, WhatsApp, avis Google, menu, Wi-Fi) avec votre logo, et vous voyez combien de fois ils sont scannés.',
   'commandes-qr': 'Ici arrivent les commandes envoyées depuis les tables : acceptez-les dans votre caisse ou refusez-les.',
 };
 
