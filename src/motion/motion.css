@@ -186,9 +186,17 @@ textarea {
 .menu nav button .icone {
   transition: transform var(--ems-duree-rapide) var(--ems-courbe-sortie);
 }
-.menu nav button:hover:not(.actif) .icone {
+.menu nav button:hover:not(.actif):not(.menu-plus) .icone {
   transform: translateX(var(--ems-glisse-icone));
 }
+/* « Plus d'outils » (menu court) : les groupes dépliés arrivent en fondu montant, en cascade courte. */
+:root:not([data-animations='reduit']) .menu-plus ~ .menu-groupe {
+  animation: ems-entree var(--ems-duree-moyenne) var(--ems-courbe-sortie) backwards;
+}
+:root:not([data-animations='reduit']) .menu-plus ~ .menu-groupe + .menu-groupe { animation-delay: var(--ems-decalage); }
+:root:not([data-animations='reduit']) .menu-plus ~ .menu-groupe + .menu-groupe + .menu-groupe { animation-delay: calc(var(--ems-decalage) * 2); }
+.menu-plus .icone { transition: transform var(--ems-duree-moyenne) var(--ems-courbe-sortie); }
+.menu-plus[aria-expanded='true'] .icone { transform: rotate(180deg); }
 @media (max-width: 860px) {
   .menu {
     transition: transform var(--ems-duree-lente) var(--ems-courbe-sortie);

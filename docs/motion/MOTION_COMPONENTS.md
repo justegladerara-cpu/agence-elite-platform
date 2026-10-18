@@ -6,7 +6,7 @@
 | `Bouton chargement` | texte « Patientez… », désactivé | + `aria-busy`, petit rouet devant le texte ; état lié à la vraie requête, double envoi toujours impossible | `composants.jsx`, `motion.css` |
 | Champs | cadre et anneau de focus 150 ms | durées des jetons (aucun « tremblement » d'erreur : le message suffit) | `motion.css` |
 | Onglets, périodes, puces | changement sec | fondu de couleur 140 ms | `motion.css` |
-| Menu latéral | fond 120 ms | fond et indicateur actif 200 ms, icône qui glisse de 2 px au survol ; tiroir mobile 320 ms courbe douce, voile en fondu | `motion.css` |
+| Menu latéral | fond 120 ms | fond et indicateur actif 200 ms, icône qui glisse de 2 px au survol ; « Plus d'outils » : groupes dépliés en fondu montant (cascade courte), icône qui pivote ; tiroir mobile 320 ms courbe douce, voile en fondu | `motion.css` |
 | Pages et modules | apparition sèche | fondu 200 ms à chaque changement d'écran (opacité seulement : aucun saut de mise en page, aucun effet sur les barres fixes) | `motion.css` |
 | Cartes (`.carte`) | — | fondu à l'arrivée (après le squelette) | `motion.css` |
 | Indicateurs (`Kpi`, `StatCard`, `.indicateur`, Hubs) | — | entrée montante en cascade (6 au plus, 30 ms d'écart) ; survol : levée de 1 px | `motion.css` |
