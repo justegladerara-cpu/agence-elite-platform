@@ -86,3 +86,16 @@ Tests : `tests/historique_demo.test.js`.
 
 ## Ajouter un indicateur ou un domaine
 Voir [SOP 37](SOP/37_AJOUTER_UN_WIDGET.md).
+
+## Analyses (2026-10-18)
+Juste : « un DASHBOARD avec des analyses de données ». Onglet **Analyses** (`#/tableau-de-bord/analyses`), juste
+après « Vue d'ensemble », pour qui a `ventes.lire`. Un seul appel : `analyse_ventes(etablissement, du, au, hub)`
+(migration `20261018000140_analyses.sql`, lecture seule, 400 jours au plus, Hub vérifié ; dépenses, stock et
+paiements seulement avec leur propre droit).
+- **Ce qu'il faut retenir** : phrases simples calculées dans `src/modules/tableau_de_bord/analyses.js` (évolution,
+  projection de fin de mois, panier moyen, meilleur jour, meilleure tranche de 2 h, article n° 1, marge, argent reçu
+  moins dépenses, reste à encaisser, articles qui dorment). Les 3 premières s'affichent aussi sur la Vue d'ensemble.
+- Chiffres clés (avec comparaison à la période d'avant), courbe jour par jour comparée, carte des heures
+  (jour de la semaine × heure), articles, catégories, vendeurs, modes de paiement, meilleurs clients, dépenses par
+  catégorie, articles en stock non vendus, tableau détaillé des articles.
+- Tests : `tests/analyses.test.js` ; parcours navigateur, étape « analyses ».

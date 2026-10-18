@@ -330,6 +330,19 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Tableau Commerce').waitFor();
       await p.getByText('Encaissements par mode').first().waitFor();
     });
+    await etape('analyses', async () => {
+      // Analyses (2026-10-18) : phrases à retenir, courbe jour par jour, carte des heures, articles.
+      await p.goto(U + '#/tableau-de-bord/analyses');
+      await p.getByRole('tab', { name: '30 jours' }).click();
+      await p.getByText('Ce qu’il faut retenir').first().waitFor({ timeout: 60000 });
+      await p.getByText(/Vous avez vendu .* en \d+ vente/).first().waitFor();
+      await p.getByText('Ventes jour par jour').waitFor();
+      await p.getByText('Quand vous vendez le plus').waitFor();
+      await p.getByText('Articles qui rapportent le plus').waitFor();
+      await p.goto(U + '#/tableau-de-bord');
+      await p.getByText('Voir toutes les analyses', { exact: false }).waitFor({ timeout: 60000 });
+      await p.getByRole('tab', { name: 'Aujourd’hui' }).click();
+    });
     await etape('indicateur-cliquable', async () => {
       // Un indicateur ouvre l'écran déjà filtré.
       await p.locator('.kpi.cliquable').first().click();
