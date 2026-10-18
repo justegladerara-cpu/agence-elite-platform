@@ -4,13 +4,16 @@ import { Badge, Bouton, EmptyState, Erreur, Icone, PageHeader, Squelette } from 
 import { widgetsAccessibles } from '../index.js';
 import { Activite, ActionsRapides, ASurveiller, BarrePeriode, Graphique, GrilleKpis, Kpi, ListeCockpit, useFiltresCockpit } from './cockpit.jsx';
 import { DOMAINES } from './domaines.js';
+import Analyses, { ApercuAnalyses } from './Analyses.jsx';
 
 // Tableau de bord : vue d'ensemble de l'établissement (#/tableau-de-bord) et un tableau par
 // domaine (#/tableau-de-bord/<domaine>). Tout vient des fonctions cockpit_* de la base, qui
 // n'agrègent que les modules actifs et autorisés (docs/TABLEAUX_DE_BORD.md).
 export default function TableauDeBord({ naviguer, sousRoute }) {
-  const { api, etablissement } = useEspace();
+  const { api, etablissement, peut } = useEspace();
   const domaine = (sousRoute ?? '').split('/')[0] || null;
+  // Analyses des ventes (heures, jours, articles, clients…) : pour qui peut lire les ventes.
+  const analyses = peut('ventes.lire');
   const f = useFiltresCockpit();
   const { donnees: domaines, erreur: erreurDomaines } = useDonnees(
     () => api.rpc('cockpit_domaines', { p_etablissement_id: etablissement.id }),
@@ -20,8 +23,9 @@ export default function TableauDeBord({ naviguer, sousRoute }) {
   return (
     <div className="page cockpit">
       <Erreur message={erreurDomaines} />
-      {domaines && domaines.length > 1 && <OngletsDomaines domaines={domaines} actif={connu ? domaine : null} naviguer={naviguer} />}
-      {domaines && (connu
+      {domaines && (domaines.length > 1 || analyses) && <OngletsDomaines domaines={domaines} actif={connu || (analyses && domaine === 'analyses') ? domaine : null} naviguer={naviguer} analyses={analyses} />}
+      {domaines && analyses && domaine === 'analyses' && <Analyses f={f} naviguer={naviguer} />}
+      {domaines && !(analyses && domaine === 'analyses') && (connu
         ? <VueDomaine domaine={domaine} titre={domaines.find((d) => d.id === domaine).titre} f={f} naviguer={naviguer} />
         : <VueGlobale domaines={domaines} f={f} naviguer={naviguer} />)}
       {!domaines && !erreurDomaines && <Squelette lignes={6} />}
@@ -29,12 +33,17 @@ export default function TableauDeBord({ naviguer, sousRoute }) {
   );
 }
 
-function OngletsDomaines({ domaines, actif, naviguer }) {
+function OngletsDomaines({ domaines, actif, naviguer, analyses }) {
   return (
     <nav className="cockpit-onglets" aria-label="Tableaux de bord">
       <button type="button" className={!actif ? 'actif' : ''} aria-current={!actif ? 'page' : undefined} onClick={() => naviguer('tableau-de-bord')}>
         <Icone nom="tableau" taille={15} /> Vue d’ensemble
       </button>
+      {analyses && (
+        <button type="button" className={actif === 'analyses' ? 'actif' : ''} aria-current={actif === 'analyses' ? 'page' : undefined} onClick={() => naviguer('tableau-de-bord/analyses')}>
+          <Icone nom="graphique" taille={15} /> Analyses
+        </button>
+      )}
       {domaines.map((d) => (
         <button key={d.id} type="button" className={actif === d.id ? 'actif' : ''} aria-current={actif === d.id ? 'page' : undefined} onClick={() => naviguer(`tableau-de-bord/${d.id}`)}>
           <Icone nom={DOMAINES[d.id]?.icone ?? 'tableau'} taille={15} /> {d.titre}
@@ -71,6 +80,7 @@ function VueGlobale({ domaines, f, naviguer }) {
           {c.erreurs?.length > 0 && <p className="texte-doux">Certaines informations n’ont pas pu être chargées : {c.erreurs.join(', ')}.</p>}
           {domaines.length === 0 && <EmptyState icone="tableau" titre="Aucun indicateur pour vos applications" texte="Les indicateurs apparaissent avec les applications activées et vos droits." />}
           {principaux.length > 0 && <div className="kpis kpis-hero">{principaux.map((k, i) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} mis_en_avant={i === 0} />)}</div>}
+          {espace.peut('ventes.lire') && <ApercuAnalyses f={f} naviguer={naviguer} />}
           <div className="cockpit-grille">
             <ASurveiller elements={c.attention} naviguer={naviguer} avecModule={domaines.length > 1} />
             <Activite elements={c.activite} naviguer={naviguer} avecModule={domaines.length > 1} />
