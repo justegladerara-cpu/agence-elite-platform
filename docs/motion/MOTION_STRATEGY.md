@@ -33,4 +33,4 @@ décorer ni à faire attendre.
 | ECharts / Chart.js | Refusée | Les graphiques sont des SVG maison (`GraphiqueBarres`) : animés en CSS pour 0 Ko. |
 | Lenis (défilement doux) | Refusée | Détourne le défilement natif, nuit à l'accessibilité et aux longues listes. |
 
-Résultat : **0 dépendance ajoutée**, +3,4 Ko gzip de JS et CSS au total (voir MOTION_PERFORMANCE.md).
+Résultat : **0 dépendance ajoutée**, +2,6 Ko gzip au total sur la version de production (JS +1,0 Ko, CSS +1,6 Ko) (voir MOTION_PERFORMANCE.md).
