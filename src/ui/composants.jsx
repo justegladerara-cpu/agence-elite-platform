@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { lireParametres } from '../noyau/routes.js';
+import { useLignesNouvelles } from '../motion/lignes.js';
 
 const CHEMINS = {
   tableau: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
@@ -77,7 +78,7 @@ export function Icone({ nom, taille = 18 }) {
 
 export function Bouton({ variante = 'secondaire', icone, children, chargement, ...props }) {
   return (
-    <button className={`bouton ${variante}`} disabled={chargement || props.disabled} {...props}>
+    <button className={`bouton ${variante}`} disabled={chargement || props.disabled} aria-busy={chargement ? true : undefined} {...props}>
       {icone && <Icone nom={icone} taille={16} />}
       {children && <span>{chargement ? 'Patientez…' : children}</span>}
     </button>
@@ -130,12 +131,19 @@ export function Erreur({ message }) {
 export function Modale({ titre, onFermer, children, pied, large }) {
   const dialogue = useRef(null);
   const elementPrecedent = useRef(null);
+  // onFermer est souvent une fonction recréée à chaque affichage du parent (ex. la caisse se rafraîchit toutes les
+  // 30 s) : la garder dans une référence évite de relancer l'effet, qui remettait le focus sur le premier champ
+  // pendant la saisie.
+  const fermer = useRef(onFermer);
+  useEffect(() => {
+    fermer.current = onFermer;
+  });
   useEffect(() => {
     elementPrecedent.current = document.activeElement;
     const premier = dialogue.current?.querySelector('input, select, textarea, button, [tabindex]:not([tabindex="-1"])');
     premier?.focus();
     const touche = (e) => {
-      if (e.key === 'Escape') onFermer?.();
+      if (e.key === 'Escape') fermer.current?.();
       if (e.key !== 'Tab') return;
       const elements = [...(dialogue.current?.querySelectorAll('input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])') ?? [])]
         .filter((element) => !element.disabled && element.offsetParent !== null);
@@ -150,7 +158,7 @@ export function Modale({ titre, onFermer, children, pied, large }) {
       window.removeEventListener('keydown', touche);
       elementPrecedent.current?.focus?.();
     };
-  }, [onFermer]);
+  }, []);
   return createPortal(
     <div className="voile" onMouseDown={(e) => e.target === e.currentTarget && onFermer?.()}>
       <div ref={dialogue} className={`modale ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-label={titre}>
@@ -494,6 +502,8 @@ export function DataTable({
   });
   const [tri, setTri] = useState(triInitial ?? null);
   const [page, setPage] = useState(0);
+  // Lignes arrivées après le premier affichage (ajout, enregistrement) : bref surlignage (Elite Motion System).
+  const estNouvelle = useLignesNouvelles(lignes, cle);
   const resultat = useMemo(() => {
     let liste = lignes ?? [];
     const t = texte.trim().toLowerCase();
@@ -605,7 +615,7 @@ export function DataTable({
               {visibles.map((l) => (
                 <tr
                   key={l[cle]}
-                  className={onLigne ? 'cliquable' : ''}
+                  className={[onLigne && 'cliquable', estNouvelle(l[cle]) && 'ems-ligne-nouvelle'].filter(Boolean).join(' ') || undefined}
                   onClick={onLigne ? () => onLigne(l) : undefined}
                   onKeyDown={onLigne ? (e) => { if (e.key === 'Enter') onLigne(l); } : undefined}
                   tabIndex={onLigne ? 0 : undefined}
@@ -669,7 +679,7 @@ export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, on
         const x = marge.gauche + i * pas + (pas - barre) / 2;
         return (
           <g key={`${d.libelle}-${i}`} className={onBarre ? 'cliquable' : ''} onClick={onBarre ? () => onBarre(d) : undefined}>
-            <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre">
+            <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre" style={{ '--i': i }}>
               <title>{d.titre ?? `${d.libelle} : ${format(d.valeur)}`}</title>
             </rect>
             <text x={x + barre / 2} y={hauteur - 8} textAnchor="middle" className="graphique-texte">{d.libelle}</text>
