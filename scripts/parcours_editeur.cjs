@@ -35,6 +35,9 @@ fs.mkdirSync('captures-parcours', { recursive: true });
     await p.goto(U);
     await etape('editeur-connexion', async () => {
       await p.locator('button.profil', { hasText: 'Juste Glade' }).first().click({ timeout: 90000 });
+      // L'accueil de l'espace Agence Elite renvoie vers le CRM ; les écrans restent ouverts en secours
+      await p.getByRole('heading', { name: 'Administration Agence Elite' }).waitFor();
+      await p.goto(`${U}#/editeur/tableau`);
       await p.getByRole('heading', { name: /Bonjour/ }).waitFor();
     });
     await etape('client-cree', async () => {

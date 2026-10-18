@@ -16,6 +16,16 @@ export default function CrmEditeur({ accueil = false }) {
   const { roleEditeur, api } = useEspace();
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
+  // Accueil de l'espace Agence Elite sans bouton possible (pas super admin, ou démo locale) : simple renvoi vers le CRM
+  if (accueil && (roleEditeur !== 'super_admin' || typeof api.jeton !== 'function'))
+    return (
+      <div className="page">
+        <PageHeader titre="Administration Agence Elite" sousTitre="L’administration de la plateforme se fait maintenant dans le CRM." />
+        <Section titre="Accès">
+          <p className="texte-doux">Ouvrez <a href={ADRESSE_CRM}>crm.agence-elite.fr</a> et connectez-vous avec le compte super admin.</p>
+        </Section>
+      </div>
+    );
   if (roleEditeur !== 'super_admin') return <div className="page"><EmptyState titre="Réservé à la direction (Super Admin)" /></div>;
   if (typeof api.jeton !== 'function')
     return <div className="page"><EmptyState titre="Disponible sur la plateforme en ligne uniquement" texte="Le mode démo local n’a pas de session à transmettre au CRM." /></div>;

@@ -388,13 +388,20 @@ describe('application sur la base locale', () => {
     expect(screen.getByRole('form', { name: 'Réglages Devis et factures' })).toBeTruthy();
   });
 
-  test('le super administrateur arrive sur le tableau de bord Agence Elite', async () => {
+  test('le super administrateur arrive sur l’administration dans le CRM, avec les écrans de secours', async () => {
     window.location.hash = '#/editeur';
+    render(<App demarrer={demarrer('editeur@demo.local')} />);
+    expect(await screen.findByRole('heading', { name: 'Administration Agence Elite' }, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByText(/Accès de secours/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Catalogue' }).getAttribute('href')).toBe('#/editeur/modules');
+  });
+
+  test('l’ancien tableau de bord Agence Elite reste ouvert en secours', async () => {
+    window.location.hash = '#/editeur/tableau';
     render(<App demarrer={demarrer('editeur@demo.local')} />);
     expect(await screen.findByText('Activité contractuelle', {}, { timeout: 10000 })).toBeTruthy();
     expect(screen.queryByText(/encaissé/i)).toBeNull();
     expect(screen.getByText('Échéances à surveiller')).toBeTruthy();
-    expect(screen.getByText('Catalogue')).toBeTruthy();
   });
 
   test('pages d’authentification : brouillon invisible, aperçu, publication, injection refusée, retour aux valeurs par défaut', async () => {
