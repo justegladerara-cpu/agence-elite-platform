@@ -288,6 +288,25 @@ function Bandeaux({ naviguer }) {
   return bandeaux;
 }
 
+// Message posé par Agence Elite depuis son CRM (ex. « paiement en retard ») : affiché à toute l'équipe du client.
+const TONS_MESSAGE = { info: 'info', attention: 'attention', urgent: '' };
+function MessagePlateforme() {
+  const { api, etablissement } = useEspace();
+  const [message, setMessage] = useState(null);
+  const id = etablissement?.id;
+  useEffect(() => {
+    let actif = true;
+    setMessage(null);
+    if (!id || etablissement.role === 'support') return undefined;
+    api.rpc('message_plateforme', { p_etablissement_id: id }).then((m) => actif && setMessage(m ?? null)).catch(() => {});
+    return () => {
+      actif = false;
+    };
+  }, [api, id, etablissement?.role]);
+  if (!message?.texte) return null;
+  return <div className={`bandeau ${TONS_MESSAGE[message.ton] ?? 'info'}`.trim()} role="status">{message.texte}</div>;
+}
+
 // Affichage sur cet appareil : appliqué tout de suite, mémorisé dans ce navigateur seulement.
 function ReglagesAffichage() {
   const [affichage, setAffichage] = useState(lireAffichage);
@@ -645,6 +664,7 @@ function Coquille() {
             <BandeauConnexion />
             <AnnonceMiseAJour />
             {!surEditeur && <Bandeaux naviguer={aller} />}
+            {!surEditeur && <MessagePlateforme />}
             {!surEditeur && page && <BulleAide id={page.id} />}
             {contexte.invitations.length > 0 && (
               <div className="bandeau-invitations">
