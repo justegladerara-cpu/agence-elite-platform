@@ -3241,3 +3241,8 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .rapport-soir-numero { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .rapport-soir-numero .champ { flex: 1 1 220px; max-width: 320px; }
 .rapport-soir textarea { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; }
+
+/* Accueil de l'espace Agence Elite : écrans de secours quand le CRM est indisponible */
+.acces-secours { margin-top: 8px; }
+.acces-secours summary { cursor: pointer; color: var(--texte-doux, inherit); font-weight: 500; }
+.acces-secours ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; }
