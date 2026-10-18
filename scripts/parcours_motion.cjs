@@ -96,8 +96,10 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape(m, 'mobile-menu', async () => {
       await m.getByRole('button', { name: 'Ouvrir le menu' }).click();
       await m.locator('.menu.ouvert').waitFor();
-      const gauche = await m.locator('.menu.ouvert').evaluate((e) => e.getBoundingClientRect().left);
-      if (Math.abs(gauche) > 1) throw new Error(`menu mal ouvert (gauche ${gauche})`);
+      // Même en mouvement réduit, la transition (0,01 ms) démarre à l'image suivante : on attend la position ouverte.
+      const ouvert = await m.waitForFunction(() => Math.abs(document.querySelector('.menu.ouvert')?.getBoundingClientRect().left ?? -1) <= 1, null, { timeout: 5000 })
+        .then(() => true, () => false);
+      if (!ouvert) throw new Error(`menu mal ouvert (gauche ${await m.locator('.menu').evaluate((e) => e.getBoundingClientRect().left)})`);
       await m.locator('.voile-menu').click({ position: { x: 370, y: 400 } });
       await m.locator('.menu.ouvert').waitFor({ state: 'detached' });
     });
