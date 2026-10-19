@@ -48,7 +48,7 @@ begin
   aujourdhui := public.date_locale(etab);
 
   -- 1. Le super administrateur accorde et active les modules (hors offre, comme une option vendue).
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   foreach m in array array['rh_employes', 'rh_presences', 'rh_conges', 'documents'] loop
     perform public.accorder_module(etab, m, true);
     perform public.definir_module_etablissement(etab, m, true);
@@ -187,7 +187,7 @@ begin
   select id into livraison from public.articles where etablissement_id = etab and reference = 'LIV-01';
   aujourdhui := public.date_locale(etab);
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'facturation', true);
   perform public.definir_module_etablissement(etab, 'facturation', true);
 
@@ -272,7 +272,7 @@ begin
   end loop;
   aujourdhui := public.date_locale(etab);
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'achats', true);
   perform public.definir_module_etablissement(etab, 'achats', true);
 
@@ -339,7 +339,7 @@ begin
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'crm_pipeline', true);
   perform public.definir_module_etablissement(etab, 'crm_pipeline', true);
 
@@ -417,7 +417,7 @@ begin
   select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage';
   jour := public.date_locale(etab);
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'projets', true);
   perform public.definir_module_etablissement(etab, 'projets', true);
 
@@ -506,7 +506,7 @@ begin
     case ligne.cle when 'resto' then gerante := id_tmp; when 'serveur' then serveur := id_tmp; else cuisinier := id_tmp; end case;
   end loop;
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   etab := public.creer_etablissement(client, 'restaurant', 'Restaurant Démo');
   insert into public.etablissement_membres (etablissement_id, user_id, role_id) values
     (etab, gerante, 'gerant'), (etab, serveur, 'serveur'), (etab, cuisinier, 'cuisinier')
@@ -663,7 +663,7 @@ begin
     case ligne.cle when 'hotel' then gerant := id_tmp; when 'reception' then reception := id_tmp; else menage := id_tmp; end case;
   end loop;
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   etab := public.creer_etablissement(client, 'hotel', 'Hôtel Démo');
   insert into public.etablissement_membres (etablissement_id, user_id, role_id) values
     (etab, gerant, 'gerant'), (etab, reception, 'receptionniste'), (etab, menage, 'agent_entretien')
@@ -766,7 +766,7 @@ begin
     on conflict (id) do update set nom_complet = excluded.nom_complet;
   end if;
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   etab := public.creer_etablissement(client, 'ecommerce', 'Boutique en ligne Démo');
   insert into public.etablissement_membres (etablissement_id, user_id, role_id) values (etab, gerant, 'gerant')
   on conflict (etablissement_id, user_id) do nothing;
@@ -865,7 +865,7 @@ begin
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerant from auth.users where email = 'boutique@demo.agence-elite.fr';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'site_web', true, 'Démo : site vitrine');
   perform public.definir_module_etablissement(etab, 'site_web', true);
 
@@ -941,7 +941,7 @@ begin
   select id into fidele from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
   jour := public.date_locale(etab);
 
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'agenda', true, 'Démo : rendez-vous');
   perform public.definir_module_etablissement(etab, 'agenda', true);
   perform public.accorder_module(etab, 'support_tickets', true, 'Démo : service client');
@@ -1002,7 +1002,7 @@ begin
   end if;
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'rapports', true, 'Démo : analyses des ventes');
   perform public.definir_module_etablissement(etab, 'rapports', true);
   perform set_config('request.jwt.claims', '', true);
@@ -1030,7 +1030,7 @@ begin
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
   select id into fidele from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
   select id into hotel from public.contacts where etablissement_id = etab and societe = 'Hôtel Démo Côte Sauvage';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'fidelite', true, 'Démo : programme de points');
   perform public.definir_module_etablissement(etab, 'fidelite', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1064,7 +1064,7 @@ begin
   end if;
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'assistant', true, 'Démo : assistant des anomalies');
   perform public.definir_module_etablissement(etab, 'assistant', true);
   perform set_config('request.jwt.claims', '', true);
@@ -1083,7 +1083,7 @@ begin
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'production', true, 'Démo : fabrication de paniers garnis');
   perform public.definir_module_etablissement(etab, 'production', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1116,7 +1116,7 @@ begin
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
   select id into client from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'location', true, 'Démo : location de matériel');
   perform public.definir_module_etablissement(etab, 'location', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1146,7 +1146,7 @@ begin
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'livraisons', true, 'Démo : livraisons à domicile');
   perform public.definir_module_etablissement(etab, 'livraisons', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1172,7 +1172,7 @@ begin
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
   select id into parent from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'scolaire', true, 'Démo : école et frais de scolarité');
   perform public.definir_module_etablissement(etab, 'scolaire', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1204,7 +1204,7 @@ begin
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'comptabilite', true, 'Démo : comptabilité');
   perform public.definir_module_etablissement(etab, 'comptabilite', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1227,7 +1227,7 @@ begin
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';
   select id into client from public.contacts where etablissement_id = etab and nom = 'Client fidèle Démo';
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'marketing', true, 'Démo : campagnes marketing');
   perform public.definir_module_etablissement(etab, 'marketing', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1291,7 +1291,7 @@ begin
   select id into hotel_devis from public.documents_vente where etablissement_id = etab and type = 'devis' and objet = 'Eau minérale pour les chambres';
   select id into grossiste from public.contacts where etablissement_id = etab and nom = 'Grossiste Démo';
   aujourdhui := public.date_locale(etab);
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'contrats', true, 'Démo : contrats et engagements');
   perform public.definir_module_etablissement(etab, 'contrats', true);
   perform set_config('request.jwt.claims', json_build_object('sub', gerante, 'role', 'authenticated')::text, true);
@@ -1465,7 +1465,7 @@ begin
   end if;
   select u.id into sa from auth.users u join public.plateforme_admins a on a.user_id = u.id
   where a.role = 'super_admin' and a.actif order by u.created_at limit 1;
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.accorder_module(etab, 'portail_client', true, 'Démo : espace client');
   perform public.definir_module_etablissement(etab, 'portail_client', true);
   select id into gerante from auth.users where email = 'gerante@demo.agence-elite.fr';

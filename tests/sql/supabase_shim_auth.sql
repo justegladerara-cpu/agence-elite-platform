@@ -37,3 +37,23 @@ create or replace function extensions.crypt(p_mot_de_passe text, p_sel text) ret
   select prefixe || md5(prefixe || p_mot_de_passe)
   from (select substring(p_sel from '^sim\$[0-9a-f]*\$') as prefixe) s
 $$;
+-- Double authentification (Supabase Auth MFA) et sessions, réduites aux colonnes utilisées par les migrations.
+create table if not exists auth.mfa_factors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  friendly_name text,
+  factor_type text not null default 'totp',
+  status text not null default 'unverified',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create table if not exists auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  aal text default 'aal1',
+  not_after timestamptz,
+  user_agent text,
+  ip text
+);

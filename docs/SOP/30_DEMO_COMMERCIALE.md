@@ -9,7 +9,7 @@ Le script remet la démo à jour sans rien effacer (idempotent) et archive les c
 
 | Identifiant | Rôle |
 |---|---|
-| `Justegladerara` | Super Admin (compte existant, son propre mot de passe) |
+| *(identifiant du super administrateur, non écrit ici)* | Super Admin (compte existant, son propre mot de passe, double authentification) |
 | `Admin` | Admin Agence Elite |
 | `Patrondemo` | Responsable d'établissement « Commerce Démo » (tous les Hubs) |
 | `Userdemo` | Caissier, limité au Hub « Magasin principal » |

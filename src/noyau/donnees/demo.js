@@ -19,7 +19,7 @@ export async function semerDemo(db, script = scriptDemo, modules = scriptModules
   await db.query("update public.profils set nom_complet = 'Juste Glade' where id = $1", [sa]);
   await db.query("insert into public.plateforme_admins(user_id, role) values ($1, 'super_admin')", [sa]);
   await db.transaction(async (tx) => {
-    await tx.query("select set_config('app.demo_mot_de_passe', $1, true), set_config('app.demo_super_admin_email', 'editeur@demo.local', true)", [MOT_DE_PASSE_DEMO_LOCAL]);
+    await tx.query("select set_config('app.demo_mot_de_passe', $1, true), set_config('app.demo_super_admin_email', 'editeur@demo.local', true), set_config('app.demo_super_admin_identifiant', 'Editeurdemo', true)", [MOT_DE_PASSE_DEMO_LOCAL]);
     await tx.exec(script);
     if (modules) await tx.exec(modules);
     if (historique) await tx.exec(scriptHistorique);

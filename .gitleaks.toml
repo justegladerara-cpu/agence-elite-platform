@@ -1,0 +1,11 @@
+# Détection automatique de secrets (CI « Fuites »). Règles par défaut de gitleaks, plus ces exceptions vérifiées :
+# les clés « publishable » de Supabase sont faites pour le navigateur (la sécurité repose sur la RLS).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Faux positifs vérifiés (audit du 19/10/2026)"
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
+  '''valeur-cle-test-[0-9]+''',
+]
