@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { SUPABASE_CLE_PUBLIQUE, SUPABASE_URL } from '../serveur/config.js';
 import { traiterAdresses } from '../serveur/adresses.js';
 import connecteur from '../serveur/connecteur/index.js';
-import { suggererSousDomaine } from '../src/modules/editeur/AdressesEditeur.jsx';
 
 const ENV = { CF_API_TOKEN: 'jeton-cf' };
 
@@ -64,16 +63,23 @@ describe('adresses web', () => {
     expect(domaines.map((d) => d.name)).toContain('thedream.agence-elite.fr');
   });
 
+  it('accepte les appels du CRM (CORS), pas ceux d’une autre origine', async () => {
+    const { f } = faux();
+    const pre = await traiterAdresses(new Request('https://saas.agence-elite.fr/api/adresses', { method: 'OPTIONS', headers: { origin: 'https://crm.agence-elite.fr' } }), ENV, f);
+    expect(pre.status).toBe(204);
+    expect(pre.headers.get('access-control-allow-origin')).toBe('https://crm.agence-elite.fr');
+    expect(pre.headers.get('access-control-allow-headers')).toMatch(/authorization/);
+    const depuisCrm = new Request('https://saas.agence-elite.fr/api/adresses', { headers: { authorization: 'Bearer session', origin: 'https://crm.agence-elite.fr' } });
+    expect((await traiterAdresses(depuisCrm, ENV, f)).headers.get('access-control-allow-origin')).toBe('https://crm.agence-elite.fr');
+    const ailleurs = new Request('https://saas.agence-elite.fr/api/adresses', { headers: { authorization: 'Bearer session', origin: 'https://exemple.test' } });
+    expect((await traiterAdresses(ailleurs, ENV, f)).headers.get('access-control-allow-origin')).toBeNull();
+  });
+
   it('refuse les noms réservés ou invalides', async () => {
     for (const nom of ['crm', 'saas', 'a b', '']) {
       const rep = await traiterAdresses(requete('POST', { sous_domaine: nom }), ENV, faux().f);
       expect(rep.status).toBe(400);
     }
-  });
-
-  it('propose un nom à partir de celui de l’établissement', () => {
-    expect(suggererSousDomaine('The Dream Lounge Bar Restaurant')).toBe('the-dream-lounge-bar-restaurant');
-    expect(suggererSousDomaine('Hôtel 2i')).toBe('hotel-2i');
   });
 
   it('connecteur IA : lecture seule sans secrets, protégé par jeton avec', async () => {

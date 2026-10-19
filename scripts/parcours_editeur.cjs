@@ -1,7 +1,7 @@
-// Parcours « nouveau client sans toucher au code », dans Chromium (Playwright requis) :
+// Parcours du compte Agence Elite (super admin) sur le SaaS, dans Chromium (Playwright requis) :
 // npm run build:demo && npx vite preview --port 4173, puis node scripts/parcours_editeur.cjs.
-// Agence Elite crée le client, l'établissement et la licence, invite le responsable, ouvre le mode support,
-// puis vérifie l'espace éditeur sur téléphone (aucun débordement).
+// Depuis le 2026-10-19, l'administration de la plateforme n'existe plus ici : elle se fait dans le CRM
+// (crm.agence-elite.fr). Le super admin est renvoyé vers le CRM, et les anciennes adresses #/editeur/… n'ouvrent rien.
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 
@@ -33,102 +33,24 @@ fs.mkdirSync('captures-parcours', { recursive: true });
 
   try {
     await p.goto(U);
-    await etape('editeur-connexion', async () => {
+    await etape('super-admin-renvoye-vers-crm', async () => {
       await p.locator('button.profil', { hasText: 'Juste Glade' }).first().click({ timeout: 90000 });
-      // L'accueil de l'espace Agence Elite renvoie vers le CRM ; les écrans restent ouverts en secours
-      await p.getByRole('heading', { name: 'Administration Agence Elite' }).waitFor();
-      await p.goto(`${U}#/editeur/tableau`);
-      await p.getByRole('heading', { name: /Bonjour/ }).waitFor();
+      await p.getByRole('heading', { name: 'Administration dans le CRM' }).waitFor();
+      const lien = await p.getByRole('link', { name: 'Ouvrir le CRM' }).getAttribute('href');
+      if (lien !== 'https://crm.agence-elite.fr') throw new Error(`Lien CRM inattendu : ${lien}`);
     });
-    await etape('client-cree', async () => {
-      await p.getByRole('button', { name: 'Nouveau client' }).first().click();
-      await dialogue().getByLabel(/Nom du client/).fill('Pilote Fictif SARL');
-      await dialogue().getByLabel('Responsable').fill('Mme Responsable Fictive');
-      await dialogue().getByLabel('Téléphone').fill('+242 06 000 00 01');
-      await dialogue().getByRole('button', { name: 'Enregistrer' }).click();
-      await p.getByRole('heading', { name: 'Pilote Fictif SARL' }).waitFor();
-    });
-    await etape('etablissement-cree', async () => {
-      await p.getByRole('button', { name: 'Nouvel établissement' }).click();
-      await dialogue().getByLabel('Nom de l’établissement').fill('Pilote Boutique Centre');
-      await dialogue().getByLabel('Ville').fill('Pointe-Noire');
-      await dialogue().getByRole('button', { name: 'Créer' }).click();
-      await p.getByRole('tab', { name: 'Licence' }).waitFor();
-    });
-    await etape('licence-attribuee', async () => {
-      await p.getByRole('tab', { name: 'Licence' }).click();
-      await p.getByRole('button', { name: 'Attribuer une licence' }).click();
-      const d = dialogue();
-      await d.getByLabel('Offre').selectOption('commerce-complet');
-      await d.getByLabel('Formule').selectOption('mensuel');
-      await d.getByLabel(/Montant encaissé/).fill('25000');
-      await d.getByLabel('Référence du paiement').fill('MoMo test 001');
-      await d.getByRole('button', { name: 'Attribuer', exact: true }).click();
-      await p.getByText('MoMo test 001').waitFor();
-    });
-    await etape('gerant-invite', async () => {
-      await p.getByRole('tab', { name: 'Équipe' }).click();
-      await p.getByRole('button', { name: 'Inviter par e-mail' }).click();
-      const d = dialogue();
-      await d.getByLabel('Adresse e-mail').fill('responsable@pilote.test');
-      await d.getByLabel('Rôle').selectOption('gerant');
-      await d.getByRole('button', { name: 'Créer l’invitation' }).click();
-      await d.getByLabel('Message à envoyer').waitFor();
-    });
-    await p.getByRole('button', { name: 'Terminé' }).click();
-    await p.keyboard.press('Escape');
-    // L'acceptation d'une invitation (création du compte) n'existe qu'avec la vraie base : elle est couverte par le
-    // parcours « mot de passe obligatoire (Auth réel) » de la CI, pas par la démo locale.
-    await etape('editeur-support', async () => {
-      await p.getByRole('tab', { name: 'Support' }).click();
-      await p.getByLabel('Motif (obligatoire)').fill('Vérification après mise en service');
-      await p.getByRole('button', { name: 'Ouvrir et consulter' }).click();
-      await p.getByText(/Mode support : consultation seule/).waitFor();
+    await etape('anciennes-adresses-fermees', async () => {
+      for (const ecran of ['tableau', 'clients', 'partenaires', 'offres', 'comptes']) {
+        await p.goto(`${U}#/editeur/${ecran}`);
+        await p.getByRole('heading', { name: 'Administration dans le CRM' }).waitFor();
+        if (await p.getByRole('button', { name: 'Nouveau client' }).count()) throw new Error(`#/editeur/${ecran} montre encore l’administration`);
+      }
     });
     await p.setViewportSize({ width: 390, height: 844 });
-    const debordements = () => p.evaluate(() => {
-      const largeur = document.documentElement.clientWidth;
-      return [...document.querySelectorAll('main *')]
-        .filter((e) => e.getBoundingClientRect().right > largeur + 1 && !e.closest('.tableau-conteneur'))
-        .slice(0, 8)
-        .map((e) => `${e.tagName}.${e.className} droite=${Math.round(e.getBoundingClientRect().right)}`);
-    });
-    await etape('copie-articles', async () => {
-      // Super admin : copier des articles d'un établissement vers un autre client (prix à saisir), puis mettre un prix.
-      await p.goto(`${U}#/editeur/copie-articles`);
-      const source = p.getByLabel('Copier depuis');
-      await source.waitFor({ timeout: 60000 });
-      const optionSource = await source.locator('option', { hasText: 'Commerce Démo · Commerce Démo' }).first().getAttribute('value');
-      await source.selectOption(optionSource);
-      await p.getByRole('button', { name: /^Tout cocher/ }).click({ timeout: 60000 });
-      const cible = p.getByLabel('Copier vers');
-      const optionCible = await cible.locator('option', { hasText: 'Pilote Boutique Centre' }).first().getAttribute('value');
-      await cible.selectOption(optionCible);
-      await p.getByLabel(/Je mets les prix après/).check();
-      await p.getByRole('button', { name: 'Voir l’aperçu' }).click();
-      await p.getByText(/Aperçu, rien n’est encore copié/).waitFor({ timeout: 30000 });
-      await p.getByRole('button', { name: /^Copier \d+ article/ }).click();
-      await p.getByRole('heading', { name: 'Mettre les prix' }).waitFor({ timeout: 30000 });
-      await p.locator('.copie-prix-ligne input').first().fill('1500');
-      await p.getByRole('button', { name: 'Enregistrer les prix' }).click();
-      await p.getByText(/prix enregistré\(s\)/).first().waitFor({ timeout: 30000 });
-      await p.getByText('Copies faites').waitFor();
-    });
-    await etape('mobile-editeur', async () => {
-      await p.goto(`${U}#/editeur/tableau`);
-      await p.getByRole('heading', { name: /Bonjour/ }).waitFor();
-      await p.waitForTimeout(800);
-      const trop = await debordements();
-      if (trop.length) throw new Error(`Débordement horizontal : ${trop.join(' | ')}`);
-    });
-    await etape('mobile-fiche-etablissement', async () => {
-      await p.goto(`${U}#/editeur/clients`);
-      await p.getByText('Pilote Fictif SARL').first().click();
-      await p.getByRole('tab', { name: /Établissements/ }).click();
-      await p.locator('main').getByText('Pilote Boutique Centre', { exact: true }).filter({ visible: true }).first().click();
-      await p.getByRole('tab', { name: 'Licence' }).waitFor();
-      const trop = await debordements();
-      if (trop.length) throw new Error(`Débordement horizontal : ${trop.join(' | ')}`);
+    await etape('mobile', async () => {
+      await p.getByRole('heading', { name: 'Administration dans le CRM' }).waitFor();
+      const trop = await p.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+      if (trop) throw new Error('Débordement horizontal');
     });
   } catch {
     process.exitCode = 1;
