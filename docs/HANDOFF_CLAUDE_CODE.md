@@ -10,6 +10,11 @@ de mise en ligne pas à pas), [`PRODUCTION.md`](PRODUCTION.md), [`SOP/README.md`
 
 ---
 
+> **2026-10-19 : l'espace Super Admin (#/editeur/…) a été retiré du SaaS.** Toute l'administration se fait dans le
+> CRM (dépôt `agence-elite-crm`, `src/saas/`, adresses `crm.agence-elite.fr/#/editeur/…`). Les passages ci-dessous qui
+> parlent de l'« espace éditeur » ou du menu Super Admin du SaaS décrivent ces écrans, désormais ouverts depuis le CRM.
+> Voir `docs/DECISIONS.md` (2026-10-19) et `docs/SOP/90_PILOTAGE_DEPUIS_LE_CRM.md`.
+
 ## 0. SI TU ES UNE NOUVELLE SESSION CLAUDE CODE, COMMENCE ICI
 
 Dans cet ordre, **sans rien modifier** :

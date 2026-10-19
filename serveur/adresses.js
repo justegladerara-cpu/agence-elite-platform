@@ -4,8 +4,19 @@
 import { SUPABASE_CLE_PUBLIQUE, SUPABASE_URL } from './config.js';
 import { cfActif, creerAdresse, listerAdresses } from './connecteur/cloudflare.js';
 
-const json = (corps, statut = 200) =>
-  new Response(JSON.stringify(corps), { status: statut, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+// L'administration se fait dans le CRM (crm.agence-elite.fr) : ces origines peuvent appeler l'API depuis le navigateur.
+// Le contrôle reste le jeton de session super admin, vérifié par la base.
+export const ORIGINES_CRM = ['https://crm.agence-elite.fr', 'https://agence-elite-crm.pages.dev'];
+const enTetesCors = (origine) =>
+  ORIGINES_CRM.includes(origine)
+    ? {
+        'access-control-allow-origin': origine,
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+        'access-control-allow-headers': 'authorization, content-type',
+        'access-control-max-age': '600',
+        vary: 'Origin',
+      }
+    : { vary: 'Origin' };
 
 async function estSuperAdmin(requete, f) {
   const jeton = /^Bearer\s+(.+)$/i.exec(requete.headers.get('authorization') || '')?.[1];
@@ -19,6 +30,10 @@ async function estSuperAdmin(requete, f) {
 }
 
 export async function traiterAdresses(requete, env = {}, f = fetch) {
+  const cors = enTetesCors(requete.headers.get('origin'));
+  if (requete.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+  const json = (corps, statut = 200) =>
+    new Response(JSON.stringify(corps), { status: statut, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...cors } });
   if (!['GET', 'POST'].includes(requete.method)) return json({ erreur: 'Méthode non permise' }, 405);
   if (!(await estSuperAdmin(requete, f))) return json({ erreur: 'Réservé aux super admins Agence Elite' }, 403);
   if (!cfActif(env))

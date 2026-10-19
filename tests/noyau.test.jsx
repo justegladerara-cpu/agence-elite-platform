@@ -388,72 +388,14 @@ describe('application sur la base locale', () => {
     expect(screen.getByRole('form', { name: 'Réglages Devis et factures' })).toBeTruthy();
   });
 
-  test('le super administrateur arrive sur l’administration dans le CRM, avec les écrans de secours', async () => {
-    window.location.hash = '#/editeur';
+  test('le super administrateur n’a plus d’espace d’administration ici : il est renvoyé vers le CRM', async () => {
+    window.location.hash = '#/editeur/clients';
     render(<App demarrer={demarrer('editeur@demo.local')} />);
-    expect(await screen.findByRole('heading', { name: 'Administration Agence Elite' }, { timeout: 10000 })).toBeTruthy();
-    expect(screen.getByText(/Accès de secours/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Catalogue' }).getAttribute('href')).toBe('#/editeur/modules');
+    expect(await screen.findByRole('heading', { name: 'Administration dans le CRM' }, { timeout: 10000 })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Ouvrir le CRM' }).getAttribute('href')).toBe('https://crm.agence-elite.fr');
+    expect(screen.queryByText('Catalogue')).toBeNull();
+    expect(screen.queryByText('Elite Partners')).toBeNull();
   });
-
-  test('l’ancien tableau de bord Agence Elite reste ouvert en secours', async () => {
-    window.location.hash = '#/editeur/tableau';
-    render(<App demarrer={demarrer('editeur@demo.local')} />);
-    expect(await screen.findByText('Activité contractuelle', {}, { timeout: 10000 })).toBeTruthy();
-    expect(screen.queryByText(/encaissé/i)).toBeNull();
-    expect(screen.getByText('Échéances à surveiller')).toBeTruthy();
-  });
-
-  test('pages d’authentification : brouillon invisible, aperçu, publication, injection refusée, retour aux valeurs par défaut', async () => {
-    window.location.hash = '#/editeur/identite/auth';
-    const editeur = render(<App demarrer={demarrer('editeur@demo.local')} />);
-    expect(await screen.findByText('Pages à modifier', {}, { timeout: 10000 })).toBeTruthy();
-    fireEvent.click(await screen.findByRole('tab', { name: 'Textes' }, { timeout: 10000 }));
-    const titre = await screen.findByPlaceholderText('Connexion');
-    // Injection : refusée par la base, rien n'est enregistré.
-    fireEvent.change(titre, { target: { value: '<script>alert(1)</script>' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
-    expect(await screen.findByText(/Texte refusé/, {}, { timeout: 10000 })).toBeTruthy();
-    // Brouillon : visible dans l'aperçu, pas sur l'écran de connexion.
-    fireEvent.change(screen.getByPlaceholderText('Connexion'), { target: { value: 'Bienvenue chez Élégance' } });
-    const apercu = screen.getByLabelText('Aperçu de la page');
-    expect(within(apercu).getByRole('heading', { name: 'Bienvenue chez Élégance' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Téléphone' }));
-    expect(apercu.className).toContain('mobile');
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
-    expect(await screen.findByText('Brouillon enregistré', {}, { timeout: 10000 })).toBeTruthy();
-    editeur.unmount();
-    window.location.hash = '';
-    const avant = render(<App demarrer={demarrer(null)} />);
-    expect(await screen.findByRole('heading', { name: 'Connexion' }, { timeout: 10000 })).toBeTruthy();
-    expect(screen.queryByText('Bienvenue chez Élégance')).toBeNull();
-    avant.unmount();
-    // Publication : appliquée sans redéploiement.
-    window.location.hash = '#/editeur/identite/auth';
-    const publication = render(<App demarrer={demarrer('editeur@demo.local')} />);
-    expect(await screen.findByText('Brouillon non publié', {}, { timeout: 10000 })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Publier' }));
-    expect(await screen.findByText(/Pages publiées/, {}, { timeout: 10000 })).toBeTruthy();
-    publication.unmount();
-    window.location.hash = '';
-    const apres = render(<App demarrer={demarrer(null)} />);
-    expect(await screen.findByRole('heading', { name: 'Bienvenue chez Élégance' }, { timeout: 10000 })).toBeTruthy();
-    apres.unmount();
-    // Retour aux valeurs par défaut, puis publication.
-    window.location.hash = '#/editeur/identite/auth';
-    const retour = render(<App demarrer={demarrer('editeur@demo.local')} />);
-    fireEvent.click(await screen.findByRole('tab', { name: 'Publication' }, { timeout: 10000 }));
-    expect(screen.getAllByText(/Publication \(v1\)/).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Revenir aux valeurs par défaut' }));
-    expect(await screen.findByText(/valeurs par défaut : publiez/, {}, { timeout: 10000 })).toBeTruthy();
-    expect(await screen.findByText('Brouillon non publié', {}, { timeout: 10000 })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Publier' }));
-    expect(await screen.findByText(/Pages publiées/, {}, { timeout: 10000 })).toBeTruthy();
-    retour.unmount();
-    const fin = render(<App demarrer={demarrer(null)} />);
-    expect(await screen.findByRole('heading', { name: 'Connexion' }, { timeout: 10000 })).toBeTruthy();
-    fin.unmount();
-  }, 60000);
 
   test('mot de passe oublié et session expirée', async () => {
     window.location.hash = '';

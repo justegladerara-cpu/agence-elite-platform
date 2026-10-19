@@ -25,7 +25,6 @@ import { QrPublic } from './public/QrPublic.jsx';
 import { EspaceClientPublic } from './public/EspaceClient.jsx';
 import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
-import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
 import { oublierAccueil } from './modules/caisse/verrouCaisse.js';
@@ -237,6 +236,28 @@ function Accueil({ config, api, contexte, onRecharger, onDeconnexion }) {
   );
 }
 
+// Compte Agence Elite (super admin) sans session support ouverte : l'administration de la plateforme n'existe plus
+// ici, elle se fait dans le CRM (crm.agence-elite.fr › Plateforme). Une session support ouverte depuis le CRM
+// fait apparaître ici l'établissement du client, en consultation.
+export const ADRESSE_CRM = 'https://crm.agence-elite.fr';
+function AdministrationDansLeCrm({ config, onRecharger, onDeconnexion }) {
+  useTitreAuth(config, 'Administration dans le CRM');
+  return (
+    <EcranAuth config={config}>
+      <div className="pile">
+        <h1>Administration dans le CRM</h1>
+        <p className="texte-doux">
+          La gestion des clients, licences, comptes, offres et partenaires se fait dans le CRM Agence Elite. Pour voir le
+          logiciel d’un client, ouvrez une session support depuis sa fiche dans le CRM, puis revenez ici.
+        </p>
+        <a className="bouton principal" href={ADRESSE_CRM}>Ouvrir le CRM</a>
+        <button type="button" className="bouton" onClick={onRecharger}>J’ai ouvert une session support</button>
+        <button type="button" className="lien" onClick={onDeconnexion}>Se déconnecter</button>
+      </div>
+    </EcranAuth>
+  );
+}
+
 // Bulle d'aide d'un écran (une phrase), fermable une fois pour toutes sur cet appareil.
 function BulleAide({ id }) {
   const [fermees, setFermees] = useState(aidesFermees);
@@ -253,7 +274,7 @@ function BulleAide({ id }) {
 }
 
 function Bandeaux({ naviguer }) {
-  const { etablissement, editeur } = useEspace();
+  const { etablissement } = useEspace();
   const { nom_editeur: nomEditeur, contact_support: contactSupport } = useConfigAuth();
   const contactez = `Contactez ${nomEditeur}${contactSupport ? ` (${contactSupport})` : ''}`;
   if (!etablissement) return null;
@@ -263,7 +284,6 @@ function Bandeaux({ naviguer }) {
     bandeaux.push(
       <div key="support" className="bandeau info">
         Mode support : consultation seule de {etablissement.nom}.
-        {editeur && <button className="lien" onClick={() => naviguer('editeur')}>Retour à l’espace {nomEditeur}</button>}
       </div>
     );
   } else if (etablissement.role === 'dirigeant') {
@@ -506,7 +526,7 @@ function ProfilUtilisateur({ libelleRole, onCompte }) {
   );
 }
 
-function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, naviguer, onRecherche, onCreer }) {
+function BarreHaut({ filDefaut, onMenu, libelleRole, onCompte, naviguer, onRecherche, onCreer }) {
   const { etablissement, etablissements, choisirEtablissement, hubs, hub, multiHub, choisirHub } = useEspace();
   const contexteFil = useFilAriane();
   const fil = contexteFil?.fil ?? filDefaut;
@@ -515,7 +535,7 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
       <button className="icone-bouton bouton-menu" onClick={onMenu} aria-label="Ouvrir le menu"><Icone nom="menu" /></button>
       <FilAriane elements={fil} />
       <div className="barre-haut-outils">
-        {!surEditeur && etablissement && (
+        {etablissement && (
           <>
             <button type="button" className="barre-haut-recherche" onClick={onRecherche} aria-label="Rechercher partout (Ctrl+K)" title="Rechercher partout (Ctrl+K)">
               <Icone nom="recherche" taille={16} />
@@ -525,7 +545,7 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
             <button type="button" className="icone-bouton" onClick={onCreer} aria-label="Créer" title="Créer (touche N)"><Icone nom="plus" /></button>
           </>
         )}
-        {!surEditeur && etablissements.length > 1 && (
+        {etablissements.length > 1 && (
           <label className="selecteur">
             <Icone nom="editeur" taille={16} />
             <select value={etablissement?.id} onChange={(e) => choisirEtablissement(e.target.value)} aria-label="Établissement">
@@ -533,7 +553,7 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
             </select>
           </label>
         )}
-        {!surEditeur && multiHub && (
+        {multiHub && (
           <label className="selecteur">
             <Icone nom="hub" taille={16} />
             <select value={hub?.id ?? ''} onChange={(e) => choisirHub(e.target.value || null)} aria-label="Hub">
@@ -551,7 +571,7 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
 
 function Coquille() {
   const espace = useEspace();
-  const { api, contexte, etablissement, editeur, roleEditeur, recharger } = espace;
+  const { api, contexte, etablissement, editeur, recharger } = espace;
   const [route, naviguer, requete] = useRoute();
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [compte, setCompte] = useState(false);
@@ -572,17 +592,16 @@ function Coquille() {
       .catch(() => {});
   }, [api, etablissement?.id]);
   const menu = etablissement ? filtrerModeSimple(pagesDuMenu(espace), modeSimple) : [];
-  const surEditeur = editeur && (route.startsWith('editeur') || !etablissement);
   const premier = route.split('/')[0];
   // Tant que l'établissement n'est pas en service, son responsable arrive sur la liste de démarrage.
   // Sinon : la page d'accueil choisie dans son profil, si elle lui est accessible.
   const pageParDefaut = pages.find((p) => p.id === 'mise-en-service' && !etablissement?.mis_en_service_le)
     ?? pages.find((p) => p.id === contexte.utilisateur?.preferences?.page_accueil)
     ?? pages[0];
-  const page = surEditeur ? null : pages.find((p) => p.id === premier) ?? pageParDefaut;
+  const page = pages.find((p) => p.id === premier) ?? pageParDefaut;
   // Sous-pages : #/<page>/<suite> (ex. #/employes/<id>) ; la suite est transmise à la page.
   const sousRoute = page && premier === page.id ? route.slice(page.id.length + 1) : '';
-  const routeAttendue = surEditeur ? (route.startsWith('editeur') ? route : 'editeur') : page && (sousRoute ? `${page.id}/${sousRoute}` : page.id);
+  const routeAttendue = page && (sousRoute ? `${page.id}/${sousRoute}` : page.id);
 
   useEffect(() => {
     if (routeAttendue && route !== routeAttendue) window.history.replaceState(null, '', `#/${routeAttendue}`);
@@ -590,46 +609,32 @@ function Coquille() {
 
   // Menu court : écrans de tous les jours d'abord, le reste replié dans « Plus d'outils ».
   const { recents, plusOuvert } = useMenuEssentiel();
-  const { courtes: menuCourt, autres: menuPlus } = separerMenu(menu, { recents, pageActive: surEditeur ? null : page?.id });
+  const { courtes: menuCourt, autres: menuPlus } = separerMenu(menu, { recents, pageActive: page?.id });
   useEffect(() => {
-    if (!surEditeur && page?.id) noterPageOuverte(page.id);
-  }, [surEditeur, page?.id]);
+    if (page?.id) noterPageOuverte(page.id);
+  }, [page?.id]);
 
   const aller = (id) => {
     setMenuOuvert(false);
     naviguer(id);
   };
   const Page = page?.composant;
-  const actifEditeur = surEditeur ? routeEditeurActive(route) : null;
   const { nom_editeur: nomEditeur } = useConfigAuth();
-  const roleAffiche = surEditeur || !etablissement ? ROLES_PLATEFORME[roleEditeur] ?? '' : libelleRole(etablissement.role, nomEditeur);
+  const roleAffiche = libelleRole(etablissement.role, nomEditeur);
   const nomEtablissement = etablissement?.identite?.nom_commercial ?? etablissement?.nom;
-  // Identité affichée : celle de la plateforme dans l'espace Agence Elite, celle de l'établissement ailleurs.
-  const marque = surEditeur ? contexte.plateforme : etablissement?.marque ?? contexte.plateforme;
-  const titrePage = surEditeur ? nomEditeur : page?.libelle;
+  // Identité affichée : celle de l'établissement, sinon celle de la plateforme.
+  const marque = etablissement?.marque ?? contexte.plateforme;
+  const titrePage = page?.libelle;
   useEffect(() => appliquerMarque(marque, titrePage), [marque, titrePage]);
-  const filDefaut = surEditeur
-    ? [{ libelle: nomEditeur }]
-    : [{ libelle: nomEtablissement ?? '' }, ...(espace.hub && espace.multiHub ? [{ libelle: espace.hub.nom }] : []), { libelle: page?.libelle ?? '' }];
+  const filDefaut = [{ libelle: nomEtablissement ?? '' }, ...(espace.hub && espace.multiHub ? [{ libelle: espace.hub.nom }] : []), { libelle: page?.libelle ?? '' }];
 
   return (
     <FournisseurFil>
       {etablissement && <VerrouCaisse />}
       <div className={`coquille ${page?.pleinEcran ? 'plein-ecran' : ''}`}>
         <aside className={`menu ${menuOuvert ? 'ouvert' : ''}`} aria-label="Navigation principale">
-          <Marque marque={marque} sousTitre={surEditeur ? 'Espace éditeur' : undefined} />
+          <Marque marque={marque} />
           <nav>
-            {editeur && (
-              <div className="menu-groupe">
-                <span className="menu-groupe-titre">{nomEditeur}</span>
-                {MENU_EDITEUR.filter((m) => !m.secours && (!m.superAdmin || roleEditeur === 'super_admin')).map((m) => (
-                  <button key={m.id} className={actifEditeur === m.id ? 'actif' : ''} aria-current={actifEditeur === m.id ? 'page' : undefined} onClick={() => aller(m.id)}>
-                    <Icone nom={m.icone} />
-                    <span>{m.libelle}</span>
-                  </button>
-                ))}
-              </div>
-            )}
             {etablissement && (
               <>
                 {editeur && (
@@ -638,7 +643,7 @@ function Coquille() {
                     <strong>{nomEtablissement}</strong>
                   </div>
                 )}
-                <GroupesMenu pages={menuCourt} pageActive={surEditeur ? null : page?.id} aller={aller} />
+                <GroupesMenu pages={menuCourt} pageActive={page?.id} aller={aller} />
                 {menuPlus.length > 0 && (
                   <>
                     <button type="button" className="menu-plus" aria-expanded={plusOuvert} onClick={() => ecrirePlusOuvert(!plusOuvert)}>
@@ -659,27 +664,22 @@ function Coquille() {
         </aside>
         {menuOuvert && <div className="voile-menu" onClick={() => setMenuOuvert(false)} />}
         <div className="colonne">
-          <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} onRecherche={ouvrirRecherche} onCreer={ouvrirCreation} />
+          <BarreHaut filDefaut={filDefaut} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} onRecherche={ouvrirRecherche} onCreer={ouvrirCreation} />
           <main className="contenu">
             <BandeauConnexion />
             <AnnonceMiseAJour />
-            {!surEditeur && <Bandeaux naviguer={aller} />}
-            {!surEditeur && <MessagePlateforme />}
-            {!surEditeur && page && <BulleAide id={page.id} />}
+            <Bandeaux naviguer={aller} />
+            <MessagePlateforme />
+            {page && <BulleAide id={page.id} />}
             {contexte.invitations.length > 0 && (
               <div className="bandeau-invitations">
                 <Badge ton="bleu">Invitation</Badge>
                 <Invitations api={api} contexte={contexte} onAccepte={recharger} compact />
               </div>
             )}
-            {surEditeur && (
-              <GardeErreur key={route}>
-                <EspaceEditeur route={route} naviguer={aller} />
-              </GardeErreur>
-            )}
-            {!surEditeur && (Page
+            {Page
               ? <GardeAppareil key={etablissement.id}><GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Suspense fallback={<Chargement texte="Ouverture de l’écran…" />}><Page naviguer={aller} sousRoute={sousRoute} /></Suspense></GardeErreur></GardeAppareil>
-              : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
+              : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />}
           </main>
         </div>
         {compte && <MonCompte onFermer={() => setCompte(false)} />}
@@ -822,6 +822,8 @@ export default function App({ demarrer = demarrerDonnees }) {
         sinon={<Accueil config={config} api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />}
       />
     );
+  } else if (!contexte.etablissements.length) {
+    ecran = <AdministrationDansLeCrm config={config} onRecharger={recharger} onDeconnexion={deconnecter} />;
   } else {
     ecran = (
       <FournisseurEspace api={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter}>

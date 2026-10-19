@@ -9,6 +9,12 @@ Fonctions : `pilotage_activite`, `pilotage_chronologie`, `definir_message_client
 
 Pourquoi : Juste veut un seul centre d'administration. Le CRM devient la tour de contrôle ; le SaaS sert aux clients.
 
+**Depuis le 2026-10-19, l'espace Super Admin du SaaS n'existe plus.** Tous ses écrans sont dans le CRM : Plateforme ›
+Boîte à outils (adresses `crm.agence-elite.fr/#/editeur/…` : clients, établissements, Hubs, catalogue, comptes, offres,
+Elite Partners, identité et pages de connexion, adresses web, sites clients, copie d'articles, tableau détaillé).
+Le code de ces écrans vit dans le dépôt `agence-elite-crm` (`src/saas/`). Sur saas.agence-elite.fr, un super admin sans
+session support voit seulement « Administration dans le CRM » avec le bouton « Ouvrir le CRM ».
+
 1. **Connexion.** Le CRM se connecte à cette base avec le compte super admin (identifiant et mot de passe du SaaS).
    Aucune clé secrète : la clé utilisée est la clé publique, et chaque fonction vérifie `exiger_super_admin()`.
 2. **Activité** : totaux par établissement (ventes du jour, 7 jours, 30 jours, dernière activité, personnes actives,
