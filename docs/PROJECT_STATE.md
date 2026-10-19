@@ -59,7 +59,8 @@ Nom = date + numéro **du jour** (`AAAAMMJJ` + `0000NN`). 1er octobre : 8 ; 2 oc
 appliquée se vérifie avec le workflow « Déploiement de la base » en mode simulation (« aucune migration en attente »).
 
 ## Comptes Agence Elite
-`contact@agence-elite.fr` (identifiant `Justegladerara`, Super Admin) ; `Admin` (mot de passe temporaire).
+Un super administrateur unique (adresse et identifiant **jamais écrits dans le dépôt** : dépôt public, audit du 19/10/2026, SEC-01/SEC-05) ;
+`Admin` (rôle admin). Double authentification de l'équipe : [SOP 91](SOP/91_DOUBLE_AUTHENTIFICATION.md).
 Comptes démo : voir [SOP 30](SOP/30_DEMO_COMMERCIALE.md) (`gerante@`, `resto@`, `reception@`, `boutique@demo.agence-elite.fr`…).
 
 ## Qualité

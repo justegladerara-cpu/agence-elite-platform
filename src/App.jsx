@@ -25,6 +25,7 @@ import { QrPublic } from './public/QrPublic.jsx';
 import { EspaceClientPublic } from './public/EspaceClient.jsx';
 import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
+import DoubleAuthentification, { CLE_PLUS_TARD, modeDoubleAuth } from './auth/DoubleAuthentification.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
@@ -714,6 +715,11 @@ class GardeErreur extends React.Component {
 export default function App({ demarrer = demarrerDonnees }) {
   const [donnees, setDonnees] = useState(null);
   const [contexte, setContexte] = useState(null);
+  // État de sécurité (double authentification de l'équipe Agence Elite), décidé par la base.
+  const [securite, setSecurite] = useState(null);
+  const [mfaPlusTard, setMfaPlusTard] = useState(() => {
+    try { return window.sessionStorage.getItem(CLE_PLUS_TARD) === '1'; } catch { return false; }
+  });
   const [erreur, setErreur] = useState('');
   const [etape, setEtape] = useState('demarrage');
   // Message affiché sur l'écran de connexion : 'expiree' (session terminée) ou 'lien' (lien reçu expiré).
@@ -731,6 +737,8 @@ export default function App({ demarrer = demarrerDonnees }) {
     }
     try {
       const resultat = await source.rpc('mon_contexte');
+      // Base pas encore migrée ou erreur passagère : aucun écran supplémentaire (la base garde le contrôle).
+      setSecurite(await source.rpc('mon_etat_securite').catch(() => null));
       setContexte(resultat);
       setAvis(null);
       ecrireStockage(CLE_SESSION, '1');
@@ -778,7 +786,8 @@ export default function App({ demarrer = demarrerDonnees }) {
     try { oublierAccueil(window.sessionStorage); } catch { /* stockage indisponible */ }
     await donnees.deconnecter();
     setContexte(null);
-    setAvis(raison === 'verrouillee' ? 'verrouillee' : null);
+    setSecurite(null);
+    setAvis(raison === 'verrouillee' || raison === 'expiree' ? raison : null);
     setEtape('connexion');
   }, [donnees]);
 
@@ -808,6 +817,21 @@ export default function App({ demarrer = demarrerDonnees }) {
       : <ConnexionSupabase config={config} donnees={donnees} avis={avis} onConnecte={() => chargerContexte(donnees)} />;
   } else if (contexte.compte?.doit_changer_mot_de_passe) {
     ecran = <NouveauMotDePasse config={config} donnees={donnees} contexte={contexte} onFait={recharger} onDeconnexion={deconnecter} />;
+  } else if (modeDoubleAuth(securite, { mfaDisponible: Boolean(donnees.mfa), plusTard: mfaPlusTard })) {
+    ecran = (
+      <EcranAuth config={config}>
+        <DoubleAuthentification
+          mode={modeDoubleAuth(securite, { mfaDisponible: Boolean(donnees.mfa), plusTard: mfaPlusTard })}
+          donnees={donnees}
+          onFait={recharger}
+          onPlusTard={() => {
+            try { window.sessionStorage.setItem(CLE_PLUS_TARD, '1'); } catch { /* stockage indisponible */ }
+            setMfaPlusTard(true);
+          }}
+          onDeconnexion={deconnecter}
+        />
+      </EcranAuth>
+    );
   } else if (publique === 'activer') {
     ecran = <ActivationCle donnees={donnees} contexte={contexte} onRecharger={recharger} onDeconnexion={deconnecter} />;
   } else if (publique === 'partenaire') {

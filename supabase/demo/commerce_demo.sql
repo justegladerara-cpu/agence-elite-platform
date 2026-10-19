@@ -3,7 +3,9 @@
 -- Exécuté tel quel en local (PGlite) et en production (workflow « Démo et comptes »).
 -- Paramètres (set_config avant l'exécution) :
 --   app.demo_mot_de_passe        mot de passe temporaire des comptes Admin, Patrondemo, Userdemo
---   app.demo_super_admin_email   adresse du super administrateur existant (reçoit l'identifiant Justegladerara)
+--   app.demo_super_admin_email        adresse du super administrateur existant
+--   app.demo_super_admin_identifiant  identifiant de connexion à lui donner s'il n'en a pas (facultatif ;
+--                                     jamais écrit dans le dépôt, saisi au lancement du workflow)
 -- Idempotent : ne fait rien si le client « Commerce Démo » existe déjà (les comptes sont créés s'ils manquent).
 -- Les opérations passent par les fonctions de la plateforme, en se plaçant successivement dans la
 -- peau de chaque utilisateur fictif (request.jwt.claims) : mêmes contrôles qu'à l'écran.
@@ -11,6 +13,7 @@ do $$
 declare
   mdp text := nullif(current_setting('app.demo_mot_de_passe', true), '');
   sa_email text := lower(coalesce(nullif(current_setting('app.demo_super_admin_email', true), ''), ''));
+  sa_identifiant text := nullif(btrim(coalesce(current_setting('app.demo_super_admin_identifiant', true), '')), '');
   sa uuid;
   gerante uuid;
   caisse_marche uuid;
@@ -49,10 +52,12 @@ begin
     raise exception 'Super administrateur introuvable';
   end if;
 
-  -- 1. Identifiant Justegladerara sur le super administrateur existant (son mot de passe ne change pas).
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
-  if not exists (select 1 from public.comptes_connexion where lower(identifiant) = 'justegladerara') then
-    perform public.definir_identifiant(sa, 'Justegladerara');
+  -- 1. Identifiant de connexion du super administrateur existant, s'il n'en a pas (son mot de passe ne change pas).
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
+  if sa_identifiant is not null
+     and not exists (select 1 from public.comptes_connexion where user_id = sa and identifiant is not null)
+     and not exists (select 1 from public.comptes_connexion where lower(identifiant) = lower(sa_identifiant)) then
+    perform public.definir_identifiant(sa, sa_identifiant);
   end if;
   update public.profils set nom_complet = 'Juste Glade' where id = sa and coalesce(nom_complet, '') in ('', 'Agence Elite (éditeur)');
 
@@ -89,7 +94,7 @@ begin
   end loop;
 
   -- 4. Client, établissement, licence (super administrateur).
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   client := public.creer_client('Commerce Démo', 'Congo');
   perform public.modifier_client(client, jsonb_build_object('contact', jsonb_build_object(
     'responsable', 'Patron Démo', 'telephone', '+242 06 000 00 00', 'email', 'patrondemo@identifiants.agence-elite.fr', 'adresse', 'Avenue de la Démo, Pointe-Noire')));
@@ -219,7 +224,7 @@ begin
     jsonb_build_object('article_id', art ->> 'PIL-AA', 'quantite_comptee', 41)), 'Inventaire tournant (démo)');
 
   -- 10. Mise en service, puis comptes du patron et de l'utilisateur limité (mot de passe temporaire).
-  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', sa, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   perform public.mettre_en_service(etab);
   select user_id into patron from public.comptes_connexion where lower(identifiant) = 'patrondemo';
   if patron is null then

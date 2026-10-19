@@ -113,6 +113,42 @@ export async function demarrerSupabase(env = import.meta.env) {
       utilisateur = data.session?.user?.id ?? null;
       return Boolean(data.session);
     },
+    // Double authentification (TOTP, Supabase Auth MFA) des comptes de l'équipe Agence Elite.
+    // La base exige le niveau aal2 (voir migration 20261019000142) ; ces appels ne font que l'obtenir.
+    mfa: {
+      async facteurs() {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) throw new Error('Lecture de la double authentification impossible pour le moment');
+        return (data?.totp ?? []).filter((f) => f.status === 'verified');
+      },
+      async enroler() {
+        // Un enrôlement abandonné (non vérifié) bloquerait le suivant : il est retiré d'abord.
+        const { data: liste } = await supabase.auth.mfa.listFactors();
+        for (const f of (liste?.all ?? []).filter((x) => x.factor_type === 'totp' && x.status !== 'verified')) {
+          await supabase.auth.mfa.unenroll({ factorId: f.id });
+        }
+        const jour = new Date().toISOString().slice(0, 10);
+        const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Téléphone ${jour} ${Math.random().toString(36).slice(2, 6)}` });
+        if (error) throw new Error(/rate|limit/i.test(error.message) ? 'Trop de demandes : réessayez dans quelques minutes' : 'Activation impossible pour le moment');
+        return { id: data.id, qr: data.totp?.qr_code ?? '', secret: data.totp?.secret ?? '' };
+      },
+      // Vérifie le code à 6 chiffres : Supabase renouvelle alors la session au niveau aal2.
+      async verifier(factorId, code) {
+        const propre = String(code ?? '').replace(/\s/g, '');
+        if (!/^\d{6}$/.test(propre)) throw new Error('Le code contient 6 chiffres');
+        const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: propre });
+        if (error) throw new Error(/rate|limit|too many/i.test(error.message) ? 'Trop d’essais : patientez quelques minutes' : 'Code incorrect ou expiré : réessayez avec le code affiché maintenant');
+      },
+      async niveau() {
+        const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        return data?.currentLevel ?? null;
+      },
+      // Ferme les sessions ouvertes sur les autres appareils (celle-ci reste ouverte).
+      async fermerAutresSessions() {
+        const { error } = await supabase.auth.signOut({ scope: 'others' });
+        if (error) throw new Error('Fermeture des autres sessions impossible pour le moment');
+      },
+    },
     async deconnecter() {
       deconnexionVolontaire = true;
       try {

@@ -252,7 +252,7 @@ Demande de Juste (09:04) : intégrer Codex et relier les modules (devis ↔ oppo
 | Déploiement de la base | `deploiement-base.yml` | **manuel** | `mode` = `simulation` / `appliquer` ; `confirmation` = `JE CONFIRME` | `SUPABASE_DB_URL` (env. `production`) | `npm test`, joint la base (`url_base.sh` passe au pooler IPv4), `supabase db push --dry-run`, puis si `appliquer`+`JE CONFIRME` : `supabase db push` | journal « Applying migration … » puis « Finished supabase db push ». Sans confirmation : erreur volontaire, rien n'est appliqué |
 | Sauvegarde de la base | `sauvegarde.yml` | **automatique** chaque nuit `30 1 * * *` UTC (l'exécution réelle arrive souvent vers 07:15–07:55 UTC, retard de GitHub) **et manuel** | — | `SUPABASE_DB_URL`, `SAUVEGARDE_PHRASE` | export rôles + schéma + données, chiffré AES-256, artefact `sauvegarde-<run_id>` gardé 30 jours ; **en manuel**, restauration de contrôle dans une base vierge + comparaison | artefact présent ; en manuel, étape « Vérifier la restauration » verte |
 | Pilote en production | `pilote-production.yml` | **manuel** | `site` (adresse à tester dans un navigateur ; vide = pas de navigateur) | `SUPABASE_DB_URL` | comptes fictifs `…@pilote.agence-elite.fr`, parcours Commerce sur 2 établissements fictifs, refus et isolation, concurrence de stock, puis neutralisation des comptes et archivage du client « Pilote fictif » ; si `site` : ouvre le site, contrôle en-têtes, mauvais mot de passe refusé, connexion gérant fictif | job vert |
-| Démo et comptes | `demo-comptes.yml` | **manuel** | `mot_de_passe_temporaire` (masqué), `super_admin_email` | `SUPABASE_DB_URL` | installe / complète la démo fictive et les comptes `Admin`, `Patrondemo`, `Userdemo`, identifiant `Justegladerara` ; archive les « Pilote fictif » | affiche identifiants et nombre de Hubs |
+| Démo et comptes | `demo-comptes.yml` | **manuel** | `mot_de_passe_temporaire` (masqué), `super_admin_email`, `super_admin_identifiant` (optionnels, masqués) | `SUPABASE_DB_URL` | installe / complète la démo fictive et les comptes `Admin`, `Patrondemo`, `Userdemo`, identifiant du super admin seulement s'il est fourni (`super_admin_identifiant`, masqué) ; archive les « Pilote fictif » | affiche identifiants et nombre de Hubs |
 | Adresse du site | `adresse-site.yml` | **manuel** | — | `github.token` (automatique) | attend la fin des checks Cloudflare du commit, affiche checks, statuts, déploiements, code HTTP du site workers.dev | lire le journal (§38). **Sans aucun risque** |
 | Vérifier un établissement | `verifier-etablissement.yml` | **manuel** | `recherche`, `identifiant` | `SUPABASE_DB_URL` | **lecture seule** : client, établissement, Hubs, modules, membres, droits, volumes | **seulement sur la branche de la PR #4** tant qu'elle n'est pas fusionnée |
 
@@ -295,7 +295,7 @@ indiquée par Juste. Le workflow « Pilote en production » teste par défaut l'
   le toucher).
 - Front : `.env.production` (URL + clé publishable). Sécurité = RLS + RPC, **la clé `service_role` n'est utilisée nulle part**.
 - Auth : Supabase Auth (e-mail + mot de passe ; connexion par **identifiant** traduite par la RPC anonyme
-  `resoudre_connexion`). SMTP configuré par Juste (expéditeur `contact@agence-elite.fr`). Site URL / redirections réglées
+  `resoudre_connexion`). SMTP configuré par Juste (expéditeur : adresse de contact de l’agence). Site URL / redirections réglées
   dans Supabase par Juste.
 - Écriture : **par fonctions RPC** (`security definer`, `search_path` fixé, permission vérifiée). Lecture : RLS.
 - Storage : non utilisé.

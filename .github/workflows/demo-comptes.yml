@@ -11,9 +11,12 @@ on:
         required: true
         default: "1234"
       super_admin_email:
-        description: "Adresse du super administrateur existant (reçoit l'identifiant Justegladerara)"
+        description: "Adresse du super administrateur existant (jamais écrite dans le dépôt)"
         required: true
-        default: "contact@agence-elite.fr"
+      super_admin_identifiant:
+        description: "Identifiant de connexion à lui donner s'il n'en a pas (facultatif)"
+        required: false
+        default: ""
 concurrency:
   group: deploiement-base
   cancel-in-progress: false
@@ -31,11 +34,14 @@ jobs:
         env:
           MDP: ${{ inputs.mot_de_passe_temporaire }}
           SA: ${{ inputs.super_admin_email }}
+          SAI: ${{ inputs.super_admin_identifiant }}
         run: |
           echo "::add-mask::$MDP"
-          psql "$BASE_URL" -q -v ON_ERROR_STOP=1 -v mdp="$MDP" -v sa="$SA" <<'SQL'
+          echo "::add-mask::$SA"
+          if [ -n "$SAI" ]; then echo "::add-mask::$SAI"; fi
+          psql "$BASE_URL" -q -v ON_ERROR_STOP=1 -v mdp="$MDP" -v sa="$SA" -v sai="$SAI" <<'SQL'
           begin;
-          select set_config('app.demo_mot_de_passe', :'mdp', true), set_config('app.demo_super_admin_email', :'sa', true);
+          select set_config('app.demo_mot_de_passe', :'mdp', true), set_config('app.demo_super_admin_email', :'sa', true), set_config('app.demo_super_admin_identifiant', :'sai', true);
           \i supabase/demo/commerce_demo.sql
           \i supabase/demo/modules_demo.sql
           \i supabase/demo/historique_demo.sql
@@ -47,7 +53,8 @@ jobs:
       - name: Vérifier
         run: |
           psql "$BASE_URL" -qtA -v ON_ERROR_STOP=1 <<'SQL'
-          select 'identifiants : ' || string_agg(identifiant || case when doit_changer_mot_de_passe then ' (changement obligatoire)' else '' end, ', ' order by identifiant) from public.comptes_connexion;
+          -- Dépôt public : aucun identifiant n'est affiché, seulement des nombres.
+          select 'comptes avec identifiant : ' || count(*) filter (where identifiant is not null) || ' (dont ' || count(*) filter (where doit_changer_mot_de_passe) || ' en changement obligatoire)' from public.comptes_connexion;
           select 'Hubs Commerce Démo : ' || count(*) from public.hubs h join public.etablissements e on e.id = h.etablissement_id where e.nom = 'Commerce Démo';
           select 'clients visibles : ' || count(*) from public.clients where statut <> 'archive';
           SQL
