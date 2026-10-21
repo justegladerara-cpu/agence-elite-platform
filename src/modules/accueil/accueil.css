@@ -20,7 +20,7 @@
 .accueil-bouton.principal .icone, .accueil-bouton.principal small { color: #fff; }
 .accueil-titre { font-size: 1.1rem; margin: 0 0 10px; }
 .accueil-chiffres { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-.accueil-whatsapp { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; min-height: 48px; padding: 0 16px; border-radius: 12px; background: #25D366; color: #fff; text-decoration: none; font-weight: 600; }
+.accueil-whatsapp { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; min-height: 48px; padding: 0 16px; border-radius: 12px; background: #0b7a43; color: #fff; text-decoration: none; font-weight: 600; }
 .accueil-a-faire { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .accueil-a-faire button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--bordure, #d0d7de); background: var(--surface, #fff); color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .accueil-a-faire button span { flex: 1; }

@@ -5,7 +5,7 @@
 
 .modale footer .bouton-whatsapp {
   border-color: #25d366;
-  color: #128c4a;
+  color: var(--vert);
 }
 
 .modale footer:has(.bouton-whatsapp) .bouton {

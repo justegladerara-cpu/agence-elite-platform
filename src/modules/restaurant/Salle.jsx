@@ -210,7 +210,7 @@ function PlanDeSalle({ naviguer }) {
               <div key={c.id} className="liste-ligne">
                 <button type="button" className="lien" onClick={() => naviguer(`salle/${c.id}`)}><strong>{c.numero}</strong> {c.nom_client ?? ''}</button>
                 <span className="texte-doux">{d.nomServeur[c.serveur_id] ?? ''}</span>
-                <span>{montant(totalLignes(lignesDe(c.id), d.article))}</span>
+                <span className="montant">{montant(totalLignes(lignesDe(c.id), d.article))}</span>
               </div>
             ))}
           </div>

@@ -280,20 +280,20 @@ export default function Depenses() {
       {donnees && !donnees.depenses.length && <Vide titre="Aucune dépense" texte="Enregistrez vos dépenses pour suivre votre résultat." />}
       {donnees?.depenses.length > 0 && (
         <div className="tableau-conteneur">
-          <table className="tableau">
+          <table className="tableau fiches-telephone">
             <thead><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Payée par</th><th className="nombre">Montant</th><th /></tr></thead>
             <tbody>
               {donnees.depenses.map((d) => (
                 <tr key={d.id} className={d.statut === 'annulee' ? 'barre' : ''}>
-                  <td>{formatDate(d.date_depense)}</td>
+                  <td data-label="Date">{formatDate(d.date_depense)}</td>
                   <td>
                     <strong>{d.libelle}</strong>
                     {d.fournisseur_id && <small className="texte-doux bloc">{donnees.noms[d.fournisseur_id]}</small>}
                     {d.statut === 'annulee' && <small className="texte-alerte bloc">Annulée : {d.motif_annulation}</small>}
                   </td>
-                  <td>{d.categorie}</td>
-                  <td>{MODES_PAIEMENT[d.mode]}{d.session_caisse_id && <Badge>caisse</Badge>}</td>
-                  <td className="nombre">{montant(d.montant)}</td>
+                  <td data-label="Catégorie">{d.categorie}</td>
+                  <td data-label="Payée par">{MODES_PAIEMENT[d.mode]}{d.session_caisse_id && <Badge>caisse</Badge>}</td>
+                  <td className="nombre" data-label="Montant">{montant(d.montant)}</td>
                   <td className="actions-ligne">
                     {d.justificatif && <button className="lien" onClick={() => setJustificatif(d.justificatif)}>Justificatif</button>}
                     {d.statut === 'valide' && peut('depenses.gerer') && <button className="lien danger" onClick={() => setAnnulation(d)}>Annuler</button>}

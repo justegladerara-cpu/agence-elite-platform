@@ -1,31 +1,89 @@
-/* Solution Commerce — système visuel (inspiré de Zoho Books et de la caisse Odoo). */
+/* Elite Design System — feuille commune de la plateforme (docs/DESIGN_SYSTEM.md).
+   Un seul jeu de jetons, ici. Les noms existants (--fond, --accent…) ne changent jamais : la couleur de marque
+   (src/noyau/marque.js), le thème sombre, le contraste élevé et les modules en dépendent. */
 
+/* --- Jetons ---------------------------------------------------------------------------------------------------
+   Points de rupture (les variables CSS ne vont pas dans @media, valeurs à reprendre telles quelles) :
+   420 px (petit téléphone) · 640 px (téléphone) · 860 px (tablette debout : menu en tiroir) · 1100 px (tablette couchée). */
 :root {
+  /* Couleurs : rôles, jamais de valeur en dur dans un composant. Contrastes vérifiés AA (docs/DESIGN_SYSTEM.md). */
   --fond: #f4f6f9;
   --surface: #ffffff;
   --surface-douce: #f8fafc;
+  --surface-survol: #f1f5fb;
   --bordure: #e3e8ef;
   --bordure-forte: #cbd3df;
+  /* Contour des champs de saisie : 3:1 au moins sur la surface (WCAG 1.4.11). */
+  --bordure-champ: #858fa0;
   --texte: #18202f;
   --texte-doux: #5b6577;
-  --texte-faible: #8a93a3;
+  --texte-faible: #687182;
   --accent: #2563eb;
   --accent-fort: #1d4ed8;
   --accent-doux: #e8f0fe;
-  --vert: #0e9f6e;
+  --vert: #047857;
   --vert-doux: #e3f6ee;
   --orange: #c2410c;
   --orange-doux: #fff1e6;
   --rouge: #c81e1e;
   --rouge-doux: #fdecec;
   --bleu-doux: #e8f0fe;
-  --menu: #18202f;
-  --menu-texte: #c4cad6;
-  --menu-actif: #2a3446;
-  --ombre: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
-  --ombre-forte: 0 12px 32px rgba(16, 24, 40, 0.18);
-  --rayon: 10px;
+  --menu: #0f172a;
+  --menu-texte: #b6c0d1;
+  --menu-titre: #8794a8;
+  --menu-survol: #1b2538;
+  --menu-actif: #1f2b42;
+  --menu-bordure: #22304a;
+
+  /* Typographie : une échelle courte. 14 px est le texte courant ; rien de lisible sous 12 px. */
   --police: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --texte-xs: 12px;
+  --texte-sm: 13px;
+  --texte-base: 14px;
+  --texte-md: 15px;
+  --texte-lg: 17px;
+  --texte-xl: 20px;
+  --texte-2xl: 24px;
+  --texte-3xl: 28px;
+  --poids-normal: 400;
+  --poids-moyen: 500;
+  --poids-fort: 600;
+  --poids-gras: 700;
+
+  /* Espacements (multiples de 4). */
+  --espace-1: 4px;
+  --espace-2: 8px;
+  --espace-3: 12px;
+  --espace-4: 16px;
+  --espace-5: 20px;
+  --espace-6: 24px;
+  --espace-8: 32px;
+
+  /* Rayons, élévations. */
+  --rayon-petit: 6px;
+  --rayon: 10px;
+  --rayon-grand: 14px;
+  --rayon-plein: 999px;
+  --ombre: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --ombre-carte: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.05);
+  --ombre-forte: 0 12px 32px rgba(16, 24, 40, 0.18);
+
+  /* États : focus visible partout, désactivé lisible. */
+  --anneau-focus: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  --opacite-desactive: 0.55;
+
+  /* Tailles : cibles tactiles (≥ 40 px partout, ≥ 48 px en caisse), barre du haut, menu latéral. */
+  --cible: 40px;
+  --cible-tactile: 48px;
+  --barre-haut: 60px;
+  --menu-largeur: 252px;
+  --page-max: 1320px;
+
+  /* Plans (z-index). */
+  --plan-barre: 20;
+  --plan-menu: 40;
+  --plan-modale: 50;
+  --plan-notification: 60;
   color-scheme: light;
 }
 
@@ -44,9 +102,16 @@ body {
   background: var(--fond);
   color: var(--texte);
   font-family: var(--police);
-  font-size: 14px;
+  font-size: var(--texte-base);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  text-size-adjust: 100%;
+}
+
+/* Focus visible pour tout ce qui se touche au clavier (WCAG 2.4.7) ; la souris ne le montre pas. */
+:where(button, a, summary, [role='button'], [role='tab'], [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button,
@@ -85,20 +150,46 @@ input,
 select,
 textarea {
   width: 100%;
-  min-height: 40px;
+  min-height: var(--cible);
   padding: 8px 12px;
-  border: 1px solid var(--bordure-forte);
+  border: 1px solid var(--bordure-champ);
   border-radius: 8px;
   background: var(--surface);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+input:hover:not(:disabled):not(:focus),
+select:hover:not(:disabled):not(:focus),
+textarea:hover:not(:disabled):not(:focus) {
+  border-color: var(--texte-doux);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-doux);
+  box-shadow: var(--anneau-focus);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--surface-douce);
+  color: var(--texte-doux);
+  cursor: not-allowed;
+}
+
+/* Erreur de saisie : bordure rouge + message à côté du champ (.champ-erreur), jamais la couleur seule. */
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--rouge);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--texte-faible);
 }
 
 input[type='checkbox'] {
@@ -143,24 +234,30 @@ fieldset {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
+  min-height: var(--cible);
   padding: 8px 14px;
   border: 1px solid var(--bordure-forte);
   border-radius: 8px;
   background: var(--surface);
-  font-weight: 500;
+  color: var(--texte);
+  font-weight: var(--poids-moyen);
+  text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .bouton:hover:not(:disabled) {
-  background: var(--surface-douce);
+  background: var(--surface-survol);
   border-color: var(--texte-faible);
 }
 
+.bouton:active:not(:disabled) {
+  background: var(--bordure);
+}
+
 .bouton:disabled {
-  opacity: 0.55;
+  opacity: var(--opacite-desactive);
   cursor: not-allowed;
 }
 
@@ -175,10 +272,32 @@ fieldset {
   border-color: var(--accent-fort);
 }
 
+.bouton.principal:active:not(:disabled) {
+  background: var(--accent-fort);
+}
+
 .bouton.danger {
   background: var(--rouge);
   border-color: var(--rouge);
   color: #fff;
+}
+
+.bouton.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--rouge) 86%, #000);
+  border-color: color-mix(in srgb, var(--rouge) 86%, #000);
+}
+
+/* Bouton discret (actions de ligne) : pas de bordure, même cible. */
+.bouton.discret {
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent);
+}
+
+.bouton.petit {
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: var(--texte-sm);
 }
 
 .bouton.grand {
@@ -207,8 +326,9 @@ fieldset {
 .icone-bouton {
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  flex: none;
+  width: var(--cible);
+  height: var(--cible);
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -217,8 +337,13 @@ fieldset {
 }
 
 .icone-bouton:hover {
-  background: var(--surface-douce);
+  background: var(--surface-survol);
   color: var(--texte);
+}
+
+.icone-bouton:disabled {
+  opacity: var(--opacite-desactive);
+  cursor: not-allowed;
 }
 
 /* Badges et messages ------------------------------------------------------ */
@@ -286,6 +411,10 @@ fieldset {
 }
 
 .bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
   padding: 10px 24px;
   background: var(--orange-doux);
   color: var(--orange);
@@ -374,18 +503,28 @@ fieldset {
 
 .coquille {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-columns: var(--menu-largeur) minmax(0, 1fr);
   height: 100%;
+}
+
+.colonne {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px 12px;
+  gap: 18px;
+  padding: 18px 12px;
+  border-right: 1px solid #0b1222;
   background: var(--menu);
   color: var(--menu-texte);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .marque {
@@ -401,13 +540,16 @@ fieldset {
 .marque-logo {
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--accent);
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-fort));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   color: #fff;
   font-size: 13px;
   letter-spacing: 0.04em;
+  overflow: hidden;
 }
 
 .choix-etablissement {
@@ -425,25 +567,33 @@ fieldset {
 
 .menu nav {
   display: grid;
-  gap: 2px;
+  gap: 16px;
 }
 
 .menu nav button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px;
+  min-height: var(--cible);
+  padding: 8px 10px;
   border: 0;
   border-radius: 8px;
   background: transparent;
   color: var(--menu-texte);
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: var(--poids-moyen);
   text-align: left;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.menu nav button > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .menu nav button:hover {
-  background: #222b3b;
+  background: var(--menu-survol);
   color: #fff;
 }
 
@@ -465,7 +615,7 @@ fieldset {
   display: grid;
   gap: 10px;
   padding-top: 12px;
-  border-top: 1px solid #2a3446;
+  border-top: 1px solid var(--menu-survol);
 }
 
 .menu-pied .lien {
@@ -501,14 +651,19 @@ fieldset {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--accent);
+  /* Couleur de marque (white-label) : jamais de bleu en dur. */
+  background: linear-gradient(135deg, var(--accent), var(--accent-fort));
   color: #fff;
+  font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .contenu {
+  flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -522,9 +677,12 @@ fieldset {
 
 .page {
   display: grid;
-  gap: 16px;
-  padding: 24px;
-  max-width: 1280px;
+  /* Une colonne qui ne dépasse jamais l'écran : une rangée d'onglets ou un tableau large défile dans sa case. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  min-width: 0;
+  padding: 24px 28px 40px;
+  max-width: var(--page-max);
 }
 
 .entete-page {
@@ -543,6 +701,7 @@ fieldset {
 .entete-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 
@@ -560,12 +719,15 @@ fieldset {
 .onglets {
   display: inline-flex;
   flex-wrap: wrap;
+  max-width: 100%;
   padding: 3px;
   border-radius: 9px;
-  background: #e9edf3;
+  /* Variable (et non une valeur en dur) : lisible aussi en thème sombre. */
+  background: var(--bordure);
 }
 
 .onglets button {
+  min-height: var(--cible);
   padding: 6px 12px;
   border: 0;
   border-radius: 7px;
@@ -684,9 +846,41 @@ fieldset {
   color: var(--orange);
 }
 
+.graphique-zone {
+  position: relative;
+  min-width: 0;
+}
+
+/* Dessiné à la largeur de son conteneur (useLargeur) : les textes gardent leur taille réelle. */
 .graphique {
-  width: 100%;
+  display: block;
+  max-width: 100%;
   height: auto;
+}
+
+.graphique:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.graphique-colonne {
+  fill: transparent;
+}
+
+.graphique g.choisie .graphique-barre {
+  fill: var(--accent-fort);
+}
+
+.graphique-bulle rect {
+  fill: var(--texte);
+}
+
+.graphique-bulle text {
+  fill: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--police);
 }
 
 .graphique-grille {
@@ -842,6 +1036,12 @@ fieldset {
   cursor: pointer;
 }
 
+/* Puces d'information (pas de choix) : elles passent à la ligne, rien n'est caché hors de l'écran. */
+.puces.statiques {
+  flex-wrap: wrap;
+  overflow-x: visible;
+}
+
 .puces.statiques span {
   cursor: default;
   color: var(--texte-doux);
@@ -871,7 +1071,93 @@ fieldset {
 }
 
 .champ-aide {
-  color: var(--texte-faible);
+  color: var(--texte-doux);
+  font-size: var(--texte-sm);
+}
+
+/* Champ obligatoire : astérisque après le libellé (le lecteur d'écran lit « obligatoire » grâce à required). */
+.champ:has(> :is(input, select, textarea):required) > .champ-libelle::after,
+.champ-libelle.requis::after {
+  content: ' *';
+  color: var(--rouge);
+  font-weight: var(--poids-fort);
+}
+
+/* Erreur d'un champ : juste sous la saisie, avec une icône (jamais la couleur seule). */
+.champ-erreur {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rouge);
+  font-size: var(--texte-sm);
+  font-weight: var(--poids-moyen);
+}
+
+.champ.en-erreur > .champ-libelle {
+  color: var(--rouge);
+}
+
+/* Texte lu par les lecteurs d'écran seulement. */
+.lecteur-ecran {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Montant ou nombre : jamais coupé en deux lignes au milieu des chiffres. */
+.montant,
+.nombre {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Chiffre clé (ChiffreCle) : paliers de taille, puis version courte en grand avec la valeur complète dessous.
+   --taille-chiffre : taille normale du chiffre (posée par la carte : .stat-card-valeur, .kpi-valeur…). */
+.chiffre-cle {
+  --taille-chiffre: 22px;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--taille-chiffre);
+  white-space: nowrap;
+}
+
+.chiffre-court {
+  display: none;
+}
+
+.chiffre-cle[data-palier='1'] { font-size: calc(var(--taille-chiffre) * 0.86); }
+.chiffre-cle[data-palier='2'] { font-size: calc(var(--taille-chiffre) * 0.74); }
+
+/* Ne tient toujours pas : passe à la ligne entre les groupes de chiffres… */
+.chiffre-cle[data-palier='3'] {
+  font-size: calc(var(--taille-chiffre) * 0.74);
+  white-space: normal;
+}
+
+/* … ou, pour un montant, version courte en grand et valeur complète en petit juste dessous (toujours visible). */
+.chiffre-cle[data-palier='3'][data-court] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--texte-xs);
+  font-weight: var(--poids-fort);
+  letter-spacing: 0;
+}
+
+.chiffre-cle[data-palier='3'][data-court] .chiffre-court {
+  display: block;
+  order: -1;
+  font-size: calc(var(--taille-chiffre) * 0.86);
+  font-weight: var(--poids-gras);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .grille-champs {
@@ -1774,13 +2060,6 @@ fieldset {
   color: var(--rouge);
 }
 
-.bandeau {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  align-items: center;
-}
-
 .bandeau.info {
   background: var(--accent-doux);
   color: var(--accent-fort);
@@ -2051,63 +2330,17 @@ tr.cliquable:hover td {
    Voir docs/DESIGN_SYSTEM.md. Les règles ci-dessous complètent ou remplacent les précédentes.
    ======================================================================== */
 
-:root {
-  --menu: #0f172a;
-  --menu-texte: #b6c0d1;
-  --menu-titre: #6b7891;
-  --menu-survol: #1b2538;
-  --menu-actif: #1f2b42;
-  --texte-faible: #8a93a3;
-  --rayon-grand: 14px;
-  --barre-haut: 60px;
-  --ombre-carte: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.05);
-}
-
 .texte-faible { color: var(--texte-faible); }
 
-/* Coquille : menu latéral + colonne (barre du haut, contenu). */
-.coquille {
-  grid-template-columns: 252px minmax(0, 1fr);
-  height: 100%;
-}
-
-.colonne {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.contenu {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.menu {
-  gap: 18px;
-  padding: 18px 12px;
-  border-right: 1px solid #0b1222;
-}
-
+/* Coquille : menu latéral + colonne (barre du haut, contenu) — règles de base plus haut (« Coquille »). */
 .menu .marque { padding: 2px 8px 6px; }
 .marque-texte { display: grid; line-height: 1.15; }
 .marque-texte strong { font-size: 15px; letter-spacing: -0.01em; }
 .marque-texte small { font-size: 11.5px; font-weight: 500; color: var(--menu-titre); }
 .connexion-carte .marque-texte small { color: var(--texte-doux); }
-.marque-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-fort));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  overflow: hidden;
-}
 .marque-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 img.avatar { object-fit: cover; background: var(--surface-douce); }
 
-.menu nav { display: grid; gap: 16px; }
 .menu-groupe { display: grid; gap: 2px; }
 .menu-groupe-titre {
   padding: 0 10px 4px;
@@ -2117,9 +2350,6 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.menu nav button { padding: 8px 10px; font-size: 13.5px; transition: background 0.12s, color 0.12s; }
-.menu nav button:hover { background: var(--menu-survol); }
-.menu nav button.actif { background: var(--menu-actif); box-shadow: inset 3px 0 0 var(--accent); }
 .menu nav button:focus-visible,
 .profil-chip-bouton:focus-visible,
 .stat-card.cliquable:focus-visible,
@@ -2133,13 +2363,12 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   gap: 2px;
   margin: 0 4px;
   padding: 10px;
-  border: 1px solid #22304a;
+  border: 1px solid var(--menu-bordure);
   border-radius: 10px;
   background: #121c31;
 }
 .menu-etablissement .menu-groupe-titre { padding: 0; }
 .menu-etablissement strong { color: #fff; font-size: 13px; }
-.menu-pied { border-top-color: #1b2538; }
 
 /* Barre du haut */
 .barre-haut {
@@ -2220,19 +2449,16 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .profil-chip-menu { right: 0; min-width: 240px; }
 .profil-chip-entete { display: grid; gap: 2px; padding: 8px 12px 10px; border-bottom: 1px solid var(--bordure); margin-bottom: 4px; }
 
-.avatar { width: 34px; height: 34px; font-size: 13px; background: linear-gradient(135deg, #2563eb, #7c3aed); letter-spacing: 0.02em; }
 .avatar.petit { width: 30px; height: 30px; font-size: 12px; }
 .avatar.grand { width: 48px; height: 48px; font-size: 17px; }
 
 /* En-tête de page */
-.page { gap: 20px; padding: 24px 28px 40px; max-width: 1320px; }
 .page-header { display: grid; gap: 8px; }
 .page-header-ligne { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
 .page-header-titre { display: grid; gap: 4px; min-width: 0; }
 .page-header-nom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .page-header h1 { font-size: 24px; letter-spacing: -0.02em; }
 .page-header p { margin: 0; color: var(--texte-doux); max-width: 75ch; }
-.entete-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .badges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 
 /* Cartes et sections */
@@ -2261,7 +2487,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .stat-card-tete { display: flex; align-items: center; gap: 8px; }
 .stat-card-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-doux); color: var(--accent); }
 .stat-card-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; }
-.stat-card-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat-card-valeur { --taille-chiffre: 22px; min-width: 0; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .stat-card-detail, .stat-card-note { color: var(--texte-doux); font-size: 12px; }
 .stat-card.fort { background: linear-gradient(160deg, var(--accent-fort), var(--accent)); border-color: transparent; color: #fff; }
 .stat-card.fort .stat-card-libelle, .stat-card.fort .stat-card-detail { color: rgba(255, 255, 255, 0.82); }
@@ -2373,7 +2599,9 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .tableau th.nombre.triable button { justify-content: flex-end; width: 100%; }
 .tri-indice { color: var(--texte-faible); font-size: 10px; }
 .tableau tr.cliquable { cursor: pointer; }
-.tableau tr.cliquable:hover td { background: #f5f8ff; }
+.tableau tr.cliquable:hover td { background: var(--surface-survol); }
+.tableau tr.cliquable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tableau tr.cliquable:focus-visible td { background: var(--surface-survol); }
 .tableau td { font-variant-numeric: tabular-nums; }
 .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; color: var(--texte-doux); font-size: 13px; }
 
@@ -2390,7 +2618,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   display: block;
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #eef2f7 0%, #f7f9fc 50%, #eef2f7 100%);
+  background: linear-gradient(90deg, var(--bordure) 0%, var(--surface-douce) 50%, var(--bordure) 100%);
   background-size: 200% 100%;
   animation: squelette 1.3s ease-in-out infinite;
 }
@@ -2411,6 +2639,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .mini-stats > div { padding: 8px 10px; border-radius: 8px; background: var(--surface-douce); }
 .mini-stats dt { color: var(--texte-doux); font-size: 11.5px; }
 .mini-stats dd { margin: 2px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mini-stats dd .chiffre-cle { --taille-chiffre: 15px; }
 
 /* Stock, inventaire, transferts */
 .saisie-quantite { width: 110px; min-height: 34px; padding: 4px 8px; text-align: right; }
@@ -2451,7 +2680,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .page-header h1 { font-size: 20px; }
   .grille-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat-card { padding: 12px; }
-  .stat-card-valeur { font-size: 18px; }
+  .stat-card-valeur { --taille-chiffre: 18px; }
   .masque-mobile { display: none; }
   .transfert-sens { grid-template-columns: minmax(0, 1fr); }
   .transfert-sens > .icone { display: none; }
@@ -2473,7 +2702,8 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .data-table .tableau tr { display: grid; gap: 0; padding: 8px 12px; border: 1px solid var(--bordure); border-radius: var(--rayon-grand); background: var(--surface); box-shadow: var(--ombre-carte); }
   .data-table .tableau td { display: grid; grid-template-columns: minmax(92px, 38%) 1fr; gap: 10px; align-items: start; padding: 7px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
   .data-table .tableau td::before { content: attr(data-label); color: var(--texte-doux); font-size: 12px; font-weight: 600; text-align: left; }
-  .data-table .tableau td.nombre { text-align: right; }
+  /* Un montant reste sur une ligne : « 125 750 000 FCFA » ne se coupe jamais en deux. */
+  .data-table .tableau td.nombre { text-align: right; white-space: nowrap; overflow-wrap: normal; }
   .data-table .tableau td.cellule-actions { display: flex; justify-content: flex-end; width: auto; }
   .data-table .tableau td.cellule-actions::before { content: none; }
   .data-table-outils > * { flex: 1 1 100%; }
@@ -2670,7 +2900,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .filtres-salle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .filtres-salle .puces { flex: 1 1 320px; }
 .filtres-salle select { width: auto; min-height: 36px; }
-.puces button { min-height: 36px; }
+.puces button { min-height: var(--cible); }
 .table-resto .table-serveur { display: inline-flex; align-items: center; gap: 4px; margin-top: auto; font-size: .85rem; }
 .table-resto.mienne { box-shadow: inset 0 0 0 2px var(--accent); }
 .table-resto.reservee { background: var(--bleu-doux); border-style: dashed; }
@@ -2793,7 +3023,6 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .site-element { border-bottom: 1px solid var(--bordure); padding-bottom: 10px; display: grid; gap: 8px; }
 .champ-image-site { display: grid; gap: 6px; }
 .champ-image-site img { max-width: 220px; max-height: 140px; object-fit: cover; border-radius: var(--rayon); }
-.texte-multiligne { white-space: pre-line; }
 
 /* Agenda : semaine */
 .barre-filtres { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
@@ -2923,8 +3152,14 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .kpi.cliquable { cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
 .kpi.cliquable:hover { border-color: color-mix(in srgb, var(--accent) 35%, #ffffff); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
 .kpi.cliquable:focus-visible { outline: 3px solid var(--accent-doux); outline-offset: 1px; border-color: var(--accent); }
-.kpi-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; }
-.kpi-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+.kpi-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; min-width: 0; }
+.kpi-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.kpi-periode { color: var(--texte-faible); font-size: var(--texte-xs); font-weight: var(--poids-moyen); white-space: nowrap; }
+.kpi.fort .kpi-periode { color: rgba(255, 255, 255, 0.82); }
+/* Indicateur indisponible : distinct d'un zéro (mot + icône, valeur grisée). */
+.kpi-absent { display: inline-flex; align-items: center; gap: 6px; color: var(--texte-doux); font-size: var(--texte-md); font-weight: var(--poids-fort); }
+.kpi.fort .kpi-absent { color: rgba(255, 255, 255, 0.86); }
+.kpi-valeur { --taille-chiffre: 22px; min-width: 0; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .kpi-detail { color: var(--texte-doux); font-size: 12px; }
 .kpi-variation { font-size: 12px; font-weight: 700; color: var(--texte-doux); font-variant-numeric: tabular-nums; }
 .kpi-variation small { font-weight: 500; color: var(--texte-faible); }
@@ -2941,7 +3176,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .cockpit-domaine h2 { display: inline-flex; align-items: center; gap: 8px; }
 .cockpit-domaine .kpis { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
 .cockpit-domaine .kpi { box-shadow: none; background: var(--surface-douce); padding: 10px 12px; }
-.cockpit-domaine .kpi-valeur { font-size: 18px; }
+.cockpit-domaine .kpi-valeur { --taille-chiffre: 18px; }
 .cockpit-domaine > .bouton { justify-self: start; }
 
 .cockpit-rien { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--vert); font-weight: 600; }
@@ -2991,7 +3226,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
   .cockpit-grille { grid-template-columns: minmax(0, 1fr); }
   .kpis, .kpis-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .kpi { padding: 12px; }
-  .kpi-valeur { font-size: 18px; }
+  .kpi-valeur { --taille-chiffre: 18px; }
   .kpi-variation small { display: none; }
   .cockpit-periodes { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
   .cockpit-periodes button { flex: 0 0 auto; }
@@ -3032,7 +3267,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
    contraste, gros boutons), impression et export des listes.
    --------------------------------------------------------------------------- */
 .barre-haut-recherche {
-  display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; min-width: 200px;
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible); padding: 0 10px; min-width: 200px;
   border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte-doux); cursor: pointer;
 }
 .barre-haut-recherche:hover { border-color: var(--bordure-forte); color: var(--texte); }
@@ -3074,6 +3309,7 @@ kbd {
   --texte: #e6eaf0; --texte-doux: #aab3c2; --texte-faible: #808a9b;
   --accent-doux: #1b2a47; --bleu-doux: #1b2a47; --vert: #34c48f; --vert-doux: #12322a; --orange: #f08a4b; --orange-doux: #3a2414;
   --rouge: #f26b6b; --rouge-doux: #3a1a1c; --menu: #0b1017; --menu-actif: #1f2a3b;
+  --surface-survol: #222b3a; --bordure-champ: #5f6b7f; --menu-survol: #18202d; --menu-bordure: #253043;
   --ombre: 0 1px 2px rgba(0, 0, 0, 0.4); --ombre-forte: 0 12px 32px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
@@ -3083,6 +3319,7 @@ kbd {
     --texte: #e6eaf0; --texte-doux: #aab3c2; --texte-faible: #808a9b;
     --accent-doux: #1b2a47; --bleu-doux: #1b2a47; --vert: #34c48f; --vert-doux: #12322a; --orange: #f08a4b; --orange-doux: #3a2414;
     --rouge: #f26b6b; --rouge-doux: #3a1a1c; --menu: #0b1017; --menu-actif: #1f2a3b;
+    --surface-survol: #222b3a; --bordure-champ: #5f6b7f; --menu-survol: #18202d; --menu-bordure: #253043;
     --ombre: 0 1px 2px rgba(0, 0, 0, 0.4); --ombre-forte: 0 12px 32px rgba(0, 0, 0, 0.55);
     color-scheme: dark;
   }
@@ -3099,8 +3336,8 @@ kbd {
 /* Les documents imprimables (tickets, factures A4) restent noir sur blanc. */
 
 /* Contraste élevé : textes plus foncés, bordures plus nettes, liens soulignés. */
-:root[data-contraste='eleve'] { --texte-doux: #2f3846; --texte-faible: #4a5466; --bordure: #9aa5b5; --bordure-forte: #6b778a; }
-:root[data-contraste='eleve'][data-theme='sombre'] { --texte-doux: #d8dee8; --texte-faible: #c0c8d4; --bordure: #5b687c; --bordure-forte: #8392a8; }
+:root[data-contraste='eleve'] { --texte-doux: #2f3846; --texte-faible: #4a5466; --bordure: #9aa5b5; --bordure-forte: #6b778a; --bordure-champ: #4a5466; }
+:root[data-contraste='eleve'][data-theme='sombre'] { --texte-doux: #d8dee8; --texte-faible: #c0c8d4; --bordure: #5b687c; --bordure-forte: #8392a8; --bordure-champ: #a9b4c6; }
 :root[data-contraste='eleve'] a, :root[data-contraste='eleve'] .lien { text-decoration: underline; }
 :root[data-contraste='eleve'] :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
@@ -3217,7 +3454,8 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .menu-panier .lignes-panier li { align-items: flex-start; }
 .menu-precision { display: block; margin-top: 4px; width: 100%; font-size: 0.85rem; }
 .menu-suivi ul { padding-left: 1.1rem; }
-.menu-pied { text-align: center; }
+/* Ciblé sur le menu public : la classe « menu-pied » sert aussi au pied du menu latéral de l'application. */
+.menu-public .menu-pied { text-align: center; }
 
 /* Copier des articles (espace Agence Elite) : grille de cartes à cocher avec photo. */
 .copie-filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
@@ -3235,7 +3473,7 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .copie-prix-choix { display: grid; gap: 6px; border: 0; padding: 0; margin: 8px 0; }
 .copie-pourcentage { width: 80px; margin: 0 6px; }
 /* Rapport du soir (#/rapport-du-soir) : gros chiffres lisibles, envoi au patron sur WhatsApp. */
-.rapport-soir .stat-card-valeur { font-size: 26px; }
+.rapport-soir .stat-card-valeur { --taille-chiffre: 26px; }
 .rapport-soir-top { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
 .rapport-soir-top li strong { float: right; font-variant-numeric: tabular-nums; }
 .rapport-soir-numero { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
@@ -3246,3 +3484,168 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
 .acces-secours { margin-top: 8px; }
 .acces-secours summary { cursor: pointer; color: var(--texte-doux, inherit); font-weight: 500; }
 .acces-secours ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+
+/* ---------------------------------------------------------------------------
+   Elite UX 2.0 — navigation : favoris, retour, barre d'onglets du téléphone (src/ui/Navigation.jsx).
+   --------------------------------------------------------------------------- */
+.bouton-favori { color: var(--texte-faible); }
+.bouton-favori.actif { color: var(--orange); }
+.bouton-favori.actif svg path { fill: currentColor; }
+.bouton-retour { margin-right: -4px; }
+.menu-favoris .icone { color: var(--orange); }
+.menu-groupe button.actif .icone { color: #fff; }
+
+/* Barre du bas du téléphone : 4 écrans + Menu, cibles de 56 px, au-dessus de la zone du geste d'accueil. */
+.onglets-mobile { display: none; }
+
+@media (max-width: 860px) {
+  .onglets-mobile {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--plan-barre);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--bordure);
+    background: var(--surface);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  .onglets-mobile button {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 56px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--texte-doux);
+    font-size: 11.5px;
+    font-weight: var(--poids-fort);
+    cursor: pointer;
+  }
+
+  /* Libellé entier sur deux lignes au besoin (« Tableau de bord »), jamais coupé par « … ». */
+  .onglets-mobile button span {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.15;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .onglets-mobile button.actif {
+    background: var(--accent-doux);
+    color: var(--accent-fort);
+  }
+
+  /* La page laisse la place à la barre du bas (sauf la caisse, en plein écran, qui a sa propre barre). */
+  .coquille:not(.plein-ecran) .contenu {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .coquille:not(.plein-ecran) ~ .notifications,
+  body:has(.onglets-mobile) .notifications {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Contexte toujours visible au téléphone : l'établissement en petit au-dessus du titre de l'écran. */
+  .barre-haut .fil-ariane ol {
+    display: grid;
+    gap: 0;
+  }
+
+  .barre-haut .fil-ariane li:first-child:not(:last-child) {
+    display: flex;
+    font-size: 11.5px;
+    line-height: 1.2;
+  }
+
+  .barre-haut .fil-ariane li:first-child:not(:last-child)::after {
+    content: none;
+  }
+
+  .barre-haut .fil-ariane li:first-child:not(:last-child) span,
+  .barre-haut .fil-ariane li:first-child:not(:last-child) a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--texte-doux);
+    font-weight: var(--poids-moyen);
+  }
+
+  .barre-haut .fil-ariane li:last-child {
+    font-size: var(--texte-md);
+  }
+}
+
+@media (max-width: 860px) {
+  /* Barres d'action collées en bas (sélection d'articles, commande de table) : posées au-dessus de la barre d'onglets. */
+  body:has(.onglets-mobile) .barre-selection,
+  body:has(.onglets-mobile) .barre-commande-mobile {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Barre du haut au téléphone : deux rangées pour que rien ne sorte de l'écran.
+   1re rangée : menu, retour, écran affiché (avec l'établissement), notifications, profil.
+   2e rangée : rechercher, créer, favori, choix de l'établissement et du Hub. */
+@media (max-width: 640px) {
+  .barre-haut { flex-wrap: wrap; row-gap: 6px; gap: 6px; }
+  .barre-haut-outils { display: contents; }
+  .barre-haut .fil-ariane { order: 0; flex: 1 1 0; }
+  .barre-haut .cloche { order: 2; }
+  .barre-haut .profil-chip { order: 3; }
+  .barre-haut::after { content: ''; order: 4; flex-basis: 100%; height: 0; }
+  .barre-haut .barre-haut-recherche { order: 5; flex: 1 1 0; min-width: 40px; justify-content: flex-start; overflow: hidden; }
+  .barre-haut .barre-haut-recherche span { display: inline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barre-haut .barre-haut-outils > .icone-bouton { order: 6; }
+  .barre-haut .bouton-favori { order: 7; }
+  .barre-haut .selecteur { order: 8; flex: 0 1 auto; min-width: 0; }
+  .barre-haut .selecteur select { max-width: 150px; min-width: 72px; }
+}
+
+/* Formulaire modifié et pas encore enregistré (le brouillon le garde sur l'appareil). */
+.note-brouillon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--texte-doux);
+  font-size: var(--texte-sm);
+}
+
+/* Tableaux métier en fiches au téléphone (classe « fiches-telephone » + data-label sur les cellules) :
+   montants et colonnes visibles sans glisser. Le tableau reste un tableau sur tablette et ordinateur. */
+@media (max-width: 640px) {
+  .tableau-conteneur:has(> .fiches-telephone) { border: 0; box-shadow: none; overflow: visible; background: transparent; }
+  .tableau.fiches-telephone,
+  .tableau.fiches-telephone tbody,
+  .tableau.fiches-telephone tfoot { display: grid; gap: 10px; width: 100%; }
+  .tableau.fiches-telephone thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tableau.fiches-telephone tr {
+    display: grid;
+    padding: 8px 12px;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-grand);
+    background: var(--surface);
+    box-shadow: var(--ombre-carte);
+  }
+  .tableau.fiches-telephone td { padding: 6px 0; border: 0; text-align: left; }
+  .tableau.fiches-telephone td:empty,
+  .tableau.fiches-telephone tfoot td:not([data-label]) { display: none; }
+  .tableau.fiches-telephone td[data-label] { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; text-align: right; }
+  .tableau.fiches-telephone td[data-label]::before { content: attr(data-label); color: var(--texte-doux); font-size: 12px; font-weight: 600; text-align: left; }
+}
+@media (max-width: 640px) {
+  .tableau.fiches-telephone td[data-label] > .badge + .badge { margin-left: 4px; }
+  .tableau.fiches-telephone td.actions-ligne { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+}

@@ -958,7 +958,8 @@ export default function Caisse({ naviguer }) {
               Commandes des tables <span className="pastille-compte" aria-label={`${donnees.commandesQr} commande(s)`}>{donnees.commandesQr}</span>
             </Bouton>
           )}
-          <Bouton icone="cloture" variante="principal" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
+          {/* Action de fin de service, pas l'action principale de la caisse (c'est « Encaisser ») : bouton secondaire. */}
+          <Bouton icone="cloture" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
         </div>
         <BandeauNouveau jusqua={NOUVEAU_CAISSE_UNIQUE_JUSQUA}>
           Une seule caisse ouverte à la fois : la suivante ouvre après ton ticket Z. Choisis le serveur en haut du panier
@@ -991,13 +992,13 @@ export default function Caisse({ naviguer }) {
         <div onKeyDown={recherchePrecise}>
           <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, référence ou code-barres" />
         </div>
-        <div className="puces">
+        <div className="puces caisse-categories" role="group" aria-label="Catégories">
           {favoris.length > 0 && (
-            <button className={filtre === FAVORIS ? 'actif' : ''} onClick={() => setCategorie(FAVORIS)}>★ Favoris</button>
+            <button type="button" className={filtre === FAVORIS ? 'actif' : ''} aria-pressed={filtre === FAVORIS} onClick={() => setCategorie(FAVORIS)}>★ Favoris</button>
           )}
-          <button className={!filtre ? 'actif' : ''} onClick={() => setCategorie('')}>Tout</button>
+          <button type="button" className={!filtre ? 'actif' : ''} aria-pressed={!filtre} onClick={() => setCategorie('')}>Tout</button>
           {donnees.categories.map((c) => (
-            <button key={c.id} className={filtre === c.id ? 'actif' : ''} onClick={() => setCategorie(c.id)}>{c.nom}</button>
+            <button type="button" key={c.id} className={filtre === c.id ? 'actif' : ''} aria-pressed={filtre === c.id} onClick={() => setCategorie(c.id)}>{c.nom}</button>
           ))}
         </div>
         {donnees.articles.length === 0 && (
@@ -1053,7 +1054,7 @@ export default function Caisse({ naviguer }) {
           <small>voir le panier</small>
         </button>
         <button type="button" className="barre-encaisser-bouton" disabled={!lignes.length} onClick={() => setPaiement({ total: totalPanier })}>
-          Encaisser {lignes.length > 0 && montant(totalPanier)}
+          Encaisser {lignes.length > 0 && <span className="montant">{montant(totalPanier)}</span>}
         </button>
       </div>
       {miseEnAttente && <ModaleMiseEnAttente onValider={mettreEnAttente} onFermer={() => setMiseEnAttente(false)} />}

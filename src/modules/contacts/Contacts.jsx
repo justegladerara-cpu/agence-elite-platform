@@ -219,15 +219,15 @@ export default function Contacts({ naviguer, sousRoute }) {
       {donnees && !contacts.length && <Vide titre="Aucun contact" />}
       {contacts.length > 0 && (
         <div className="tableau-conteneur">
-          <table className="tableau cliquable">
+          <table className="tableau cliquable fiches-telephone">
             <thead><tr><th>Nom</th><th>Type</th><th>Téléphone</th><th className="nombre">Solde dû</th></tr></thead>
             <tbody>
               {contacts.map((c) => (
                 <tr key={c.id} onClick={() => setFiche(c)} className={c.actif ? '' : 'inactif'}>
                   <td><strong>{c.nom}</strong>{c.societe && <small className="texte-doux bloc">{c.societe}</small>}</td>
-                  <td>{TYPES[c.type]}</td>
-                  <td>{c.telephone ?? '—'}</td>
-                  <td className="nombre">{soldes[c.id] > 0 ? <span className="texte-alerte">{montant(soldes[c.id])}</span> : '—'}</td>
+                  <td data-label="Type">{TYPES[c.type]}</td>
+                  <td data-label="Téléphone">{c.telephone ?? '—'}</td>
+                  <td className="nombre" data-label="Solde dû">{soldes[c.id] > 0 ? <span className="texte-alerte">{montant(soldes[c.id])}</span> : '—'}</td>
                 </tr>
               ))}
             </tbody>

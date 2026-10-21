@@ -65,7 +65,7 @@ export function useBrouillon(formulaire, valeurs, setValeurs, { exclure = [], pr
   const { utilisateur, etablissement } = useEspace();
   const cle = cleBrouillon(utilisateur?.id, etablissement?.id, formulaire);
   const depart = useRef(null);
-  const [etat, setEtat] = useState({ restaure: null, conflit: null, stockage: 'ok' });
+  const [etat, setEtat] = useState({ restaure: null, conflit: null, stockage: 'ok', modifie: false });
   const minuterie = useRef(null);
   useEffect(() => {
     if (!pret || depart.current) return;
@@ -88,10 +88,12 @@ export function useBrouillon(formulaire, valeurs, setValeurs, { exclure = [], pr
       const actuel = sans(valeurs, exclure);
       if (memeContenu(actuel, depart.current)) {
         try { stockage?.removeItem(cle); } catch { /* stockage indisponible */ }
+        setEtat((x) => (x.modifie ? { ...x, modifie: false } : x));
         return;
       }
       const r = ecrireBrouillon(stockage, cle, actuel, version);
-      setEtat((x) => (x.stockage === r ? x : { ...x, stockage: r }));
+      // « modifie » : le formulaire diffère de son état de départ (affiché « Modifications non enregistrées »).
+      setEtat((x) => (x.stockage === r && x.modifie ? x : { ...x, stockage: r, modifie: true }));
     }, 600);
     return () => clearTimeout(minuterie.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +101,7 @@ export function useBrouillon(formulaire, valeurs, setValeurs, { exclure = [], pr
   const effacer = () => {
     clearTimeout(minuterie.current);
     try { stockageLocal()?.removeItem(cle); } catch { /* stockage indisponible */ }
-    setEtat((x) => ({ ...x, restaure: null, conflit: null }));
+    setEtat((x) => ({ ...x, restaure: null, conflit: null, modifie: false }));
   };
   const abandonner = () => {
     if (depart.current) setValeurs((v) => ({ ...v, ...depart.current }));

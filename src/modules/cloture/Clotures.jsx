@@ -386,24 +386,24 @@ export default function Clotures() {
           {!affiches.length && <Vide titre="Aucun ticket Z" texte="Le premier apparaîtra à la première clôture." />}
           {affiches.length > 0 && (
             <div className="tableau-conteneur">
-              <table className="tableau cliquable">
+              <table className="tableau cliquable fiches-telephone">
                 <thead><tr><th>N°</th><th>Clôture</th><th>Caisse</th><th>Tenue par</th><th className="nombre">Ventes</th><th className="nombre">Écart</th></tr></thead>
                 <tbody>
                   {affiches.map((z) => (
                     <tr key={z.id} onClick={() => setZOuvert(z)}>
                       <td><strong>{z.numero}</strong></td>
-                      <td>{formatDateHeure(z.cloturee_le)}</td>
-                      <td>{z.point_de_vente}</td>
-                      <td>{z.caissier ?? ''}</td>
-                      <td className="nombre">{montant(z.total_ventes)}</td>
-                      <td className={`nombre ${z.ecart === 0 ? '' : 'texte-alerte'}`}>
+                      <td data-label="Clôture">{formatDateHeure(z.cloturee_le)}</td>
+                      <td data-label="Caisse">{z.point_de_vente}</td>
+                      <td data-label="Tenue par">{z.caissier ?? ''}</td>
+                      <td className="nombre" data-label="Ventes">{montant(z.total_ventes)}</td>
+                      <td className={`nombre ${z.ecart === 0 ? '' : 'texte-alerte'}`} data-label="Écart">
                         {z.ecart == null ? <Badge ton="orange">Espèces à compter</Badge> : `${z.ecart > 0 ? '+' : ''}${montant(z.ecart)}`}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 {personne && (
-                  <tfoot><tr><td colSpan={4}>Total</td><td className="nombre">{montant(totalAffiche)}</td><td /></tr></tfoot>
+                  <tfoot><tr><td colSpan={4}>Total</td><td className="nombre" data-label="Total">{montant(totalAffiche)}</td><td /></tr></tfoot>
                 )}
               </table>
             </div>
