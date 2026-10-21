@@ -91,32 +91,32 @@ export default function ActiviteCaissiers({ espace, du, au, naviguer }) {
         </div>
       ))}
       <div className="tableau-conteneur">
-        <table className="tableau cliquable">
+        <table className="tableau cliquable empilable">
           <thead><tr><th>#</th><th>Personne</th><th>En ce moment</th><th className="nombre">Factures en cours</th><th className="nombre">Ventes</th><th className="nombre">Montant</th></tr></thead>
           <tbody>
             {personnes.map((p, i) => (
               <tr key={p.id} onClick={() => naviguer?.('clotures')}>
-                <td>{i === 0 && Number(p.total_ventes) > 0 ? <strong>1 ★</strong> : i + 1}</td>
-                <td><strong>{p.nom}</strong></td>
-                <td>
+                <td data-label="Rang">{i === 0 && Number(p.total_ventes) > 0 ? <strong>1 ★</strong> : i + 1}</td>
+                <td data-label="Personne"><strong>{p.nom}</strong></td>
+                <td data-label="En ce moment">
                   {p.en_caisse
                     ? <><Badge ton="vert">En caisse</Badge> <small className="texte-doux">{p.caisses} · depuis {formatDateHeure(p.depuis)} · {montant(p.caisse_en_cours)}</small></>
                     : <span className="texte-doux">—</span>}
                 </td>
-                <td className="nombre">
+                <td className="nombre" data-label="Factures en cours">
                   {p.factures ? <Badge ton="orange">{p.factures.nombre} · {montant(p.factures.total)}</Badge> : <span className="texte-doux">—</span>}
                 </td>
-                <td className="nombre">{p.nombre_ventes}</td>
-                <td className="nombre"><strong>{montant(p.total_ventes)}</strong></td>
+                <td className="nombre" data-label="Ventes">{p.nombre_ventes}</td>
+                <td className="nombre" data-label="Montant"><strong>{montant(p.total_ventes)}</strong></td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
-              <td />
+              <td className="vide-telephone" />
               <td colSpan={3}><strong>Total de l’établissement</strong> <small className="texte-doux">(chaque service compte pour le jour où la caisse a été ouverte)</small></td>
-              <td className="nombre">{nombre}</td>
-              <td className="nombre"><strong>{montant(total)}</strong></td>
+              <td className="nombre" data-label="Ventes">{nombre}</td>
+              <td className="nombre" data-label="Montant"><strong>{montant(total)}</strong></td>
             </tr>
           </tfoot>
         </table>

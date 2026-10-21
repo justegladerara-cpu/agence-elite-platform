@@ -9,9 +9,9 @@ export const DOMAINES = {
       { libelle: 'Nouvelle vente', icone: 'caisse', route: 'caisse', permission: 'caisse.utiliser', principal: true },
       { libelle: 'Ajouter un article', icone: 'plus', route: 'articles?nouveau=1', permission: 'articles.gerer' },
       { libelle: 'Inventaire', icone: 'inventaire', route: 'stock?vue=inventaire', permission: 'stock.ajuster' },
-      { libelle: 'Transfert', icone: 'transfert', route: 'transferts?nouveau=1', permission: 'stock.transferer' },
+      { libelle: 'Transfert', icone: 'transfert', route: 'transferts?nouveau=1', permission: 'stock.transferer', plusieursHubs: true },
       { libelle: 'Clôturer ma caisse', icone: 'cloture', route: 'clotures', permission: 'caisse.utiliser' },
-      { libelle: 'Voir les retours', icone: 'retour', route: 'ventes?vue=retours', permission: 'ventes.lire' },
+      { libelle: 'Voir les retours', icone: 'repeter', route: 'ventes?vue=retours', permission: 'ventes.lire' },
     ],
   },
   restaurant: {
@@ -169,8 +169,9 @@ export const DOMAINES = {
   },
 };
 
-export function actionsDomaine(domaine, peut) {
-  return (DOMAINES[domaine]?.actions ?? []).filter((a) => peut(a.permission));
+// Un raccourci « plusieursHubs » (transfert entre Hubs) n'est proposé que s'il y a au moins deux Hubs.
+export function actionsDomaine(domaine, peut, multiHub = true) {
+  return (DOMAINES[domaine]?.actions ?? []).filter((a) => peut(a.permission) && (multiHub || !a.plusieursHubs));
 }
 
 // Périodes proposées. Les dates sont celles de l'appareil (même fuseau que l'établissement en pratique).

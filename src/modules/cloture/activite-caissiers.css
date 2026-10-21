@@ -57,3 +57,26 @@
 .serveurs-caisse-actions select {
   max-width: 160px;
 }
+
+/* « Gérer » un serveur : outils repliés derrière un bouton. */
+.serveurs-gerer > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--cible, 40px);
+  padding: 0 12px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  color: var(--texte);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.serveurs-gerer > summary::-webkit-details-marker { display: none; }
+.serveurs-gerer[open] > summary { margin-bottom: 8px; }
+.serveurs-gerer { text-align: right; }
+
+/* Téléphone : la carte « En caisse maintenant » passe sur deux lignes au lieu d'écraser le montant. */
+@media (max-width: 600px) {
+  .caisse-en-direct { grid-template-columns: auto minmax(0, 1fr); }
+  .caisse-en-direct-montant { grid-column: 1 / -1; justify-items: start; }
+}

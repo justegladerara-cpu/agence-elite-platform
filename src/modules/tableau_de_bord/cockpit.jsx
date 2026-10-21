@@ -97,7 +97,7 @@ export function BarrePeriode({ f, filtresAvances = true }) {
   );
 }
 
-const nombreFr = (n, max = 1) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: max }).format(Number(n) || 0).replace(/ | /g, ' ');
+const nombreFr = (n, max = 1) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: max }).format(Number(n) || 0).replace(/[\u202f\u00a0]/g, ' ');
 
 export function useFormat() {
   const { montant } = useEspace();
@@ -110,10 +110,20 @@ export function useFormat() {
   };
 }
 
-export function Kpi({ kpi, naviguer, mis_en_avant }) {
+// Libellé court de la période affichée sur chaque indicateur (« Aujourd’hui », « 7 jours »…).
+export function libellePeriode(f) {
+  if (!f) return null;
+  if (f.periode === 'perso') return f.du === f.au ? formatDate(f.du) : `${formatDate(f.du)} → ${formatDate(f.au)}`;
+  return PERIODES.find(([id]) => id === f.periode)?.[1] ?? null;
+}
+
+// Carte d'indicateur : titre, valeur complète (jamais coupée), période, évolution (flèche + texte, pas seulement
+// la couleur). Une valeur absente s'affiche « — » avec « Donnée indisponible », distincte d'un vrai zéro.
+export function Kpi({ kpi, naviguer, mis_en_avant, periode }) {
   const formater = useFormat();
   const v = variation(kpi);
   const Balise = kpi.route ? 'button' : 'div';
+  const absent = kpi.valeur == null;
   return (
     <Balise
       type={kpi.route ? 'button' : undefined}
@@ -121,11 +131,21 @@ export function Kpi({ kpi, naviguer, mis_en_avant }) {
       onClick={kpi.route ? () => naviguer(kpi.route) : undefined}
       title={kpi.route ? 'Voir le détail' : undefined}
     >
-      <span className="kpi-libelle">{kpi.libelle}</span>
-      <strong className="kpi-valeur"><NombreAnime valeur={kpi.valeur} format={(v) => formater(v, kpi.format)} /></strong>
+      <span className="kpi-tete">
+        <span className="kpi-libelle">{kpi.libelle}</span>
+        {(periode || kpi.domaine) && <span className="kpi-periode">{[kpi.domaine, periode].filter(Boolean).join(' · ')}</span>}
+      </span>
+      <strong className="kpi-valeur">
+        {absent ? <span title="Donnée indisponible">—</span> : <NombreAnime valeur={kpi.valeur} format={(x) => formater(x, kpi.format)} />}
+      </strong>
+      {absent && <small className="kpi-detail">Donnée indisponible</small>}
       {v && (
         <span className={`kpi-variation ${v.favorable === true ? 'bon' : v.favorable === false ? 'mauvais' : ''}`}>
-          {v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='} {Math.abs(v.pourcent)} % <small>vs période précédente</small>
+          <span aria-hidden="true">{v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='}</span>
+          <span className="lecteur-ecran">{v.pourcent > 0 ? 'En hausse de' : v.pourcent < 0 ? 'En baisse de' : 'Stable,'}</span>
+          {' '}{Math.abs(v.pourcent)} %
+          {v.favorable != null && <span className="lecteur-ecran">{v.favorable ? ', favorable' : ', défavorable'}</span>}
+          {' '}<small>vs période précédente</small>
         </span>
       )}
       {kpi.detail && <small className="kpi-detail">{kpi.detail}</small>}
@@ -133,16 +153,27 @@ export function Kpi({ kpi, naviguer, mis_en_avant }) {
   );
 }
 
-export function GrilleKpis({ kpis, naviguer, max }) {
-  const liste = max ? kpis.slice(0, max) : kpis;
+export function GrilleKpis({ kpis, naviguer, max, depuis = 0, periode }) {
+  const liste = kpis.slice(depuis, max ? depuis + max : undefined);
   if (!liste.length) return null;
-  return <div className="kpis">{liste.map((k) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} />)}</div>;
+  return <div className="kpis">{liste.map((k) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} periode={periode} />)}</div>;
 }
 
 const NIVEAUX = { critique: ['Urgent', 'alerte'], alerte: ['À traiter', 'alerte'], info: ['À noter', 'activite'] };
 
+// Les grands nombres écrits dans un texte venu de la base (« Total dû : 52000 ») sont groupés par milliers
+// pour la lecture (5 chiffres et plus : les années ne bougent pas). Le texte et le calcul d'origine ne changent pas.
+export function grouperNombres(texte) {
+  if (typeof texte !== 'string') return texte;
+  return texte.replace(/-?\d{5,}(?:[.,]\d+)?/g, (n) => nombreFr(Number(n.replace(',', '.')), 2));
+}
+
+const ALERTES_VISIBLES = 6;
+
 export function ASurveiller({ elements, naviguer, avecModule, titre = 'À surveiller' }) {
   const formater = useFormat();
+  const [tout, setTout] = useState(false);
+  const visibles = tout ? elements : elements.slice(0, ALERTES_VISIBLES);
   return (
     <section className="carte cockpit-attention">
       <div className="titre-ligne"><h2>{titre}</h2>{elements.length > 0 && <span className="onglet-compteur">{elements.length}</span>}</div>
@@ -150,13 +181,13 @@ export function ASurveiller({ elements, naviguer, avecModule, titre = 'À survei
         <p className="cockpit-rien"><Icone nom="coche" /> Rien à signaler sur vos applications.</p>
       ) : (
         <ul className="attention-liste">
-          {elements.map((a) => (
+          {visibles.map((a) => (
             <li key={`${a.domaine ?? ''}-${a.cle}`}>
               <button type="button" className={`attention niveau-${a.niveau}`} onClick={a.route ? () => naviguer(a.route) : undefined} disabled={!a.route}>
                 <span className="attention-icone"><Icone nom={NIVEAUX[a.niveau]?.[1] ?? 'alerte'} taille={16} /></span>
                 <span className="attention-texte">
                   <strong>{a.titre}</strong>
-                  <small>{[NIVEAUX[a.niveau]?.[0], avecModule && a.module, a.detail].filter(Boolean).join(' · ')}</small>
+                  <small>{[NIVEAUX[a.niveau]?.[0], avecModule && a.module, grouperNombres(a.detail)].filter(Boolean).join(' · ')}</small>
                 </span>
                 <span className="attention-nombre">{formater(a.nombre, 'nombre')}</span>
               </button>
@@ -164,14 +195,19 @@ export function ASurveiller({ elements, naviguer, avecModule, titre = 'À survei
           ))}
         </ul>
       )}
+      {elements.length > ALERTES_VISIBLES && (
+        <Bouton variante="discret" className="bouton discret attention-plus" aria-expanded={tout} onClick={() => setTout(!tout)}>
+          {tout ? 'Voir moins' : `Voir les ${elements.length - ALERTES_VISIBLES} autres`}
+        </Bouton>
+      )}
     </section>
   );
 }
 
 export function ActionsRapides({ domaines, naviguer, limite }) {
-  const { peut } = useEspace();
+  const { peut, multiHub } = useEspace();
   const vues = new Set();
-  const actions = domaines.flatMap((d) => actionsDomaine(d, peut)).filter((a) => !vues.has(a.route) && vues.add(a.route));
+  const actions = domaines.flatMap((d) => actionsDomaine(d, peut, multiHub)).filter((a) => !vues.has(a.route) && vues.add(a.route));
   const liste = limite ? actions.filter((a) => a.principal).concat(actions.filter((a) => !a.principal)).slice(0, limite) : actions;
   if (!liste.length) return null;
   return (

@@ -34,16 +34,19 @@ export default function ServeursCaisse({ espace, du, au }) {
       </div>
       <Erreur message={erreurAction} />
       <div className="tableau-conteneur">
-        <table className="tableau">
-          <thead><tr><th>Serveur</th><th className="nombre">Ventes</th><th className="nombre">Montant</th><th>Le plus servi</th><th /></tr></thead>
+        <table className="tableau empilable">
+          <thead><tr><th>Serveur</th><th className="nombre">Ventes</th><th className="nombre">Montant</th><th>Le plus servi</th><th><span className="lecteur-ecran">Gérer</span></th></tr></thead>
           <tbody>
             {donnees.map((s) => (
               <tr key={s.id}>
-                <td><strong>{s.prenom}</strong> {!s.actif && <Badge>Désactivé</Badge>}</td>
-                <td className="nombre">{s.nombre_ventes}</td>
-                <td className="nombre"><strong>{montant(s.total_ventes)}</strong></td>
-                <td>{s.article_phare ?? <span className="texte-doux">—</span>}</td>
-                <td>
+                <td data-label="Serveur"><strong>{s.prenom}</strong> {!s.actif && <Badge>Désactivé</Badge>}</td>
+                <td className="nombre" data-label="Ventes">{s.nombre_ventes}</td>
+                <td className="nombre" data-label="Montant"><strong>{montant(s.total_ventes)}</strong></td>
+                <td data-label="Le plus servi">{s.article_phare ?? <span className="texte-doux">—</span>}</td>
+                <td data-label="Gérer">
+                  {/* Outils de gestion repliés : la lecture des chiffres reste au premier plan. */}
+                  <details className="serveurs-gerer">
+                    <summary>Gérer</summary>
                   <div className="serveurs-caisse-actions">
                     <select value={fusion[s.id] ?? ''} onChange={(e) => setFusion({ ...fusion, [s.id]: e.target.value })} aria-label={`Fusionner ${s.prenom} avec`}>
                       <option value="">Doublon de…</option>
@@ -56,6 +59,7 @@ export default function ServeursCaisse({ espace, du, au }) {
                       {s.actif ? 'Désactiver' : 'Réactiver'}
                     </Bouton>
                   </div>
+                  </details>
                 </td>
               </tr>
             ))}
