@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate } from '../../noyau/format.js';
-import { lireParametres } from '../../noyau/routes.js';
+import { lireParametres, lireRoute } from '../../noyau/routes.js';
+import { ETATS_LICENCE } from '../../noyau/continuite.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Tabs } from '../../ui/composants.jsx';
 import { ChampsApparence } from '../../ui/Marque.jsx';
 import { ListeApplications } from './Applications.jsx';
@@ -320,25 +321,124 @@ function FormulaireReglages({ module, valeurs, modifiable, enregistrer }) {
   );
 }
 
+// Mon abonnement (Elite License Guard) : état, échéance, délai de grâce, historique, demande de renouvellement.
+// Rien ici ne prolonge une licence : seul un paiement enregistré par Agence Elite (ou son partenaire) le fait.
+const FORMULES = { essai: 'Essai gratuit', acquisition: 'Acquisition', mensuel: 'Abonnement mensuel', annuel: 'Abonnement annuel' };
+const ETAPES_DEMANDE = { nouvelle: ['Envoyée', 'bleu'], en_cours: ['En cours', 'attention'], traitee: ['Traitée', 'vert'], abandonnee: ['Close', 'neutre'] };
+const EVENEMENTS = { attribution: 'Licence attribuée', renouvellement: 'Renouvellement', suspension: 'Suspension', reactivation: 'Réactivation', fin: 'Fin' };
+
 function CarteLicence() {
-  const { etablissement, montant } = useEspace();
-  const l = etablissement.licence;
-  const formules = { essai: 'Essai gratuit', acquisition: 'Acquisition', mensuel: 'Abonnement mensuel', annuel: 'Abonnement annuel' };
+  const { api, etablissement, montant } = useEspace();
+  const { donnees: a, chargement, erreur, recharger } = useDonnees(() => api.rpc('mon_abonnement', { p_etablissement_id: etablissement.id }), [etablissement.id]);
+  const l = a?.licence;
+  const [libelle, ton] = ETATS_LICENCE[l?.etat ?? 'aucune'] ?? ETATS_LICENCE.aucune;
   return (
-    <div className="carte">
-      <h2>Licence</h2>
-      {l ? (
-        <dl className="details">
-          <dt>Offre</dt><dd>{l.offre}</dd>
-          <dt>Formule</dt><dd>{formules[l.formule]}</dd>
-          <dt>Échéance</dt><dd>{l.echeance ? `${formatDate(l.echeance)} (${l.jours_restants} jour(s))` : 'sans échéance'}</dd>
-          {l.montant > 0 && <><dt>Montant</dt><dd>{montant(l.montant)}</dd></>}
-          <dt>État</dt><dd>{l.valide ? <Badge ton="vert">Active</Badge> : <Badge ton="alerte">{l.statut === 'suspendue' ? 'Suspendue' : 'Expirée'}</Badge>}</dd>
-        </dl>
-      ) : <p className="texte-doux">Aucune licence en cours.</p>}
-      <p className="texte-doux">Pour changer d’offre ou renouveler, contactez Agence Elite ou votre partenaire Elite Partners.</p>
-      <ActiverCle />
+    <div className="deux-colonnes">
+      <div className="carte">
+        <h2>Mon abonnement</h2>
+        {chargement && <Chargement />}
+        <Erreur message={erreur} />
+        {a && (l ? (
+          <dl className="details">
+            <dt>Offre</dt><dd>{l.offre}</dd>
+            <dt>Formule</dt><dd>{FORMULES[l.formule]}</dd>
+            <dt>État</dt><dd><Badge ton={ton}>{libelle}</Badge></dd>
+            <dt>Échéance</dt>
+            <dd>{l.echeance ? `${formatDate(l.echeance)} (${l.jours >= 0 ? `dans ${l.jours} jour(s)` : `il y a ${-l.jours} jour(s)`})` : 'sans échéance'}</dd>
+            {l.echeance && l.grace > 0 && <><dt>Fin du délai de grâce</dt><dd>{formatDate(l.fin_grace)}</dd></>}
+            {l.montant > 0 && <><dt>Montant de la période</dt><dd>{montant(l.montant)}</dd></>}
+          </dl>
+        ) : <p className="texte-doux">Aucune licence en cours.</p>)}
+        {l && !l.valide && l.caisse_continue && (
+          <p className="texte-doux">La caisse et les encaissements continuent de fonctionner. Le reste du logiciel est en consultation seule jusqu’au renouvellement.</p>
+        )}
+        {a?.partenaire && <p className="texte-doux">Votre partenaire Elite Partners : {a.partenaire.nom}{a.partenaire.telephone ? ` · ${a.partenaire.telephone}` : ''}</p>}
+        <ActiverCle />
+      </div>
+      {a?.responsable && (
+        <div className="carte">
+          <DemandeRenouvellement abonnement={a} onEnvoye={recharger} />
+          {a.historique.length > 0 && (
+            <>
+              <h3>Historique</h3>
+              <ul className="liste-simple">
+                {a.historique.map((h, i) => (
+                  <li key={i}>
+                    {formatDate(h.date)} · {EVENEMENTS[h.type] ?? h.type}
+                    {h.nouvelle_echeance ? ` · jusqu’au ${formatDate(h.nouvelle_echeance)}` : ''}
+                    {h.montant > 0 ? ` · ${montant(h.montant)}` : ''}
+                    {h.reference ? ` · réf. ${h.reference}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function DemandeRenouvellement({ abonnement, onEnvoye }) {
+  const { api, etablissement, montant, notifier } = useEspace();
+  const l = abonnement.licence;
+  const ouverte = abonnement.demandes.find((d) => ['nouvelle', 'en_cours'].includes(d.statut));
+  const [formule, setFormule] = useState(l?.formule === 'annuel' ? 'annuel' : 'mensuel');
+  const [message, setMessage] = useState('');
+  const [telephone, setTelephone] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const tarif = (f) => (l?.tarifs?.[f] > 0 ? ` · ${montant(l.tarifs[f])}` : '');
+  const envoyer = async (e) => {
+    e.preventDefault();
+    setErreur('');
+    setEnvoi(true);
+    try {
+      await api.rpc('demander_renouvellement_licence', { p_etablissement_id: etablissement.id, p_formule: formule, p_message: message, p_telephone: telephone });
+      notifier('Demande envoyée : Agence Elite vous recontacte');
+      setMessage('');
+      onEnvoye();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  return (
+    <>
+      <h2>Renouveler</h2>
+      {ouverte ? (
+        <p className="texte-doux">
+          Demande du {formatDate(ouverte.cree_le)} : <Badge ton={ETAPES_DEMANDE[ouverte.statut][1]}>{ETAPES_DEMANDE[ouverte.statut][0]}</Badge>.
+          {' '}Votre échéance changera dès que le paiement sera enregistré.
+        </p>
+      ) : (
+        <form className="formulaire" onSubmit={envoyer} aria-label="Demander le renouvellement">
+          <Champ libelle="Formule souhaitée">
+            <select value={formule} onChange={(e) => setFormule(e.target.value)}>
+              <option value="mensuel">Mensuel{tarif('mensuel')}</option>
+              <option value="annuel">Annuel{tarif('annuel')}</option>
+              <option value="acquisition">Acquisition</option>
+              <option value="autre">Autre (à préciser)</option>
+            </select>
+          </Champ>
+          <Champ libelle="Téléphone pour vous rappeler" aide="Facultatif.">
+            <input value={telephone} onChange={(e) => setTelephone(e.target.value)} maxLength={40} inputMode="tel" />
+          </Champ>
+          <Champ libelle="Message" aide="Facultatif.">
+            <textarea rows={2} maxLength={600} value={message} onChange={(e) => setMessage(e.target.value)} />
+          </Champ>
+          <Erreur message={erreur} />
+          <Bouton type="submit" variante="principal" chargement={envoi}>Demander le renouvellement</Bouton>
+          <p className="texte-faible">Le paiement se règle avec Agence Elite ou votre partenaire ; l’échéance change seulement une fois le paiement enregistré.</p>
+        </form>
+      )}
+      {abonnement.demandes.filter((d) => d !== ouverte).slice(0, 3).map((d) => (
+        <p key={d.id} className="texte-faible">
+          {formatDate(d.cree_le)} · {d.formule} · {ETAPES_DEMANDE[d.statut][0]}{d.note ? ` · ${d.note}` : ''}
+        </p>
+      ))}
+    </>
   );
 }
 
@@ -394,14 +494,15 @@ function Securite() {
 
 const ONGLETS = [
   ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'], ['reglages', 'Réglages des modules'],
-  ['applications', 'Applications'], ['connexions', 'Connexions'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Licence'],
+  ['applications', 'Applications'], ['connexions', 'Connexions'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Mon abonnement'],
 ];
 
 // Paramètres de l'établissement. Les onglets n'existent que si la fonction existe vraiment.
 export default function Parametres({ naviguer }) {
   const { etablissement, peut, moduleActif } = useEspace();
   const onglets = ONGLETS.filter(([id]) => (id !== 'caisses' || moduleActif('caisse')) && (id !== 'connexions' || peut('etablissement.integrations')));
-  const demande = lireParametres().get('onglet');
+  // ?onglet=… ou #/parametres/licence (lien des alertes d'échéance).
+  const demande = lireParametres().get('onglet') ?? lireRoute().split('/')[1];
   const [onglet, setOnglet] = useState(onglets.some(([id]) => id === demande) ? demande : 'entreprise');
   return (
     <div className="page">
