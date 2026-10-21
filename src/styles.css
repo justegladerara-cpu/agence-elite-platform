@@ -1190,10 +1190,12 @@ img.avatar {
   display: grid;
 }
 
+/* Une ligne trop longue passe à la ligne au lieu d'élargir l'écran (écran cuisine sur téléphone). */
 .liste-ligne {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 4px 12px;
   padding: 9px 0;
   border-bottom: 1px solid var(--bordure);
 }
@@ -1204,7 +1206,9 @@ img.avatar {
 
 .liste-ligne > span:first-child,
 .liste-ligne > .rang + span {
-  flex: 1;
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .rang {
