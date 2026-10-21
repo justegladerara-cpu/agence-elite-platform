@@ -1498,6 +1498,12 @@ img.avatar {
   overflow-y: auto;
 }
 
+/* Le catalogue défile en entier : aucun bloc ne se tasse (les catégories étaient écrasées à 6 px dès que
+   la liste d'articles dépassait la hauteur de l'écran). */
+.caisse-catalogue > * {
+  flex-shrink: 0;
+}
+
 .caisse-barre {
   display: flex;
   align-items: center;
