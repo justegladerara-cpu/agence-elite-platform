@@ -17,13 +17,27 @@ import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import { effacerBrouillons } from './noyau/brouillons.js';
 import { AnnonceMiseAJour, BandeauConnexion } from './ui/Etat.jsx';
-import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
-import { SitePublic } from './public/RenduSite.jsx';
-import { PartagePublic } from './public/Partage.jsx';
-import { MenuPublic } from './public/MenuPublic.jsx';
-import { QrPublic } from './public/QrPublic.jsx';
-import { EspaceClientPublic } from './public/EspaceClient.jsx';
-import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
+// Pages publiques et espace partenaire : chargées seulement quand on les ouvre (premier affichage plus léger
+// pour la caisse et la connexion). Chacune a son propre écran d'attente.
+function pagePublique(charger, nom) {
+  const Page = React.lazy(() => charger().then((m) => ({ default: m[nom] })));
+  return function PagePublique(props) {
+    return <Suspense fallback={<div className="ecran-centre"><Chargement /></div>}><Page {...props} /></Suspense>;
+  };
+}
+const chargerBoutique = () => import('./public/BoutiquePublique.jsx');
+const chargerPartenaire = () => import('./public/EspacePartenaire.jsx');
+const BoutiquePublique = pagePublique(chargerBoutique, 'BoutiquePublique');
+const SuiviCommande = pagePublique(chargerBoutique, 'SuiviCommande');
+const SitePublic = pagePublique(() => import('./public/RenduSite.jsx'), 'SitePublic');
+const PartagePublic = pagePublique(() => import('./public/Partage.jsx'), 'PartagePublic');
+const MenuPublic = pagePublique(() => import('./public/MenuPublic.jsx'), 'MenuPublic');
+const QrPublic = pagePublique(() => import('./public/QrPublic.jsx'), 'QrPublic');
+const EspaceClientPublic = pagePublique(() => import('./public/EspaceClient.jsx'), 'EspaceClientPublic');
+const ActivationCle = pagePublique(chargerPartenaire, 'ActivationCle');
+const ConnexionPartenaire = pagePublique(chargerPartenaire, 'ConnexionPartenaire');
+const DemandePartenaire = pagePublique(chargerPartenaire, 'DemandePartenaire');
+const EspacePartenaire = pagePublique(chargerPartenaire, 'EspacePartenaire');
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
@@ -32,6 +46,7 @@ import { oublierAccueil } from './modules/caisse/verrouCaisse.js';
 import { ecrireDefautEtablissement, filtrerModeSimple, useModeSimple } from './noyau/modeSimple.js';
 import { ecrirePlusOuvert, noterPageOuverte, separerMenu, useMenuEssentiel } from './noyau/menuEssentiel.js';
 import { AIDES, aidesFermees, fermerAide } from './noyau/aides.js';
+import { BarreOngletsMobile, BoutonFavori, BoutonRetour, MenuFavoris, useRaccourcisNavigation } from './ui/Navigation.jsx';
 import {
   Avatar, Badge, Bouton, Champ, Chargement, Erreur, FilAriane, FournisseurFil, Icone, lireImageReduite, Modale, Onglets, useFilAriane, Vide,
 } from './ui/composants.jsx';
@@ -513,7 +528,9 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
   return (
     <header className="barre-haut">
       <button className="icone-bouton bouton-menu" onClick={onMenu} aria-label="Ouvrir le menu"><Icone nom="menu" /></button>
+      <BoutonRetour naviguer={naviguer} />
       <FilAriane elements={fil} />
+      <BoutonFavori />
       <div className="barre-haut-outils">
         {!surEditeur && etablissement && (
           <>
@@ -599,6 +616,7 @@ function Coquille() {
     setMenuOuvert(false);
     naviguer(id);
   };
+  useRaccourcisNavigation(menuCourt, aller, Boolean(etablissement) && !palette);
   const Page = page?.composant;
   const actifEditeur = surEditeur ? routeEditeurActive(route) : null;
   const { nom_editeur: nomEditeur } = useConfigAuth();
@@ -632,6 +650,7 @@ function Coquille() {
             )}
             {etablissement && (
               <>
+                <MenuFavoris pages={menu} pageActive={page?.id} aller={aller} />
                 {editeur && (
                   <div className="menu-etablissement">
                     <span className="menu-groupe-titre">Établissement consulté</span>
@@ -658,6 +677,7 @@ function Coquille() {
           )}
         </aside>
         {menuOuvert && <div className="voile-menu" onClick={() => setMenuOuvert(false)} />}
+        {etablissement && !page?.pleinEcran && <BarreOngletsMobile pages={menu} pageActive={page?.id} aller={aller} onMenu={() => setMenuOuvert(true)} />}
         <div className="colonne">
           <BarreHaut filDefaut={filDefaut} surEditeur={surEditeur} onMenu={() => setMenuOuvert(true)} libelleRole={roleAffiche} onCompte={() => setCompte(true)} naviguer={aller} onRecherche={ouvrirRecherche} onCreer={ouvrirCreation} />
           <main className="contenu">

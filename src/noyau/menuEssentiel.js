@@ -12,6 +12,11 @@ export const PAGES_ESSENTIELLES = [
 
 const CLE_RECENTS = 'menu-recents';
 const CLE_PLUS = 'menu-plus-ouvert';
+// Favoris (écrans épinglés par la personne) et historique (derniers écrans ouverts, du plus récent au plus ancien).
+const CLE_FAVORIS = 'menu-favoris';
+const CLE_HISTORIQUE = 'menu-historique';
+const TAILLE_HISTORIQUE = 6;
+export const MAX_FAVORIS = 8;
 const EVENEMENT = 'menu-essentiel';
 const DUREE_RECENT = 30 * 24 * 3600 * 1000;
 // En dessous de ce nombre d'écrans en plus, replier ne simplifie rien : tout reste visible.
@@ -42,9 +47,38 @@ export function lireRecents(maintenant = Date.now()) {
   }
 }
 
+function lireListe(cle) {
+  try {
+    const liste = JSON.parse(lire(cle) ?? '[]');
+    return Array.isArray(liste) ? liste.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function lireFavoris() {
+  return lireListe(CLE_FAVORIS);
+}
+
+// Ajoute ou retire un écran des favoris (8 au plus). Choix de l'appareil, comme le reste du menu.
+export function basculerFavori(id) {
+  if (!id) return lireFavoris();
+  const favoris = lireFavoris();
+  const suivants = favoris.includes(id) ? favoris.filter((f) => f !== id) : [...favoris, id].slice(-MAX_FAVORIS);
+  ecrire(CLE_FAVORIS, JSON.stringify(suivants));
+  window.dispatchEvent(new Event(EVENEMENT));
+  return suivants;
+}
+
+export function lireHistorique() {
+  return lireListe(CLE_HISTORIQUE);
+}
+
 // Retient qu'un écran a été ouvert (appelé à chaque changement de page).
 export function noterPageOuverte(id, maintenant = Date.now()) {
   if (!id) return;
+  // Historique pour la recherche (Ctrl+K) : sans prévenir le menu, il ne change rien à l'écran.
+  ecrire(CLE_HISTORIQUE, JSON.stringify([id, ...lireHistorique().filter((h) => h !== id)].slice(0, TAILLE_HISTORIQUE)));
   const recents = lireRecents(maintenant);
   if (PAGES_ESSENTIELLES.includes(id) || recents[id]) {
     // Déjà visible : on rafraîchit la date sans prévenir le menu (pas de nouveau rendu).
@@ -73,12 +107,12 @@ function abonner(rappel) {
   };
 }
 
-const instantane = () => `${lire(CLE_RECENTS) ?? ''}|${lire(CLE_PLUS) ?? ''}`;
+const instantane = () => `${lire(CLE_RECENTS) ?? ''}|${lire(CLE_PLUS) ?? ''}|${lire(CLE_FAVORIS) ?? ''}`;
 
-// Relit le menu quand on ouvre un nouvel écran ou qu'on déplie « Plus d'outils ».
+// Relit le menu quand on ouvre un nouvel écran, qu'on déplie « Plus d'outils » ou qu'on change ses favoris.
 export function useMenuEssentiel() {
   useSyncExternalStore(abonner, instantane, () => '');
-  return { recents: lireRecents(), plusOuvert: lirePlusOuvert() };
+  return { recents: lireRecents(), plusOuvert: lirePlusOuvert(), favoris: lireFavoris() };
 }
 
 // Sépare le menu : écrans de tous les jours (+ récents + écran affiché) et le reste, replié.

@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, EmptyState, Erreur, Icone, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { widgetsAccessibles } from '../index.js';
-import { Activite, ActionsRapides, ASurveiller, BarrePeriode, Graphique, GrilleKpis, Kpi, ListeCockpit, useFiltresCockpit } from './cockpit.jsx';
+import { Activite, ActionsRapides, ASurveiller, BarrePeriode, Graphique, GrilleKpis, Kpi, libellePeriode, ListeCockpit, useFiltresCockpit } from './cockpit.jsx';
 import { DOMAINES } from './domaines.js';
 
 // Tableau de bord : vue d'ensemble de l'établissement (#/tableau-de-bord) et un tableau par
@@ -70,7 +70,7 @@ function VueGlobale({ domaines, f, naviguer }) {
         <>
           {c.erreurs?.length > 0 && <p className="texte-doux">Certaines informations n’ont pas pu être chargées : {c.erreurs.join(', ')}.</p>}
           {domaines.length === 0 && <EmptyState icone="tableau" titre="Aucun indicateur pour vos applications" texte="Les indicateurs apparaissent avec les applications activées et vos droits." />}
-          {principaux.length > 0 && <div className="kpis kpis-hero">{principaux.map((k, i) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} mis_en_avant={i === 0} />)}</div>}
+          {principaux.length > 0 && <div className="kpis kpis-hero">{principaux.map((k, i) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} mis_en_avant={i === 0} periode={libellePeriode(f)} />)}</div>}
           <div className="cockpit-grille">
             <ASurveiller elements={c.attention} naviguer={naviguer} avecModule={domaines.length > 1} />
             <Activite elements={c.activite} naviguer={naviguer} avecModule={domaines.length > 1} />
@@ -84,7 +84,7 @@ function VueGlobale({ domaines, f, naviguer }) {
                     <h2><Icone nom={DOMAINES[d.id]?.icone ?? 'tableau'} taille={16} /> {d.titre}</h2>
                     {d.attention > 0 && <Badge ton="attention">{d.attention} à surveiller</Badge>}
                   </div>
-                  <GrilleKpis kpis={d.kpis} naviguer={naviguer} max={3} />
+                  <GrilleKpis kpis={d.kpis} naviguer={naviguer} max={3} periode={libellePeriode(f)} />
                   {d.kpis.length === 0 && <p className="texte-doux">Rien sur la période.</p>}
                   <Bouton icone="chevron" onClick={() => naviguer(`tableau-de-bord/${d.id}`)}>Tableau {d.titre}</Bouton>
                 </section>
@@ -115,7 +115,7 @@ function VueDomaine({ domaine, titre, f, naviguer }) {
       {vide && <EmptyState icone="tableau" titre="Pas encore de données" texte="Les indicateurs apparaîtront dès les premières opérations." />}
       {d && !vide && (
         <>
-          <GrilleKpis kpis={d.kpis} naviguer={naviguer} />
+          <GrilleKpis kpis={d.kpis} naviguer={naviguer} periode={libellePeriode(f)} />
           {d.periode && d.periode.comparable === false && d.periode.du_precedent && (
             <p className="texte-faible cockpit-note">Pas de comparaison : la période précédente n’a pas assez de données.</p>
           )}

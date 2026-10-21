@@ -11,6 +11,26 @@ export function formatMontant(valeur, devise = 'XAF') {
   return `${nombre} ${SYMBOLES[devise] ?? devise}`;
 }
 
+// Montant court pour un chiffre clé qui ne tient pas dans sa carte (« 125,8 M FCFA », « 12,35 Md FCFA »).
+// Affichage seulement : la valeur complète reste toujours visible à côté (ChiffreCle) ; les calculs ne changent pas.
+export function formatMontantCourt(valeur, devise = 'XAF') {
+  const n = Number(valeur ?? 0);
+  if (Math.abs(n) < 100_000) return formatMontant(n, devise);
+  const nombre = new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumSignificantDigits: 4 }).format(n);
+  return `${nombre} ${SYMBOLES[devise] ?? devise}`;
+}
+
+// Version courte d'un montant déjà mis en forme (« 125 750 000 FCFA » → « 125,8 M FCFA ») ; null si ce n'en est pas un.
+export function montantCourtDepuisTexte(texte) {
+  if (typeof texte !== 'string') return null;
+  const m = texte.trim().match(/^(-?[\d\s\u202f\u00a0]+(?:,\d+)?)\s(FCFA|€|[A-Z]{3})$/);
+  if (!m) return null;
+  const n = Number(m[1].replace(/[\s\u202f\u00a0]/g, '').replace(',', '.'));
+  if (!Number.isFinite(n) || Math.abs(n) < 100_000) return null;
+  const devise = Object.entries(SYMBOLES).find(([, s]) => s === m[2])?.[0] ?? m[2];
+  return formatMontantCourt(n, devise);
+}
+
 export function formatQuantite(valeur, unite) {
   const nombre = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 }).format(Number(valeur ?? 0)).replace(/ | /g, ' ');
   return unite && unite !== 'unité' ? `${nombre} ${unite}` : nombre;

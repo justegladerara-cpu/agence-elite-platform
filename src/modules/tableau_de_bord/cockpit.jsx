@@ -2,8 +2,8 @@
 // « À surveiller », graphiques, listes, activité, actions rapides.
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { formatDate, formatDateHeure, MODES_PAIEMENT } from '../../noyau/format.js';
-import { Bouton, GraphiqueBarres, Icone } from '../../ui/composants.jsx';
+import { formatDate, formatDateHeure, formatMontantCourt, MODES_PAIEMENT } from '../../noyau/format.js';
+import { Bouton, ChiffreCle, GraphiqueBarres, Icone } from '../../ui/composants.jsx';
 import { NombreAnime } from '../../motion/NombreAnime.jsx';
 import { actionsDomaine, bornesPeriode, PERIODES, variation } from './domaines.js';
 
@@ -110,33 +110,59 @@ export function useFormat() {
   };
 }
 
-export function Kpi({ kpi, naviguer, mis_en_avant }) {
+// Libellé court de la période d'un indicateur (« Aujourd'hui », « 01/10 → 21/10 »).
+export function libellePeriode(f) {
+  if (!f) return null;
+  const nom = PERIODES.find(([id]) => id === f.periode)?.[1];
+  if (f.periode !== 'perso' && nom) return nom;
+  return f.du === f.au ? formatDate(f.du) : `${formatDate(f.du)} → ${formatDate(f.au)}`;
+}
+
+// Carte d'indicateur : titre, valeur (jamais coupée, unité comprise), période, évolution et son sens.
+// Une valeur absente (calcul indisponible) s'affiche « Indisponible », jamais « 0 ».
+export function Kpi({ kpi, naviguer, mis_en_avant, periode }) {
   const formater = useFormat();
+  const { devise } = useEspace();
   const v = variation(kpi);
   const Balise = kpi.route ? 'button' : 'div';
+  const indisponible = kpi.valeur == null;
+  const complet = indisponible ? null : formater(kpi.valeur, kpi.format);
+  const sens = v ? (v.favorable === true ? 'favorable' : v.favorable === false ? 'défavorable' : 'stable') : null;
   return (
     <Balise
       type={kpi.route ? 'button' : undefined}
-      className={`kpi ${kpi.ton ? `kpi-${kpi.ton}` : ''} ${kpi.route ? 'cliquable' : ''} ${mis_en_avant ? 'fort' : ''}`}
+      className={`kpi ${kpi.ton ? `kpi-${kpi.ton}` : ''} ${kpi.route ? 'cliquable' : ''} ${mis_en_avant ? 'fort' : ''} ${indisponible ? 'kpi-indisponible' : ''}`}
       onClick={kpi.route ? () => naviguer(kpi.route) : undefined}
       title={kpi.route ? 'Voir le détail' : undefined}
     >
-      <span className="kpi-libelle">{kpi.libelle}</span>
-      <strong className="kpi-valeur"><NombreAnime valeur={kpi.valeur} format={(v) => formater(v, kpi.format)} /></strong>
+      <span className="kpi-tete">
+        <span className="kpi-libelle">{kpi.libelle}</span>
+        {periode && <span className="kpi-periode">{periode}</span>}
+      </span>
+      {indisponible ? (
+        <strong className="kpi-valeur"><span className="kpi-absent"><Icone nom="alerte" taille={16} /> Indisponible</span></strong>
+      ) : (
+        <ChiffreCle as="strong" className="kpi-valeur" title={complet} court={kpi.format === 'montant' && Math.abs(Number(kpi.valeur)) >= 100_000 ? formatMontantCourt(kpi.valeur, devise) : null}>
+          <NombreAnime valeur={kpi.valeur} format={(x) => formater(x, kpi.format)} />
+        </ChiffreCle>
+      )}
       {v && (
         <span className={`kpi-variation ${v.favorable === true ? 'bon' : v.favorable === false ? 'mauvais' : ''}`}>
-          {v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='} {Math.abs(v.pourcent)} % <small>vs période précédente</small>
+          <span aria-hidden="true">{v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='}</span>
+          {' '}{v.pourcent > 0 ? '+' : v.pourcent < 0 ? '−' : ''}{Math.abs(v.pourcent)} % <small>vs période précédente</small>
+          <span className="lecteur-ecran">, évolution {sens}</span>
         </span>
       )}
+      {indisponible && <small className="kpi-detail">Le calcul n’a pas pu se faire. Réessayez plus tard.</small>}
       {kpi.detail && <small className="kpi-detail">{kpi.detail}</small>}
     </Balise>
   );
 }
 
-export function GrilleKpis({ kpis, naviguer, max }) {
+export function GrilleKpis({ kpis, naviguer, max, periode }) {
   const liste = max ? kpis.slice(0, max) : kpis;
   if (!liste.length) return null;
-  return <div className="kpis">{liste.map((k) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} />)}</div>;
+  return <div className="kpis">{liste.map((k) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} periode={periode} />)}</div>;
 }
 
 const NIVEAUX = { critique: ['Urgent', 'alerte'], alerte: ['À traiter', 'alerte'], info: ['À noter', 'activite'] };

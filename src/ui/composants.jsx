@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { montantCourtDepuisTexte } from '../noyau/format.js';
 import { lireParametres } from '../noyau/routes.js';
 import { useLignesNouvelles } from '../motion/lignes.js';
 
@@ -85,13 +86,66 @@ export function Bouton({ variante = 'secondaire', icone, children, chargement, .
   );
 }
 
-export function Champ({ libelle, aide, children, className = '' }) {
+// Champ de formulaire : libellé, saisie, aide courte et erreur juste sous la saisie.
+// Un champ « required » est marqué d'un astérisque (CSS) ; « erreur » est annoncée et reliée à la saisie.
+export function Champ({ libelle, aide, erreur, children, className = '' }) {
+  const id = useId();
+  const decrit = [aide && `${id}-aide`, erreur && `${id}-erreur`].filter(Boolean).join(' ') || undefined;
+  // La saisie reçoit la description (aide, erreur) et aria-invalid, sans que chaque écran ait à le faire.
+  const saisie = React.isValidElement(children) && ['input', 'select', 'textarea'].includes(children.type)
+    ? React.cloneElement(children, {
+      'aria-describedby': [children.props['aria-describedby'], decrit].filter(Boolean).join(' ') || undefined,
+      'aria-invalid': erreur ? true : children.props['aria-invalid'],
+    })
+    : children;
   return (
-    <label className={`champ ${className}`}>
+    <label className={`champ ${erreur ? 'en-erreur' : ''} ${className}`.trim()}>
       <span className="champ-libelle">{libelle}</span>
-      {children}
-      {aide && <small className="champ-aide">{aide}</small>}
+      {saisie}
+      {aide && <small className="champ-aide" id={`${id}-aide`}>{aide}</small>}
+      {erreur && <small className="champ-erreur" id={`${id}-erreur`} role="alert"><Icone nom="alerte" taille={14} /> {erreur}</small>}
     </label>
+  );
+}
+
+// Chiffre clé (montant, nombre) qui tient toujours dans sa carte : jamais coupé ni remplacé par « … ».
+// 1) le texte rapetisse par paliers ; 2) s'il ne tient toujours pas, la version courte s'affiche en grand
+// (« 125,8 M FCFA ») avec la valeur complète juste dessous ; sans version courte possible, il passe à la ligne.
+// Tout se règle sur l'élément (data-palier), sans nouveau rendu React.
+export function ChiffreCle({ as: Balise = 'span', children, court, className = '', ...props }) {
+  const zone = useRef(null);
+  const versionCourte = court === undefined ? montantCourtDepuisTexte(typeof children === 'string' ? children : null) : court;
+  useLayoutEffect(() => {
+    const el = zone.current;
+    if (!el) return undefined;
+    let largeur = -1;
+    const ajuster = () => {
+      for (let palier = 0; palier <= 3; palier += 1) {
+        el.dataset.palier = String(palier);
+        if (palier === 3 || el.scrollWidth <= el.clientWidth + 1) break;
+      }
+    };
+    ajuster();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    // Seule la largeur compte (la hauteur change avec le palier) : pas de boucle de mesure.
+    const taille = new ResizeObserver(([e]) => {
+      const l = Math.round(e.contentRect.width);
+      if (l !== largeur) { largeur = l; ajuster(); }
+    });
+    taille.observe(el);
+    // Le texte change (nombre animé, nouvelle période) : on remesure.
+    const texteChange = typeof MutationObserver === 'undefined' ? null : new MutationObserver(ajuster);
+    texteChange?.observe(el, { characterData: true, childList: true, subtree: true });
+    return () => {
+      taille.disconnect();
+      texteChange?.disconnect();
+    };
+  }, [versionCourte]);
+  return (
+    <Balise ref={zone} className={`chiffre-cle ${className}`.trim()} data-court={versionCourte ? 'oui' : undefined} {...props}>
+      {children}
+      {versionCourte && <span className="chiffre-court" aria-hidden="true">{versionCourte}</span>}
+    </Balise>
   );
 }
 
@@ -223,16 +277,19 @@ export function Recherche({ valeur, onChange, placeholder = 'Rechercher…' }) {
   );
 }
 
+// Flèches gauche / droite, Début et Fin dans une liste d'onglets (motif ARIA « tabs »).
+function toucheOnglets(e, ids, actif, onChange) {
+  const i = ids.indexOf(actif);
+  const cible = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ids.length - 1 }[e.key];
+  if (cible == null || !ids.length) return;
+  e.preventDefault();
+  const rang = (cible + ids.length) % ids.length;
+  onChange(ids[rang]);
+  e.currentTarget.querySelectorAll('[role="tab"]')[rang]?.focus();
+}
+
 export function Onglets({ onglets, actif, onChange }) {
-  return (
-    <div className="onglets" role="tablist">
-      {onglets.map(([id, libelle]) => (
-        <button key={id} role="tab" aria-selected={actif === id} className={actif === id ? 'actif' : ''} onClick={() => onChange(id)}>
-          {libelle}
-        </button>
-      ))}
-    </div>
-  );
+  return <Tabs onglets={onglets} actif={actif} onChange={onChange} />;
 }
 
 export function Indicateur({ libelle, valeur, detail, ton }) {
@@ -331,7 +388,7 @@ export function PageHeader({ titre, sousTitre, fil, badges, actions, children })
   );
 }
 
-export function StatCard({ libelle, valeur, detail, ton, icone, onClick, note }) {
+export function StatCard({ libelle, valeur, valeurCourte, detail, ton, icone, onClick, note }) {
   const Balise = onClick ? 'button' : 'div';
   return (
     <Balise className={`stat-card ${ton ?? ''} ${onClick ? 'cliquable' : ''}`} onClick={onClick} type={onClick ? 'button' : undefined}>
@@ -339,7 +396,7 @@ export function StatCard({ libelle, valeur, detail, ton, icone, onClick, note })
         {icone && <span className="stat-card-icone"><Icone nom={icone} taille={16} /></span>}
         <span className="stat-card-libelle">{libelle}</span>
       </span>
-      <strong className="stat-card-valeur">{valeur}</strong>
+      <ChiffreCle as="strong" className="stat-card-valeur" court={valeurCourte}>{valeur}</ChiffreCle>
       {detail && <small className="stat-card-detail">{detail}</small>}
       {note && <small className="stat-card-note">{note}</small>}
     </Balise>
@@ -371,10 +428,19 @@ export function EmptyState({ titre, texte, action, icone }) {
 }
 
 export function Tabs({ onglets, actif, onChange }) {
+  const ids = onglets.map(([id]) => id);
   return (
-    <div className="onglets" role="tablist">
+    <div className="onglets" role="tablist" onKeyDown={(e) => toucheOnglets(e, ids, actif, onChange)}>
       {onglets.map(([id, libelle, compteur]) => (
-        <button key={id} role="tab" aria-selected={actif === id} className={actif === id ? 'actif' : ''} onClick={() => onChange(id)}>
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={actif === id}
+          tabIndex={actif === id || (!ids.includes(actif) && id === ids[0]) ? 0 : -1}
+          className={actif === id ? 'actif' : ''}
+          onClick={() => onChange(id)}
+        >
           {libelle}
           {compteur != null && <span className="onglet-compteur">{compteur}</span>}
         </button>
@@ -577,7 +643,7 @@ export function DataTable({
               {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           ))}
-          <span className="data-table-compte">{resultat.length} résultat{resultat.length > 1 ? 's' : ''}</span>
+          <span className="data-table-compte" role="status" aria-live="polite">{resultat.length} résultat{resultat.length > 1 ? 's' : ''}</span>
           {filtresActifs && <Bouton icone="fermer" onClick={() => { setTexte(''); setValeursFiltres({}); setPage(0); }}>Effacer les filtres</Bouton>}
           {resultat.length > 0 && (
             <span className="data-table-export">
@@ -604,7 +670,7 @@ export function DataTable({
                     {c.tri ? (
                       <button type="button" onClick={() => trier(c)}>
                         {c.libelle}
-                        <span className="tri-indice">{tri?.id === c.id ? (tri.sens === 'asc' ? '▲' : '▼') : '↕'}</span>
+                        <span className="tri-indice" aria-hidden="true">{tri?.id === c.id ? (tri.sens === 'asc' ? '▲' : '▼') : '↕'}</span>
                       </button>
                     ) : c.libelle}
                   </th>
@@ -617,7 +683,7 @@ export function DataTable({
                   key={l[cle]}
                   className={[onLigne && 'cliquable', estNouvelle(l[cle]) && 'ems-ligne-nouvelle'].filter(Boolean).join(' ') || undefined}
                   onClick={onLigne ? () => onLigne(l) : undefined}
-                  onKeyDown={onLigne ? (e) => { if (e.key === 'Enter') onLigne(l); } : undefined}
+                  onKeyDown={onLigne ? (e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onLigne(l); } } : undefined}
                   tabIndex={onLigne ? 0 : undefined}
                 >
                   {colonnes.map((c) => <td key={c.id} data-label={c.libelle} className={c.classe ?? ''}>{c.rendu ? c.rendu(l) : l[c.id]}</td>)}
@@ -653,40 +719,102 @@ function plafondRond(v) {
   return [1, 2, 5, 10].map((m) => m * puissance).find((c) => c >= v);
 }
 
+// Largeur réelle d'un conteneur (pour dessiner un graphique à sa taille : textes lisibles sur téléphone).
+function useLargeur(defaut) {
+  const zone = useRef(null);
+  const [largeur, setLargeur] = useState(defaut);
+  useLayoutEffect(() => {
+    const el = zone.current;
+    if (!el) return undefined;
+    const mesurer = (l) => setLargeur((avant) => (Math.abs(avant - l) > 8 ? l : avant));
+    mesurer(Math.round(el.clientWidth) || defaut);
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const taille = new ResizeObserver(([e]) => mesurer(Math.round(e.contentRect.width) || defaut));
+    taille.observe(el);
+    return () => taille.disconnect();
+  }, [defaut]);
+  return [zone, largeur];
+}
+
+// Histogramme : dessiné à la largeur réelle (textes à 11–12 px même sur téléphone), étiquettes espacées pour ne
+// jamais se chevaucher, valeur de chaque barre au survol, au toucher et au clavier (Tab puis flèches).
 export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, onBarre, libelle = 'Graphique', vide = 'Aucune valeur sur la période' }) {
+  const [zone, largeurZone] = useLargeur(560);
+  const [choisie, setChoisie] = useState(null);
   const brut = Math.max(...donnees.map((d) => Number(d.valeur) || 0), 0);
   if (brut <= 0) return <p className="graphique-vide texte-doux">{vide}</p>;
   const max = plafondRond(brut);
-  const largeur = 560;
-  const marge = { haut: 12, bas: 26, gauche: 46, droite: 8 };
+  const largeur = Math.max(260, largeurZone);
+  const marge = { haut: 26, bas: 26, gauche: 48, droite: 8 };
   const zoneL = largeur - marge.gauche - marge.droite;
   const zoneH = hauteur - marge.haut - marge.bas;
   const pas = zoneL / Math.max(donnees.length, 1);
-  const barre = Math.max(Math.min(pas - 8, 44), 4);
+  const barre = Math.max(Math.min(pas - 6, 44), 3);
+  // Une étiquette toutes les N barres : au moins 34 px par étiquette.
+  const tous = Math.max(1, Math.ceil(34 / pas));
+  const bulle = choisie != null ? donnees[choisie] : null;
+  const texteBulle = bulle ? (bulle.titre ?? `${bulle.libelle} : ${format(bulle.valeur)}`) : '';
+  const xBulle = choisie != null ? marge.gauche + choisie * pas + pas / 2 : 0;
+  const largeurBulle = Math.min(largeur - 8, Math.max(80, texteBulle.length * 6.6 + 16));
+  const gaucheBulle = Math.min(Math.max(4, xBulle - largeurBulle / 2), largeur - largeurBulle - 4);
+  const touche = (e) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const i = choisie ?? -1;
+    const suivant = { ArrowRight: Math.min(i + 1, donnees.length - 1), ArrowLeft: Math.max(i - 1, 0), Home: 0, End: donnees.length - 1 }[e.key];
+    setChoisie(suivant);
+  };
   return (
-    <svg className="graphique" viewBox={`0 0 ${largeur} ${hauteur}`} role="img" aria-label={libelle}>
-      {[0, max / 2, max].filter((g, i, t) => t.indexOf(g) === i).map((g) => {
-        const y = marge.haut + zoneH - (g / max) * zoneH;
-        return (
-          <g key={g}>
-            <line x1={marge.gauche} x2={largeur - marge.droite} y1={y} y2={y} className="graphique-grille" />
-            <text x={marge.gauche - 6} y={y + 4} textAnchor="end" className="graphique-texte">{format(g)}</text>
+    <div className="graphique-zone" ref={zone}>
+      <svg
+        className="graphique"
+        width={largeur}
+        height={hauteur}
+        viewBox={`0 0 ${largeur} ${hauteur}`}
+        role="img"
+        aria-label={`${libelle}. ${donnees.map((d) => `${d.libelle} ${format(d.valeur)}`).join(', ')}`}
+        tabIndex={0}
+        onKeyDown={touche}
+        onBlur={() => setChoisie(null)}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse') setChoisie(null); }}
+      >
+        {[0, max / 2, max].filter((g, i, t) => t.indexOf(g) === i).map((g) => {
+          const y = marge.haut + zoneH - (g / max) * zoneH;
+          return (
+            <g key={g}>
+              <line x1={marge.gauche} x2={largeur - marge.droite} y1={y} y2={y} className="graphique-grille" />
+              <text x={marge.gauche - 6} y={y + 4} textAnchor="end" className="graphique-texte">{format(g)}</text>
+            </g>
+          );
+        })}
+        {donnees.map((d, i) => {
+          const h = ((Number(d.valeur) || 0) / max) * zoneH;
+          const x = marge.gauche + i * pas + (pas - barre) / 2;
+          return (
+            <g
+              key={`${d.libelle}-${i}`}
+              className={`${onBarre ? 'cliquable' : ''} ${choisie === i ? 'choisie' : ''}`.trim() || undefined}
+              onPointerEnter={() => setChoisie(i)}
+              onClick={() => { setChoisie(i); onBarre?.(d); }}
+            >
+              {/* Zone de toucher : toute la colonne, pas seulement la barre (petites valeurs). */}
+              <rect x={marge.gauche + i * pas} y={marge.haut} width={pas} height={zoneH} className="graphique-colonne" />
+              <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre" style={{ '--i': i }}>
+                <title>{d.titre ?? `${d.libelle} : ${format(d.valeur)}`}</title>
+              </rect>
+              {(i % tous === 0 || choisie === i) && <text x={x + barre / 2} y={hauteur - 8} textAnchor="middle" className="graphique-texte">{d.libelle}</text>}
+            </g>
+          );
+        })}
+        {bulle && (
+          <g className="graphique-bulle" aria-hidden="true">
+            <rect x={gaucheBulle} y={2} width={largeurBulle} height={20} rx="6" />
+            <text x={gaucheBulle + largeurBulle / 2} y={16} textAnchor="middle">{texteBulle}</text>
           </g>
-        );
-      })}
-      {donnees.map((d, i) => {
-        const h = ((Number(d.valeur) || 0) / max) * zoneH;
-        const x = marge.gauche + i * pas + (pas - barre) / 2;
-        return (
-          <g key={`${d.libelle}-${i}`} className={onBarre ? 'cliquable' : ''} onClick={onBarre ? () => onBarre(d) : undefined}>
-            <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre" style={{ '--i': i }}>
-              <title>{d.titre ?? `${d.libelle} : ${format(d.valeur)}`}</title>
-            </rect>
-            <text x={x + barre / 2} y={hauteur - 8} textAnchor="middle" className="graphique-texte">{d.libelle}</text>
-          </g>
-        );
-      })}
-    </svg>
+        )}
+      </svg>
+      <p className="lecteur-ecran" aria-live="polite">{texteBulle}</p>
+    </div>
   );
 }
 

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { actionsAccessibles, correspond, LIBELLES_RESULTATS, score } from '../noyau/actionsRapides.js';
 import { useEspace } from '../noyau/espace.jsx';
 import { pagesAccessibles } from '../modules/index.js';
+import { lireFavoris, lireHistorique } from '../noyau/menuEssentiel.js';
 import { Icone } from './composants.jsx';
 
 // Palette universelle (Ctrl+K, « / » ou bouton loupe) : aller à un écran, créer, ou retrouver une donnée de
@@ -46,9 +47,24 @@ export function Palette({ mode = 'tout', onFermer, naviguer }) {
     const t = texte.trim();
     const lignes = [];
     if (mode !== 'creer') {
-      const trouvees = t ? pages.filter((x) => correspond(t, x.libelle, x.groupe)).sort((a, b) => score(t, b.libelle) - score(t, a.libelle)) : pages;
-      for (const p of trouvees.slice(0, t ? 6 : 8)) {
-        lignes.push({ cle: `page-${p.id}`, groupe: 'Aller à', libelle: p.libelle, detail: p.groupe, icone: p.icone, route: p.id });
+      if (t) {
+        const trouvees = pages.filter((x) => correspond(t, x.libelle, x.groupe)).sort((a, b) => score(t, b.libelle) - score(t, a.libelle));
+        for (const p of trouvees.slice(0, 6)) {
+          lignes.push({ cle: `page-${p.id}`, groupe: 'Aller à', libelle: p.libelle, detail: p.groupe, icone: p.icone, route: p.id });
+        }
+      } else {
+        // Sans texte : favoris, puis derniers écrans ouverts, puis le reste du menu (un écran n'apparaît qu'une fois).
+        const parId = new Map(pages.map((p) => [p.id, p]));
+        const vus = new Set();
+        const ajouter = (groupe, liste, max) => {
+          for (const p of liste.map((id) => parId.get(id)).filter((p) => p && !vus.has(p.id)).slice(0, max)) {
+            vus.add(p.id);
+            lignes.push({ cle: `page-${p.id}`, groupe, libelle: p.libelle, detail: p.groupe, icone: p.icone, route: p.id });
+          }
+        };
+        ajouter('Favoris', lireFavoris(), 8);
+        ajouter('Récents', lireHistorique(), 4);
+        ajouter('Aller à', pages.map((p) => p.id), Math.max(0, 8 - vus.size));
       }
     }
     const actionsTrouvees = t ? actions.filter((x) => correspond(t, x.libelle, x.mots)).sort((a, b) => score(t, b.libelle) - score(t, a.libelle)) : actions;
@@ -171,4 +187,5 @@ export const RACCOURCIS = [
   [['?'], 'Afficher cette aide'],
   [['Échap'], 'Fermer une fenêtre'],
   [['↑', '↓', 'Entrée'], 'Choisir et ouvrir un résultat'],
+  [['Alt', '1…9'], 'Ouvrir le 1er, 2e… écran du menu'],
 ];
