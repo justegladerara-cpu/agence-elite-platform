@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { TYPES_HUB } from '../../noyau/format.js';
-import { Badge, Bouton, Champ, EmptyState, Erreur, Icone, MenuActions, Modale, StatusBadge } from '../../ui/composants.jsx';
+import { Badge, Bouton, Champ, ChiffreCle, EmptyState, Erreur, Icone, MenuActions, Modale, StatusBadge } from '../../ui/composants.jsx';
 
 const CAPACITES = [
   ['capacite_vente', 'Vente', 'Les ventes peuvent être rattachées à ce Hub.'],
@@ -167,9 +167,9 @@ export function GestionHubs({ etablissementId, hubs, peutGerer, onChange, statis
               <div className="puces statiques">{capacitesHub(h).map((c) => <span key={c}>{c}</span>)}</div>
               {stats && montant && (
                 <dl className="mini-stats">
-                  <div><dt>Chiffre d’affaires</dt><dd>{montant(stats.chiffre_affaires)}</dd></div>
+                  <div><dt>Chiffre d’affaires</dt><dd><ChiffreCle>{montant(stats.chiffre_affaires)}</ChiffreCle></dd></div>
                   <div><dt>Ventes</dt><dd>{stats.nombre_ventes}</dd></div>
-                  <div><dt>Valeur du stock</dt><dd>{montant(stats.valeur_stock)}</dd></div>
+                  <div><dt>Valeur du stock</dt><dd><ChiffreCle>{montant(stats.valeur_stock)}</ChiffreCle></dd></div>
                   <div><dt>Sous le seuil</dt><dd className={stats.articles_sous_minimum ? 'texte-alerte' : ''}>{stats.articles_sous_minimum}</dd></div>
                 </dl>
               )}

@@ -376,7 +376,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
       )}
       {donnees?.equipe.membres.length > 0 && (
         <div className="tableau-conteneur">
-          <table className="tableau">
+          <table className="tableau fiches-telephone">
             <thead><tr><th>Personne</th><th>Rôle</th>{hubs.length > 1 && <th>Hubs</th>}<th>État</th><th /></tr></thead>
             <tbody>
               {donnees.equipe.membres.map((m) => (
@@ -385,18 +385,18 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
                     <strong>{m.nom || 'Sans nom'}</strong>
                     <small className="texte-doux bloc">{identifiantDepuisEmail(m.email) ? `Identifiant : ${identifiantDepuisEmail(m.email)}` : m.email}</small>
                   </td>
-                  <td>
+                  <td data-label="Rôle">
                     <Badge ton="bleu">{ROLES[m.role_id]}</Badge>
                     {Object.keys(m.permissions_ajustees ?? {}).length > 0 && <Badge>droits ajustés</Badge>}
                   </td>
                   {hubs.length > 1 && (
-                    <td>
+                    <td data-label="Hubs">
                       {donnees.hubsParMembre[m.user_id]
                         ? donnees.hubsParMembre[m.user_id].map((id) => hubs.find((h) => h.id === id)?.nom).filter(Boolean).join(', ')
                         : <span className="texte-doux">Tous</span>}
                     </td>
                   )}
-                  <td>{m.actif ? <Badge ton="vert">Actif</Badge> : <Badge>Désactivé</Badge>}</td>
+                  <td data-label="État">{m.actif ? <Badge ton="vert">Actif</Badge> : <Badge>Désactivé</Badge>}</td>
                   <td className="actions-ligne">
                     {peutGerer && !m.moi && <button className="lien" onClick={() => setMembre(m)}>Modifier</button>}
                     {peutGerer && !m.moi && (rangActuel == null || (donnees.roles.find((r) => r.id === m.role_id)?.ordre ?? 0) > rangActuel) && (

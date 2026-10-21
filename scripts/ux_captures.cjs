@@ -1,6 +1,6 @@
 // Elite UX 2.0 : captures et contrôles de lisibilité sur la démo locale (données fictives, base dans le navigateur).
 // npm run build:demo && npx vite preview --port 4173, puis :
-//   CHROMIUM_PATH=… DOSSIER=captures-ux/avant node scripts/ux_captures.cjs
+//   CHROMIUM_PATH=… DOSSIER=captures-ux/avant [PROFIL=Serge ECRANS=hotel,chambres] node scripts/ux_captures.cjs
 // Pour chaque écran et chaque largeur : une capture, puis des mesures prises dans la page (débordement horizontal,
 // montants coupés, cibles tactiles trop petites). Le résumé est écrit dans <DOSSIER>/mesures.json.
 const fs = require('node:fs');
@@ -15,6 +15,7 @@ const ECRANS = (process.env.ECRANS ?? [
   'articles', 'stock', 'achats', 'depenses', 'contacts', 'salle', 'hotel', 'chambres', 'rapports', 'equipe', 'hubs',
   'parametres', 'applications',
 ].join(',')).split(',');
+const PROFIL = process.env.PROFIL ?? 'Mireille';
 const HAUTEURS = { 320: 640, 375: 740, 390: 844, 430: 932, 768: 1024, 1024: 768, 1366: 820, 1440: 900, 1920: 1080 };
 
 // Mesures faites dans la page : rien n'est modifié.
@@ -56,7 +57,7 @@ function mesurer() {
     const r = el.getBoundingClientRect();
     const horsEcran = (r.right > largeur + 1 || r.left < -1) && !el.closest('.menu');
     const glisser = horsEcran && dansDefilement(el);
-    if (deborde || horsEcran || lignes > 1) coupes.push({ texte: texte.slice(0, 40), deborde, horsEcran, glisser, lignes });
+    if (deborde || horsEcran || lignes > 1) coupes.push({ texte: texte.slice(0, 40), deborde, horsEcran, glisser, lignes, ou: `${el.tagName.toLowerCase()}.${el.className || ''} < ${el.parentElement?.tagName.toLowerCase()}.${el.parentElement?.className || ''}`.slice(0, 90) });
   }
   const petites = [];
   for (const el of document.querySelectorAll('button, a[href], select, input:not([type=hidden]), [role=button], [tabindex="0"]')) {
@@ -85,11 +86,11 @@ function mesurer() {
   const erreurs = [];
   page.on('pageerror', (e) => erreurs.push(e.message));
   await page.goto(U);
-  await page.getByText(/Mireille/).first().click({ timeout: 120000 });
-  await page.getByText('Qu’est-ce que vous voulez faire ?').first().waitFor({ timeout: 60000 });
+  await page.getByText(PROFIL).first().click({ timeout: 120000 });
+  await page.waitForTimeout(3000);
   // La caisse de démonstration est ouverte : « Tu continues ? » s'affiche une fois après la connexion.
-  const question = page.getByRole('dialog', { name: /Bonjour Mireille/ });
-  await question.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 30000 }).catch(() => {});
+  const question = page.getByRole('dialog', { name: /Bonjour/ });
+  await question.getByRole('button', { name: 'Oui, je continue' }).click({ timeout: 15000 }).catch(() => {});
   await question.waitFor({ state: 'detached', timeout: 10000 }).catch(() => {});
   const resultats = [];
   for (const ecran of ECRANS) {

@@ -74,3 +74,38 @@
   .tableau-saisie .ligne-saisie > input:first-child { grid-column: 1 / -1; }
   .retirer-ligne { justify-self: end; }
 }
+
+/* Liste des articles au téléphone : une fiche par article (prix, coût et stock visibles sans glisser). */
+@media (max-width: 640px) {
+  .tableau-conteneur:has(> .tableau-articles) { border: 0; box-shadow: none; overflow: visible; background: transparent; }
+  .tableau-articles,
+  .tableau-articles tbody { display: grid; gap: 10px; width: 100%; }
+  .tableau-articles thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tableau-articles tr {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-grand);
+    background: var(--surface);
+    box-shadow: var(--ombre-carte);
+  }
+  .tableau-articles td { padding: 6px 0; border: 0; }
+  .tableau-articles td[data-label] {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: right;
+  }
+  .tableau-articles td[data-label]::before {
+    content: attr(data-label);
+    color: var(--texte-doux);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+  }
+  .tableau-articles .cellule-case input { width: 22px; height: 22px; }
+}

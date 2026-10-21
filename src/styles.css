@@ -677,7 +677,10 @@ fieldset {
 
 .page {
   display: grid;
+  /* Une colonne qui ne dépasse jamais l'écran : une rangée d'onglets ou un tableau large défile dans sa case. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
+  min-width: 0;
   padding: 24px 28px 40px;
   max-width: var(--page-max);
 }
@@ -724,7 +727,7 @@ fieldset {
 }
 
 .onglets button {
-  min-height: 34px;
+  min-height: var(--cible);
   padding: 6px 12px;
   border: 0;
   border-radius: 7px;
@@ -1031,6 +1034,12 @@ fieldset {
   background: var(--surface);
   font-weight: 500;
   cursor: pointer;
+}
+
+/* Puces d'information (pas de choix) : elles passent à la ligne, rien n'est caché hors de l'écran. */
+.puces.statiques {
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .puces.statiques span {
@@ -2630,6 +2639,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .mini-stats > div { padding: 8px 10px; border-radius: 8px; background: var(--surface-douce); }
 .mini-stats dt { color: var(--texte-doux); font-size: 11.5px; }
 .mini-stats dd { margin: 2px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mini-stats dd .chiffre-cle { --taille-chiffre: 15px; }
 
 /* Stock, inventaire, transferts */
 .saisie-quantite { width: 110px; min-height: 34px; padding: 4px 8px; text-align: right; }
@@ -2890,7 +2900,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .filtres-salle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .filtres-salle .puces { flex: 1 1 320px; }
 .filtres-salle select { width: auto; min-height: 36px; }
-.puces button { min-height: 36px; }
+.puces button { min-height: var(--cible); }
 .table-resto .table-serveur { display: inline-flex; align-items: center; gap: 4px; margin-top: auto; font-size: .85rem; }
 .table-resto.mienne { box-shadow: inset 0 0 0 2px var(--accent); }
 .table-resto.reservee { background: var(--bleu-doux); border-style: dashed; }
@@ -3257,7 +3267,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
    contraste, gros boutons), impression et export des listes.
    --------------------------------------------------------------------------- */
 .barre-haut-recherche {
-  display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; min-width: 200px;
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible); padding: 0 10px; min-width: 200px;
   border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte-doux); cursor: pointer;
 }
 .barre-haut-recherche:hover { border-color: var(--bordure-forte); color: var(--texte); }
@@ -3521,11 +3531,16 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
     cursor: pointer;
   }
 
+  /* Libellé entier sur deux lignes au besoin (« Tableau de bord »), jamais coupé par « … ». */
   .onglets-mobile button span {
+    display: -webkit-box;
     max-width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.15;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
 
   .onglets-mobile button.actif {
@@ -3578,4 +3593,59 @@ h2 .pastille-nouveau, .champ-libelle .pastille-nouveau { margin-left: 6px; }
   body:has(.onglets-mobile) .barre-commande-mobile {
     bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+/* Barre du haut au téléphone : deux rangées pour que rien ne sorte de l'écran.
+   1re rangée : menu, retour, écran affiché (avec l'établissement), notifications, profil.
+   2e rangée : rechercher, créer, favori, choix de l'établissement et du Hub. */
+@media (max-width: 640px) {
+  .barre-haut { flex-wrap: wrap; row-gap: 6px; gap: 6px; }
+  .barre-haut-outils { display: contents; }
+  .barre-haut .fil-ariane { order: 0; flex: 1 1 0; }
+  .barre-haut .cloche { order: 2; }
+  .barre-haut .profil-chip { order: 3; }
+  .barre-haut::after { content: ''; order: 4; flex-basis: 100%; height: 0; }
+  .barre-haut .barre-haut-recherche { order: 5; flex: 1 1 0; min-width: 40px; justify-content: flex-start; overflow: hidden; }
+  .barre-haut .barre-haut-recherche span { display: inline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barre-haut .barre-haut-outils > .icone-bouton { order: 6; }
+  .barre-haut .bouton-favori { order: 7; }
+  .barre-haut .selecteur { order: 8; flex: 0 1 auto; min-width: 0; }
+  .barre-haut .selecteur select { max-width: 150px; min-width: 72px; }
+}
+
+/* Formulaire modifié et pas encore enregistré (le brouillon le garde sur l'appareil). */
+.note-brouillon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--texte-doux);
+  font-size: var(--texte-sm);
+}
+
+/* Tableaux métier en fiches au téléphone (classe « fiches-telephone » + data-label sur les cellules) :
+   montants et colonnes visibles sans glisser. Le tableau reste un tableau sur tablette et ordinateur. */
+@media (max-width: 640px) {
+  .tableau-conteneur:has(> .fiches-telephone) { border: 0; box-shadow: none; overflow: visible; background: transparent; }
+  .tableau.fiches-telephone,
+  .tableau.fiches-telephone tbody,
+  .tableau.fiches-telephone tfoot { display: grid; gap: 10px; width: 100%; }
+  .tableau.fiches-telephone thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tableau.fiches-telephone tr {
+    display: grid;
+    padding: 8px 12px;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-grand);
+    background: var(--surface);
+    box-shadow: var(--ombre-carte);
+  }
+  .tableau.fiches-telephone td { padding: 6px 0; border: 0; text-align: left; }
+  .tableau.fiches-telephone td:empty,
+  .tableau.fiches-telephone tfoot td:not([data-label]) { display: none; }
+  .tableau.fiches-telephone td[data-label] { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; text-align: right; }
+  .tableau.fiches-telephone td[data-label]::before { content: attr(data-label); color: var(--texte-doux); font-size: 12px; font-weight: 600; text-align: left; }
+}
+@media (max-width: 640px) {
+  .tableau.fiches-telephone td[data-label] > .badge + .badge { margin-left: 4px; }
+  .tableau.fiches-telephone td.actions-ligne { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 }

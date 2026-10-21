@@ -689,3 +689,26 @@
     font-size: var(--texte-xl);
   }
 }
+
+/* Barre du bas : le montant à encaisser passe sous « Encaisser » plutôt que d'être coupé en deux. */
+@media (max-width: 860px) {
+  .barre-encaisser-bouton {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 6px;
+    line-height: 1.15;
+  }
+
+  .barre-encaisser-bouton .montant {
+    font-size: 17px;
+  }
+
+  .barre-encaisser-panier span {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

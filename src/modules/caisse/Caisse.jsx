@@ -1054,7 +1054,7 @@ export default function Caisse({ naviguer }) {
           <small>voir le panier</small>
         </button>
         <button type="button" className="barre-encaisser-bouton" disabled={!lignes.length} onClick={() => setPaiement({ total: totalPanier })}>
-          Encaisser {lignes.length > 0 && montant(totalPanier)}
+          Encaisser {lignes.length > 0 && <span className="montant">{montant(totalPanier)}</span>}
         </button>
       </div>
       {miseEnAttente && <ModaleMiseEnAttente onValider={mettreEnAttente} onFermer={() => setMiseEnAttente(false)} />}

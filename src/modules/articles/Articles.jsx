@@ -538,7 +538,7 @@ export default function Articles() {
       )}
       {vue !== 'categories' && articles.length > 0 && (
         <div className="tableau-conteneur">
-          <table className={`tableau ${peut('articles.gerer') ? 'cliquable' : ''}`}>
+          <table className={`tableau tableau-articles ${peut('articles.gerer') ? 'cliquable' : ''}`}>
             <thead>
               <tr>
                 {(deplacer || gerer) && (
@@ -568,10 +568,10 @@ export default function Articles() {
                       {a.disponible === false && <Badge ton="attention">Indisponible</Badge>}
                       {a.poste_preparation && a.poste_preparation !== 'aucun' && moduleActif?.('restaurant_salle') && <small className="texte-doux"> · {a.poste_preparation === 'bar' ? 'Bar' : 'Cuisine'}</small>}
                     </td>
-                    <td>{categories[a.categorie_id] ?? '—'}</td>
-                    <td className="nombre">{montant(a.prix_vente)}</td>
-                    <td className="nombre">{a.cout_achat != null ? montant(a.cout_achat) : '—'}</td>
-                    <td className="nombre">
+                    <td data-label="Catégorie">{categories[a.categorie_id] ?? '—'}</td>
+                    <td className="nombre" data-label="Prix">{montant(a.prix_vente)}</td>
+                    <td className="nombre" data-label="Coût">{a.cout_achat != null ? montant(a.cout_achat) : '—'}</td>
+                    <td className="nombre" data-label="Stock">
                       {!a.suivi_stock && <Badge>Sans suivi</Badge>}
                       {a.suivi_stock && quantite != null && (
                         <span className={quantite <= a.stock_minimum ? 'texte-alerte' : ''}>{formatQuantite(quantite, a.unite)}</span>

@@ -409,6 +409,11 @@ export function BandeauBrouillon({ brouillon }) {
           <button type="button" className="lien" onClick={brouillon.abandonner}>Repartir de zéro</button>
         </p>
       )}
+      {brouillon.modifie && !brouillon.restaure && brouillon.stockage === 'ok' && (
+        <p className="note-brouillon" role="status">
+          <Icone nom="document" taille={14} /> Modifications non enregistrées, gardées en brouillon sur cet appareil.
+        </p>
+      )}
       {brouillon.stockage === 'plein' && (
         <p className="encart" role="alert">Le stockage de cet appareil est plein : ce formulaire n’est plus gardé en brouillon. Libérez de la place ou enregistrez-le maintenant.</p>
       )}

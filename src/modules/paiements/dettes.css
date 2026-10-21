@@ -71,3 +71,10 @@
     justify-content: center;
   }
 }
+
+/* Montant restant de chaque vente : toujours sur une ligne, à droite. */
+.dette-lignes li > span:last-child {
+  flex: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
