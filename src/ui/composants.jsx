@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { lireParametres } from '../noyau/routes.js';
 import { useLignesNouvelles } from '../motion/lignes.js';
@@ -85,12 +85,25 @@ export function Bouton({ variante = 'secondaire', icone, children, chargement, .
   );
 }
 
-export function Champ({ libelle, aide, children, className = '' }) {
+// Champ de formulaire : libellé, aide et erreur reliés au contrôle (aria-describedby).
+// Un contrôle « required » reçoit une astérisque dans le libellé (CSS) ; l'erreur s'affiche sous le champ.
+export function Champ({ libelle, aide, erreur, children, className = '' }) {
+  const id = useId();
+  const idAide = aide ? `${id}-aide` : undefined;
+  const idErreur = erreur ? `${id}-erreur` : undefined;
+  const natif = React.isValidElement(children) && typeof children.type === 'string';
+  const contenu = natif && (idAide || idErreur)
+    ? React.cloneElement(children, {
+      'aria-describedby': [children.props['aria-describedby'], idAide, idErreur].filter(Boolean).join(' '),
+      'aria-invalid': erreur ? true : children.props['aria-invalid'],
+    })
+    : children;
   return (
-    <label className={`champ ${className}`}>
+    <label className={`champ ${erreur ? 'en-erreur' : ''} ${className}`}>
       <span className="champ-libelle">{libelle}</span>
-      {children}
-      {aide && <small className="champ-aide">{aide}</small>}
+      {contenu}
+      {aide && <small className="champ-aide" id={idAide}>{aide}</small>}
+      {erreur && <small className="champ-erreur" id={idErreur} role="alert">{erreur}</small>}
     </label>
   );
 }
@@ -653,22 +666,43 @@ function plafondRond(v) {
   return [1, 2, 5, 10].map((m) => m * puissance).find((c) => c >= v);
 }
 
+// Survol, focus clavier ou toucher : la valeur exacte de la barre s'affiche au-dessus (pas seulement en infobulle).
+// Au toucher, un premier appui montre la valeur ; un second ouvre le détail (onBarre).
 export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, onBarre, libelle = 'Graphique', vide = 'Aucune valeur sur la période' }) {
+  const [actif, setActif] = useState(null);
+  const [mesure, setMesure] = useState(0);
+  const toucher = useRef(false);
+  const cadre = useRef(null);
   const brut = Math.max(...donnees.map((d) => Number(d.valeur) || 0), 0);
+  // Le dessin prend la largeur réelle de son cadre : les textes gardent leur taille sur téléphone.
+  useEffect(() => {
+    const el = cadre.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const obs = new ResizeObserver(([e]) => setMesure(Math.round(e.contentRect.width)));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [brut > 0]);
   if (brut <= 0) return <p className="graphique-vide texte-doux">{vide}</p>;
   const max = plafondRond(brut);
-  const largeur = 560;
-  const marge = { haut: 12, bas: 26, gauche: 46, droite: 8 };
+  const largeur = mesure > 0 ? Math.max(mesure, 240) : 560;
+  const marge = { haut: 22, bas: 26, gauche: 46, droite: 8 };
   const zoneL = largeur - marge.gauche - marge.droite;
   const zoneH = hauteur - marge.haut - marge.bas;
   const pas = zoneL / Math.max(donnees.length, 1);
   const barre = Math.max(Math.min(pas - 8, 44), 4);
+  const saut = Math.ceil(40 / pas);
+  const texteBarre = (d) => d.titre ?? `${d.libelle} : ${format(d.valeur)}`;
+  const choisir = (d, i) => {
+    if (toucher.current && actif !== i) { setActif(i); return; }
+    onBarre?.(d);
+  };
   return (
-    <svg className="graphique" viewBox={`0 0 ${largeur} ${hauteur}`} role="img" aria-label={libelle}>
+    <div className="graphique-cadre" ref={cadre}>
+    <svg className="graphique" viewBox={`0 0 ${largeur} ${hauteur}`} role="group" aria-label={libelle} onMouseLeave={() => setActif(null)}>
       {[0, max / 2, max].filter((g, i, t) => t.indexOf(g) === i).map((g) => {
         const y = marge.haut + zoneH - (g / max) * zoneH;
         return (
-          <g key={g}>
+          <g key={g} aria-hidden="true">
             <line x1={marge.gauche} x2={largeur - marge.droite} y1={y} y2={y} className="graphique-grille" />
             <text x={marge.gauche - 6} y={y + 4} textAnchor="end" className="graphique-texte">{format(g)}</text>
           </g>
@@ -677,16 +711,28 @@ export function GraphiqueBarres({ donnees, format = compacter, hauteur = 180, on
       {donnees.map((d, i) => {
         const h = ((Number(d.valeur) || 0) / max) * zoneH;
         const x = marge.gauche + i * pas + (pas - barre) / 2;
+        const xBulle = Math.min(Math.max(x + barre / 2, marge.gauche + 30), largeur - marge.droite - 30);
         return (
-          <g key={`${d.libelle}-${i}`} className={onBarre ? 'cliquable' : ''} onClick={onBarre ? () => onBarre(d) : undefined}>
+          <g key={`${d.libelle}-${i}`} className={`graphique-colonne ${onBarre ? 'cliquable' : ''} ${actif === i ? 'actif' : ''}`}
+            tabIndex={0} role={onBarre ? 'button' : 'img'} aria-label={texteBarre(d)}
+            onPointerDown={(e) => { toucher.current = e.pointerType === 'touch'; }}
+            onMouseEnter={() => setActif(i)} onFocus={() => setActif(i)} onBlur={() => setActif(null)}
+            onClick={() => choisir(d, i)}
+            onKeyDown={onBarre ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarre(d); } } : undefined}>
+            {/* Zone de toucher sur toute la hauteur de la colonne. */}
+            <rect x={marge.gauche + i * pas} y={marge.haut} width={pas} height={zoneH} className="graphique-zone" />
             <rect x={x} y={marge.haut + zoneH - h} width={barre} height={Math.max(h, d.valeur > 0 ? 2 : 0)} rx="4" className="graphique-barre" style={{ '--i': i }}>
-              <title>{d.titre ?? `${d.libelle} : ${format(d.valeur)}`}</title>
+              <title>{texteBarre(d)}</title>
             </rect>
-            <text x={x + barre / 2} y={hauteur - 8} textAnchor="middle" className="graphique-texte">{d.libelle}</text>
+            {(i % saut === 0 || actif === i) && <text x={x + barre / 2} y={hauteur - 8} textAnchor="middle" className="graphique-texte">{d.libelle}</text>}
+            {actif === i && (
+              <text x={xBulle} y={Math.max(marge.haut + zoneH - h - 6, 14)} textAnchor="middle" className="graphique-valeur">{format(d.valeur)}</text>
+            )}
           </g>
         );
       })}
     </svg>
+    </div>
   );
 }
 
