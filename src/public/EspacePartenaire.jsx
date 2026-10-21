@@ -156,6 +156,40 @@ function Inscription({ donnees, ouverte, onFait, nom }) {
   );
 }
 
+// Échéances des licences de mes clients (Elite License Guard) : qui appeler pour le renouvellement.
+const ETATS_ECHEANCE = {
+  a_jour: ['À jour', 'vert'], bientot: ['Bientôt', 'bleu'], urgent: ['À renouveler', 'attention'], aujourdhui: ['Aujourd’hui', 'alerte'],
+  grace: ['Délai de grâce', 'alerte'], expiree: ['Expirée', 'alerte'], suspendue: ['Suspendue', 'alerte'],
+};
+function Renouvellements({ donnees }) {
+  const [liste, setListe] = useState(null);
+  const [erreur, setErreur] = useState('');
+  useEffect(() => {
+    let actif = true;
+    donnees.rpc('partenaire_echeances').then((r) => actif && setListe(r)).catch((e) => actif && setErreur(e.message));
+    return () => { actif = false; };
+  }, [donnees]);
+  if (erreur) return <Erreur message={erreur} />;
+  if (!liste) return <Chargement />;
+  return (
+    <Section titre="Renouvellements de mes clients" sousTitre="Appelez vos clients avant l’échéance. Le renouvellement est enregistré par Agence Elite à réception du paiement.">
+      {liste.length === 0 ? <EmptyState titre="Aucune échéance" texte="Vos clients n’ont pas d’abonnement à renouveler." /> : (
+        <ul className="liste-simple">
+          {liste.map((l, i) => {
+            const [libelle, ton] = ETATS_ECHEANCE[l.etat] ?? [l.etat, 'neutre'];
+            return (
+              <li key={i}>
+                <strong>{l.etablissement}</strong> · {l.client} · {FORMULES[l.formule] ?? l.formule} · échéance {formatDate(l.echeance)}
+                {' '}<Badge ton={ton}>{libelle}</Badge>{l.demande && <> <Badge ton="bleu">Demande envoyée</Badge></>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Section>
+  );
+}
+
 function Tableau({ espace, donnees, onDeconnexion, retour, recharger }) {
   const { partenaire: p, reglages: r, rang, totaux } = espace;
   const [onglet, setOnglet] = useState('accueil');
@@ -186,6 +220,7 @@ function Tableau({ espace, donnees, onDeconnexion, retour, recharger }) {
         onglets={[
           ['accueil', 'Accueil'],
           ['clients', 'Mes clients', espace.clients.length],
+          ['renouvellements', 'Renouvellements'],
           ['cles', 'Mes clés', disponibles.length || null],
           ['gains', 'Mes gains'],
           ['equipe', 'Mon équipe', espace.equipe.length],
@@ -242,6 +277,7 @@ function Tableau({ espace, donnees, onDeconnexion, retour, recharger }) {
           </div>
         </>
       )}
+      {onglet === 'renouvellements' && <Renouvellements donnees={donnees} />}
       {onglet === 'clients' && <MesClients espace={espace} donnees={donnees} recharger={recharger} setInfo={setInfo} />}
       {onglet === 'cles' && (
         <DataTable

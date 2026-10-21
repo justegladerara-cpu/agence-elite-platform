@@ -781,6 +781,16 @@ Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout co
 - Tests qui ouvrent deux caisses sur le même point de vente : réglage `caisse_unique` à non dans leur préparation.
 - SOP 89. Pas fait : code PIN par caissière (voir DECISIONS 2026-10-13).
 
+## 45 septies. ELITE LICENSE GUARD : ÉCHÉANCES ET RENOUVELLEMENT (2026-10-21) : EN PRODUCTION
+
+- Migration `20261021000151_elite_license_guard.sql` appliquée le 2026-10-21 (sauvegarde + restauration vérifiées
+  avant), PR #73 fusionnée, pilote 88/88 et site vérifiés. CRM : PR #29 fusionnée (écran « Échéances des licences »).
+- Alertes chaque jour à 07:00 UTC (tâche `alerter-echeances-licences`) ; caisse et encaissements jamais bloqués par une
+  simple échéance dépassée ; une suspension manuelle bloque toujours. Détail : `docs/LICENSE_GUARD.md`, SOP 91.
+- Attention : les migrations 142 (PR #70) et 150 (PR #72), non appliquées, ont un numéro inférieur à 151. Le workflow
+  « Déploiement de la base » (`supabase db push` sans `--include-all`) les refusera : les renommer au-dessus de 151
+  avant de les appliquer.
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

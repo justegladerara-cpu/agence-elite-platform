@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { formatMontant } from './format.js';
+import { caisseContinue, peutEcrire } from './continuite.js';
 
 const ContexteEspace = createContext(null);
 const CLE_ETABLISSEMENT = 'ae-etablissement-actif';
@@ -77,7 +78,11 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       etablissements,
       etablissement,
       devise,
-      peut: (permission) => Boolean(etablissement?.ecriture || permission.endsWith('.lire')) && permissions.has(permission),
+      // Licence échue (date seulement) : la caisse et les encaissements continuent (Elite License Guard).
+      peut: (permission) => peutEcrire(etablissement, permission) && permissions.has(permission),
+      caisseContinue: caisseContinue(etablissement),
+      // Permission du rôle, même quand l'écriture est coupée (ex. : demander le renouvellement d'une licence expirée).
+      aLaPermission: (permission) => permissions.has(permission),
       moduleActif: (module) => modules.has(module),
       montant: (n) => formatMontant(n, devise),
       choisirEtablissement: (id) => {

@@ -268,11 +268,12 @@ function BulleAide({ id }) {
 }
 
 function Bandeaux({ naviguer }) {
-  const { etablissement, editeur } = useEspace();
+  const { etablissement, editeur, aLaPermission, caisseContinue } = useEspace();
   const { nom_editeur: nomEditeur, contact_support: contactSupport } = useConfigAuth();
   const contactez = `Contactez ${nomEditeur}${contactSupport ? ` (${contactSupport})` : ''}`;
   if (!etablissement) return null;
   const l = etablissement.licence;
+  const gerant = Boolean(aLaPermission?.('etablissement.modifier'));
   const bandeaux = [];
   if (etablissement.role === 'support') {
     bandeaux.push(
@@ -286,17 +287,23 @@ function Bandeaux({ naviguer }) {
   } else if (etablissement.statut !== 'actif' || etablissement.client_statut !== 'actif') {
     bandeaux.push(<div key="statut" className="bandeau">Cet établissement est suspendu : consultation seule. {contactez}.</div>);
   } else if (!l || !l.valide) {
+    // Elite License Guard : une licence seulement échue laisse la caisse et les encaissements ouverts.
     bandeaux.push(
       <div key="licence" className="bandeau">
-        {l?.statut === 'suspendue' ? 'Licence suspendue' : 'Licence expirée'} : consultation seule. Vos données restent intactes. {contactez} pour la renouveler.
+        {l?.statut === 'suspendue' ? 'Licence suspendue' : 'Licence expirée'} :{' '}
+        {caisseContinue ? 'la caisse et les encaissements continuent, le reste est en consultation seule.' : 'consultation seule.'}{' '}
+        Vos données restent intactes. {contactez} pour la renouveler.
+        {gerant && <button className="lien" onClick={() => naviguer('parametres/licence')}>Mon abonnement</button>}
       </div>
     );
-  } else if (l.jours_restants != null && l.jours_restants <= 7) {
+  } else if (gerant && l.jours_restants != null && l.jours_restants <= 7) {
+    // Prévenir avant l'échéance : seulement ceux qui peuvent agir (pas la caisse, pour ne pas l'inquiéter).
     bandeaux.push(
       <div key="echeance" className="bandeau attention">
         {l.jours_restants < 0
-          ? `Licence échue le ${formatDate(l.echeance)} : délai de grâce de ${7 + l.jours_restants} jour(s) avant blocage.`
+          ? `Licence échue le ${formatDate(l.echeance)} : délai de grâce de ${(l.formule === 'essai' ? 0 : 7) + l.jours_restants} jour(s). La caisse continue de fonctionner.`
           : `${l.formule === 'essai' ? 'Essai gratuit' : 'Licence'} : échéance le ${formatDate(l.echeance)} (${l.jours_restants} jour(s)).`}
+        <button className="lien" onClick={() => naviguer('parametres/licence')}>Renouveler</button>
       </div>
     );
   }
