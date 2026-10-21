@@ -1,7 +1,7 @@
 # Elite License Guard — alertes d'échéance et renouvellement des licences
 
-Statut : **code prêt, non déployé** (migration `20261021000151_elite_license_guard.sql`, PR « Elite License Guard »).
-Rien n'est appliqué en production sans l'accord écrit de Juste.
+Statut : **en production depuis le 2026-10-21** (migration `20261021000151_elite_license_guard.sql`, PR #73 ; CRM PR #29).
+Appliqué avec l'accord écrit de Juste, après sauvegarde ; pilote en production 88/88.
 
 ## En une phrase
 Chaque matin, la plateforme regarde l'échéance de chaque licence, prévient au bon moment le gérant, le partenaire
