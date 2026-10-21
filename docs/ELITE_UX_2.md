@@ -1,6 +1,6 @@
 # Elite UX 2.0 : refonte de l'interface (2026-10-21)
 
-Branche `claude/elite-ux-2`, PR **brouillon** vers `main`, non fusionnée, non publiée. Affichage seulement :
+PR #76 (branche `claude/elite-ux-2-b`), fusionnée sur `main` le 2026-10-21 (`f788dc0`) avec l'accord de Juste et publiée par Cloudflare. Affichage seulement :
 aucune migration, aucune règle financière, de stock, de licence ou de permission modifiée ; le registre des modules
 reste la seule source du menu. Référence : [Elite Design System](DESIGN_SYSTEM.md) · [audit](UX_AUDIT.md) ·
 [matrice de tests](UX_TEST_MATRIX.md).
