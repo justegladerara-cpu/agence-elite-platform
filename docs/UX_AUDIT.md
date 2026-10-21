@@ -41,7 +41,7 @@ code (`src/styles.css`, `src/ui/`, modules), contrastes calculés (WCAG 2.2). Me
 | # | Constat | Pourquoi pas fait |
 |---|---|---|
 | R1 | Qui me doit ? à 320 px : quelques montants dans le titre de carte encore serrés | corrigé sur les lignes ; titre à revoir sur un vrai téléphone |
-| R2 | Paramètres et Abonnement : seulement les styles communs | le chantier « Alertes d'échéance des licences » (PR #73) modifie `Parametres.jsx` : pas touché pour éviter un conflit |
+| R2 | Paramètres et Abonnement : seulement les styles communs | `Parametres.jsx` était en cours de modification (PR #73, fusionnée pendant la mission) : à reprendre écran par écran |
 | R3 | Espace éditeur | hors périmètre (PR #71 le retire) |
 | R4 | Liens texte dans les cellules de tableau (« Modifier », « Justificatif ») sous 40 px de haut | à traiter écran par écran |
 | R5 | Fichier principal encore lourd (564 Ko, dont ~170 Ko d'espace éditeur) | la PR #71 retire l'espace éditeur |

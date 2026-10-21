@@ -13,7 +13,7 @@ reste la seule source du menu. Référence : [Elite Design System](DESIGN_SYSTEM
 | 3 Tableaux de bord | Tableau de bord, Accueil, Rapport du soir, Hubs | Fait | `ChiffreCle` : un montant ne se coupe jamais (taille réduite puis forme courte + valeur complète) ; indicateur avec période, flèche + signe + « vs période précédente », « Indisponible » distinct de 0 ; graphiques à la largeur réelle, valeur au toucher et au clavier, résumé pour lecteur d'écran. |
 | 4 Commerce | Caisse, Articles, Ventes, Clôtures, Dépenses, Contacts, Qui me doit ? | Fait | Caisse : recherche et catégories 48 px, tuiles plus lisibles (prix en gras sur une ligne), boutons du panier 44 px, total 24 px, « Fermeture de caisse » secondaire, « Encaisser » de la barre du bas sans montant coupé, aucune animation ajoutée. Listes en fiches au téléphone (Articles, Contacts, Dépenses, Clôtures). Paiements et reçus : montants sur une ligne, contraste du bouton WhatsApp. |
 | 5 Autres modules | `DataTable` (toutes les listes partagées), formulaires, Salle | Fait | Nombre de résultats annoncé, lignes au clavier (Entrée, Espace), montants sur une ligne en fiche ; `Champ` relie aide et erreur au champ, erreur annoncée, `*` des obligatoires ; « Modifications non enregistrées, gardées en brouillon sur cet appareil ». |
-| 6 Administration | Équipe, Hubs, Applications | Partiel | Équipe en fiches au téléphone, statistiques des Hubs lisibles. **Paramètres et Abonnement** : seulement les styles communs, le fichier `Parametres.jsx` est modifié par la PR #73 en cours (pas touché pour éviter un conflit). Espace éditeur hors périmètre (PR #71). |
+| 6 Administration | Équipe, Hubs, Applications | Partiel | Équipe en fiches au téléphone, statistiques des Hubs lisibles. **Paramètres et Abonnement** : seulement les styles communs (le fichier était modifié par la PR #73, fusionnée pendant la mission ; repris sans conflit, rien de spécifique ajouté). Espace éditeur hors périmètre (PR #71). |
 | 7 Finitions | tout | Fait | Pages publiques et espace partenaire chargés à la demande ; page bornée à la largeur de l'écran ; mouvement réduit déjà respecté par `src/motion` (rien ajouté hors de `src/motion`) ; libellés entiers sur la barre du bas. |
 
 ## Mesures avant → après
@@ -56,18 +56,18 @@ le navigateur), pas de l'application en production (CLS 0 sur le build de produc
 - Cibles ≥ 40 px (≥ 48 px en caisse) ; 330 petites cibles restent, surtout des liens texte dans les tableaux.
 
 ## Tests
-- Unitaires : 121 fichiers, 1 104 tests verts (dont `tests/elite_ux.test.jsx`, 27 tests).
+- Unitaires (après mise à jour avec `main`) : 123 fichiers, 1 130 tests verts (dont `tests/elite_ux.test.jsx`, 27 tests).
 - Parcours navigateur (`npm run test:e2e`) : 94 étapes vertes, aucune erreur console.
 - Parcours des clients en service, rejoués sur la démo (`scripts/ux_parcours_clients.cjs`) : 16/16 à 1366 et 390 px
   (vente, reçu imprimé, Ventes › reçu, ticket Z imprimé, facture A4 imprimée, Salle, Réception et Chambres).
-- `tests/rh.test.js` : même correctif de date que la PR #73 (le test échouait sur `main` quand J+60 tombait un dimanche).
+- `tests/rh.test.js` : le test échouait sur `main` quand J+60 tombait un dimanche ; corrigé ici puis repris de `main` (PR #73).
 
 ## Reste à faire
-Voir [UX_AUDIT](UX_AUDIT.md), section « Reste à faire » : Paramètres / Abonnement après la PR #73, liens texte
+Voir [UX_AUDIT](UX_AUDIT.md), section « Reste à faire » : Paramètres / Abonnement (écran par écran), liens texte
 des tableaux sous 40 px, vérification sur de vrais téléphones et avec de vrais lecteurs d'écran.
 
 ## Mise en ligne proposée (après accord de Juste)
-1. Fusionner d'abord les PR #73 (licences) et #71 (retrait de l'espace éditeur), puis mettre cette branche à jour.
+1. La branche contient déjà `main` à jour (PR #72, #73, #74). Si la PR #71 (retrait de l'espace éditeur) est fusionnée avant, remettre cette branche à jour.
 2. Relancer `npm test`, `npm run test:e2e`, `node scripts/ux_parcours_clients.cjs` sur la branche à jour.
 3. Fusionner sur `main` (aucune base à migrer) : Cloudflare publie le site.
 4. Vérifier en ligne avec un compte de démonstration : caisse, reçu, ticket Z, facture imprimée, au téléphone.
