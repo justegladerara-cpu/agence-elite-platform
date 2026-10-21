@@ -27,7 +27,7 @@ mesures d'utilisateurs réels. Cible et résultat sont séparés.
 | Montants coupés sur deux lignes | 110 (+1 restaurant) | 0 |
 | Montants masqués par « … » | 0 | 0 |
 | Montants hors de l'écran (à faire glisser) | 47 (+6 restaurant) | 0 |
-| Cibles tactiles visibles < 36 px | 1 783 (+183 hôtel, +194 restaurant) | 330 (+27 hôtel, +8 restaurant) |
+| Cibles tactiles visibles < 36 px | 1 783 (+183 hôtel, +194 restaurant) | 0 (corrections finales du 2026-10-21 ; 330 à la première fusion) |
 
 ### Vitesse
 | Mesure | Cible | Avant | Après |
@@ -53,7 +53,7 @@ le navigateur), pas de l'application en production (CLS 0 sur le build de produc
 - Focus visible sur tout élément cliquable ; onglets, graphiques et lignes de liste au clavier ; Alt+1…9.
 - Erreurs de formulaire reliées au champ et annoncées ; nombre de résultats annoncé ; évolution d'un indicateur dite en
   texte (« favorable / défavorable ») et jamais par la couleur seule.
-- Cibles ≥ 40 px (≥ 48 px en caisse) ; 330 petites cibles restent, surtout des liens texte dans les tableaux.
+- Cibles ≥ 40 px (≥ 48 px en caisse), liens d'action et en-têtes de tableau ≥ 36 px : 0 petite cible sur les écrans mesurés.
 
 ## Tests
 - Unitaires (après mise à jour avec `main`) : 123 fichiers, 1 130 tests verts (dont `tests/elite_ux.test.jsx`, 27 tests).
@@ -63,8 +63,8 @@ le navigateur), pas de l'application en production (CLS 0 sur le build de produc
 - `tests/rh.test.js` : le test échouait sur `main` quand J+60 tombait un dimanche ; corrigé ici puis repris de `main` (PR #73).
 
 ## Reste à faire
-Voir [UX_AUDIT](UX_AUDIT.md), section « Reste à faire » : Paramètres / Abonnement (écran par écran), liens texte
-des tableaux sous 40 px, vérification sur de vrais téléphones et avec de vrais lecteurs d'écran.
+Voir [UX_AUDIT](UX_AUDIT.md), section « Reste à faire » : Paramètres / Abonnement (écran par écran), vérification
+sur de vrais téléphones et avec de vrais lecteurs d'écran.
 
 ## Mise en ligne proposée (après accord de Juste)
 1. La branche contient déjà `main` à jour (PR #72, #73, #74). Si la PR #71 (retrait de l'espace éditeur) est fusionnée avant, remettre cette branche à jour.

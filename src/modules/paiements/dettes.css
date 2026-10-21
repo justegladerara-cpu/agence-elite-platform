@@ -78,3 +78,11 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+
+/* Petit téléphone : le montant passe sous le nom du client (le nom ne se coupe plus en trois lignes). */
+@media (max-width: 380px) {
+  .dette-tete {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

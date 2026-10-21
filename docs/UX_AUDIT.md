@@ -16,7 +16,7 @@ code (`src/styles.css`, `src/ui/`, modules), contrastes calculés (WCAG 2.2). Me
 ## Majeur (gêne au quotidien)
 | # | Constat | Où | État |
 |---|---|---|---|
-| M1 | 1 783 cibles tactiles sous 36 px (menu latéral 32 px, boutons-icônes 36 px, onglets 34 px, puces 30 px, panier 28 px) | partout, surtout caisse | ◐ 40 px partout, 48 px en caisse (recherche, catégories), 44 px dans le panier ; reste des liens texte dans les tableaux |
+| M1 | 1 783 cibles tactiles sous 36 px (menu latéral 32 px, boutons-icônes 36 px, onglets 34 px, puces 30 px, panier 28 px) | partout, surtout caisse | ✓ 40 px partout, 48 px en caisse, 44 px dans le panier, 36 px pour les liens d'action et les en-têtes de tableau : 0 cible < 36 px sur les écrans mesurés |
 | M2 | Pas de favoris ni de retour ; au téléphone, tout passe par le tiroir du menu | navigation | ✓ étoile, Favoris en tête du menu, Ctrl+K avec favoris et récents, bouton Retour, barre d'onglets du téléphone, Alt+1…9 |
 | M3 | Indicateur : pas de période affichée, évolution par la couleur seule, erreur de calcul affichée « 0 » | tableaux de bord | ✓ période, flèche + signe + « vs période précédente », « Indisponible » |
 | M4 | Graphiques : texte minuscule au téléphone (dessin réduit), aucune valeur au toucher, rien pour un lecteur d'écran | tableaux de bord, rapports | ✓ dessin à la largeur réelle, valeur au toucher et au clavier, résumé lu |
@@ -40,9 +40,9 @@ code (`src/styles.css`, `src/ui/`, modules), contrastes calculés (WCAG 2.2). Me
 ## Reste à faire (hors de cette mission ou bloqué)
 | # | Constat | Pourquoi pas fait |
 |---|---|---|
-| R1 | Qui me doit ? à 320 px : quelques montants dans le titre de carte encore serrés | corrigé sur les lignes ; titre à revoir sur un vrai téléphone |
+| R1 | Qui me doit ? à 320 px : montant du titre de carte serré | ✓ corrigé : sous 380 px, le montant passe sous le nom |
 | R2 | Paramètres et Abonnement : seulement les styles communs | `Parametres.jsx` était en cours de modification (PR #73, fusionnée pendant la mission) : à reprendre écran par écran |
 | R3 | Espace éditeur | hors périmètre (PR #71 le retire) |
-| R4 | Liens texte dans les cellules de tableau (« Modifier », « Justificatif ») sous 40 px de haut | à traiter écran par écran |
+| R4 | Liens texte dans les cellules de tableau (« Modifier », « Justificatif ») trop petits | ✓ corrigé : 36 px partout (liens, en-têtes triables, périodes, onglets du tableau de bord, remise en caisse) |
 | R5 | Fichier principal encore lourd (564 Ko, dont ~170 Ko d'espace éditeur) | la PR #71 retire l'espace éditeur |
 | R6 | Écrans Salle et Hôtel non mesurés par les captures automatiques (autres profils de démo) | vérifiés par les parcours, pas par les mesures de montants |
