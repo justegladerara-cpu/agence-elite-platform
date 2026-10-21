@@ -1,7 +1,8 @@
 # État du projet (mis à jour le 2026-10-09)
 
-## Elite UX 2.0 (2026-10-21) : refonte de l'interface, PR brouillon `claude/elite-ux-2`, **non fusionnée, non publiée**
+## Elite UX 2.0 (2026-10-21) : refonte de l'interface, PR #76 **fusionnée et publiée** (main `f788dc0`, accord de Juste)
 Affichage seulement (aucune migration, aucune règle métier) : [ELITE_UX_2](ELITE_UX_2.md), [UX_AUDIT](UX_AUDIT.md).
+La PR #75 (même mission, faite en parallèle) est fermée sans fusion ; sa branche `claude/elite-ux-2` reste pour reprendre TD-013/020/023/024.
 
 ## Mission terminée : « Améliorations maximales » (2026-10-09) — vérifiée en production
 12 lots fusionnés (PR #12, #14 à #24), migrations `20261010000101` à `20261010000110` appliquées avant chaque fusion,

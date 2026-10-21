@@ -1637,7 +1637,7 @@ fieldset {
 
 .panier-totaux .remise input {
   width: 130px;
-  min-height: 32px;
+  min-height: var(--cible);
   padding: 4px 8px;
   text-align: right;
 }
@@ -3125,7 +3125,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .cockpit { gap: 16px; }
 .cockpit-onglets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
 .cockpit-onglets button {
-  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: var(--cible); padding: 7px 12px; border-radius: 999px;
   border: 1px solid var(--bordure); background: var(--surface); color: var(--texte-doux); font-weight: 600; font-size: 13px; cursor: pointer;
 }
 .cockpit-onglets button:hover { border-color: var(--bordure-forte); color: var(--texte); }
@@ -3138,7 +3138,7 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .cockpit-periodes button.actif { background: var(--accent); color: #fff; }
 .cockpit-filtres, .cockpit-filtres-avances, .cockpit-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .cockpit-filtres-avances { flex-basis: 100%; }
-.cockpit-filtres select, .cockpit-filtres-avances select, .cockpit-dates input { min-height: 34px; padding: 5px 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--surface); max-width: 100%; }
+.cockpit-filtres select, .cockpit-filtres-avances select, .cockpit-dates input { min-height: var(--cible); padding: 5px 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--surface); max-width: 100%; }
 .cockpit-dates label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--texte-doux); }
 .cockpit-plage { font-size: 13px; font-variant-numeric: tabular-nums; }
 .cockpit-note { margin: -6px 0 0; font-size: 12.5px; }
@@ -3362,11 +3362,12 @@ kbd {
 .titre-impression { display: none; margin: 0 0 8px; font-size: 16px; }
 .data-table-export { display: inline-flex; gap: 2px; }
 
-/* Téléphone : cibles tactiles d'au moins 36 px (en-têtes triables, liens d'action, périodes, couleurs). */
+/* Cibles d'au moins 36 px partout (en-têtes triables, liens d'action, périodes) ; couleurs au téléphone. */
+.tableau th.triable button { min-height: 36px; }
+button.lien { min-height: 36px; }
+td .lien, .actions-ligne .lien { padding-inline: 4px; }
+.cockpit-periodes button { min-height: 36px; }
 @media (max-width: 640px) {
-  .tableau th.triable button { min-height: 36px; }
-  td .lien, .actions-ligne .lien { display: inline-flex; align-items: center; min-height: 36px; padding-inline: 4px; }
-  .cockpit-periodes button { min-height: 36px; }
   .palette button { width: 36px; height: 36px; }
 }
 
