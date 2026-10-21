@@ -90,7 +90,7 @@ export function BarreOngletsMobile({ pages, pageActive, aller, onMenu }) {
           <span>{p.libelle}</span>
         </button>
       ))}
-      <button type="button" onClick={onMenu} aria-label="Ouvrir le menu complet">
+      <button type="button" onClick={onMenu} aria-label="Tout le menu">
         <Icone nom="menu" />
         <span>Menu</span>
       </button>
