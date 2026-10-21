@@ -51,7 +51,8 @@ function couleurDe(texte) {
 }
 
 function initiales(nom) {
-  return nom.split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('');
+  // On ignore la ponctuation en tête de mot : « Bougies (paquet » donne « BP », pas « B( ».
+  return nom.split(/\s+/).map((m) => m.replace(/^[^\p{L}\p{N}]+/u, '')).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('');
 }
 
 export function VignetteArticle({ article, taille = 'normale' }) {
@@ -1016,7 +1017,9 @@ export default function Caisse({ naviguer }) {
                 <strong className="tuile-prix">{montant(a.prix_vente)}</strong>
                 {a.suivi_stock && (alerte
                   ? <span className="tuile-stock bas tuile-alerte">{alerte}</span>
-                  : <span className={`tuile-stock ${quantite <= a.stock_minimum ? 'bas' : ''}`}>{formatQuantite(quantite - dansPanier, a.unite)} en stock</span>
+                  : epuise
+                    ? <span className="tuile-stock a-verifier">Stock à vérifier · {formatQuantite(quantite - dansPanier, a.unite)}</span>
+                    : <span className={`tuile-stock ${quantite <= a.stock_minimum ? 'bas' : ''}`}>{formatQuantite(quantite - dansPanier, a.unite)} en stock</span>
                 )}
                 {dansPanier > 0 && <span className="tuile-compte">{formatQuantite(dansPanier, estVenteAuPoids(a.unite) ? a.unite : undefined)}</span>}
               </button>
