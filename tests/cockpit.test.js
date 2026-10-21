@@ -206,3 +206,79 @@ describe('Super Admin : pilotage de la plateforme', () => {
     await expect(api.rpc('editeur_pilotage')).rejects.toThrow(/réservée/);
   });
 });
+
+// Audit The Dream (2026-10-21) : un bar de nuit, des services qui passent minuit.
+describe('cockpit commerce : jour d’exploitation, comparaison juste, statistiques du bar', () => {
+  let etab;
+  let gerante;
+  let tz;
+  const local = (texte) => `(timestamp '${texte}' at time zone '${tz}')`;
+  const vente = async (numero, quand, total, session = null, extra = {}) => {
+    await db.query(`insert into public.ventes (etablissement_id, numero, statut, sous_total, remise, total, montant_paye, statut_paiement, hub_id, cree_le, origine, vendeur, session_caisse_id, servi_par)
+      values ($1, $2, 'validee', $3, 0, $3, $4, $5, (select id from public.hubs where etablissement_id = $1 and principal), ${local(quand)}, 'caisse', $6, $7, $8)`,
+    [etab, numero, total, extra.paye ?? total, (extra.paye ?? total) < total ? 'partielle' : 'payee', gerante, session, extra.serveur ?? null]);
+  };
+
+  beforeAll(async () => {
+    etab = etabs['Commerce Démo'];
+    gerante = comptes['gerante@demo.agence-elite.fr'];
+    tz = (await db.query('select fuseau from public.etablissements where id = $1', [etab])).rows[0].fuseau;
+    const pdv = (await db.query('select id, hub_id from public.points_de_vente where etablissement_id = $1 order by nom limit 1', [etab])).rows[0];
+    // Service du vendredi 14/03/2025 : ouvert à 20 h, fermé le samedi à 6 h, une vente à 1 h 30 ; une vente sans caisse le samedi.
+    const s = (await db.query(`insert into public.sessions_caisse (etablissement_id, point_de_vente_id, hub_id, statut, fond_initial, ouverte_par, ouverte_le, cloturee_le)
+      values ($1, $2, $3, 'cloturee', 0, $4, ${local('2025-03-14 20:00')}, ${local('2025-03-15 06:00')}) returning id`, [etab, pdv.id, pdv.hub_id, gerante])).rows[0].id;
+    await vente('NUIT-1', '2025-03-14 22:00', 10000, s, { serveur: 'Kevin' });
+    await vente('NUIT-2', '2025-03-15 01:30', 5000, s, { serveur: 'Kevin', paye: 2000 });
+    await vente('JOUR-1', '2025-03-15 14:00', 7000);
+    // Vendredi précédent (07/03), sans caisse : 3 ventes pour une comparaison permise.
+    for (const [i, h] of ['21:00', '23:00', '23:30'].entries()) await vente(`AVANT-${i}`, `2025-03-07 ${h}`, 4000);
+  });
+
+  test('une vente après minuit compte pour le jour d’ouverture de la caisse (TD-001)', async () => {
+    comme('gerante@demo.agence-elite.fr');
+    const vendredi = await appel('commerce', 'Commerce Démo', '2025-03-14', '2025-03-14');
+    expect(kpi(vendredi, 'chiffre_affaires').valeur).toBe(15000);
+    expect(kpi(await appel('commerce', 'Commerce Démo', '2025-03-15', '2025-03-15'), 'chiffre_affaires').valeur).toBe(7000);
+    // Même total que le tableau des caissières pour ce jour.
+    const caissieres = await api.rpc('activite_caissiers', { p_etablissement_id: etab, p_du: '2025-03-14', p_au: '2025-03-14' });
+    expect(caissieres.reduce((s, p) => s + Number(p.total_ventes), 0)).toBe(15000);
+  });
+
+  test('un jour se compare au même jour de la semaine d’avant (TD-011)', async () => {
+    comme('gerante@demo.agence-elite.fr');
+    const r = await appel('commerce', 'Commerce Démo', '2025-03-14', '2025-03-14');
+    expect(r.periode.du_precedent).toBe('2025-03-07');
+    expect(kpi(r, 'chiffre_affaires').precedent).toBe(12000);
+    expect(kpi(r, 'chiffre_affaires').comparaison).toBe('vs même jour, semaine d’avant');
+    expect(variation(kpi(r, 'chiffre_affaires'))).toEqual({ pourcent: 25, favorable: true });
+  });
+
+  test('heures de pointe dans l’ordre de la nuit, serveurs, ardoises et reste « toutes dates »', async () => {
+    comme('gerante@demo.agence-elite.fr');
+    const r = await appel('commerce', 'Commerce Démo', '2025-03-14', '2025-03-14');
+    const heures = r.graphiques.find((g) => g.cle === 'ventes_heure');
+    expect(heures.points.map((p) => p.libelle)).toEqual(['22 h', '23 h', '0 h', '1 h']);
+    expect(heures.points.map((p) => p.valeur)).toEqual([10000, 0, 0, 5000]);
+    const serveurs = r.listes.find((l) => l.cle === 'par_serveur');
+    expect(serveurs.lignes[0]).toMatchObject({ libelle: 'Kevin', valeur: 15000 });
+    expect(serveurs.lignes[0].detail).toMatch(/2 vente\(s\) · panier 7 500 FCFA/);
+    expect(kpi(r, 'credits').libelle).toBe('Reste à encaisser (toutes dates)');
+    expect(r.listes.find((l) => l.cle === 'ardoises').lignes.some((l) => l.libelle === 'Plus de 7 jours')).toBe(true);
+    expect(r.periode.regle_jour).toMatch(/jour où la caisse a été ouverte/);
+  });
+
+  test('sur 7 jours : grille jour × heure ; sans prix d’achat, pas de marge inventée (TD-015)', async () => {
+    comme('gerante@demo.agence-elite.fr');
+    const r = await appel('commerce', 'Commerce Démo', '2025-03-10', '2025-03-16');
+    const grille = r.graphiques.find((g) => g.cle === 'jour_heure');
+    expect(grille.type).toBe('grille');
+    expect(grille.points.find((p) => p.ligne === 4 && p.colonne === '1 h').valeur).toBe(5000);
+    // Ces ventes n'ont aucune ligne d'article : ni marge, ni alerte.
+    expect(kpi(r, 'marge_brute')).toBeUndefined();
+  });
+
+  test('montants lisibles dans les textes (TD-002)', async () => {
+    const r = (await db.query(`select public.cockpit_montant_texte(-78500, 'XAF') a, public.cockpit_montant_texte(1250000, 'EUR') b, public.cockpit_montant_texte(0, null) c`)).rows[0];
+    expect(r).toEqual({ a: '-78 500 FCFA', b: '1 250 000 EUR', c: '0 FCFA' });
+  });
+});

@@ -34,6 +34,13 @@ Mis à jour le 2026-10-03 (migration `20261003000015_cockpit.sql`).
 La liste exacte se trouve dans `public.cockpit_domaines(etab)`. Un domaine n'apparaît que si son module est actif pour
 l'établissement **et** si l'utilisateur a la permission de le lire.
 
+### Tableau Commerce : règles d'un bar de nuit (2026-10-21)
+
+- **Jour d'exploitation** : une vente ou un paiement de caisse compte pour le jour où la caisse a été ouverte (`public.jour_exploitation`), même après minuit ; sans caisse, la date de l'opération. Même règle pour le tableau des caissières et les Z.
+- **Comparaison** : « Aujourd'hui » se compare à il y a 7 jours à la même heure ; une période en cours à la période d'avant arrêtée au même moment. Le libellé est dans `kpi.comparaison`.
+- **Marge** : affichée seulement si le coût est connu sur 80 % du CA ; sinon l'alerte `marge_indisponible`.
+- **Graphique `grille`** (affluence jour × heure) : `lignes` (jours) et `points` `{ ligne, colonne, rang, valeur }`, `rang` 0 = 6 h.
+
 ## Contrat des fonctions
 `cockpit_<domaine>(p_etablissement_id, p_du, p_au, p_filtres)` renvoie :
 ```

@@ -149,7 +149,7 @@ export function Kpi({ kpi, naviguer, mis_en_avant, periode }) {
       {v && (
         <span className={`kpi-variation ${v.favorable === true ? 'bon' : v.favorable === false ? 'mauvais' : ''}`}>
           <span aria-hidden="true">{v.pourcent > 0 ? '▲' : v.pourcent < 0 ? '▼' : '='}</span>
-          {' '}{v.pourcent > 0 ? '+' : v.pourcent < 0 ? '−' : ''}{Math.abs(v.pourcent)} % <small>vs période précédente</small>
+          {' '}{v.pourcent > 0 ? '+' : v.pourcent < 0 ? '−' : ''}{Math.abs(v.pourcent)} % <small>{kpi.comparaison ?? 'vs période précédente'}</small>
           <span className="lecteur-ecran">, évolution {sens}</span>
         </span>
       )}
@@ -226,6 +226,7 @@ export function Graphique({ g, naviguer }) {
       </section>
     );
   }
+  if (g.type === 'grille') return <GrilleAffluence g={g} formater={formater} />;
   const total = points.reduce((s, p) => s + (Number(p.valeur) || 0), 0);
   if (total <= 0) return null;
   const max = Math.max(...points.map((p) => Number(p.valeur) || 0));
@@ -243,6 +244,44 @@ export function Graphique({ g, naviguer }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// Affluence jour × heure : une case par jour de la semaine et par heure, plus foncée quand on vend plus.
+function GrilleAffluence({ g, formater }) {
+  const points = g.points ?? [];
+  const max = Math.max(0, ...points.map((p) => Number(p.valeur) || 0));
+  if (max <= 0) return null;
+  // Toutes les heures entre la première et la dernière vendue (rang 0 = 6 h), sans trou dans la grille.
+  const rangs = points.map((p) => Number(p.rang));
+  const colonnes = [];
+  for (let r = Math.min(...rangs); r <= Math.max(...rangs); r += 1) colonnes.push([r, `${(r + 6) % 24} h`]);
+  const valeurs = new Map(points.map((p) => [`${p.ligne}|${p.rang}`, Number(p.valeur) || 0]));
+  return (
+    <section className="carte">
+      <div className="titre-ligne"><h2>{g.titre}</h2></div>
+      <div className="cockpit-grille-affluence-conteneur">
+        <table className="cockpit-affluence">
+          <thead><tr><th scope="col"><span className="lecteur-ecran">Jour</span></th>{colonnes.map(([rang, nom]) => <th key={rang} scope="col">{nom.replace(' h', 'h')}</th>)}</tr></thead>
+          <tbody>
+            {(g.lignes ?? []).map((jour, i) => (
+              <tr key={jour}>
+                <th scope="row">{jour}</th>
+                {colonnes.map(([rang, nom]) => {
+                  const v = valeurs.get(`${i}|${rang}`) ?? 0;
+                  return (
+                    <td key={rang} title={`${jour} ${nom} : ${formater(v, g.format)}`} style={{ '--intensite': v > 0 ? 0.12 + 0.88 * (v / max) : 0 }}>
+                      <span className="lecteur-ecran">{`${jour} ${nom} : ${formater(v, g.format)}`}</span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="texte-faible cockpit-note">Plus la case est foncée, plus le chiffre d’affaires de ce créneau est élevé (cumul sur la période).</p>
     </section>
   );
 }
