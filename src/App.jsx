@@ -17,12 +17,15 @@ import { formatDate, ROLES, ROLES_PLATEFORME } from './noyau/format.js';
 import { lireParametres, lireRoute, useRoute } from './noyau/routes.js';
 import { effacerBrouillons } from './noyau/brouillons.js';
 import { AnnonceMiseAJour, BandeauConnexion } from './ui/Etat.jsx';
-import { BoutiquePublique, SuiviCommande } from './public/BoutiquePublique.jsx';
-import { SitePublic } from './public/RenduSite.jsx';
-import { PartagePublic } from './public/Partage.jsx';
-import { MenuPublic } from './public/MenuPublic.jsx';
-import { QrPublic } from './public/QrPublic.jsx';
-import { EspaceClientPublic } from './public/EspaceClient.jsx';
+// Pages publiques (sans compte) chargées à la demande : elles ne pèsent plus sur l'ouverture de l'application.
+const aLaDemande = (charger, nom) => React.lazy(() => charger().then((m) => ({ default: m[nom] })));
+const BoutiquePublique = aLaDemande(() => import('./public/BoutiquePublique.jsx'), 'BoutiquePublique');
+const SuiviCommande = aLaDemande(() => import('./public/BoutiquePublique.jsx'), 'SuiviCommande');
+const SitePublic = aLaDemande(() => import('./public/RenduSite.jsx'), 'SitePublic');
+const PartagePublic = aLaDemande(() => import('./public/Partage.jsx'), 'PartagePublic');
+const MenuPublic = aLaDemande(() => import('./public/MenuPublic.jsx'), 'MenuPublic');
+const QrPublic = aLaDemande(() => import('./public/QrPublic.jsx'), 'QrPublic');
+const EspaceClientPublic = aLaDemande(() => import('./public/EspaceClient.jsx'), 'EspaceClientPublic');
 import { ActivationCle, ConnexionPartenaire, DemandePartenaire, EspacePartenaire } from './public/EspacePartenaire.jsx';
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
@@ -793,14 +796,15 @@ export default function App({ demarrer = demarrerDonnees }) {
   if (etape === 'erreur') return <div className="ecran-centre"><Erreur message={erreur} /></div>;
   // Pages publiques (sans compte) : site web, boutique en ligne, suivi de commande, menu QR d'une table, QR code suivi, document partagé par lien et espace client.
   const [publique, cle, sousPage] = route.split('/');
-  if (publique === 'site' && cle) return <SitePublic donnees={donnees} adresse={cle.toLowerCase()} slug={sousPage} />;
-  if (publique === 'commander' && cle) return <BoutiquePublique key={cle} donnees={donnees} adresse={cle.toLowerCase()} />;
-  if (publique === 'suivi' && cle) return <SuiviCommande key={cle} donnees={donnees} suivi={cle} />;
-  if (publique === 'menu' && cle) return <MenuPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
+  const publiqueEnAttente = <div className="ecran-centre"><Chargement /></div>;
+  if (publique === 'site' && cle) return <Suspense fallback={publiqueEnAttente}><SitePublic donnees={donnees} adresse={cle.toLowerCase()} slug={sousPage} /></Suspense>;
+  if (publique === 'commander' && cle) return <Suspense fallback={publiqueEnAttente}><BoutiquePublique key={cle} donnees={donnees} adresse={cle.toLowerCase()} /></Suspense>;
+  if (publique === 'suivi' && cle) return <Suspense fallback={publiqueEnAttente}><SuiviCommande key={cle} donnees={donnees} suivi={cle} /></Suspense>;
+  if (publique === 'menu' && cle) return <Suspense fallback={publiqueEnAttente}><MenuPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} /></Suspense>;
   // QR code suivi (lien, WhatsApp, menu sans table) : le scan est compté puis le client est envoyé vers la cible.
-  if (publique === 'q' && cle) return <QrPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
-  if (publique === 'partage' && cle) return <PartagePublic key={cle} donnees={donnees} jeton={cle} />;
-  if (publique === 'espace' && cle) return <EspaceClientPublic key={cle} donnees={donnees} jeton={cle} />;
+  if (publique === 'q' && cle) return <Suspense fallback={publiqueEnAttente}><QrPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} /></Suspense>;
+  if (publique === 'partage' && cle) return <Suspense fallback={publiqueEnAttente}><PartagePublic key={cle} donnees={donnees} jeton={cle} /></Suspense>;
+  if (publique === 'espace' && cle) return <Suspense fallback={publiqueEnAttente}><EspaceClientPublic key={cle} donnees={donnees} jeton={cle} /></Suspense>;
   if (publique === 'partenaire' && cle === 'demande' && sousPage) return <DemandePartenaire key={sousPage} donnees={donnees} code={sousPage} />;
   // Elite Partners : espace partenaire (#/partenaire) et activation d'une clé (#/activer), avec ou sans compte.
   const pagePartenaire = publique === 'partenaire' || publique === 'activer';
