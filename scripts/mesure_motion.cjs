@@ -1,7 +1,7 @@
 // Mesure reproductible des performances de l'interface (Elite Motion System, docs/motion/MOTION_PERFORMANCE.md).
 // Démo locale uniquement (base dans le navigateur, données fictives) :
 //   npm run build:demo && npx vite preview --port 4173
-//   CHROMIUM_PATH=… node scripts/mesure_motion.cjs [fichier-resultat.json]
+//   CHROMIUM_PATH=… node scripts/mesure_motion.cjs [fichier-resultat.json]   (RESEAU=lent : réseau mobile lent)
 // Variables : URL_APP (défaut http://localhost:4173/), RALENTIS (défaut "1,4" = processeur normal puis ralenti 4×),
 // REPETITIONS (défaut 3), DOSSIER_DIST (défaut dist) pour la taille des fichiers.
 // Rien n'est inventé : une mesure impossible est notée null avec la raison.
@@ -14,6 +14,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
 const RALENTIS = (process.env.RALENTIS ?? '1,4').split(',').map(Number);
 const REPETITIONS = Number(process.env.REPETITIONS ?? 3);
 const DIST = process.env.DOSSIER_DIST ?? 'dist';
+// RESEAU=lent : réseau mobile lent simulé (150 ms de latence, 1,6 Mbit/s descendant, 750 kbit/s montant).
+const RESEAU = process.env.RESEAU ?? 'normal';
 const SORTIE = process.argv[2] ?? null;
 
 // Taille des fichiers servis à l'ouverture (index.html → script et feuille de style d'entrée) et de l'ensemble.
@@ -95,6 +97,10 @@ async function unPassage(navigateur, ralenti) {
   p.__ralenti = ralenti;
   const cdp = await contexte.newCDPSession(p);
   if (ralenti > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: ralenti });
+  if (RESEAU === 'lent') {
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 });
+  }
   const r = {};
   const delai = 120000 * ralenti;
 
