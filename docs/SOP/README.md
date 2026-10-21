@@ -98,6 +98,7 @@ Une IA lit aussi les [règles pour les IA](32_REGLES_POUR_LES_IA.md).
 | Une seule caisse ouverte à la fois, caisse oubliée, alerte ticket Z, serveurs, caisse sur tablette | [83](83_CAISSE_UNIQUE_SERVEURS.md) | Caissière, gérant, responsable |
 | Copier des articles d'un client à un autre (photos comprises), bibliothèque d'articles Agence Elite | [89](89_COPIER_DES_ARTICLES_ENTRE_CLIENTS.md) | Super admin |
 | Piloter la plateforme depuis le CRM : activité, chronologie d'un client, message affiché au client | [90](90_PILOTAGE_DEPUIS_LE_CRM.md) | Super admin |
+| Échéances des licences : alertes automatiques, caisse jamais bloquée par une échéance, demandes de renouvellement, Mon abonnement | [91](91_ECHEANCES_LICENCES.md) | Équipe Agence Elite, gérant, partenaire |
 | Bar / restaurant : happy hour automatique, offerts avec raison, pourboires par serveur, rapport « Offerts et pertes », alerte « Plus que N » et commande fournisseur WhatsApp | [85](85_OFFERTS_HAPPYHOUR_POURBOIRES.md) | Gérant, responsable, caisse |
 | Emballages consignés (casiers, vides), bouteille en réserve au nom d'un client, table VIP avec minimum de consommation | [84](84_CONSIGNES_RESERVE_VIP.md) | Gérant, responsable, caisse, serveurs |
 | Envoyer au patron le rapport du soir sur WhatsApp (ventes, encaissements, top 5, écart de caisse, caissières) | [86](86_RAPPORT_DU_SOIR_WHATSAPP.md) | Gérant, responsable |
