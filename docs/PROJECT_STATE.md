@@ -1,5 +1,7 @@
 # État du projet (mis à jour le 2026-10-09)
 
+**Elite UX 2.0 (2026-10-21)** : refonte de l'affichage sur `claude/elite-ux-2`, PR brouillon **non fusionnée**, aucune migration ; bilan [ELITE_UX_2](ELITE_UX_2.md).
+
 ## Mission terminée : « Améliorations maximales » (2026-10-09) — vérifiée en production
 12 lots fusionnés (PR #12, #14 à #24), migrations `20261010000101` à `20261010000110` appliquées avant chaque fusion,
 pilote en production réussi sur `main` `a9a1736` (run 37989650607). Nouveaux modules en **Bêta**, désactivés par défaut :
