@@ -233,7 +233,10 @@ describe('congés et absences', () => {
   });
 
   test("l'employé annule une demande future ; un valideur annule avec motif ; une absence annulée est définitive", async () => {
-    const d2 = await valeur(collab, 'select rh_demander_absence($1, $2::jsonb)', [etab, json({ type: 'evenement_familial', debut: jourIso(60), fin: jourIso(60) })]);
+    // Un mardi, mercredi ou jeudi vers J+60 : un dimanche (ex. le 2026-10-21 + 60) n'a aucun jour ouvrable.
+    let n = 60;
+    while (![2, 3, 4].includes(new Date(`${jourIso(n)}T12:00:00Z`).getUTCDay())) n += 1;
+    const d2 = await valeur(collab, 'select rh_demander_absence($1, $2::jsonb)', [etab, json({ type: 'evenement_familial', debut: jourIso(n), fin: jourIso(n) })]);
     await expect(comme(collab, "select rh_annuler_absence($1, '')", [d2])).rejects.toThrow(/motif/);
     await comme(collab, "select rh_annuler_absence($1, 'Plus nécessaire')", [d2]);
     await expect(comme(rh, "select rh_decider_absence($1, 'approuvee')", [d2])).rejects.toThrow(/traitée/);
