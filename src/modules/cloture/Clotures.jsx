@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { caisseContinue } from '../../noyau/continuite.js';
 import { formatDate, formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
@@ -122,7 +123,7 @@ export function ModaleZ({ z: zInitial, onFermer, onCompte, deconnexion = false, 
   );
   return (
     <Modale titre={`Ticket ${z.numero}`} onFermer={onFermer} pied={pied}>
-      {z.automatique && z.especes_comptees == null && peutCompter && etablissement.ecriture && (
+      {z.automatique && z.especes_comptees == null && peutCompter && (etablissement.ecriture || caisseContinue(etablissement)) && (
         <ComptageApres z={z} onCompte={(maj) => { setZ({ ...z, ...maj }); onCompte?.(); }} />
       )}
       <div className="ticket-apercu">{ticket}</div>

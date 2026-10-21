@@ -33,13 +33,6 @@ const jourIso = (decalage) => {
   d.setUTCDate(d.getUTCDate() + decalage);
   return d.toISOString().slice(0, 10);
 };
-// Premier jour du lundi au vendredi à partir de jourIso(decalage) : une absence d'un seul jour
-// ne doit pas tomber un week-end (« Aucun jour ouvrable sur cette période »).
-const jourOuvre = (decalage) => {
-  let n = decalage;
-  while ([0, 6].includes(new Date(jourIso(n)).getUTCDay())) n += 1;
-  return jourIso(n);
-};
 
 async function activerRh(etablissement) {
   for (const m of ['rh_employes', 'rh_presences', 'rh_conges', 'documents']) {
@@ -240,7 +233,10 @@ describe('congés et absences', () => {
   });
 
   test("l'employé annule une demande future ; un valideur annule avec motif ; une absence annulée est définitive", async () => {
-    const d2 = await valeur(collab, 'select rh_demander_absence($1, $2::jsonb)', [etab, json({ type: 'evenement_familial', debut: jourOuvre(60), fin: jourOuvre(60) })]);
+    // Un mardi, mercredi ou jeudi vers J+60 : un dimanche (ex. le 2026-10-21 + 60) n'a aucun jour ouvrable.
+    let n = 60;
+    while (![2, 3, 4].includes(new Date(`${jourIso(n)}T12:00:00Z`).getUTCDay())) n += 1;
+    const d2 = await valeur(collab, 'select rh_demander_absence($1, $2::jsonb)', [etab, json({ type: 'evenement_familial', debut: jourIso(n), fin: jourIso(n) })]);
     await expect(comme(collab, "select rh_annuler_absence($1, '')", [d2])).rejects.toThrow(/motif/);
     await comme(collab, "select rh_annuler_absence($1, 'Plus nécessaire')", [d2]);
     await expect(comme(rh, "select rh_decider_absence($1, 'approuvee')", [d2])).rejects.toThrow(/traitée/);
