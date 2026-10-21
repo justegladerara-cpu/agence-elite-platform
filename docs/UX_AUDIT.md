@@ -56,7 +56,7 @@ l'audit The Dream du 2026-10-21 (captures et constats sur une copie fictive, dos
 | UX-19 | Vignettes d'articles « B( » (ponctuation prise comme initiale) | Caisse, Articles |
 | UX-20 | Champ obligatoire non signalé dans le libellé ; erreurs générales en haut du formulaire, pas sous le champ | formulaires |
 | UX-21 | 40 tableaux métier simples gardent un défilement horizontal sur téléphone (lisibles mais moins confortables que des fiches) | Ventes, Stock, Clôtures, Factures… |
-| UX-22 | Écran cuisine : un bon élargit la page sur téléphone, tablette et ordinateur | Écran cuisine |
+| UX-22 | Écran cuisine : un bon élargit la page sur téléphone, tablette et ordinateur (toujours présent après la refonte) | Écran cuisine |
 
 ### Non vérifié (dit comme tel)
 - Lecteurs d'écran réels (NVDA, TalkBack) : seules les règles (rôles, libellés, `aria-*`) sont vérifiées par tests.

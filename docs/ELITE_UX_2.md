@@ -15,7 +15,7 @@ système : [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). Captures avant / après : dossi
 | 4 · Commerce | Caisse | **Partiel** (caisse faite) | cibles 48 px pour + / − et 40 px pour retirer une ligne, puces de catégories et choix de caisse à 40 px, prix des tuiles en noir et plus gros, tuile à stock nul **lisible et vendable** avec « Stock à vérifier · −17 » en rouge (TD-023), initiales des vignettes sans ponctuation, contraste des vignettes. Articles, Stock, Ventes, Paiements, Reçus, Clôtures, Dépenses, Contacts : profitent du lot 1 (listes en fiches, contraste, cibles), pas de refonte dédiée |
 | 5 · Autres modules | formulaires et listes partagés | **Partiel** | `Champ` (erreur sous le champ, obligatoire marqué), `DataTable` en fiches sans couper les nombres, lignes de liste qui passent à la ligne (écran cuisine), boutons au libellé long qui passent à la ligne sur téléphone. Non fait : alerte « modifications non enregistrées » et brouillons sur tous les formulaires, fiches pour les 40 tableaux métier simples |
 | 6 · Administration | Établissement, Membres, Hubs, Paramètres, Abonnement | **Partiel** | profite des lots 1 et 5 ; niveaux d'application lisibles sans la couleur (✓ / –). Pas de refonte dédiée (Paramètres vient d'être modifié par Elite License Guard) |
-| 7 · Finitions | tout | **Partiel** | 8 603 → 51 textes sous le contraste AA, textes d'écran ≥ 12 px, `prefers-reduced-motion` sur les tuiles de caisse, pages publiques chargées à la demande (−13 Ko gzip au démarrage), écrans qui débordent 21 → 2. Non fait : police Inter hébergée en local (TD-022), décalage de mise en page à l'ouverture de la caisse (CLS 0,148, existant) |
+| 7 · Finitions | tout | **Partiel** | 8 603 → 0 texte sous le contraste AA, textes d'écran ≥ 12 px, `prefers-reduced-motion` sur les tuiles de caisse, pages publiques chargées à la demande (−13 Ko gzip au démarrage), écrans qui débordent 21 → 6 (tous sur l'Écran cuisine, cause non trouvée : à reprendre). Non fait : police Inter hébergée en local (TD-022), décalage de mise en page à l'ouverture de la caisse (CLS 0,148, existant) |
 
 ### Lot 3 en détail (tableaux de bord)
 - **Montants longs** : la taille du chiffre suit la largeur de la carte (requête de conteneur), le texte passe à la ligne entre
@@ -62,13 +62,13 @@ processeur ralenti ×4 et réseau mobile lent simulé (150 ms, 1,6 Mbit/s).
 
 | Audit des écrans (618 écrans, 12 profils) | Avant | Après |
 |---|---|---|
-| Écrans qui élargissent la page | 21 | voir ci-dessous |
+| Écrans qui élargissent la page | 21 | 6 (tous sur l'Écran cuisine) |
 | Montants longs hors de leur carte | 72 | 0 |
 | Pages élargies par un montant long | 24 / 54 | 0 / 54 |
 | Montants coupés par « … » | 0 | 0 |
-| Cibles < 40 px (téléphone) | 2 225 / 3 172 | 777 / 3 068 |
+| Cibles < 40 px (téléphone) | 2 225 / 3 172 | 777 / 3 074 |
 | Cibles < 40 px (tous formats) | 12 439 | 2 443 |
-| Textes sous le contraste AA | 8 603 | 51 → corrigés ensuite (vignettes, bouton WhatsApp) |
+| Textes sous le contraste AA | 8 603 | 0 |
 | Erreurs console | 0 | 0 |
 
 ## Vérifications
