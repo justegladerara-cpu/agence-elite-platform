@@ -95,7 +95,7 @@ describe('marketing', () => {
     await valeur(commercial, "select declarer_envoi_campagne($1, 'Envoyé depuis la messagerie de la boutique')", [campagne]);
     await expect(valeur(commercial, "select annuler_campagne($1, 'trop tard')", [campagne])).rejects.toThrow(/ne peut plus/);
     await expect(db.query('delete from mkt_destinataires where campagne_id = $1', [campagne])).rejects.toThrow();
-    const k = await valeur(gerant, "select cockpit_marketing($1, current_date - 7, current_date)", [etab]);
+    const k = await valeur(gerant, "select cockpit_marketing($1, j - 7, j) from (select (now() at time zone coalesce(fuseau, 'UTC'))::date j from public.etablissements where id = $1) t", [etab]);
     expect(k.kpis.find((x) => x.cle === 'envoyees').valeur).toBe(1);
     expect(k.kpis.find((x) => x.cle === 'touches').valeur).toBe(1);
   });

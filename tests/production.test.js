@@ -124,7 +124,8 @@ describe('production', () => {
   test('tableau de bord Production et assistant', async () => {
     const domaines = await valeur(gerant, 'select cockpit_domaines($1)', [etab]);
     expect(domaines.map((d) => d.id)).toContain('production');
-    const auj = new Date().toISOString().slice(0, 10);
+    // Date du jour dans le fuseau de l'établissement (pas en UTC : entre 23 h et minuit UTC, c'est déjà demain à Brazzaville).
+    const auj = (await db.query("select ((now() at time zone coalesce(fuseau, 'UTC'))::date)::text d from public.etablissements where id = $1", [etab])).rows[0].d;
     const c = await valeur(gerant, 'select cockpit_production($1, $2::date - 6, $2::date)', [etab, auj]);
     expect(c.kpis.find((k) => k.cle === 'termines').valeur).toBe(2);
     await expect(comme(employe, 'select cockpit_production($1, $2::date, $2::date)', [etab, auj])).rejects.toThrow(/Permission refusée/);
