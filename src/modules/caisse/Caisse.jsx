@@ -42,7 +42,7 @@ const sansArticleTechnique = (articles) => articles.filter((a) => !estArticleTec
 // Puce « Favoris » : valeur spéciale du filtre de catégorie.
 const FAVORIS = '__favoris__';
 
-const COULEURS = ['#1F6FEB', '#0E9F6E', '#C2410C', '#7C3AED', '#B91C1C', '#0F766E', '#A16207', '#BE185D'];
+const COULEURS = ['#1F6FEB', '#047857', '#C2410C', '#7C3AED', '#B91C1C', '#0F766E', '#A16207', '#BE185D'];
 
 function couleurDe(texte) {
   let somme = 0;

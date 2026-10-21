@@ -1019,7 +1019,7 @@ img.avatar {
 
 .grille-indicateurs {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
   gap: 12px;
 }
 
@@ -2616,6 +2616,11 @@ tr.cliquable:hover td {
   .grille-stats { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Téléphone : un bouton au libellé long passe à la ligne au lieu de sortir de l'écran. */
+@media (max-width: 640px) {
+  .bouton { max-width: 100%; white-space: normal; text-align: center; }
+}
+
 /* Les tableaux partagés deviennent des fiches lisibles sur un téléphone. Les
    tableaux métier spécialisés gardent leur défilement horizontal. */
 /* Même rendu pour un tableau marqué « empilable » (ex. Caissières et Serveurs du tableau de bord, TD-020).
@@ -2702,7 +2707,7 @@ tr.cliquable:hover td {
 .organigramme-carte:hover, .organigramme-carte:focus-visible { border-color: var(--accent); box-shadow: var(--ombre); }
 .barre-outils { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 14px; }
 .barre-outils .champ { min-width: 160px; margin: 0; }
-.groupe-boutons { display: inline-flex; gap: 6px; }
+.groupe-boutons { display: inline-flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
 .ligne-cases { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .carte-pointage { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); box-shadow: var(--ombre); }
 .carte-pointage strong { font-size: 17px; }
