@@ -609,6 +609,8 @@
 }
 
 .caisse-categories {
+  /* Dans la colonne qui défile, la rangée de catégories ne doit jamais être écrasée (elle disparaissait). */
+  flex-shrink: 0;
   gap: 8px;
   padding-bottom: 4px;
   scroll-snap-type: x proximity;

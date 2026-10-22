@@ -64,6 +64,14 @@ tabular-nums` (classes `.montant`, `.nombre`, tableaux). Rien de lisible sous 12
 860 px (tablette debout : menu en tiroir, barre d'onglets en bas, barre « Encaisser » fixe) · 1100 px (tablette couchée).
 Les variables CSS ne vont pas dans `@media` : reprendre ces valeurs telles quelles.
 
+## Look « clair premium » (2026-10-22)
+Choisi par Juste. Calque en fin de `src/styles.css` (« Elite Look ») : il redéfinit des jetons et quelques formes,
+sans toucher aux règles métier. Fond `#f5f7fb`, bordures `#e6e9f0`, rayons 12 / 16 px, ombres douces
+(`--ombre-carte`, `--ombre-survol`), titres 26 px. Menu latéral **clair** (`--menu: #fff`, `--menu-fort` pour le
+texte fort, `--menu-actif` = `--accent-doux`) ; en thème sombre il reste foncé (jetons redéfinis sous
+`[data-theme='sombre']` et `auto`). Indicateurs : liseré de couleur en haut, chiffre 26 px. Bouton principal en
+léger dégradé de `--accent`. Tout suit la couleur de marque : ne jamais écrire de bleu en dur.
+
 ## Coquille et navigation
 - **Barre latérale** groupée (registre des modules : module actif + permission, seule source du menu) ; en tête
   « Favoris » (écrans épinglés), puis le menu court et « Plus d'outils ».
