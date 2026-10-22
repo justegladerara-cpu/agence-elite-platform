@@ -59,7 +59,9 @@ function VueGlobale({ domaines, f, naviguer }) {
     [etablissement.id, f.cle]
   );
   const extras = c ? widgetsAccessibles(espace, 'section', { cockpit: c, du: f.du, au: f.au }) : [];
-  const principaux = (c?.domaines ?? []).flatMap((d) => d.kpis.slice(0, 1).map((k) => ({ ...k, cle: `${d.id}.${k.cle}`, libelle: domaines.length > 1 ? `${k.libelle} · ${d.titre}` : k.libelle }))).slice(0, 4);
+  // Un seul domaine (ex. un bar) : le bandeau montre ses indicateurs clés (jusqu'à 5) et la carte ne les répète pas.
+  const seul = (c?.domaines ?? []).length === 1;
+  const principaux = (c?.domaines ?? []).flatMap((d) => d.kpis.slice(0, seul ? 5 : 1).map((k) => ({ ...k, cle: `${d.id}.${k.cle}`, libelle: domaines.length > 1 ? `${k.libelle} · ${d.titre}` : k.libelle }))).slice(0, seul ? 5 : 4);
   return (
     <>
       <PageHeader titre="Tableau de bord" sousTitre={portee(espace, f)} actions={<ActionsRapides domaines={domaines.map((d) => d.id)} naviguer={naviguer} limite={3} />} />
@@ -84,8 +86,8 @@ function VueGlobale({ domaines, f, naviguer }) {
                     <h2><Icone nom={DOMAINES[d.id]?.icone ?? 'tableau'} taille={16} /> {d.titre}</h2>
                     {d.attention > 0 && <Badge ton="attention">{d.attention} à surveiller</Badge>}
                   </div>
-                  <GrilleKpis kpis={d.kpis} naviguer={naviguer} max={3} periode={libellePeriode(f)} />
-                  {d.kpis.length === 0 && <p className="texte-doux">Rien sur la période.</p>}
+                  {!seul && <GrilleKpis kpis={d.kpis} naviguer={naviguer} max={3} periode={libellePeriode(f)} />}
+                  {!seul && d.kpis.length === 0 && <p className="texte-doux">Rien sur la période.</p>}
                   <Bouton icone="chevron" onClick={() => naviguer(`tableau-de-bord/${d.id}`)}>Tableau {d.titre}</Bouton>
                 </section>
               ))}
@@ -119,6 +121,7 @@ function VueDomaine({ domaine, titre, f, naviguer }) {
           {d.periode && d.periode.comparable === false && d.periode.du_precedent && (
             <p className="texte-faible cockpit-note">Pas de comparaison : la période précédente n’a pas assez de données.</p>
           )}
+          {d.periode?.regle_jour && <p className="texte-faible cockpit-note">{d.periode.regle_jour}</p>}
           <div className="cockpit-grille">
             <ASurveiller elements={d.attention} naviguer={naviguer} />
             <section className="carte">

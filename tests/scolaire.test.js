@@ -96,7 +96,8 @@ describe('scolaire', () => {
     await expect(rpc(autreGerant, 'enregistrer_eleve', { nom: 'Intrus' })).rejects.toThrow(/Permission refusée/);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query("select encaisser_scolarite($1, 1, 'especes')", [inscription]))).rejects.toThrow(/permission denied/);
     expect((await valeur(gerant, 'select cockpit_domaines($1)', [etab])).map((d) => d.id)).toContain('scolaire');
-    const auj = new Date().toISOString().slice(0, 10);
+    // Date du jour dans le fuseau de l'établissement (pas en UTC : entre 23 h et minuit UTC, c'est déjà demain à Brazzaville).
+    const auj = (await db.query("select ((now() at time zone coalesce(fuseau, 'UTC'))::date)::text d from public.etablissements where id = $1", [etab])).rows[0].d;
     const c = await valeur(gerant, 'select cockpit_scolaire($1, $2::date - 6, $2::date)', [etab, auj]);
     expect(c.kpis.find((k) => k.cle === 'inscrits').valeur).toBe(1);
     expect(c.kpis.find((k) => k.cle === 'encaisse').valeur).toBe(60000);
