@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { formatMontant } from './format.js';
-import { caisseContinue, peutEcrire } from './continuite.js';
+import { caisseContinue, finLicence, licenceCoupee, peutEcrire } from './continuite.js';
 
 const ContexteEspace = createContext(null);
 const CLE_ETABLISSEMENT = 'ae-etablissement-actif';
@@ -45,6 +45,33 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setHubChoisi(hubInitial(etablissement)), [etablissement?.id]);
 
+  // Heure de fin précise de la licence : à cette heure, l'écran repasse en consultation seule et les comptes ouverts
+  // sont déconnectés (une seule fois : à la reconnexion, la base répond déjà « consultation seule »).
+  const [coupure, setCoupure] = useState(() => licenceCoupee(etablissement));
+  const fin = finLicence(etablissement);
+  const deconnecter = useRef(onDeconnexion);
+  useEffect(() => {
+    deconnecter.current = onDeconnexion;
+  });
+  useEffect(() => {
+    setCoupure(licenceCoupee(etablissement));
+    if (fin == null || Date.now() >= fin) return undefined;
+    let minuterie;
+    const attendre = () => {
+      const reste = fin - Date.now();
+      if (reste <= 0) {
+        setCoupure(true);
+        deconnecter.current?.();
+        return;
+      }
+      // setTimeout est limité à ~24,8 jours ; on revérifie au plus toutes les heures.
+      minuterie = setTimeout(attendre, Math.min(reste, 3600000));
+    };
+    attendre();
+    return () => clearTimeout(minuterie);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etablissement?.id, fin]);
+
   const notifier = useCallback((texte, ton = 'succes') => {
     compteur.current += 1;
     const id = compteur.current;
@@ -81,6 +108,7 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       // Licence échue (date seulement) : la caisse et les encaissements continuent (Elite License Guard).
       peut: (permission) => peutEcrire(etablissement, permission) && permissions.has(permission),
       caisseContinue: caisseContinue(etablissement),
+      licenceCoupee: coupure,
       // Permission du rôle, même quand l'écriture est coupée (ex. : demander le renouvellement d'une licence expirée).
       aLaPermission: (permission) => permissions.has(permission),
       moduleActif: (module) => modules.has(module),
@@ -93,7 +121,7 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       recharger: onRecharger,
       deconnecter: onDeconnexion,
     };
-  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion]);
+  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion, coupure]);
 
   return (
     <ContexteEspace.Provider value={valeur}>

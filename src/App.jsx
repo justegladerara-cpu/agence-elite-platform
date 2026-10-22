@@ -39,6 +39,7 @@ const ConnexionPartenaire = pagePublique(chargerPartenaire, 'ConnexionPartenaire
 const DemandePartenaire = pagePublique(chargerPartenaire, 'DemandePartenaire');
 const EspacePartenaire = pagePublique(chargerPartenaire, 'EspacePartenaire');
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
+import { BandeauFinLicence, FenetreFinLicence, RappelFinLicence } from './ui/FinLicence.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
@@ -268,7 +269,7 @@ function BulleAide({ id }) {
 }
 
 function Bandeaux({ naviguer }) {
-  const { etablissement, editeur, aLaPermission, caisseContinue } = useEspace();
+  const { etablissement, editeur, aLaPermission, caisseContinue, licenceCoupee } = useEspace();
   const { nom_editeur: nomEditeur, contact_support: contactSupport } = useConfigAuth();
   const contactez = `Contactez ${nomEditeur}${contactSupport ? ` (${contactSupport})` : ''}`;
   if (!etablissement) return null;
@@ -286,7 +287,7 @@ function Bandeaux({ naviguer }) {
     bandeaux.push(<div key="dirigeant" className="bandeau info">Vous consultez {etablissement.nom} en tant que dirigeant.</div>);
   } else if (etablissement.statut !== 'actif' || etablissement.client_statut !== 'actif') {
     bandeaux.push(<div key="statut" className="bandeau">Cet établissement est suspendu : consultation seule. {contactez}.</div>);
-  } else if (!l || !l.valide) {
+  } else if (!l || !l.valide || licenceCoupee) {
     // Elite License Guard : une licence seulement échue laisse la caisse et les encaissements ouverts.
     bandeaux.push(
       <div key="licence" className="bandeau">
@@ -296,6 +297,11 @@ function Bandeaux({ naviguer }) {
         {gerant && <button className="lien" onClick={() => naviguer('parametres/licence')}>Mon abonnement</button>}
       </div>
     );
+  } else if (l.fin_a) {
+    // Heure de fin précise : compte à rebours pour toute l'équipe, caisse comprise (dans les 72 dernières heures).
+    bandeaux.push(<BandeauFinLicence key="fin" contactez={contactez} gerant={gerant} naviguer={naviguer} />);
+    bandeaux.push(<RappelFinLicence key="rappel" />);
+    bandeaux.push(<FenetreFinLicence key="fenetre" contactez={contactez} naviguer={naviguer} />);
   } else if (gerant && l.jours_restants != null && l.jours_restants <= 7) {
     // Prévenir avant l'échéance : seulement ceux qui peuvent agir (pas la caisse, pour ne pas l'inquiéter).
     bandeaux.push(
