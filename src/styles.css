@@ -3762,3 +3762,28 @@ input:not([type='checkbox']):not([type='radio']):not([type='range']), select, te
 .cockpit-filtres select { width: auto; }
 .tuile-article .vignette { border-radius: 10px; box-shadow: inset 0 -36px 40px -24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.22); letter-spacing: 0.02em; }
 .panier-pied > .panier-total strong { letter-spacing: -0.02em; }
+
+/* Fin de licence à heure précise (licences.fin_a) : bandeau permanent et rappel qui ne prend jamais le clic. */
+.bandeau.fin-licence { font-weight: 500; }
+.bandeau.fin-licence.urgent { animation: fin-licence-pulse 2.4s ease-in-out infinite; }
+@keyframes fin-licence-pulse { 50% { filter: brightness(1.15); } }
+.rappel-fin-licence {
+  position: fixed;
+  left: 50%;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  z-index: var(--plan-notification, 60);
+  max-width: min(92vw, 520px);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--rouge);
+  color: #fff;
+  box-shadow: var(--ombre-forte);
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  animation: apparaitre 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bandeau.fin-licence.urgent, .rappel-fin-licence { animation: none; }
+}

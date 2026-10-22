@@ -132,3 +132,20 @@ Sauvegarde → « Déploiement de la base » `simulation` (doit lister exactemen
 Au premier passage de la tâche, les licences déjà dans la fenêtre reçoivent **une** alerte (palier le plus proche).
 Vérifié en lecture le 2026-10-21 : Le Kangourou (essai, J-11) recevrait l'alerte J-15 ; The Dream (annuel, J-351)
 rien ; H-2i (licence **suspendue** à la main) rien.
+
+## 11. Heure de fin précise (migration `20261022000154_licence_heure_de_fin.sql`, 2026-10-22)
+Demandé par Juste pour The Dream (licence annuelle non payée) : couper une licence à une **heure donnée**.
+- Colonne facultative `licences.fin_a` (timestamptz). Sans elle, rien ne change pour les autres licences.
+- Avant l'heure : tout marche. Dans les 72 dernières heures, toute l'équipe (caisse comprise) voit un bandeau
+  permanent avec le compte à rebours (`src/ui/FinLicence.jsx`), un rappel toutes les 15 min qui ne prend jamais le
+  clic, et les responsables une fenêtre à la connexion puis au plus toutes les 2 h.
+- À l'heure : l'écran déconnecte les comptes ouverts ; la base (`licence_valide`, `caisse_continue`,
+  `exiger_permission`) refuse toute écriture : plus de vente, d'encaissement, d'ouverture de caisse, de stock, menu QR
+  fermé. Restent permis (`permissions_apres_coupure()`) : `caisse.rattraper` (ventes hors ligne d'avant) et
+  `cloture.cloturer` (le responsable tire le Z d'une caisse restée ouverte). Consultation des données intacte.
+- Les alertes quotidiennes ignorent ces licences (leur texte dit « la caisse continue »).
+- Un renouvellement (échéance repoussée, `renouveler_licence`) ou une nouvelle licence efface la coupure.
+- Mise en place pour The Dream : `donnees/corrections/the-dream/20261022_licence_fin_samedi_midi.sql` (workflow
+  « Corriger des données ») : l'annuelle est terminée (« annuel non payé »), un essai finit le 24/10/2026 à 12h00
+  (Brazzaville).
+- Débloquer après paiement : attribuer la licence payée dans le CRM (Encaisser) ; la coupure disparaît.
