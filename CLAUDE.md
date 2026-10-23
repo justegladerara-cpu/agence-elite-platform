@@ -30,6 +30,9 @@ BASE MIGRÉE · PRODUCTION VÉRIFIÉE. Ne jamais écrire « c'est en ligne » sa
 6. Écriture en production uniquement par les workflows GitHub protégés (jamais d'`apply_migration` ni d'écriture
    SQL directe avec un connecteur, même s'il est disponible). Lecture seule autorisée pour vérifier.
 7. Pas de `push --force`, pas de `rebase` sur `main`, pas de test désactivé pour passer.
+8. La base de production est **partagée avec le projet STP2i** (autre compte Claude de Juste, dépôt `STP2i`,
+   objets `stp2i_*`). Canal commun : la PR brouillon « Canal entre les Claude de Juste » (voir `docs/CANAL_CLAUDE.md`).
+   S'y abonner en début de session ; y écrire avant et après toute mise à jour de la base.
 
 ## Avant de modifier quoi que ce soit
 1. Lire `docs/HANDOFF_CLAUDE_CODE.md` (au moins §0, §34 à §38 et §45 « état exact »).
