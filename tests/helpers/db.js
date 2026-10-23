@@ -1,6 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { migrationAutreProjet } from '../../src/noyau/donnees/moteurLocal.js';
 
 const racine = resolve(import.meta.dirname, '../..');
 
@@ -10,7 +11,7 @@ export async function creerBase({ jusqua } = {}) {
   await db.exec(await readFile(resolve(racine, 'tests/sql/supabase_shim.sql'), 'utf8'));
   await db.exec(await readFile(resolve(racine, 'tests/sql/supabase_shim_auth.sql'), 'utf8'));
   const fichiers = (await readdir(resolve(racine, 'supabase/migrations')))
-    .filter((nom) => nom.endsWith('.sql') && (!jusqua || nom < jusqua)).sort();
+    .filter((nom) => nom.endsWith('.sql') && !migrationAutreProjet(nom) && (!jusqua || nom < jusqua)).sort();
   for (const fichier of fichiers) {
     await db.exec(await readFile(resolve(racine, 'supabase/migrations', fichier), 'utf8'));
   }
@@ -29,7 +30,7 @@ export async function commeRole(db, role, userId, fn) {
 
 export async function appliquerMigrations(db, { depuis }) {
   const fichiers = (await readdir(resolve(racine, 'supabase/migrations')))
-    .filter((nom) => nom.endsWith('.sql') && nom >= depuis).sort();
+    .filter((nom) => nom.endsWith('.sql') && !migrationAutreProjet(nom) && nom >= depuis).sort();
   for (const fichier of fichiers) {
     await db.exec(await readFile(resolve(racine, 'supabase/migrations', fichier), 'utf8'));
   }

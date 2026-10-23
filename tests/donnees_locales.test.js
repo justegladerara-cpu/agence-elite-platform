@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { baseVide, listerComptesDemo, semerDemo } from '../src/noyau/donnees/demo.js';
 import { chargerMigrations, creerBaseLocale } from './helpers/locale.js';
-import { construireAppel, construireLecture, creerApiLocale, preparerBase } from '../src/noyau/donnees/moteurLocal.js';
+import { construireAppel, construireLecture, creerApiLocale, migrationAutreProjet, preparerBase } from '../src/noyau/donnees/moteurLocal.js';
 
 let db;
 let utilisateur = null;
@@ -22,7 +22,7 @@ describe('moteur de données local', () => {
   test('les migrations ne sont appliquées qu\'une fois', async () => {
     await preparerBase(db, { shim: '', migrations: await chargerMigrations() });
     const n = (await db.query('select count(*)::int n from _local.migrations')).rows[0].n;
-    expect(n).toBe((await chargerMigrations()).length);
+    expect(n).toBe((await chargerMigrations()).filter((m) => !migrationAutreProjet(m.nom)).length);
   });
 
   test('les identifiants SQL sont validés', () => {
