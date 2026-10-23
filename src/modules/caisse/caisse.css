@@ -714,3 +714,21 @@
     -webkit-line-clamp: 2;
   }
 }
+
+/* Écran du serveur : « Prendre une commande » (tablette). */
+.prendre-commande { display: grid; gap: 16px; }
+.prendre-commande-grille { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.prendre-commande-grille > section { display: grid; gap: 12px; min-width: 0; }
+.commande-serveur { position: sticky; top: 12px; display: grid; gap: 12px; }
+.commande-serveur h2 { margin: 0; font-size: 1.05rem; }
+.commande-serveur-lignes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.commande-serveur-lignes li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+.commande-serveur-quantite { display: inline-flex; align-items: center; gap: 6px; }
+.commande-serveur-quantite button {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--bordure); background: var(--surface); font-size: 1.1rem; cursor: pointer;
+}
+.commande-serveur-total { display: flex; justify-content: space-between; margin: 0; padding-top: 8px; border-top: 1px solid var(--bordure); font-size: 1.1rem; }
+@media (max-width: 860px) {
+  .prendre-commande-grille { grid-template-columns: 1fr; }
+  .commande-serveur { position: static; }
+}

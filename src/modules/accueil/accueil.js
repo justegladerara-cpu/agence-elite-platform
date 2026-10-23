@@ -5,6 +5,7 @@ import { formatMontant } from '../../noyau/format.js';
 // Gros boutons, en mots de commerçant. Chacun n'apparaît que si son écran est accessible et l'action permise.
 export const GROS_BOUTONS = [
   { id: 'vendre', libelle: 'Vendre', detail: 'Ouvrir la caisse', icone: 'caisse', route: 'caisse', permission: 'caisse.utiliser', mots: 'caisse vente encaisser ticket client' },
+  { id: 'prendre-commande', libelle: 'Prendre une commande', detail: 'Elle part à la caisse', icone: 'panier', route: 'prendre-commande', permission: 'caisse.commander', mots: 'commande serveur table tablette envoyer caisse' },
   { id: 'recu', libelle: 'J’ai reçu de la marchandise', detail: 'Le stock augmente', icone: 'camion', route: 'stock?vue=reception', permission: 'stock.ajuster', mots: 'reception livraison arrivage fournisseur entree stock carton' },
   { id: 'compter', libelle: 'Je compte mon stock', detail: 'Inventaire, tout ou une partie', icone: 'inventaire', route: 'stock?vue=inventaire', permission: 'stock.ajuster', mots: 'inventaire comptage compter' },
   { id: 'perte', libelle: 'J’ai perdu / cassé / périmé', detail: 'Le stock baisse, la perte est chiffrée', icone: 'alerte', route: 'stock?vue=perte', permission: 'stock.ajuster', mots: 'perte casse vol perime abime retirer' },

@@ -8,11 +8,14 @@ const HappyHour = lazy(() => import('./HappyHour.jsx'));
 const OffertsPertes = lazy(() => import('./OffertsPertes.jsx'));
 const Reserves = lazy(() => import('./Reserves.jsx'));
 const QrCodes = lazy(() => import('./QrCodes.jsx'));
+const PrendreCommande = lazy(() => import('./PrendreCommande.jsx'));
 
 export default {
   module: 'caisse',
   pages: [
     { id: 'caisse', libelle: 'Caisse', icone: 'caisse', groupe: 'Vente', ordre: 10, permission: 'caisse.utiliser', composant: Caisse, pleinEcran: true },
+    // Tablette du serveur (migration 20261023000158) : il prend la commande, la caisse ouverte la reçoit.
+    { id: 'prendre-commande', libelle: 'Prendre une commande', icone: 'panier', groupe: 'Vente', ordre: 11, permission: 'caisse.commander', composant: PrendreCommande },
     // Menu en ligne et QR codes des tables (migration 20261012000131) : réglé par le gérant.
     // Menu QR, Happy hour et Bouteilles en réserve : éteints par défaut depuis le 2026-10-23 (src/noyau/fonctions.js),
     // rallumables dans Paramètres > Applications. Juste utilise « QR codes », imprimés sur les tables.

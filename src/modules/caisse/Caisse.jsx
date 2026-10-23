@@ -35,7 +35,7 @@ const decimalesDevise = (devise) => (['XAF', 'XOF', 'GNF', 'CDF'].includes(devis
 
 // Stock, prix et commandes des tables relus en arrière-plan : la caisse voit la marchandise reçue, les ventes des autres
 // caisses et les nouvelles commandes des QR codes sans recharger la page.
-const RAFRAICHIR_CAISSE_MS = 30000;
+const RAFRAICHIR_CAISSE_MS = 15000;
 
 // « Complément minimum » (tables VIP) : ligne de montant ajoutée en salle, jamais une tuile de la caisse.
 const sansArticleTechnique = (articles) => articles.filter((a) => !estArticleTechnique(a));
@@ -677,16 +677,23 @@ export default function Caisse({ naviguer }) {
   useEffect(() => {
     if (!donneesChargees) return undefined;
     let actif = true;
+    const connues = new Set((donneesChargees.attentes ?? []).map((a) => a.id));
     const relire = async () => {
       if (document.visibilityState === 'hidden') return;
       try {
-        const [articles, stock, commandesQr, happyHours] = await Promise.all([
+        const [articles, stock, commandesQr, happyHours, attentes] = await Promise.all([
           api.lire('articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).then(sansArticleTechnique),
           api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
           api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
           api.lire('happy_hours', { eq: { etablissement_id: etab, actif: true } }).catch(() => []),
+          // Commandes envoyées par les serveurs depuis leur tablette (migration 20261023000158) : elles arrivent ici.
+          api.lire('ventes_en_attente', { eq: { etablissement_id: etab, statut: 'en_attente' }, ordre: ['cree_le'] }).catch(() => undefined),
         ]);
-        if (actif) setFrais({ articles, stock, commandesQr: commandesQr.length, happyHours });
+        if (!actif) return;
+        const arrivees = (attentes ?? []).filter((a) => !connues.has(a.id) && a.cree_par !== utilisateur?.id);
+        (attentes ?? []).forEach((a) => connues.add(a.id));
+        if (arrivees.length) notifier(arrivees.length === 1 ? `Nouvelle commande : ${arrivees[0].libelle}` : `${arrivees.length} nouvelles commandes des serveurs`);
+        setFrais({ articles, stock, commandesQr: commandesQr.length, happyHours, ...(attentes ? { attentes } : {}) });
       } catch {
         // Réseau coupé un instant : on garde ce qui est affiché.
       }
