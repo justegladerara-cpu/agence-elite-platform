@@ -1,0 +1,154 @@
+/* Analyses du Tableau de bord et rapport A4 (2026-10-23). Jetons de src/styles.css uniquement. */
+
+.analyse-resume {
+  display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 12px 14px;
+  background: var(--accent-doux); color: var(--texte); border-radius: var(--rayon); font-size: var(--texte-md); line-height: 1.45;
+}
+.analyse-resume svg { flex: 0 0 auto; margin-top: 2px; color: var(--accent); }
+.analyse-note { margin: 0; font-size: var(--texte-sm); }
+.analyse-phrase { margin: 0 0 10px; }
+
+.analyse-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.analyse-kpi {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 14px;
+  background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre-carte);
+}
+.analyse-kpi-libelle { color: var(--texte-doux); font-size: var(--texte-sm); font-weight: var(--poids-moyen); }
+.analyse-kpi-valeur { font-size: var(--texte-xl); font-weight: var(--poids-gras); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.analyse-kpi.absent .analyse-kpi-valeur { color: var(--texte-faible); font-size: var(--texte-md); }
+.analyse-kpi-pied { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: var(--texte-xs); color: var(--texte-doux); }
+.analyse-fleche { font-weight: var(--poids-fort); color: var(--texte-doux); white-space: nowrap; }
+.analyse-fleche.bon { color: var(--vert); }
+.analyse-fleche.mauvais { color: var(--rouge); }
+
+.analyse-direct { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 0; overflow: hidden; }
+.analyse-direct-bloc { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; min-width: 0; border-left: 1px solid var(--bordure); }
+.analyse-direct-bloc:first-child { border-left: 0; }
+.analyse-direct-bloc.principal { background: var(--accent-doux); }
+.analyse-direct-bloc strong { font-size: var(--texte-lg); overflow-wrap: anywhere; }
+.analyse-direct-bloc > span:last-child { color: var(--texte-doux); font-size: var(--texte-sm); }
+.analyse-gros { font-size: var(--texte-2xl) !important; font-variant-numeric: tabular-nums; }
+.analyse-etiquette { display: inline-flex; align-items: center; gap: 6px; font-size: var(--texte-xs); font-weight: var(--poids-fort); text-transform: uppercase; letter-spacing: .04em; color: var(--texte-doux); }
+.analyse-pastille { width: 8px; height: 8px; border-radius: 50%; background: var(--vert); box-shadow: 0 0 0 3px var(--vert-doux); }
+
+.analyse-faits { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.analyse-faits li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: center; }
+.analyse-fait-texte { line-height: 1.4; }
+.analyse-fait-texte strong { font-size: var(--texte-md); }
+.analyse-fait-texte span { color: var(--texte-doux); }
+.analyse-deux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.analyse-fait-icone { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--accent-doux); color: var(--accent); }
+
+.analyse-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.analyse-points li { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: var(--rayon-petit); background: var(--surface-douce); }
+.analyse-points li svg { flex: 0 0 auto; margin-top: 1px; }
+.analyse-points .niveau-critique, .analyse-points .niveau-alerte { background: var(--orange-doux); }
+.analyse-points .niveau-critique svg { color: var(--rouge); }
+.analyse-points .niveau-alerte svg { color: var(--orange); }
+.analyse-points .niveau-bon { background: var(--vert-doux); }
+.analyse-points .niveau-bon svg { color: var(--vert); }
+
+.analyse-chaleur td.meilleure { outline: 2px solid var(--texte); outline-offset: -2px; }
+
+.analyse-classement { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.analyse-classement li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--bordure); }
+.analyse-classement li:last-child { border-bottom: 0; }
+.analyse-rang { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-douce); font-size: var(--texte-xs); font-weight: var(--poids-fort); color: var(--texte-doux); }
+.analyse-classement-nom { display: flex; flex-direction: column; min-width: 0; }
+.analyse-classement-nom strong { overflow-wrap: anywhere; }
+.analyse-classement-nom small { color: var(--texte-doux); }
+.analyse-classement-valeur { font-weight: var(--poids-fort); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.analyse-ecart { color: var(--rouge); font-weight: var(--poids-fort); }
+.analyse-annulation { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; }
+.analyse-annulation > span:first-child { display: flex; flex-direction: column; min-width: 0; }
+.analyse-annulation small { color: var(--texte-doux); }
+
+@media (max-width: 860px) { .analyse-deux { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1100px) {
+  .analyse-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .analyse-direct { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analyse-direct-bloc:nth-child(3) { border-left: 0; }
+  .analyse-direct-bloc:nth-child(n + 3) { border-top: 1px solid var(--bordure); }
+}
+@media (max-width: 640px) {
+  .analyse-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .analyse-kpi { padding: 12px; }
+  .analyse-kpi-valeur { font-size: var(--texte-lg); }
+  .analyse-direct { grid-template-columns: minmax(0, 1fr); }
+  .analyse-direct-bloc { border-left: 0; border-top: 1px solid var(--bordure); }
+  .analyse-direct-bloc:first-child { border-top: 0; }
+}
+
+/* --- Rapport A4 ----------------------------------------------------------------------------------------------
+   Toujours en clair (papier), quel que soit le thème de l'écran. Zone imprimable : A4 moins 12 mm de marge
+   (règle @page commune des documents A4), soit 186 × 273 mm. */
+.rapport-choix { display: grid; gap: 12px; }
+.rapport-dates { display: flex; flex-wrap: wrap; gap: 12px; }
+.rapport-dates .champ { min-width: 180px; }
+.rapport-apercu { overflow-x: auto; padding: 8px 0 24px; }
+
+.rapport-a4 {
+  --r-texte: #18202f; --r-doux: #5b6577; --r-trait: #dfe4ec; --r-fond: #f4f6f9; --r-accent: var(--accent, #2563eb);
+  box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm;
+  background: #fff; color: var(--r-texte); box-shadow: var(--ombre-forte); border-radius: 4px;
+  font-family: var(--police); font-size: 8.4pt; line-height: 1.32;
+  display: flex; flex-direction: column; gap: 3.2mm;
+}
+.rapport-a4 h3 { margin: 0 0 1.5mm; font-size: 8.6pt; text-transform: uppercase; letter-spacing: .05em; color: var(--r-doux); }
+.rapport-tete { display: flex; justify-content: space-between; gap: 6mm; padding-bottom: 3mm; border-bottom: 2px solid var(--r-accent); }
+.rapport-identite { display: flex; gap: 3mm; align-items: center; min-width: 0; }
+.rapport-identite > div { display: flex; flex-direction: column; gap: .5mm; color: var(--r-doux); }
+.rapport-logo { width: 16mm; height: 16mm; object-fit: contain; }
+.rapport-logo-texte { display: grid; place-items: center; width: 14mm; height: 14mm; border-radius: 3mm; background: var(--r-accent); color: #fff; font-weight: 700; font-size: 12pt; }
+.rapport-nom { font-size: 13pt; color: var(--r-texte); }
+.rapport-titre { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: .5mm; color: var(--r-doux); }
+.rapport-titre strong { font-size: 10.5pt; color: var(--r-texte); }
+.rapport-resume { margin: 0; padding: 2.2mm 3mm; background: var(--r-fond); border-left: 3px solid var(--r-accent); font-size: 9.2pt; font-weight: 600; }
+
+.rapport-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm; }
+.rapport-kpi { display: flex; flex-direction: column; gap: .6mm; padding: 2mm; border: 1px solid var(--r-trait); border-radius: 2mm; min-width: 0; }
+.rapport-kpi-libelle { color: var(--r-doux); font-size: 7.4pt; }
+.rapport-kpi strong { font-size: 10.5pt; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.rapport-kpi-pied { display: flex; flex-direction: column; gap: .3mm; font-size: 7pt; color: var(--r-doux); }
+.rapport-var { font-weight: 700; }
+.rapport-var.bon { color: #047857; }
+.rapport-var.mauvais { color: #c81e1e; }
+.rapport-var.neutre { color: var(--r-doux); }
+
+.rapport-deux, .rapport-bas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4mm; }
+.rapport-bloc { min-width: 0; }
+.rapport-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.rapport-table th, .rapport-table td { padding: .75mm 1mm; border-bottom: 1px solid var(--r-trait); text-align: right; white-space: nowrap; }
+.rapport-table th:first-child { text-align: left; font-weight: 400; white-space: normal; overflow-wrap: break-word; min-width: 24mm; }
+.rapport-table thead th { font-weight: 700; color: var(--r-doux); font-size: 7.4pt; background: var(--r-fond); }
+.rapport-table thead th:first-child { font-weight: 700; }
+.rapport-z tr.fort th, .rapport-z tr.fort td { font-weight: 700; background: var(--r-fond); }
+.rapport-z tr.retrait th { padding-left: 4mm; color: var(--r-doux); }
+.rapport-table tr.alerte th, .rapport-table tr.alerte td { color: #b42318; }
+.rapport-serre { font-size: 7.2pt; }
+.rapport-serre th, .rapport-serre td { padding: .7mm .6mm; }
+.rapport-serre th:first-child { min-width: 20mm; }
+.rapport-note { margin: 1mm 0 0; color: var(--r-doux); font-size: 7.4pt; }
+.rapport-graphique { width: 100%; height: auto; display: block; }
+.rapport-graphique rect { fill: #c7d2e3; }
+.rapport-graphique rect.pic { fill: var(--r-accent); }
+.rapport-graphique text { font-size: 6.5px; fill: var(--r-doux); }
+.rapport-axe { stroke: var(--r-trait); }
+.rapport-legende { margin: .5mm 0 1mm; color: var(--r-doux); }
+.rapport-moments { margin: 0; padding-left: 4mm; display: grid; gap: .6mm; }
+.rapport-vide { color: var(--r-doux); }
+.rapport-attention ol { margin: 0; padding-left: 5mm; display: grid; gap: 1.5mm; }
+.rapport-attention li { padding: 1.5mm 2mm; border-radius: 1.5mm; background: var(--r-fond); }
+.rapport-attention .niveau-critique, .rapport-attention .niveau-alerte { background: #fff1e6; }
+.rapport-attention .niveau-bon { background: #e3f6ee; }
+.rapport-pied { margin-top: auto; display: flex; justify-content: space-between; gap: 4mm; padding-top: 2mm; border-top: 1px solid var(--r-trait); color: var(--r-doux); font-size: 6.8pt; }
+
+.rapport-zone { display: none; }
+@media print {
+  body.impression-rapport > *:not(.rapport-zone) { display: none !important; }
+  body.impression-rapport .rapport-zone { display: block; }
+  body.impression-rapport .rapport-a4 {
+    width: 186mm; min-height: 0; height: 272mm; padding: 0; margin: 0; box-shadow: none; border-radius: 0; overflow: hidden;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+}

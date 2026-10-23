@@ -37,7 +37,7 @@ export function useFiltresCockpit() {
   };
 }
 
-export function BarrePeriode({ f, filtresAvances = true }) {
+export function BarrePeriode({ f, filtresAvances = true, sansPeriodes = false }) {
   const { api, etablissement, hubs, multiHub } = useEspace();
   const [ouvert, setOuvert] = useState(Boolean(f.caisseId || f.utilisateurId));
   const { donnees: options } = useDonnees(
@@ -49,13 +49,13 @@ export function BarrePeriode({ f, filtresAvances = true }) {
   const actifs = [f.caisseId, f.utilisateurId].filter(Boolean).length;
   return (
     <div className="cockpit-barre">
-      <div className="cockpit-periodes" role="tablist" aria-label="Période">
+      {!sansPeriodes && <div className="cockpit-periodes" role="tablist" aria-label="Période">
         {PERIODES.map(([id, libelle]) => (
           <button key={id} type="button" role="tab" aria-selected={f.periode === id} className={f.periode === id ? 'actif' : ''} onClick={() => f.choisirPeriode(id)}>
             {libelle}
           </button>
         ))}
-      </div>
+      </div>}
       <div className="cockpit-filtres">
         {f.periode === 'perso' && (
           <span className="cockpit-dates">

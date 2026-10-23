@@ -324,7 +324,22 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Carburant livraison').waitFor();
     });
     await etape('tableau', async () => { await p.goto(U + '#/tableau-de-bord'); await p.getByText('Chiffre d’affaires').first().waitFor(); });
-    await etape('tableau-30j', async () => { await p.getByRole('tab', { name: '30 jours' }).click(); await p.getByText('Chiffre d’affaires par jour').first().waitFor(); await p.getByText('À surveiller').first().waitFor(); });
+    await etape('tableau-direct', async () => { await p.getByText('En direct').first().waitFor(); await p.getByText('À surveiller').first().waitFor(); });
+    await etape('tableau-ventes', async () => {
+      await p.getByRole('navigation', { name: 'Tableaux de bord' }).getByRole('button', { name: 'Ventes', exact: true }).click();
+      await p.getByRole('tab', { name: '30 jours' }).click();
+      await p.getByText('Chiffre d’affaires jour par jour').first().waitFor();
+      await p.getByText('Ce qu’il faut retenir').first().waitFor();
+    });
+    await etape('tableau-produits', async () => { await p.goto(U + '#/tableau-de-bord/produits'); await p.getByText('Top 10 en chiffre d’affaires').waitFor(); });
+    await etape('tableau-equipe', async () => { await p.goto(U + '#/tableau-de-bord/equipe'); await p.getByText('Classement de l’équipe').waitFor(); });
+    await etape('rapport-a4', async () => {
+      await p.getByRole('button', { name: 'Télécharger le rapport' }).click();
+      await p.getByRole('tab', { name: 'Hebdomadaire' }).click();
+      await p.getByText(/Rapport hebdomadaire · semaine du/).waitFor();
+      await p.getByText('Ticket Z consolidé').waitFor();
+      await p.getByText('3 points d’attention').waitFor();
+    });
     await etape('tableau-domaine', async () => {
       await p.goto(U + '#/tableau-de-bord/commerce');
       await p.getByText('Tableau Commerce').waitFor();
