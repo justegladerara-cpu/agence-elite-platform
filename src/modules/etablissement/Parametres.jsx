@@ -7,6 +7,7 @@ import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Tab
 import { ChampsApparence } from '../../ui/Marque.jsx';
 import { ListeApplications } from './Applications.jsx';
 import { Connexions } from './Connexions.jsx';
+import { ConstructeurTicket } from '../recus/ConstructeurTicket.jsx';
 import { BandeauNouveau } from '../../ui/Nouveau.jsx';
 
 function Identite({ partie }) {
@@ -496,14 +497,14 @@ function Securite() {
 }
 
 const ONGLETS = [
-  ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'], ['reglages', 'Réglages des modules'],
+  ['entreprise', 'Entreprise'], ['apparence', 'Apparence'], ['documents', 'Documents'], ['caisses', 'Caisses'], ['ticket', 'Ticket de caisse'], ['reglages', 'Réglages des modules'],
   ['applications', 'Applications'], ['connexions', 'Connexions'], ['equipe', 'Utilisateurs et Hubs'], ['securite', 'Sécurité'], ['licence', 'Mon abonnement'],
 ];
 
 // Paramètres de l'établissement. Les onglets n'existent que si la fonction existe vraiment.
 export default function Parametres({ naviguer }) {
   const { etablissement, peut, moduleActif } = useEspace();
-  const onglets = ONGLETS.filter(([id]) => (id !== 'caisses' || moduleActif('caisse')) && (id !== 'connexions' || peut('etablissement.integrations')));
+  const onglets = ONGLETS.filter(([id]) => (!['caisses', 'ticket'].includes(id) || moduleActif('caisse')) && (id !== 'connexions' || peut('etablissement.integrations')));
   // ?onglet=… ou #/parametres/licence (lien des alertes d'échéance).
   const demande = lireParametres().get('onglet') ?? lireRoute().split('/')[1];
   const [onglet, setOnglet] = useState(onglets.some(([id]) => id === demande) ? demande : 'entreprise');
@@ -515,6 +516,7 @@ export default function Parametres({ naviguer }) {
       {onglet === 'documents' && <Identite key={`d-${etablissement.id}`} partie="documents" />}
       {onglet === 'apparence' && <Apparence key={etablissement.id} />}
       {onglet === 'caisses' && <ReglagesCaisse />}
+      {onglet === 'ticket' && <ConstructeurTicket key={etablissement.id} />}
       {onglet === 'reglages' && (
         <>
           <BandeauNouveau>

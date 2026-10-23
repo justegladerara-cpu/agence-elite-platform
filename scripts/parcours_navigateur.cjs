@@ -362,6 +362,21 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.waitForFunction(() => !location.hash.startsWith('#/tableau-de-bord'), null, { timeout: 15000 });
     });
     await etape('parametres', async () => { await p.goto(U + '#/parametres'); await p.getByRole('tab', { name: 'Entreprise' }).waitFor(); });
+    await etape('ticket-constructeur', async () => {
+      // Paramètres › Ticket de caisse : un message en haut, le QR code, enregistré ; l'aperçu suit.
+      await p.goto(U + '#/parametres?onglet=ticket');
+      await p.getByRole('heading', { name: 'Le ticket de vente' }).waitFor();
+      await p.getByLabel('Message en haut du ticket').fill('Bienvenue au bar');
+      await p.locator('.ticket-apercu').getByText('Bienvenue au bar').waitFor();
+      await p.getByRole('switch', { name: 'Imprimer : QR code (Instagram, WhatsApp, site…)' }).click();
+      await p.getByLabel('Lien du QR code').fill('https://instagram.com/demo');
+      await p.locator('.ticket-apercu .ticket-qr svg').waitFor();
+      await p.getByRole('button', { name: 'Monter : Message en bas' }).click();
+      await p.getByRole('button', { name: 'Enregistrer le ticket' }).click();
+      await p.getByText('Ticket enregistré').first().waitFor();
+      await p.getByRole('button', { name: 'Remettre le ticket d’origine' }).click();
+      await p.getByText('Ticket d’origine remis').first().waitFor();
+    });
     // Chaque module est ouvert par un profil de démonstration qui y a réellement accès.
     const changerProfil = async (profil) => {
       await p.evaluate(() => { localStorage.removeItem('ae-utilisateur-local'); localStorage.removeItem('ae-session-ouverte'); });

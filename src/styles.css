@@ -1858,6 +1858,18 @@ fieldset {
   font-size: 11px;
 }
 
+/* Ticket réglé dans Paramètres › Ticket de caisse (modeleTicket.js). */
+.ticket-logo.logo-petit { max-width: 80px; max-height: 40px; }
+.ticket-logo.logo-grand { max-width: 180px; max-height: 90px; }
+.ticket-message { font-weight: 700; white-space: pre-line; }
+.ticket-pied, .ticket .ticket-petit { white-space: pre-line; }
+.ticket-qr { display: grid; justify-items: center; gap: 4px; }
+.ticket-qr .image-qr { width: 110px; }
+.ticket-qr .image-qr svg { display: block; width: 100%; height: auto; }
+.ticket.ticket-58 { width: 230px; font-size: 11px; }
+.ticket.ticket-grand { font-size: 14px; }
+.ticket.ticket-grand .ticket-nom, .ticket.ticket-grand .ticket-total { font-size: 17px; }
+
 .zone-impression {
   display: none;
 }
@@ -1879,6 +1891,10 @@ fieldset {
     width: 72mm;
     box-shadow: none;
     padding: 0;
+  }
+
+  body.impression-ticket .zone-impression .ticket.ticket-58 {
+    width: 48mm;
   }
 }
 
