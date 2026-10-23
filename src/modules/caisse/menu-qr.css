@@ -65,3 +65,20 @@
 .controle-qr.ko { border-color: var(--rouge); }
 .controle-qr.ko strong, .controle-qr small.grave { color: var(--rouge); }
 .historique-qr ul { margin: 0.35rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; overflow-wrap: anywhere; }
+
+/* Constructeur de la page mobile d'un QR code : réglages à gauche, téléphone à droite. */
+.constructeur-page-qr { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.telephone-apercu {
+  position: sticky; top: 0; max-height: 72vh; overflow: auto; border: 10px solid #111827; border-radius: 34px; background: #f6f7f9;
+}
+.ajouter-bloc { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.carte-ajout-bloc {
+  display: grid; gap: 2px; padding: 10px 12px; text-align: left; border: 1px dashed var(--bordure-forte, var(--bordure)); border-radius: 12px;
+  background: var(--surface); color: var(--texte); font-weight: 600; cursor: pointer;
+}
+.carte-ajout-bloc small { font-weight: 400; color: var(--texte-doux); }
+.carte-ajout-bloc:disabled { opacity: .5; cursor: default; }
+@media (max-width: 900px) {
+  .constructeur-page-qr { grid-template-columns: 1fr; }
+  .telephone-apercu { position: static; max-height: none; }
+}

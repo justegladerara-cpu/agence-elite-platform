@@ -954,6 +954,27 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       const cellules = await ligne.getByRole('cell').allTextContents();
       if (cellules[1] !== '1' || cellules[6] === '—') throw new Error('Scan non compté : ' + cellules.join(' | '));
       await p.getByRole('heading', { name: 'Heures de pointe' }).waitFor();
+      await p.getByRole('table', { name: 'Scans jour par jour' }).waitFor();
+      // Page mobile : construite, allumée ; au scan le client la voit et s'inscrit ; le gérant voit l'inscrit.
+      await p.getByRole('tab', { name: /Mes QR codes/ }).click();
+      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByRole('button', { name: 'Page mobile' }).click();
+      const pageQr = p.getByRole('dialog', { name: /Page mobile de/ });
+      await pageQr.getByLabel('Aperçu sur un téléphone').getByText('Recevez nos offres').waitFor();
+      await pageQr.getByRole('button', { name: /\+ Texte/ }).click();
+      await pageQr.getByLabel('Texte', { exact: true }).fill('Soirée tous les vendredis');
+      await pageQr.getByLabel('Aperçu sur un téléphone').getByText('Soirée tous les vendredis').waitFor();
+      await pageQr.getByRole('button', { name: 'Enregistrer la page' }).click();
+      await pageQr.waitFor({ state: 'detached' });
+      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByText('page mobile allumée').waitFor();
+      await p.goto(lien);
+      await p.getByText('Soirée tous les vendredis').waitFor({ timeout: 60000 });
+      await p.getByRole('link', { name: 'Parcours Instagram' }).waitFor();
+      await p.getByLabel('Votre nom').fill('Client Parcours');
+      await p.getByLabel('Votre numéro (WhatsApp)').fill('+242 06 000 00 09');
+      await p.getByRole('button', { name: 'Je m’inscris' }).click();
+      await p.getByText('Merci ! À très bientôt.').waitFor({ timeout: 30000 });
+      await p.goto(U + '#/qr-codes?vue=inscrits');
+      await p.getByRole('table', { name: 'Clients inscrits' }).getByText('Client Parcours').waitFor({ timeout: 60000 });
       // Désactivé : la page publique le dit, rien n'est compté.
       await p.getByRole('tab', { name: /Mes QR codes/ }).click();
       await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByRole('button', { name: 'Désactiver' }).click();
