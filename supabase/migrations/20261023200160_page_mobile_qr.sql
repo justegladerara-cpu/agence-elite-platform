@@ -301,7 +301,7 @@ begin
   v_compte := public.noter_scan_qr(q.etablissement_id, q.id, null, p_appareil, p_visiteur);
   return jsonb_build_object(
     'type', q.type, 'nom', q.nom, 'cible', q.cible, 'contenu', q.contenu, 'utm', q.utm, 'menu', v_menu,
-    -- Page mobile allumée (migration 20261023000160) : le client la voit au lieu d'être envoyé tout de suite.
+    -- Page mobile allumée (migration 20261023200160) : le client la voit au lieu d'être envoyé tout de suite.
     'page', public.page_qr_publique(q),
     'etablissement', coalesce((select nullif(btrim(i.nom_commercial), '') from public.etablissement_identite i where i.etablissement_id = q.etablissement_id),
       (select e.nom from public.etablissements e where e.id = q.etablissement_id)),

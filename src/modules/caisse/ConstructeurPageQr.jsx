@@ -1,5 +1,5 @@
 // Constructeur de la page mobile d'un QR code (demande de Juste, 2026-10-23) : blocs à ajouter, ranger, remplir,
-// aperçu dans un téléphone, page allumée ou éteinte. Enregistré par enregistrer_page_qr (migration 20261023000160).
+// aperçu dans un téléphone, page allumée ou éteinte. Enregistré par enregistrer_page_qr (migration 20261023200160).
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Modale, Squelette } from '../../ui/composants.jsx';

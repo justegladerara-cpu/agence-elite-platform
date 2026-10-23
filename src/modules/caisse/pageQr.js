@@ -1,4 +1,4 @@
-// Page mobile d'un QR code (migration 20261023000160) : blocs, page de départ, liens des boutons. Logique pure,
+// Page mobile d'un QR code (migration 20261023200160) : blocs, page de départ, liens des boutons. Logique pure,
 // testée dans tests/page_mobile_qr_ecran.test.jsx. La base revérifie tout (blocs_page_qr_verifies).
 import { lienMenu, lienTelephone, lienWhatsapp, destinationQr } from '../../noyau/qrContenus.js';
 

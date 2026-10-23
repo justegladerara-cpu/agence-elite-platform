@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 import { basculerPage, fonctionActive, pageEteinte, pagesCachees } from '../src/noyau/fonctions.js';
 
-// Sortie d'argent de la caisse (migration 20261023000156, fonction sortie_de_caisse) et interrupteurs des fonctions.
+// Sortie d'argent de la caisse (migration 20261023200156, fonction sortie_de_caisse) et interrupteurs des fonctions.
 // Données fictives uniquement.
 let db;
 let gerant;

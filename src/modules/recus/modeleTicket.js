@@ -1,5 +1,5 @@
 // Modèle du ticket de vente, réglé dans Paramètres › Ticket de caisse (demande de Juste, 2026-10-23).
-// Gardé en texte JSON dans les réglages du module caisse (clé « modele_ticket », migration 20261023000159).
+// Gardé en texte JSON dans les réglages du module caisse (clé « modele_ticket », migration 20261023200159).
 // Sans modèle enregistré, le ticket reste exactement comme avant (clients existants : rien ne change à l'impression).
 // Le numéro, la date, les articles, le total, les paiements et le RCCM / NIU connus ne se cachent jamais.
 

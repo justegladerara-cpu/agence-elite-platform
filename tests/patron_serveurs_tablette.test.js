@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
 // Le patron vend sur la caisse ouverte de la caissière ; les serveurs envoient leurs commandes à la caisse
-// (migration 20261023000158). Données fictives uniquement.
+// (migration 20261023200158). Données fictives uniquement.
 let db;
 let patron;
 let awa;

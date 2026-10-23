@@ -95,7 +95,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('dialog').getByLabel('Espèces comptées dans le tiroir').waitFor();
       await p.keyboard.press('Escape');
     });
-    // Sortie d'argent du tiroir (migration 20261023000156) : déduite des espèces attendues au ticket Z.
+    // Sortie d'argent du tiroir (migration 20261023200156) : déduite des espèces attendues au ticket Z.
     await etape('sortie-argent', async () => {
       await p.getByRole('button', { name: 'Sortie d’argent' }).click();
       const fenetre = p.getByRole('dialog', { name: 'Sortie d’argent de la caisse' });
@@ -894,7 +894,7 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('article', { name: 'Réserve de Client du parcours' }).waitFor();
       if (await p.locator('.erreur:visible').count()) throw new Error(await p.locator('.erreur:visible').first().textContent());
     });
-    // Paramètres > Applications : un interrupteur par écran ; caché = disparaît du menu (migration 20261023000156).
+    // Paramètres > Applications : un interrupteur par écran ; caché = disparaît du menu (migration 20261023200156).
     await etape('ecrans-caches', async () => {
       await p.goto(U + '#/parametres?onglet=applications');
       const carte = p.getByRole('switch', { name: 'Emballages consignés' });

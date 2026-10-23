@@ -1,7 +1,7 @@
 // Écrans affichés ou cachés, réglés dans Paramètres > Applications (demande de Juste, 2026-10-23) : le patron cache
 // ce que son établissement n'utilise pas. Un écran caché disparaît du menu et des gros boutons de l'accueil ; ses
 // données restent en base. Réglage : etablissement_parametres, module « etablissement », clé pages_cachees
-// (identifiants séparés par des virgules, migration 20261023000156).
+// (identifiants séparés par des virgules, migration 20261023200156).
 export const CLE_PAGES_CACHEES = 'pages_cachees';
 
 // Jamais encore réglé : ces écrans sont cachés (Juste ne s'en sert pas).

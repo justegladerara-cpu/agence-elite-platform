@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 import { libelleRaison, offrirTout, texteRaison } from '../src/modules/caisse/offerts.js';
 
-// Détail d'une vente (infos_vente) et ventes d'essai (marquer_vente_essai), migration 20261023000157.
+// Détail d'une vente (infos_vente) et ventes d'essai (marquer_vente_essai), migration 20261023200157.
 // Données fictives uniquement.
 let db;
 let gerant;

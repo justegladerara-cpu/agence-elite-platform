@@ -1,6 +1,6 @@
 // Paramètres › Ticket de caisse : le patron construit son ticket de vente (demande de Juste, 2026-10-23).
 // Blocs à montrer ou cacher, ordre, messages, QR code, taille du logo et du texte, largeur du papier ; aperçu en direct.
-// Enregistré dans les réglages du module caisse (clé modele_ticket, migration 20261023000159).
+// Enregistré dans les réglages du module caisse (clé modele_ticket, migration 20261023200159).
 import React, { useEffect, useMemo, useState } from 'react';
 import { nomUtilisateur, useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Chargement, Erreur } from '../../ui/composants.jsx';

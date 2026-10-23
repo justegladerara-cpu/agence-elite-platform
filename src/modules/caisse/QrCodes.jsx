@@ -399,7 +399,7 @@ function ScansParJour({ qrCodeId, emplacementId }) {
   );
 }
 
-// Clients inscrits par le formulaire de la page mobile (migration 20261023000160).
+// Clients inscrits par le formulaire de la page mobile (migration 20261023200160).
 function ClientsInscrits({ codes }) {
   const { api, etablissement } = useEspace();
   const { donnees, chargement, erreur } = useDonnees(() => api.lire('inscriptions_qr', { eq: { etablissement_id: etablissement.id }, ordre: ['cree_le', 'desc'], limite: 2000 }), [etablissement.id]);
@@ -544,7 +544,7 @@ export default function QrCodes({ naviguer }) {
       api.lire('qr_codes', { eq: { etablissement_id: etab }, ordre: ['cree_le'] }),
       api.lire('menus_qr', { eq: { etablissement_id: etab } }),
       api.rpc('statistiques_qr', { p_etablissement_id: etab }),
-      // Pages mobiles (migration 20261023000160) : sans la table, le bouton reste simplement sans badge.
+      // Pages mobiles (migration 20261023200160) : sans la table, le bouton reste simplement sans badge.
       api.lire('pages_qr', { eq: { etablissement_id: etab }, colonnes: ['qr_code_id', 'active'] }).catch(() => []),
     ]);
     return { codes, menu: menus[0] ?? { actif: false, qr_logo: false, qr_style: {} }, stats, pages: Object.fromEntries(pages.map((p) => [p.qr_code_id, p.active])) };

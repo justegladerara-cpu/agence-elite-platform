@@ -686,7 +686,7 @@ export default function Caisse({ naviguer }) {
           api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
           api.lire('commandes_qr', { eq: { etablissement_id: etab, statut: 'nouvelle' } }).catch(() => []),
           api.lire('happy_hours', { eq: { etablissement_id: etab, actif: true } }).catch(() => []),
-          // Commandes envoyées par les serveurs depuis leur tablette (migration 20261023000158) : elles arrivent ici.
+          // Commandes envoyées par les serveurs depuis leur tablette (migration 20261023200158) : elles arrivent ici.
           api.lire('ventes_en_attente', { eq: { etablissement_id: etab, statut: 'en_attente' }, ordre: ['cree_le'] }).catch(() => undefined),
         ]);
         if (!actif) return;

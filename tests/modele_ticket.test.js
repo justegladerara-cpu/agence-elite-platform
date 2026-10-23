@@ -4,7 +4,7 @@ import {
   basculerBloc, blocsADessiner, blocVisible, deplacerBloc, ecrireModele, lienQr, lireModele, MODELE_PAR_DEFAUT,
 } from '../src/modules/recus/modeleTicket.js';
 
-// Ticket de vente réglable (migration 20261023000159, modeleTicket.js). Données fictives uniquement.
+// Ticket de vente réglable (migration 20261023200159, modeleTicket.js). Données fictives uniquement.
 describe('modèle du ticket', () => {
   test('sans modèle : le ticket d’avant (même ordre, QR caché, tout le reste visible)', () => {
     const m = lireModele(null);

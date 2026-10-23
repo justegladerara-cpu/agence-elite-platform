@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
 
-// Page mobile des QR codes (migration 20261023000160) : blocs vérifiés, page allumée montrée au scan, formulaire
+// Page mobile des QR codes (migration 20261023200160) : blocs vérifiés, page allumée montrée au scan, formulaire
 // d'inscription sans compte (plafonds, piège à robots), lecture réservée au gérant. Données fictives uniquement.
 let db;
 let gerant;

@@ -40,7 +40,7 @@ export function QrPublic({ donnees, jeton }) {
     donnees.rpc('ouvrir_qr_code', { p_jeton: jeton, p_appareil: appareil, p_visiteur: identifiantVisiteur() })
       .then(async (r) => {
         setReponse(r);
-        // Page mobile allumée (migration 20261023000160) : le client la voit, ses boutons mènent à la destination.
+        // Page mobile allumée (migration 20261023200160) : le client la voit, ses boutons mènent à la destination.
         if (r.page || r.type === 'vcard') return;
         const cible = destinationQr(r, `${window.location.origin}${window.location.pathname}`);
         if (!cible) throw new Error('Ce QR code n’a pas de destination');

@@ -1,6 +1,6 @@
 // « Prendre une commande » : l'écran du serveur sur sa tablette (demande de Juste, 2026-10-23). Le serveur a son compte,
 // sans caisse à lui. Il touche les articles, écrit la table, et envoie : la commande arrive dans « Factures en cours » de
-// la caisse ouverte, avec son prénom (fonction envoyer_commande_caisse, migration 20261023000158). La caissière encaisse.
+// la caisse ouverte, avec son prénom (fonction envoyer_commande_caisse, migration 20261023200158). La caissière encaisse.
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';

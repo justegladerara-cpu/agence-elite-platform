@@ -1,6 +1,6 @@
 // « Sortie d'argent » depuis la caisse (demande de Juste, 2026-10-23) : de l'argent pris dans le tiroir pour payer le
 // carburant, le loyer, l'électricité, un technicien… Enregistré comme dépense en espèces de CETTE caisse (fonction
-// sortie_de_caisse, migration 20261023000156) : il est retiré des espèces attendues au ticket Z.
+// sortie_de_caisse, migration 20261023200156) : il est retiré des espèces attendues au ticket Z.
 import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';

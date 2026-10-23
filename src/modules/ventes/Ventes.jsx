@@ -173,7 +173,7 @@ export function DetailVente({ venteId, onFermer, onChange }) {
     ]);
     const sessions = mesCaisses(await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } }), utilisateur);
     const contact = vente.contact_id ? (await api.lire('contacts', { eq: { id: vente.contact_id } }))[0] : null;
-    // Qui a encaissé, quelle caisse, quel ticket Z, offerts, pourboire, essai (migration 20261023000157).
+    // Qui a encaissé, quelle caisse, quel ticket Z, offerts, pourboire, essai (migration 20261023200157).
     const infos = await api.rpc('infos_vente', { p_vente_id: venteId }).catch(() => null);
     return { vente, lignes, paiements, retours, sessions, contact, infos };
   }, [venteId]);
@@ -355,7 +355,7 @@ export default function Ventes({ sousRoute }) {
           api.lire('remboursements_vente', { eq: { etablissement_id: etab } }).catch(() => []),
         ]).then(([r, remb]) => r.map((x) => ({ ...x, remboursement: remb.find((m) => m.retour_id === x.id) ?? null })))
         : Promise.resolve([]),
-      // Ventes d'essai (migration 20261023000157) : cachées de la liste sauf l'onglet « Essais ».
+      // Ventes d'essai (migration 20261023200157) : cachées de la liste sauf l'onglet « Essais ».
       api.lire('ventes_essais', { eq: { etablissement_id: etab }, colonnes: ['vente_id'] }).catch(() => []),
     ]);
     return { ventes, retours, essais: new Set(essais.map((e) => e.vente_id)), contacts: Object.fromEntries(contacts.map((c) => [c.id, c.nom])) };
