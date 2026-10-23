@@ -127,7 +127,8 @@ export function useModeleTicket() {
   useEffect(() => {
     if (!etablissement?.id) return undefined;
     let actif = true;
-    api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id, module_id: 'caisse' } })
+    // Promise.resolve : une lecture impossible (hors ligne, écran de test) ne casse jamais le reçu.
+    Promise.resolve().then(() => api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id, module_id: 'caisse' } }))
       .then((r) => {
         const texte = r?.[0]?.data?.[CLE_MODELE_TICKET] ?? null;
         if (!actif) return;
