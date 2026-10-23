@@ -3808,3 +3808,13 @@ input:not([type='checkbox']):not([type='radio']):not([type='range']), select, te
 .carte-dernier-z-titre { display: flex; gap: 8px; align-items: center; color: var(--accent); font-weight: 600; }
 .carte-dernier-z strong { font-size: 1.6rem; }
 .carte-dernier-z .bouton { margin-top: 6px; pointer-events: none; }
+
+/* Détail d'une vente : qui, où, quand (2026-10-23). */
+.infos-vente { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0 0 12px; }
+.infos-vente > div { padding: 8px 10px; border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface-douce, var(--fond)); }
+.infos-vente dt { font-size: .8rem; color: var(--texte-doux); }
+.infos-vente dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.liste-offerts { margin: 4px 0 0; padding-left: 18px; }
+
+/* Le patron vend sur la caisse d'une caissière (2026-10-23). */
+.bandeau-caisse-autre { margin: 0 0 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--bordure)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }

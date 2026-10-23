@@ -7,6 +7,7 @@ import { ModaleRecu } from '../recus/Recu.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
 import { mesCaisses } from '../caisse/mesCaisses.js';
 import { BandeauNouveau } from '../../ui/Nouveau.jsx';
+import { libelleRaison } from '../caisse/offerts.js';
 
 const PERIODES = [['jour', 'Aujourd’hui'], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout']];
 const DEBUTS = { jour: 0, semaine: -6, mois: -29 };
@@ -132,6 +133,35 @@ function ModaleRetour({ vente, lignes, retours, sessions, onFermer, onFait }) {
   );
 }
 
+// Qui, où, quand : caisse, personne qui a encaissé (le patron sur la caisse d'une caissière est nommé), ticket Z,
+// serveur, offerts et pourboire.
+function InfosVente({ vente, infos }) {
+  const { montant } = useEspace();
+  const lignes = [
+    ['Encaissée par', infos.caissier ? `${infos.caissier}${infos.vendu_par_autre ? ` (le patron, sur la caisse de ${infos.caisse_tenue_par})` : ''}` : null],
+    ['Servi par', vente.servi_par],
+    ['Caisse', [infos.point_de_vente, infos.hub].filter(Boolean).join(' · ') || null],
+    ['Caisse ouverte le', infos.caisse_ouverte_le ? formatDateHeure(infos.caisse_ouverte_le) : null],
+    ['Ticket Z', infos.ticket_z ? `${infos.ticket_z.numero} (caisse fermée le ${formatDateHeure(infos.ticket_z.cloturee_le)})` : (vente.session_caisse_id ? 'Caisse encore ouverte' : null)],
+    ['Pourboire', infos.pourboire ? `${montant(infos.pourboire.montant)} · ${MODES_PAIEMENT[infos.pourboire.mode] ?? infos.pourboire.mode}${infos.pourboire.serveur ? ` · ${infos.pourboire.serveur}` : ''}` : null],
+  ].filter(([, v]) => v);
+  return (
+    <>
+      <dl className="infos-vente">
+        {lignes.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+      {infos.offerts?.length > 0 && (
+        <div className="encart">
+          <strong>Offert</strong>
+          <ul className="liste-offerts">
+            {infos.offerts.map((o, i) => <li key={i}>{formatQuantite(o.quantite)} × {o.libelle} ({montant(o.valeur)}) : {libelleRaison(o.raison)}{o.precision ? `, ${o.precision}` : ''}</li>)}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function DetailVente({ venteId, onFermer, onChange }) {
   const { api, montant, peut, notifier, utilisateur } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
@@ -143,7 +173,9 @@ export function DetailVente({ venteId, onFermer, onChange }) {
     ]);
     const sessions = mesCaisses(await api.lire('sessions_caisse', { eq: { etablissement_id: vente.etablissement_id, statut: 'ouverte' } }), utilisateur);
     const contact = vente.contact_id ? (await api.lire('contacts', { eq: { id: vente.contact_id } }))[0] : null;
-    return { vente, lignes, paiements, retours, sessions, contact };
+    // Qui a encaissé, quelle caisse, quel ticket Z, offerts, pourboire, essai (migration 20261023000157).
+    const infos = await api.rpc('infos_vente', { p_vente_id: venteId }).catch(() => null);
+    return { vente, lignes, paiements, retours, sessions, contact, infos };
   }, [venteId]);
   const [action, setAction] = useState(null);
 
@@ -161,7 +193,7 @@ export function DetailVente({ venteId, onFermer, onChange }) {
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {donnees && (() => {
-        const { vente, lignes, paiements, retours, sessions, contact } = donnees;
+        const { vente, lignes, paiements, retours, sessions, contact, infos } = donnees;
         const reste = vente.total - vente.montant_paye;
         return (
           <div className="detail">
@@ -175,9 +207,13 @@ export function DetailVente({ venteId, onFermer, onChange }) {
                 <strong>{montant(vente.total)}</strong>
               </div>
             </div>
-            {vente.statut === 'annulee' && (
-              <div className="encart rouge">Annulée le {formatDateHeure(vente.annulee_le)} : {vente.motif_annulation}</div>
+            {infos?.essai && (
+              <div className="encart">Vente d’essai (marquée par {infos.essai.marque_par} le {formatDateHeure(infos.essai.marque_le)}) : elle est rangée dans l’onglet « Essais ».</div>
             )}
+            {vente.statut === 'annulee' && (
+              <div className="encart rouge">Annulée le {formatDateHeure(vente.annulee_le)}{infos?.annulee_par ? ` par ${infos.annulee_par}` : ''} : {vente.motif_annulation}</div>
+            )}
+            {infos && <InfosVente vente={vente} infos={infos} />}
             <table className="tableau">
               <thead><tr><th>Article</th><th className="nombre">Qté</th><th className="nombre">Prix</th><th className="nombre">Total</th></tr></thead>
               <tbody>
@@ -232,6 +268,9 @@ export function DetailVente({ venteId, onFermer, onChange }) {
               {vente.statut === 'validee' && peut('ventes.annuler') && (
                 <Bouton variante="danger" onClick={() => setAction({ type: 'annuler' })}>Annuler la vente</Bouton>
               )}
+              {peut('ventes.annuler') && peut('cloture.cloturer') && (infos?.essai
+                ? <Bouton onClick={() => api.rpc('marquer_vente_essai', { p_vente_id: vente.id, p_essai: false }).then(() => apres('Ce n’est plus une vente d’essai')).catch((err) => notifier(err.message, 'erreur'))}>Ce n’est pas un essai</Bouton>
+                : infos && <Bouton onClick={() => setAction({ type: 'essai' })}>C’était un essai</Bouton>)}
               {vente.statut === 'validee' && peut('ventes.retourner') && lignes.some((ligne) => Number(ligne.quantite) > retours.flatMap((retour) => retour.lignes ?? []).filter((retour) => retour.ligne_id === ligne.id).reduce((s, retour) => s + Number(retour.quantite), 0)) && (
                 <Bouton onClick={() => setAction({ type: 'retour' })}>Retour / échange</Bouton>
               )}
@@ -247,6 +286,18 @@ export function DetailVente({ venteId, onFermer, onChange }) {
                 onValider={(motif) => api.rpc('annuler_vente', { p_vente_id: vente.id, p_motif: motif }).then(() => apres('Vente annulée'))}
                 onFermer={() => setAction(null)}
               />
+            )}
+            {action?.type === 'essai' && (
+              <Modale titre={`${vente.numero} : vente d’essai ?`} onFermer={() => setAction(null)}>
+                <p>{vente.statut === 'validee'
+                  ? 'La vente sera annulée (le stock revient, les paiements sont annulés), puis cachée de la liste des ventes. Un ticket Z déjà tiré garde ses chiffres.'
+                  : 'La vente sera cachée de la liste des ventes.'}</p>
+                <p className="texte-doux">Rien n’est effacé : l’onglet « Essais » de la liste des ventes la garde.</p>
+                <div className="actions">
+                  <Bouton onClick={() => setAction(null)}>Retour</Bouton>
+                  <Bouton variante="principal" onClick={() => api.rpc('marquer_vente_essai', { p_vente_id: vente.id, p_essai: true }).then(() => apres('Vente marquée comme essai')).catch((err) => notifier(err.message, 'erreur'))}>Oui, c’était un essai</Bouton>
+                </div>
+              </Modale>
             )}
             {action?.type === 'annuler-paiement' && (
               <ModaleMotif
@@ -292,7 +343,7 @@ export default function Ventes({ sousRoute }) {
   };
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const { gte, lte } = bornes();
-    const [ventes, contacts, retours] = await Promise.all([
+    const [ventes, contacts, retours, essais] = await Promise.all([
       api.lire('ventes', {
         eq: { etablissement_id: etab, ...(hubFiltre ? { hub_id: hubFiltre } : {}), ...(origine ? { origine } : {}), ...(vendeur ? { vendeur } : {}) },
         gte: gte ? { cree_le: gte } : {}, lte: lte ? { cree_le: lte } : {}, ordre: ['cree_le', 'desc'], limite: 1000,
@@ -304,12 +355,15 @@ export default function Ventes({ sousRoute }) {
           api.lire('remboursements_vente', { eq: { etablissement_id: etab } }).catch(() => []),
         ]).then(([r, remb]) => r.map((x) => ({ ...x, remboursement: remb.find((m) => m.retour_id === x.id) ?? null })))
         : Promise.resolve([]),
+      // Ventes d'essai (migration 20261023000157) : cachées de la liste sauf l'onglet « Essais ».
+      api.lire('ventes_essais', { eq: { etablissement_id: etab }, colonnes: ['vente_id'] }).catch(() => []),
     ]);
-    return { ventes, retours, contacts: Object.fromEntries(contacts.map((c) => [c.id, c.nom])) };
+    return { ventes, retours, essais: new Set(essais.map((e) => e.vente_id)), contacts: Object.fromEntries(contacts.map((c) => [c.id, c.nom])) };
   }, [etab, periode, hubFiltre, origine, vendeur, vue]);
 
   const texte = recherche.trim().toLowerCase();
   const ventes = (donnees?.ventes ?? []).filter((v) => {
+    if (donnees.essais.has(v.id) !== (filtre === 'essais')) return false;
     if (filtre === 'credit' && !(v.statut === 'validee' && v.montant_paye < v.total)) return false;
     if (filtre === 'annulees' && v.statut !== 'annulee') return false;
     if (!texte) return true;
@@ -358,7 +412,7 @@ export default function Ventes({ sousRoute }) {
       <Onglets onglets={[['ventes', 'Ventes'], ['retours', 'Retours et remboursements']]} actif={vue} onChange={setVue} />
       <div className="filtres">
         <Onglets onglets={ongletsPeriode} actif={periode} onChange={setPeriode} />
-        {vue === 'ventes' && <Onglets onglets={[['toutes', 'Toutes'], ['credit', 'À encaisser'], ['annulees', 'Annulées']]} actif={filtre} onChange={setFiltre} />}
+        {vue === 'ventes' && <Onglets onglets={[['toutes', 'Toutes'], ['credit', 'À encaisser'], ['annulees', 'Annulées'], ...(donnees?.essais.size ? [['essais', `Essais (${donnees.essais.size})`]] : [])]} actif={filtre} onChange={setFiltre} />}
         {vue === 'ventes' && utilisateur?.id && (
           <Onglets onglets={[['moi', 'Mes ventes'], ['tous', 'Tout le monde']]} actif={vendeur === utilisateur.id ? 'moi' : 'tous'}
             onChange={(x) => { setVendeur(x === 'moi' ? utilisateur.id : ''); setSelection([]); }} />
@@ -422,7 +476,7 @@ export default function Ventes({ sousRoute }) {
                   <td>{donnees.contacts[v.contact_id] ?? '—'}{v.servi_par && <><br /><small className="texte-doux">servi par {v.servi_par}</small></>}</td>
                   <td className="nombre">{montant(v.total)}</td>
                   <td className="nombre">{v.statut === 'validee' && v.total > v.montant_paye ? montant(v.total - v.montant_paye) : '—'}</td>
-                  <td><BadgePaiement vente={v} /></td>
+                  <td><BadgePaiement vente={v} />{donnees.essais.has(v.id) && <> <Badge>Essai</Badge></>}</td>
                 </tr>
               ))}
             </tbody>

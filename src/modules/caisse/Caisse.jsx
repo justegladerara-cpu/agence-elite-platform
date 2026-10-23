@@ -21,7 +21,7 @@ import { ModaleSortieArgent } from './SortieArgent.jsx';
 import { happyHourEnCours, texteBandeau } from './happyHour.js';
 import {
   ajouterAuPanier, annulerOffert, changerQuantiteLigne, cleLigne, fusionnerLignes, lignesPourVente, noteOfferts, offertsPourVente, offrirLigne,
-  RAISONS_OFFERT, remiseLigne, texteRaison, totauxPanier,
+  libelleRaison, offrirTout, RAISONS_OFFERT, remiseLigne, texteRaison, totauxPanier,
 } from './offerts.js';
 import { alerteStock } from '../stock/preparerCommande.js';
 import {
@@ -62,15 +62,19 @@ export function VignetteArticle({ article, taille = 'normale' }) {
 
 // Une seule caisse ouverte à la fois (migration 20261013100133) : la caisse d'une autre personne est encore ouverte.
 // Elle tire son ticket Z ; sinon un responsable ferme la caisse oubliée (en comptant, ou « espèces à compter »).
-function CaisseOccupee({ occupee, coupures, onFermee }) {
+function CaisseOccupee({ occupee, coupures, onFermee, onVendre }) {
   const { peut, notifier } = useEspace();
   const [fermer, setFermer] = useState(false);
   return (
     <div className="caisse-occupee" role="status">
       <strong>La caisse de {occupee.caissier} est encore ouverte</strong>
       <span>Depuis le {formatDateHeure(occupee.ouverte_le)}. Elle doit d’abord tirer son ticket Z : une seule caisse ouverte à la fois.</span>
+      {/* Le patron n'ouvre pas de caisse : il vend sur celle de la personne qui sert, ses ventes portent son nom. */}
+      {peut('cloture.cloturer') && onVendre && (
+        <Bouton type="button" variante="principal" onClick={() => onVendre(occupee)}>Vendre sur la caisse de {occupee.caissier}</Bouton>
+      )}
       {peut('cloture.cloturer') && (
-        <Bouton type="button" variante="principal" onClick={() => setFermer(true)}>Fermer la caisse de {occupee.caissier}</Bouton>
+        <Bouton type="button" onClick={() => setFermer(true)}>Fermer la caisse de {occupee.caissier}</Bouton>
       )}
       {fermer && (
         <Modale titre={`Fermer la caisse de ${occupee.caissier}`} onFermer={() => setFermer(false)}>
@@ -85,7 +89,7 @@ function CaisseOccupee({ occupee, coupures, onFermee }) {
   );
 }
 
-function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0, occupees = [], coupures = [], onFermee }) {
+function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0, occupees = [], coupures = [], onFermee, onVendre }) {
   const { hubs, multiHub } = useEspace();
   const [fond, setFond] = useState('');
   const [pdv, setPdv] = useState(pointsDeVente[0]?.id ?? '');
@@ -113,7 +117,7 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0, occupees = [], 
   const occupee = occupees.find((o) => o.point_de_vente_id === (pdv || pointsDeVente[0]?.id));
   return (
     <div className="ouverture-caisse">
-      {occupee && <CaisseOccupee occupee={occupee} coupures={coupures} onFermee={onFermee} />}
+      {occupee && <CaisseOccupee occupee={occupee} coupures={coupures} onFermee={onFermee} onVendre={onVendre} />}
       <form className="carte formulaire" onSubmit={valider}>
         <h2>Ouvrir la caisse</h2>
         {fermees > 0 && (
@@ -421,6 +425,7 @@ function Panier({ lignes, articles, options, onQuantite, onRetirer, onOffrir, on
         <div className="panier-total"><span>Total</span><strong>{montant(total)}</strong></div>
         <div className="panier-actions">
           {onAttente && lignes.length > 0 && <Bouton icone="horloge" onClick={onAttente}>Facture en cours</Bouton>}
+          {onOffrir && lignes.some((l) => !l.offert) && <Bouton icone="etoile" onClick={() => onOffrir({ tout: true })}>Tout offrir</Bouton>}
           <Bouton variante="principal grand" className="bouton principal grand bouton-encaisser" disabled={!lignes.length} onClick={() => onEncaisser(total)}>
             Encaisser {lignes.length > 0 && montant(total)}
           </Bouton>
@@ -431,13 +436,14 @@ function Panier({ lignes, articles, options, onQuantite, onRetirer, onOffrir, on
 }
 
 // « Offrir » : la raison est obligatoire (« Autre » demande une précision) ; quantité à offrir si la ligne en a plusieurs.
-export function ModaleOffrir({ ligne, article, onValider, onFermer }) {
+// « Tout offrir » (tout = { valeur }) : tout le panier, raison « Offert par la maison » proposée d'abord.
+export function ModaleOffrir({ ligne, article, tout, onValider, onFermer }) {
   const { montant } = useEspace();
-  const [raison, setRaison] = useState('');
+  const [raison, setRaison] = useState(tout ? 'Patron' : '');
   const [precision, setPrecision] = useState('');
-  const [quantite, setQuantite] = useState(String(ligne.quantite));
+  const [quantite, setQuantite] = useState(String(ligne?.quantite ?? 1));
   const [erreur, setErreur] = useState('');
-  const q = Math.min(Number(String(quantite).replace(',', '.')) || 0, ligne.quantite);
+  const q = tout ? 1 : Math.min(Number(String(quantite).replace(',', '.')) || 0, ligne.quantite);
   const valider = (e) => {
     e.preventDefault();
     if (!raison) return setErreur('Choisissez la raison.');
@@ -446,17 +452,19 @@ export function ModaleOffrir({ ligne, article, onValider, onFermer }) {
     return onValider(q, { raison, precision });
   };
   return (
-    <Modale titre="Offrir" onFermer={onFermer}>
+    <Modale titre={tout ? 'Tout offrir' : 'Offrir'} onFermer={onFermer}>
       <form className="formulaire" onSubmit={valider}>
-        <p><strong>{article.nom}</strong> · {formatQuantite(q, article.unite)} offert(s) = {montant(article.prix_vente * q)}</p>
-        {ligne.quantite > 1 && (
+        {tout
+          ? <p>Tout le panier est offert : <strong>{montant(tout.valeur)}</strong>. Le client ne paie rien, la marchandise sort du stock.</p>
+          : <p><strong>{article.nom}</strong> · {formatQuantite(q, article.unite)} offert(s) = {montant(article.prix_vente * q)}</p>}
+        {!tout && ligne.quantite > 1 && (
           <Champ libelle="Combien offrir ?" aide={`Le reste (${formatQuantite(Math.max(ligne.quantite - q, 0))}) reste payant.`}>
             <input type="number" min="0" max={ligne.quantite} step="any" inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} />
           </Champ>
         )}
         <div className="puces puces-raisons" role="group" aria-label="Raison de l’offert">
           {RAISONS_OFFERT.map((r) => (
-            <button key={r} type="button" className={raison === r ? 'actif' : ''} aria-pressed={raison === r} onClick={() => { setRaison(r); setErreur(''); }}>{r}</button>
+            <button key={r} type="button" className={raison === r ? 'actif' : ''} aria-pressed={raison === r} onClick={() => { setRaison(r); setErreur(''); }}>{libelleRaison(r)}</button>
           ))}
         </div>
         <Champ libelle={raison === 'Autre' ? 'Précisez la raison' : 'Précision (facultatif)'}>
@@ -656,6 +664,8 @@ export default function Caisse({ naviguer }) {
       stockNegatif: reglagesCaisse[0]?.data?.stock_negatif === true,
       // Caisses ouvertes (toutes personnes) : une facture en cours d'une caisse fermée passe à la caissière suivante.
       ouvertes: (sessions ?? []).map((x) => x.id),
+      // Toutes les caisses ouvertes : le patron peut vendre sur celle de la personne qui sert (voir caisseAutre).
+      toutesOuvertes: (sessions ?? []).filter((x) => !x.rattrapage),
       serveurs: serveurs ?? [],
       occupees: (occupees ?? []).filter((o) => !o.mienne),
     };
@@ -741,7 +751,12 @@ export default function Caisse({ naviguer }) {
   const [ticketZ, setTicketZ] = useState(null);
 
   const parId = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
-  const session = donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
+  // Caisse d'une autre personne choisie par un responsable (« Vendre sur la caisse de … ») : elle reste ouverte au nom
+  // de la caissière, chaque vente porte le nom du responsable (vendeur) ; la base l'autorise à cloture.cloturer.
+  const [caisseAutre, setCaisseAutre] = useState(null);
+  const sessionAutre = caisseAutre && !donnees?.sessions.length && peut('cloture.cloturer')
+    ? donnees?.toutesOuvertes?.find((s) => s.id === caisseAutre.session_id) ?? null : null;
+  const session = sessionAutre ?? donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
   // Caisse sans internet : ventes gardées sur cet appareil, envoyées automatiquement au retour de la connexion.
   const fileHorsLigne = useFileHorsLigne(etab);
   const enLigne = useEnLigne();
@@ -768,6 +783,7 @@ export default function Caisse({ naviguer }) {
           occupees={donnees.occupees}
           coupures={donnees.coupures ?? []}
           onFermee={(z) => { setTicketZ(z); recharger(); }}
+          onVendre={(o) => setCaisseAutre(o)}
           onOuvrir={async (pdv, fond) => {
             await api.rpc('ouvrir_caisse', { p_etablissement_id: etab, p_point_de_vente_id: pdv, p_fond_initial: fond });
             notifier('Caisse ouverte');
@@ -975,6 +991,12 @@ export default function Caisse({ naviguer }) {
           À la connexion, « Tu continues ? » si ta caisse est encore ouverte. Sans activité, « Tu es toujours là ? » avec un compte
           à rebours avant la déconnexion (la caisse reste ouverte).
         </BandeauNouveau>
+        {sessionAutre && (
+          <p className="bandeau-caisse-autre" role="status">
+            Vous vendez sur la caisse de <strong>{caisseAutre.caissier}</strong>. Chaque vente porte votre nom : {nomUtilisateur(utilisateur)} (patron).
+            {' '}<button type="button" className="lien" onClick={() => setCaisseAutre(null)}>Quitter cette caisse</button>
+          </p>
+        )}
         <BandeauHorsLigne
           enLigne={enLigne}
           enAttente={ventesEnAttente(nonEnvoyees).length}
@@ -1124,7 +1146,17 @@ export default function Caisse({ naviguer }) {
           } : null}
         />
       )}
-      {aOffrir && parId[aOffrir.article_id] && (
+      {aOffrir?.tout && (
+        <ModaleOffrir
+          tout={{ valeur: lignes.filter((l) => !l.offert && parId[l.article_id]).reduce((t, l) => t + Number(parId[l.article_id].prix_vente) * l.quantite, 0) }}
+          onValider={(_q, raison) => {
+            setLignes((liste) => offrirTout(liste.filter((l) => parId[l.article_id]), raison));
+            setAOffrir(null);
+          }}
+          onFermer={() => setAOffrir(null)}
+        />
+      )}
+      {aOffrir && !aOffrir.tout && parId[aOffrir.article_id] && (
         <ModaleOffrir
           ligne={aOffrir}
           article={parId[aOffrir.article_id]}

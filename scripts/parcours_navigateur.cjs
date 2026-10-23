@@ -193,6 +193,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('detail-vente', async () => {
       await p.locator('table.tableau tbody tr').first().click();
       await p.getByRole('button', { name: 'Annuler la vente' }).waitFor();
+      await p.getByText('Encaissée par').first().waitFor();
+      await p.getByRole('button', { name: 'C’était un essai' }).waitFor();
     });
     await etape('annulation', async () => {
       await p.getByRole('button', { name: 'Annuler la vente' }).click();
