@@ -61,7 +61,7 @@ describe('textes de relance', () => {
 
 describe('J’ai payé une dépense', () => {
   test('chaque motif tombe dans une catégorie de dépense existante', () => {
-    expect(MOTIFS_DEPENSE.map((m) => m.libelle)).toEqual(['Loyer', 'Transport', 'Électricité', 'Eau', 'Salaire', 'Marchandise', 'Téléphone / Internet', 'Réparation', 'Autre']);
+    expect(MOTIFS_DEPENSE.map((m) => m.libelle)).toEqual(['Loyer', 'Transport', 'Carburant', 'Électricité', 'Eau', 'Salaire', 'Marchandise', 'Téléphone / Internet', 'Réparation', 'Technicien', 'Autre']);
     expect(motifParId('electricite').categorie).toBe('Énergie');
     expect(motifParId('reparation').categorie).toBe('Entretien');
     expect(motifParId('inconnu')).toBeNull();

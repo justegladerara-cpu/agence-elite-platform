@@ -6,6 +6,9 @@ import { pourcentageArticle, remiseHappyHour } from './happyHour.js';
 
 export const RAISONS_OFFERT = ['Client fidèle', 'Geste commercial', 'Erreur de service', 'Patron', 'Autre'];
 
+// « Patron » se dit « Offert par la maison » à l'écran (la base garde la valeur « Patron »).
+export const libelleRaison = (raison) => (raison === 'Patron' ? 'Offert par la maison' : raison);
+
 // Une ligne normale et une ligne offerte du même article vivent côte à côte dans le panier.
 export const cleLigne = (l) => `${l.article_id}${l.offert ? ':offert' : ''}`;
 
@@ -41,6 +44,11 @@ export function offrirLigne(lignes, cle, quantite, offert) {
     suite = rang >= 0 ? [...suite.slice(0, rang + 1), ligne, ...suite.slice(rang + 1)] : [...suite, ligne];
   }
   return suite;
+}
+
+// « Tout offrir » : toutes les lignes payantes du panier deviennent offertes, avec la même raison.
+export function offrirTout(lignes, offert) {
+  return lignes.filter((l) => !l.offert).reduce((acc, l) => offrirLigne(acc, cleLigne(l), l.quantite, offert), lignes);
 }
 
 // Annuler l'offert : la ligne redevient payante (fusionnée avec la ligne normale du même article).
@@ -96,7 +104,7 @@ export function offertsPourVente(lignes) {
 }
 
 // Raison lisible : « Autre : anniversaire » ou « Client fidèle ».
-export const texteRaison = (o) => (o?.raison === 'Autre' && o.precision ? o.precision : o?.precision ? `${o.raison} : ${o.precision}` : o?.raison ?? '');
+export const texteRaison = (o) => (o?.raison === 'Autre' && o.precision ? o.precision : o?.precision ? `${libelleRaison(o.raison)} : ${o.precision}` : libelleRaison(o?.raison) ?? '');
 
 // Note de la vente (gardée avec la vente, imprimée sur le reçu) : « Offert : 1 × Primus (Client fidèle) ».
 export function noteOfferts(lignes, articles) {

@@ -15,6 +15,10 @@ export function messageErreur(erreur) {
   return brut.replace(/^error:\s*/i, '').split('\n')[0];
 }
 
+// Migrations d'un autre projet qui partage la base de production (STP2i, objets stp2i_*) : présentes dans le dépôt
+// pour l'historique de la base, jamais rejouées en local (elles demandent pgcrypto et le stockage Supabase).
+export const migrationAutreProjet = (nom) => /^\d{14}_stp2i_/.test(nom);
+
 export async function preparerBase(db, { shim, complement = '', migrations }) {
   await db.exec('create schema if not exists _local; create table if not exists _local.migrations (nom text primary key, appliquee_le timestamptz default now())');
   const dejaInstallee = (await db.query("select 1 from pg_roles where rolname = 'authenticated'")).rows.length > 0;
@@ -23,7 +27,7 @@ export async function preparerBase(db, { shim, complement = '', migrations }) {
   if (complement) await db.exec(complement);
   const appliquees = new Set((await db.query('select nom from _local.migrations')).rows.map((r) => r.nom));
   for (const { nom, sql } of [...migrations].sort((a, b) => a.nom.localeCompare(b.nom))) {
-    if (appliquees.has(nom)) continue;
+    if (appliquees.has(nom) || migrationAutreProjet(nom)) continue;
     await db.transaction(async (tx) => {
       await tx.exec(sql);
       await tx.query('insert into _local.migrations(nom) values ($1)', [nom]);

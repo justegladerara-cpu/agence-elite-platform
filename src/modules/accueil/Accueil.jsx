@@ -5,6 +5,7 @@ import { dateLocale, formatDate } from '../../noyau/format.js';
 import { ecrireModeSimple, useModeSimple } from '../../noyau/modeSimple.js';
 import { Badge, Bouton, Erreur, Icone, StatCard } from '../../ui/composants.jsx';
 import { pagesAccessibles } from '../index.js';
+import { pageEteinte } from '../../noyau/fonctions.js';
 import { aFaire, boutonsAccessibles, chercherIntention, lienWhatsapp, texteBilanDuJour } from './accueil.js';
 import './accueil.css';
 
@@ -17,7 +18,7 @@ export default function Accueil({ naviguer }) {
   const etab = etablissement.id;
   const modeSimple = useModeSimple(etab);
   const [texte, setTexte] = useState('');
-  const pages = pagesAccessibles(espace);
+  const pages = pagesAccessibles(espace).filter((p) => !pageEteinte(espace.reglagesFonctions, p.id));
   const boutons = boutonsAccessibles(pages, peut);
   const voitChiffres = peut('ventes.lire') || peut('tableau_de_bord.lire');
 

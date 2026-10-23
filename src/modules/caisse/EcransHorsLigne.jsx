@@ -3,7 +3,7 @@ import { useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
 import { Bouton, Champ, Erreur, Modale } from '../../ui/composants.jsx';
 import { BandeauNouveau, NOUVEAU_HORS_LIGNE_JUSQUA } from '../../ui/Nouveau.jsx';
-import { imprimer, Ticket, ZoneImpression } from '../recus/Recu.jsx';
+import { imprimer, Ticket, useModeleTicket, ZoneImpression } from '../recus/Recu.jsx';
 import {
   envoyerFile, EVENEMENT_FILE_HORS_LIGNE, lireFile, reessayer, retirerVente, ventesAVerifier, ventesEnAttente,
 } from './horsLigne.js';
@@ -116,6 +116,7 @@ export function BandeauHorsLigne({ enLigne, enAttente, aVerifier, envoi, onEnvoy
 // Reçu d'une vente gardée sur l'appareil : même ticket, marqué « HORS LIGNE », imprimable.
 export function ModaleRecuHorsLigne({ ticket, monnaie, onFermer, piedSupplementaire }) {
   const { etablissement, montant } = useEspace();
+  const modele = useModeleTicket();
   useEffect(() => {
     document.body.classList.add('impression-ticket');
     return () => document.body.classList.remove('impression-ticket');
@@ -147,8 +148,8 @@ export function ModaleRecuHorsLigne({ ticket, monnaie, onFermer, piedSupplementa
     >
       <p className="bandeau attention" role="status">Pas d’internet : la vente est gardée sur cet appareil. Elle partira toute seule au retour de la connexion.</p>
       {monnaie > 0 && <div className="monnaie">Monnaie à rendre : <strong>{montant(monnaie)}</strong></div>}
-      <div className="ticket-apercu"><Ticket recu={recu} /></div>
-      <ZoneImpression><Ticket recu={recu} /></ZoneImpression>
+      <div className="ticket-apercu"><Ticket recu={recu} modele={modele} /></div>
+      <ZoneImpression><Ticket recu={recu} modele={modele} /></ZoneImpression>
     </Modale>
   );
 }

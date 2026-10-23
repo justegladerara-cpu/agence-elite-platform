@@ -5,6 +5,7 @@ import { formatMontant } from '../../noyau/format.js';
 // Gros boutons, en mots de commerçant. Chacun n'apparaît que si son écran est accessible et l'action permise.
 export const GROS_BOUTONS = [
   { id: 'vendre', libelle: 'Vendre', detail: 'Ouvrir la caisse', icone: 'caisse', route: 'caisse', permission: 'caisse.utiliser', mots: 'caisse vente encaisser ticket client' },
+  { id: 'prendre-commande', libelle: 'Prendre une commande', detail: 'Elle part à la caisse', icone: 'panier', route: 'prendre-commande', permission: 'caisse.commander', mots: 'commande serveur table tablette envoyer caisse' },
   { id: 'recu', libelle: 'J’ai reçu de la marchandise', detail: 'Le stock augmente', icone: 'camion', route: 'stock?vue=reception', permission: 'stock.ajuster', mots: 'reception livraison arrivage fournisseur entree stock carton' },
   { id: 'compter', libelle: 'Je compte mon stock', detail: 'Inventaire, tout ou une partie', icone: 'inventaire', route: 'stock?vue=inventaire', permission: 'stock.ajuster', mots: 'inventaire comptage compter' },
   { id: 'perte', libelle: 'J’ai perdu / cassé / périmé', detail: 'Le stock baisse, la perte est chiffrée', icone: 'alerte', route: 'stock?vue=perte', permission: 'stock.ajuster', mots: 'perte casse vol perime abime retirer' },
@@ -15,7 +16,7 @@ export const GROS_BOUTONS = [
   { id: 'je-dois', libelle: 'À qui je dois ?', detail: 'Fournisseurs à payer', icone: 'echeance', route: 'achats?onglet=a_payer', permission: 'achats.lire', mots: 'fournisseur payer dette' },
   { id: 'article', libelle: 'Ajouter des articles', detail: 'Un nom et un prix suffisent', icone: 'articles', route: 'articles?nouveau=1', permission: 'articles.gerer', mots: 'article produit prix catalogue nouveau' },
   { id: 'facture', libelle: 'Faire une facture', detail: 'Ou un devis', icone: 'facture', route: 'factures/nouvelle-facture', permission: 'facturation.gerer', mots: 'facture devis facturer' },
-  { id: 'menu-qr', libelle: 'Menu QR des tables', detail: 'Le client scanne, voit le menu, commande', icone: 'table', route: 'menu-qr', permission: 'caisse.menu_qr', mots: 'qr code menu carte table scanner commander restaurant bar' },
+  { id: 'qr-codes', libelle: 'QR codes des tables', detail: 'Les scans, la page que voit le client', icone: 'cible', route: 'qr-codes', permission: 'caisse.menu_qr', mots: 'qr code menu carte table scanner commander restaurant bar scans' },
   { id: 'chiffres', libelle: 'Voir mes chiffres', detail: 'Tableau de bord', icone: 'graphique', route: 'tableau-de-bord', permission: 'tableau_de_bord.lire', mots: 'chiffres tableau bord statistiques benefice' },
 ];
 

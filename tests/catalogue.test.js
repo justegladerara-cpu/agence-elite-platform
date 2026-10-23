@@ -10,7 +10,7 @@ const MODULES_ATTENDUS = {
   tableau_de_bord: 'actif', ventes: 'actif',
 };
 const SOLUTIONS_ATTENDUES = { commerce: 'active', ecommerce: 'active', hotel: 'active', immobilier: 'active', restaurant: 'active', rh: 'active', services: 'active' };
-const ROLES_ATTENDUS = ['gerant', 'responsable', 'responsable_hub', 'responsable_rh', 'gestionnaire_depot', 'commercial', 'employe', 'receptionniste', 'gestionnaire_immobilier', 'agent_immobilier', 'serveur', 'secretariat', 'cuisinier', 'livreur', 'agent_entretien', 'comptable', 'collaborateur', 'lecteur'];
+const ROLES_ATTENDUS = ['gerant', 'responsable', 'responsable_hub', 'responsable_rh', 'gestionnaire_depot', 'commercial', 'employe', 'receptionniste', 'gestionnaire_immobilier', 'agent_immobilier', 'serveur', 'serveur_tablette', 'secretariat', 'cuisinier', 'livreur', 'agent_entretien', 'comptable', 'collaborateur', 'lecteur'];
 beforeAll(async () => { db = await creerBase(); }); afterAll(async () => db.close());
 
 describe('catalogue de départ', () => {

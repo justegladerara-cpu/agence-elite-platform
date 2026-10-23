@@ -13,8 +13,8 @@ const Rapport = lazy(() => import('./Rapport.jsx'));
 // Onglets d'analyse (2026-10-23) : présents dès que l'utilisateur voit le domaine Commerce (ventes.lire).
 const ANALYSES = [
   ['ventes', 'Ventes', 'ventes', VueVentes],
-  ['produits', 'Clients & produits', 'articles', VueProduits],
-  ['equipe', 'Équipe', 'membres', VueEquipe],
+  ['produits', 'Produits et clients', 'articles', VueProduits],
+  ['equipe', 'Personnel', 'membres', VueEquipe],
 ];
 
 // Tableau de bord : vue d'ensemble de l'établissement (#/tableau-de-bord), onglets d'analyse des ventes
@@ -22,7 +22,7 @@ const ANALYSES = [
 // domaine (#/tableau-de-bord/<domaine>). Tout vient des fonctions cockpit_* et analyse_commerce de la base,
 // qui n'agrègent que les modules actifs et autorisés (docs/TABLEAUX_DE_BORD.md).
 export default function TableauDeBord({ naviguer, sousRoute }) {
-  const { api, etablissement } = useEspace();
+  const { api, etablissement, peut } = useEspace();
   const domaine = (sousRoute ?? '').split('/')[0] || null;
   const f = useFiltresCockpit();
   const { donnees: domaines, erreur: erreurDomaines } = useDonnees(
@@ -32,7 +32,8 @@ export default function TableauDeBord({ naviguer, sousRoute }) {
   const analyses = Boolean(domaines?.some((d) => d.id === 'commerce'));
   const connu = domaine && domaines?.some((d) => d.id === domaine);
   const analyse = analyses ? ANALYSES.find(([id]) => id === domaine) : null;
-  if (analyses && domaine === 'rapport') {
+  // Le rapport est pour le patron (qui voit toutes les caisses) ; la caissière a son ticket Z (demande de Juste, 2026-10-23).
+  if (analyses && domaine === 'rapport' && peut('cloture.cloturer')) {
     return <Suspense fallback={<Squelette lignes={8} />}><Rapport naviguer={naviguer} filtres={f.filtres} /></Suspense>;
   }
   const actif = analyse ? domaine : connu ? domaine : null;
@@ -50,6 +51,10 @@ export default function TableauDeBord({ naviguer, sousRoute }) {
 }
 
 function BoutonRapport({ naviguer }) {
+  const { peut } = useEspace();
+  if (!peut('cloture.cloturer')) {
+    return peut('caisse.utiliser') ? <Bouton icone="cloture" variante="principal" onClick={() => naviguer('clotures')}>Mon ticket Z</Bouton> : null;
+  }
   return <Bouton icone="telecharger" onClick={() => naviguer('tableau-de-bord/rapport')}>Télécharger le rapport</Bouton>;
 }
 
@@ -66,7 +71,7 @@ function OngletsDomaines({ domaines, actif, analyses, naviguer }) {
       ))}
       {domaines.map((d) => (
         <button key={d.id} type="button" className={actif === d.id ? 'actif' : ''} aria-current={actif === d.id ? 'page' : undefined} onClick={() => naviguer(`tableau-de-bord/${d.id}`)}>
-          <Icone nom={DOMAINES[d.id]?.icone ?? 'tableau'} taille={15} /> {analyses && d.id === 'commerce' ? 'Détail Commerce' : d.titre}
+          <Icone nom={DOMAINES[d.id]?.icone ?? 'tableau'} taille={15} /> {analyses && d.id === 'commerce' ? 'Tous les chiffres' : d.titre}
         </button>
       ))}
     </nav>
@@ -162,7 +167,7 @@ function VueDomaine({ domaine, titre, f, naviguer }) {
         <>
           <GrilleKpis kpis={d.kpis} naviguer={naviguer} periode={libellePeriode(f)} />
           {d.periode && d.periode.comparable === false && d.periode.du_precedent && (
-            <p className="texte-faible cockpit-note">Pas de comparaison : la période précédente n’a pas assez de données.</p>
+            <p className="texte-faible cockpit-note">Pas de comparaison : il n’y a pas assez de ventes avant pour comparer.</p>
           )}
           {d.periode?.regle_jour && <p className="texte-faible cockpit-note">{d.periode.regle_jour}</p>}
           <div className="cockpit-grille">

@@ -5,13 +5,15 @@ import {
   CADRES, FORMES_MODULES, FORMES_YEUX, TAILLES_PNG, TYPES_QR, couleurQr, emailValide, lienEmail, lienQr, lienSms, lienTelephone,
   lienValide, lienWhatsapp, normaliserStyle, numeroWhatsapp, texteWifi,
 } from '../../noyau/qr.js';
-import { lireParametres } from '../../noyau/routes.js';
+import { lireParametres, lireRoute } from '../../noyau/routes.js';
 import {
   Badge, Bouton, Champ, EmptyState, Erreur, GraphiqueBarres, Modale, PageHeader, Section, Squelette, StatCard, Tabs,
 } from '../../ui/composants.jsx';
 import { BandeauNouveau, NOUVEAU_QR_JUSQUA } from '../../ui/Nouveau.jsx';
 import { ReglagesApparenceQr } from './MenuQr.jsx';
 import { ImageQr, controlerQr, imprimerQr, telechargerPng, telechargerSvg, useApparenceQr } from './qrOutils.jsx';
+import { ConstructeurPageQr } from './ConstructeurPageQr.jsx';
+import { csvInscrits } from './pageQr.js';
 import './menu-qr.css';
 
 // Écran « QR codes » (migration 20261017000139), inspiré des meilleurs générateurs : QR codes libres (lien, avis Google,
@@ -358,6 +360,87 @@ function StyleParDefaut({ menu, apparence, onEnregistrer, onLogo, enCours, navig
   );
 }
 
+// Scans des 14 derniers jours, jour par jour, avec le type d'appareil (demande de Juste, 2026-10-23).
+export function scansParJour(scans, fuseauJour = (d) => d.slice(0, 10)) {
+  const jours = {};
+  for (const x of scans) {
+    const j = fuseauJour(x.scanne_le);
+    jours[j] ??= { jour: j, total: 0, mobile: 0, tablette: 0, ordinateur: 0, inconnu: 0 };
+    jours[j].total += 1;
+    jours[j][x.appareil in jours[j] ? x.appareil : 'inconnu'] += 1;
+  }
+  return Object.values(jours).sort((a, b) => b.jour.localeCompare(a.jour));
+}
+
+function ScansParJour({ qrCodeId, emplacementId }) {
+  const { api, etablissement } = useEspace();
+  const depuis = new Date(Date.now() - 14 * 86400000).toISOString();
+  const { donnees } = useDonnees(() => api.lire('qr_scans', {
+    eq: { etablissement_id: etablissement.id, ...(qrCodeId ? { qr_code_id: qrCodeId } : {}), ...(emplacementId ? { emplacement_id: emplacementId } : {}) },
+    gte: { scanne_le: depuis }, colonnes: ['scanne_le', 'appareil'], ordre: ['scanne_le', 'desc'], limite: 5000,
+  }), [etablissement.id, qrCodeId, emplacementId]);
+  const jourLocal = (d) => new Date(d).toLocaleDateString('fr-CA');
+  const lignes = scansParJour(donnees ?? [], jourLocal);
+  return (
+    <Section titre="Jour par jour" sousTitre="14 derniers jours : nombre de scans et le type de téléphone ou d’appareil">
+      {!lignes.length ? <p className="texte-doux">Aucun scan sur les 14 derniers jours.</p> : (
+        <div className="tableau-conteneur">
+          <table className="tableau" aria-label="Scans jour par jour">
+            <thead><tr><th>Jour</th><th>Scans</th><th>Téléphone</th><th>Tablette</th><th>Ordinateur</th><th>Autre</th></tr></thead>
+            <tbody>
+              {lignes.map((l) => (
+                <tr key={l.jour}><td>{formatDate(l.jour)}</td><td><strong>{l.total}</strong></td><td>{l.mobile}</td><td>{l.tablette}</td><td>{l.ordinateur}</td><td>{l.inconnu}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// Clients inscrits par le formulaire de la page mobile (migration 20261023200160).
+function ClientsInscrits({ codes }) {
+  const { api, etablissement } = useEspace();
+  const { donnees, chargement, erreur } = useDonnees(() => api.lire('inscriptions_qr', { eq: { etablissement_id: etablissement.id }, ordre: ['cree_le', 'desc'], limite: 2000 }), [etablissement.id]);
+  if (erreur) return <Erreur message={erreur} />;
+  if (chargement && !donnees) return <Squelette />;
+  const noms = Object.fromEntries(codes.map((q) => [q.id, q.nom]));
+  const exporter = () => {
+    const lien = document.createElement('a');
+    lien.href = URL.createObjectURL(new Blob(['\ufeff' + csvInscrits(donnees, noms)], { type: 'text/csv;charset=utf-8' }));
+    lien.download = 'clients-inscrits.csv';
+    lien.click();
+  };
+  return (
+    <Section titre="Clients inscrits" sousTitre="Les clients qui ont laissé leurs coordonnées sur la page d’un QR code."
+      action={donnees.length > 0 && <Bouton icone="telecharger" onClick={exporter}>Télécharger (Excel)</Bouton>}>
+      {!donnees.length ? (
+        <EmptyState icone="clients" titre="Personne pour l’instant" texte="Ajoutez le bloc « Inscription des clients » à la page mobile d’un QR code, puis allumez la page." />
+      ) : (
+        <div className="tableau-conteneur">
+          <table className="tableau" aria-label="Clients inscrits">
+            <thead><tr><th>Date</th><th>Nom</th><th>Numéro</th><th>Anniversaire</th><th>E-mail</th><th>Un mot</th><th>QR code</th></tr></thead>
+            <tbody>
+              {donnees.map((i) => (
+                <tr key={i.id}>
+                  <td>{dateHeure(i.cree_le)}</td>
+                  <td>{i.nom}</td>
+                  <td><a className="lien" href={lienWhatsapp(i.telephone)} target="_blank" rel="noopener noreferrer">+{i.telephone}</a></td>
+                  <td>{i.anniversaire ? formatDate(i.anniversaire) : '—'}</td>
+                  <td>{i.email ?? '—'}</td>
+                  <td>{i.message ?? '—'}</td>
+                  <td>{noms[i.qr_code_id] ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 // Statistiques des scans : tous les QR codes, ou un seul (QR code libre ou table).
 function StatsQr({ codes, filtre, setFiltre }) {
   const { api, etablissement } = useEspace();
@@ -424,6 +507,7 @@ function StatsQr({ codes, filtre, setFiltre }) {
         <GraphiqueBarres libelle="Scans par jour" format={entier} vide="Aucun scan sur les 30 derniers jours"
           donnees={s.jours.map((j) => ({ libelle: String(Number(j.jour.slice(8, 10))), valeur: j.scans, titre: `${formatDate(j.jour)} : ${j.scans} scan(s)` }))} />
       </Section>
+      <ScansParJour qrCodeId={genre === 'qr' ? id : null} emplacementId={genre === 'table' ? id : null} />
       <Section titre="Heures de pointe" sousTitre="Scans par heure de la journée, sur 30 jours">
         <GraphiqueBarres libelle="Scans par heure" format={entier} vide="Aucun scan sur les 30 derniers jours"
           donnees={s.heures.map((h) => ({ libelle: h.heure % 3 === 0 ? `${h.heure}h` : '', valeur: h.scans, titre: `${h.heure} h – ${h.heure + 1} h : ${h.scans} scan(s)` }))} />
@@ -445,29 +529,32 @@ export default function QrCodes({ naviguer }) {
   const etab = etablissement.id;
   const apparence = useApparenceQr();
   const [onglet, setOnglet] = useState(() => {
-    const vue = lireParametres().get('vue');
-    return ['stats', 'style'].includes(vue) ? vue : 'codes';
+    const vue = lireParametres().get('vue') ?? lireRoute().split('/')[1];
+    return ['stats', 'style', 'inscrits'].includes(vue) ? vue : 'codes';
   });
   const [filtre, setFiltre] = useState('');
   const [formulaire, setFormulaire] = useState(null);
+  const [pageDe, setPageDe] = useState(null);
   const [imprime, setImprime] = useState(null);
   const [taillePng, setTaillePng] = useState(1024);
   const [erreurAction, setErreurAction] = useState('');
   const [enCours, setEnCours] = useState(false);
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
-    const [codes, menus, stats] = await Promise.all([
+    const [codes, menus, stats, pages] = await Promise.all([
       api.lire('qr_codes', { eq: { etablissement_id: etab }, ordre: ['cree_le'] }),
       api.lire('menus_qr', { eq: { etablissement_id: etab } }),
       api.rpc('statistiques_qr', { p_etablissement_id: etab }),
+      // Pages mobiles (migration 20261023200160) : sans la table, le bouton reste simplement sans badge.
+      api.lire('pages_qr', { eq: { etablissement_id: etab }, colonnes: ['qr_code_id', 'active'] }).catch(() => []),
     ]);
-    return { codes, menu: menus[0] ?? { actif: false, qr_logo: false, qr_style: {} }, stats };
+    return { codes, menu: menus[0] ?? { actif: false, qr_logo: false, qr_style: {} }, stats, pages: Object.fromEntries(pages.map((p) => [p.qr_code_id, p.active])) };
   }, [etab]);
   useEffect(() => {
     if (imprime) imprimerQr();
   }, [imprime]);
   if (chargement && !donnees) return <Squelette lignes={6} />;
   if (erreur) return <Erreur message={erreur} />;
-  const { codes, menu, stats } = donnees;
+  const { codes, menu, stats, pages } = donnees;
   const logoDe = (q) => (q.avec_logo ? apparence.logo : null);
   const scans = Object.fromEntries(stats.codes.map((c) => [c.id, c]));
   const actifs = codes.filter((q) => q.actif);
@@ -525,7 +612,7 @@ export default function QrCodes({ naviguer }) {
         cadre « Scannez-moi », logo au centre si vous voulez. La destination se change après impression et chaque scan est compté.
       </BandeauNouveau>
       <Erreur message={erreurAction} />
-      <Tabs onglets={[['codes', 'Mes QR codes', codes.length], ['stats', 'Statistiques des scans'], ['style', 'Style par défaut']]} actif={onglet} onChange={setOnglet} />
+      <Tabs onglets={[['codes', 'Mes QR codes', codes.length], ['stats', 'Statistiques des scans'], ['inscrits', 'Clients inscrits'], ['style', 'Style par défaut']]} actif={onglet} onChange={setOnglet} />
       {onglet === 'codes' && (
         <Section titre="Mes QR codes" sousTitre="Chaque scan passe par votre site : il est compté, puis le client arrive sur la bonne page. Un QR code ne se supprime pas : désactivez-le."
           action={codes.length > 0 && (
@@ -552,6 +639,7 @@ export default function QrCodes({ naviguer }) {
                       ? <Badge ton="neutre">non compté</Badge>
                       : <Badge ton="vert">{scans[q.id]?.trente_jours ?? 0} scan(s) sur 30 jours</Badge>}
                     {TYPES_QR[q.type]?.suivi && <Badge ton="neutre">modifiable après impression</Badge>}
+                    {pages[q.id] && <Badge ton="vert">page mobile allumée</Badge>}
                     {(q.valide_du || q.valide_au) && <Badge ton="orange">{q.valide_du ? `du ${formatDate(q.valide_du)} ` : ''}{q.valide_au ? `au ${formatDate(q.valide_au)}` : ''}</Badge>}
                   </div>
                   <div className="carte-qr-actions">
@@ -560,6 +648,7 @@ export default function QrCodes({ naviguer }) {
                     <button type="button" className="lien" onClick={() => setImprime({ ...q, fois: Date.now() })}>Imprimer</button>
                     {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => copier(contenuQr(q))}>Copier le lien</button>}
                     {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => { setFiltre(`qr:${q.id}`); setOnglet('stats'); }}>Statistiques</button>}
+                    {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => setPageDe(q)}>Page mobile</button>}
                     <button type="button" className="lien" onClick={() => setFormulaire({ qr: q })}>Modifier</button>
                     <button type="button" className="lien" onClick={() => setFormulaire({ modele: q })}>Dupliquer</button>
                     <button type="button" className="lien" onClick={() => action(() => api.rpc('enregistrer_qr_code', { p_etablissement_id: etab, p: { id: q.id, actif: !q.actif } }),
@@ -574,6 +663,8 @@ export default function QrCodes({ naviguer }) {
         </Section>
       )}
       {onglet === 'stats' && <StatsQr codes={stats.codes} filtre={filtre} setFiltre={setFiltre} />}
+      {onglet === 'inscrits' && <ClientsInscrits codes={codes} />}
+      {pageDe && <ConstructeurPageQr qr={pageDe} onFermer={() => setPageDe(null)} onFait={(m) => { setPageDe(null); notifier(m); recharger(); }} />}
       {onglet === 'style' && (
         <StyleParDefaut menu={menu} apparence={apparence} enCours={enCours} naviguer={naviguer}
           onLogo={(c) => reglerApparence(c)} onEnregistrer={(style) => reglerApparence({ style }, 'Style par défaut enregistré')} />

@@ -1858,6 +1858,18 @@ fieldset {
   font-size: 11px;
 }
 
+/* Ticket réglé dans Paramètres › Ticket de caisse (modeleTicket.js). */
+.ticket-logo.logo-petit { max-width: 80px; max-height: 40px; }
+.ticket-logo.logo-grand { max-width: 180px; max-height: 90px; }
+.ticket-message { font-weight: 700; white-space: pre-line; }
+.ticket-pied, .ticket .ticket-petit { white-space: pre-line; }
+.ticket-qr { display: grid; justify-items: center; gap: 4px; }
+.ticket-qr .image-qr { width: 110px; }
+.ticket-qr .image-qr svg { display: block; width: 100%; height: auto; }
+.ticket.ticket-58 { width: 230px; font-size: 11px; }
+.ticket.ticket-grand { font-size: 14px; }
+.ticket.ticket-grand .ticket-nom, .ticket.ticket-grand .ticket-total { font-size: 17px; }
+
 .zone-impression {
   display: none;
 }
@@ -1879,6 +1891,10 @@ fieldset {
     width: 72mm;
     box-shadow: none;
     padding: 0;
+  }
+
+  body.impression-ticket .zone-impression .ticket.ticket-58 {
+    width: 48mm;
   }
 }
 
@@ -2719,6 +2735,19 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .grille-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .carte-app { display: grid; gap: 8px; align-content: start; padding: 14px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
 .carte-app.utilisable { border-color: color-mix(in srgb, var(--accent) 35%, var(--bordure)); }
+/* Fonctions à afficher (Paramètres > Applications) : cartes carrées arrondies, un geste = affiché / caché. */
+.groupe-fonctions { display: grid; gap: 8px; margin-bottom: 14px; }
+.groupe-fonctions h3 { margin: 0; font-size: .9rem; color: var(--texte-doux); }
+.grille-fonctions { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.carte-fonction { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; padding: 14px; text-align: left;
+  border: 1px solid var(--bordure); border-radius: 14px; background: var(--surface); color: var(--texte); font: inherit; cursor: pointer; }
+.carte-fonction:disabled { cursor: default; opacity: .7; }
+.carte-fonction-icone { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-douce, var(--fond)); color: var(--texte-doux); }
+.carte-fonction-nom { min-width: 0; overflow-wrap: anywhere; }
+.carte-fonction-etat { grid-column: 1 / -1; justify-self: start; padding: 3px 10px; border-radius: 999px; font-size: .82rem; font-weight: 600; background: var(--surface-douce, var(--fond)); color: var(--texte-doux); }
+.carte-fonction.allumee { border-color: color-mix(in srgb, var(--accent) 45%, var(--bordure)); }
+.carte-fonction.allumee .carte-fonction-icone { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.carte-fonction.allumee .carte-fonction-etat { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 .carte-app header { display: flex; gap: 10px; align-items: center; }
 .carte-app header > span:last-child { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .carte-app p { margin: 0; font-size: 13px; }
@@ -3787,3 +3816,21 @@ input:not([type='checkbox']):not([type='radio']):not([type='range']), select, te
 @media (prefers-reduced-motion: reduce) {
   .bandeau.fin-licence.urgent, .rappel-fin-licence { animation: none; }
 }
+
+/* Ticket Z de la caissière, en grand (2026-10-23). */
+.carte-dernier-z { display: grid; gap: 6px; justify-items: start; width: 100%; max-width: 520px; margin: 0 0 16px; padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--bordure)); border-radius: 16px; background: var(--surface);
+  color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.carte-dernier-z-titre { display: flex; gap: 8px; align-items: center; color: var(--accent); font-weight: 600; }
+.carte-dernier-z strong { font-size: 1.6rem; }
+.carte-dernier-z .bouton { margin-top: 6px; pointer-events: none; }
+
+/* Détail d'une vente : qui, où, quand (2026-10-23). */
+.infos-vente { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0 0 12px; }
+.infos-vente > div { padding: 8px 10px; border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface-douce, var(--fond)); }
+.infos-vente dt { font-size: .8rem; color: var(--texte-doux); }
+.infos-vente dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.liste-offerts { margin: 4px 0 0; padding-left: 18px; }
+
+/* Le patron vend sur la caisse d'une caissière (2026-10-23). */
+.bandeau-caisse-autre { margin: 0 0 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--bordure)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }

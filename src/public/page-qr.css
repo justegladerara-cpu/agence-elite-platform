@@ -1,0 +1,42 @@
+/* Page mobile d'un QR code (client qui scanne) et son aperçu dans le constructeur. Toujours claire et lisible. */
+.page-qr {
+  --page-qr-couleur: #1f6feb;
+  display: grid;
+  gap: 14px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  min-height: 100vh;
+  background: #f6f7f9;
+  color: #111827;
+  font-family: Inter, system-ui, sans-serif;
+  box-sizing: border-box;
+}
+.page-qr.apercu { min-height: 0; padding: 14px 12px 24px; }
+.page-qr-bloc { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 1px 3px rgba(16, 24, 40, .08); }
+.page-qr h1 { margin: 6px 0 4px; font-size: 1.45rem; }
+.page-qr h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.page-qr h3 { margin: 10px 0 6px; font-size: .95rem; color: var(--page-qr-couleur); }
+.page-qr p { margin: 0 0 8px; line-height: 1.45; }
+.page-qr-texte { white-space: pre-line; }
+.page-qr-doux { color: #6b7280; }
+.page-qr-entete { text-align: center; background: var(--page-qr-couleur); color: #fff; }
+.page-qr-entete img { display: block; margin: 0 auto 6px; max-width: 96px; max-height: 96px; border-radius: 16px; background: #fff; padding: 6px; }
+.page-qr-entete p { opacity: .92; }
+.page-qr-bouton {
+  display: block; width: 100%; box-sizing: border-box; padding: 15px 16px; border: 0; border-radius: 14px; background: var(--page-qr-couleur);
+  color: #fff; font-weight: 700; font-size: 1rem; text-align: center; text-decoration: none; cursor: pointer;
+}
+.page-qr-bouton:disabled { opacity: .7; }
+.page-qr-menu ul { list-style: none; margin: 0; padding: 0; }
+.page-qr-menu li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eef0f3; }
+.page-qr-menu li:last-child { border-bottom: 0; }
+.page-qr-menu li strong { white-space: nowrap; }
+.page-qr-formulaire { display: grid; gap: 10px; }
+.page-qr-formulaire label { display: grid; gap: 4px; font-size: .9rem; font-weight: 600; }
+.page-qr-formulaire input, .page-qr-formulaire textarea {
+  font: inherit; font-weight: 400; padding: 12px; border: 1px solid #d0d5dd; border-radius: 10px; background: #fff; color: #111827;
+}
+.page-qr-piege { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.page-qr-erreur { color: #b91c1c; font-weight: 600; }
+.page-qr-merci { text-align: center; font-weight: 700; color: var(--page-qr-couleur); }

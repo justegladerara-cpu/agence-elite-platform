@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { fonctionActive } from './fonctions.js';
 import { formatMontant } from './format.js';
 import { caisseContinue, finLicence, licenceCoupee, peutEcrire } from './continuite.js';
 
@@ -72,6 +73,19 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etablissement?.id, fin]);
 
+  // Fonctions allumées ou éteintes (Paramètres > Applications) : relues à chaque changement d'établissement.
+  const [reglagesFonctions, setReglagesFonctions] = useState({});
+  const lireFonctions = useCallback(() => {
+    if (!etablissement?.id || !api?.lire) return Promise.resolve();
+    return api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id } })
+      .then((lignes) => setReglagesFonctions(Object.fromEntries((lignes ?? []).map((l) => [l.module_id, l.data ?? {}]))))
+      .catch(() => {});
+  }, [api, etablissement?.id]);
+  useEffect(() => {
+    setReglagesFonctions({});
+    lireFonctions();
+  }, [lireFonctions]);
+
   const notifier = useCallback((texte, ton = 'succes') => {
     compteur.current += 1;
     const id = compteur.current;
@@ -112,6 +126,9 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       // Permission du rôle, même quand l'écriture est coupée (ex. : demander le renouvellement d'une licence expirée).
       aLaPermission: (permission) => permissions.has(permission),
       moduleActif: (module) => modules.has(module),
+      reglagesFonctions,
+      fonctionActive: (id) => fonctionActive(reglagesFonctions, id),
+      relireFonctions: lireFonctions,
       montant: (n) => formatMontant(n, devise),
       choisirEtablissement: (id) => {
         memoriserChoix(id);
@@ -121,7 +138,7 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       recharger: onRecharger,
       deconnecter: onDeconnexion,
     };
-  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion, coupure]);
+  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion, coupure, reglagesFonctions, lireFonctions]);
 
   return (
     <ContexteEspace.Provider value={valeur}>

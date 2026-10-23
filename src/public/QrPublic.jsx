@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { destinationQr, identifiantVisiteur, texteVcard, typeAppareil } from '../noyau/qrContenus.js';
 import { Chargement } from '../ui/composants.jsx';
+import { PageQr } from './PageQr.jsx';
 
 // Page d'un QR code suivi (#/q/<jeton>), ouverte en scannant, sans compte. La base compte le scan (ouvrir_qr_code :
 // QR code actif et dans ses dates seulement, aucune donnée personnelle) puis le client part vers la destination :
@@ -39,7 +40,8 @@ export function QrPublic({ donnees, jeton }) {
     donnees.rpc('ouvrir_qr_code', { p_jeton: jeton, p_appareil: appareil, p_visiteur: identifiantVisiteur() })
       .then(async (r) => {
         setReponse(r);
-        if (r.type === 'vcard') return;
+        // Page mobile allumée (migration 20261023200160) : le client la voit, ses boutons mènent à la destination.
+        if (r.page || r.type === 'vcard') return;
         const cible = destinationQr(r, `${window.location.origin}${window.location.pathname}`);
         if (!cible) throw new Error('Ce QR code n’a pas de destination');
         setDestination(cible);
@@ -57,6 +59,16 @@ export function QrPublic({ donnees, jeton }) {
           <p className="texte-doux">{erreur.replace(/\.?$/, '.')}</p>
         </div>
       </div>
+    );
+  }
+  if (reponse?.page) {
+    return (
+      <PageQr page={reponse.page} reponse={reponse} nom={reponse.etablissement} origine={`${window.location.origin}${window.location.pathname}`}
+        onInscrire={async (v) => {
+          const r = await donnees.rpc('envoyer_inscription_qr', { p_jeton: jeton, p: v, p_appareil: typeAppareil(navigator.userAgent, navigator.maxTouchPoints ?? 0) });
+          await donnees.attendreEcriture?.().catch(() => {});
+          return r;
+        }} />
     );
   }
   if (reponse?.type === 'vcard') return <FicheContact r={reponse} />;

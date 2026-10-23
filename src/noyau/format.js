@@ -75,6 +75,7 @@ export const ROLES = {
   collaborateur: 'Collaborateur',
   receptionniste: 'Réceptionniste',
   serveur: 'Serveur',
+  serveur_tablette: 'Serveur (tablette)',
   cuisinier: 'Cuisinier',
   agent_entretien: 'Agent d’entretien',
   livreur: 'Livreur',

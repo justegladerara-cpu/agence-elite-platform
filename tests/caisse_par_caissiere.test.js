@@ -52,7 +52,7 @@ describe('une caisse par caissière', () => {
     await vendre(awa, caisseAwa, 1000);
     await vendre(binta, caisseBinta, 500);
     await expect(vendre(binta, caisseAwa)).rejects.toThrow(/autre personne/);
-    await expect(vendre(gerant, caisseAwa)).rejects.toThrow(/autre personne/);
+    // Le patron, lui, peut vendre sur la caisse ouverte (demande de Juste, 2026-10-23) : voir patron_serveurs_tablette.test.js.
     await expect(comme(binta, 'select mettre_vente_en_attente($1, $2::jsonb)', [caisseAwa, JSON.stringify([{ article_id: article, quantite: 1 }])]))
       .rejects.toThrow(/autre personne/);
   });
