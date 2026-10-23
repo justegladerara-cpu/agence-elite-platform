@@ -247,7 +247,10 @@ function ReglagesModules() {
       api.lire('etablissement_parametres', { eq: { etablissement_id: etab } }),
     ]);
     return {
-      modules: modules.filter((m) => m.id !== 'caisse' && moduleActif(m.id) && (m.parametres_schema ?? []).length),
+      // pages_cachees se règle avec les cartes de l'onglet Applications, pas dans ce formulaire.
+      modules: modules.filter((m) => m.id !== 'caisse' && moduleActif(m.id))
+        .map((m) => ({ ...m, parametres_schema: (m.parametres_schema ?? []).filter((c) => c.cle !== 'pages_cachees') }))
+        .filter((m) => m.parametres_schema.length),
       valeurs: Object.fromEntries(parametres.map((p) => [p.module_id, p.data ?? {}])),
     };
   }, [etab]);

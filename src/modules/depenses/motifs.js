@@ -3,12 +3,14 @@
 export const MOTIFS_DEPENSE = [
   { id: 'loyer', libelle: 'Loyer', categorie: 'Loyer' },
   { id: 'transport', libelle: 'Transport', categorie: 'Transport' },
+  { id: 'carburant', libelle: 'Carburant', categorie: 'Transport' },
   { id: 'electricite', libelle: 'Électricité', categorie: 'Énergie' },
   { id: 'eau', libelle: 'Eau', categorie: 'Énergie' },
   { id: 'salaire', libelle: 'Salaire', categorie: 'Salaires' },
   { id: 'marchandise', libelle: 'Marchandise', categorie: 'Achats de marchandises' },
   { id: 'telephone', libelle: 'Téléphone / Internet', categorie: 'Téléphone et Internet' },
   { id: 'reparation', libelle: 'Réparation', categorie: 'Entretien' },
+  { id: 'technicien', libelle: 'Technicien', categorie: 'Entretien' },
   { id: 'autre', libelle: 'Autre', categorie: 'Divers' },
 ];
 

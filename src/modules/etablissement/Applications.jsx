@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { basculerPage, CLE_PAGES_CACHEES, fonctionActive, PAGES_TOUJOURS_VISIBLES } from '../../noyau/fonctions.js';
+import { pagesAccessibles } from '../index.js';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { STATUTS_MODULE } from '../../noyau/format.js';
 import { Badge, Erreur, Icone, PageHeader, Section, Squelette } from '../../ui/composants.jsx';
@@ -20,6 +22,59 @@ function Niveau({ actif, libelle }) {
   );
 }
 
+// Un interrupteur par écran du menu (demande de Juste, 2026-10-23) : caché = disparaît du menu pour tout le monde.
+function FonctionsAffichees() {
+  const espace = useEspace();
+  const { api, etablissement, peut, notifier, reglagesFonctions, relireFonctions } = espace;
+  const [enCours, setEnCours] = useState(null);
+  const pages = pagesAccessibles(espace).filter((p) => !PAGES_TOUJOURS_VISIBLES.includes(p.id) && !p.horsMenuSi?.(etablissement, espace));
+  // Les écrans cachés restent listés (pagesAccessibles ne tient pas compte du réglage) : on peut les rallumer.
+  if (!pages.length) return null;
+  const groupes = [...new Set(pages.map((p) => p.groupe))];
+  const modifiable = peut('etablissement.modifier');
+  const basculer = async (page) => {
+    setEnCours(page.id);
+    try {
+      // Les réglages d'un module s'enregistrent en entier : on garde les autres valeurs telles quelles.
+      const lignes = await api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id, module_id: 'etablissement' } });
+      const actuel = lignes?.[0]?.data ?? {};
+      const visible = fonctionActive(reglagesFonctions, page.id);
+      await api.rpc('enregistrer_parametres_module', {
+        p_etablissement_id: etablissement.id, p_module_id: 'etablissement',
+        p_data: { ...actuel, [CLE_PAGES_CACHEES]: basculerPage(reglagesFonctions, page.id) },
+      });
+      await relireFonctions();
+      notifier(`${page.libelle} : ${visible ? 'caché' : 'affiché'}`);
+    } catch (err) {
+      notifier(err.message, 'erreur');
+    } finally {
+      setEnCours(null);
+    }
+  };
+  return (
+    <Section titre="Ce qui s’affiche dans le menu" sousTitre="Touchez une carte pour afficher ou cacher un écran pour toute l’équipe. Rien n’est effacé : vous pouvez le rallumer quand vous voulez.">
+      {groupes.map((g) => (
+        <div key={g} className="groupe-fonctions">
+          <h3>{g}</h3>
+          <div className="grille-fonctions">
+            {pages.filter((p) => p.groupe === g).map((p) => {
+              const actif = fonctionActive(reglagesFonctions, p.id);
+              return (
+                <button key={p.id} type="button" role="switch" aria-checked={actif} aria-label={p.libelle} className={`carte-fonction ${actif ? 'allumee' : ''}`}
+                  disabled={!modifiable || enCours === p.id} onClick={() => basculer(p)}>
+                  <span className="carte-fonction-icone"><Icone nom={p.icone} /></span>
+                  <strong className="carte-fonction-nom">{p.libelle}</strong>
+                  <span className="carte-fonction-etat">{actif ? 'Affiché' : 'Caché'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </Section>
+  );
+}
+
 export function ListeApplications({ compact = false }) {
   const { api, etablissement } = useEspace();
   const { donnees: apps, chargement, erreur } = useDonnees(() => api.rpc('mes_applications', { p_etablissement_id: etablissement.id }), [etablissement.id]);
@@ -28,6 +83,7 @@ export function ListeApplications({ compact = false }) {
   return (
     <div className="pile">
       <Erreur message={erreur} />
+      {!compact && <FonctionsAffichees />}
       {!compact && (
         <Section titre="Comment lire cette page" sousTitre="Une application n’est utilisable que si les cinq niveaux sont réunis. Pour en obtenir une nouvelle, contactez Agence Elite.">
           <ul className="niveaux-apps">

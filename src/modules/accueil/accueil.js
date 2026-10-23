@@ -15,7 +15,7 @@ export const GROS_BOUTONS = [
   { id: 'je-dois', libelle: 'À qui je dois ?', detail: 'Fournisseurs à payer', icone: 'echeance', route: 'achats?onglet=a_payer', permission: 'achats.lire', mots: 'fournisseur payer dette' },
   { id: 'article', libelle: 'Ajouter des articles', detail: 'Un nom et un prix suffisent', icone: 'articles', route: 'articles?nouveau=1', permission: 'articles.gerer', mots: 'article produit prix catalogue nouveau' },
   { id: 'facture', libelle: 'Faire une facture', detail: 'Ou un devis', icone: 'facture', route: 'factures/nouvelle-facture', permission: 'facturation.gerer', mots: 'facture devis facturer' },
-  { id: 'menu-qr', libelle: 'Menu QR des tables', detail: 'Le client scanne, voit le menu, commande', icone: 'table', route: 'menu-qr', permission: 'caisse.menu_qr', mots: 'qr code menu carte table scanner commander restaurant bar' },
+  { id: 'qr-codes', libelle: 'QR codes des tables', detail: 'Les scans, la page que voit le client', icone: 'cible', route: 'qr-codes', permission: 'caisse.menu_qr', mots: 'qr code menu carte table scanner commander restaurant bar scans' },
   { id: 'chiffres', libelle: 'Voir mes chiffres', detail: 'Tableau de bord', icone: 'graphique', route: 'tableau-de-bord', permission: 'tableau_de_bord.lire', mots: 'chiffres tableau bord statistiques benefice' },
 ];
 

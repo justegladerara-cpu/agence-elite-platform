@@ -69,11 +69,21 @@ function kpi(cle, libelle, valeur, precedent, format, detail) {
   return { cle, libelle, valeur, precedent: precedent ?? null, format, detail: detail ?? null, variation: valeur == null || precedent == null ? null : pourcent(n(valeur), n(precedent)) };
 }
 
+// Phrases de comparaison renvoyées par analyse_commerce, dites en mots simples.
+const COMPARAISONS = {
+  'vs il y a 7 jours, même heure': 'par rapport au même jour la semaine passée, à la même heure',
+  'vs même jour, semaine d’avant': 'par rapport au même jour la semaine passée',
+  'vs période d’avant, même moment': 'par rapport aux mêmes jours juste avant',
+  'vs période précédente': 'par rapport aux mêmes jours juste avant',
+};
+export const comparaisonSimple = (texte) => COMPARAISONS[texte] ?? texte ?? '';
+
 const nbr = (x) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(n(x)).replace(/ | /g, ' ');
 
 export function construireAnalyse(r) {
   const devise = r.devise ?? 'XAF';
   const m = (x) => formatMontant(x, devise);
+  const periode = { ...(r.periode ?? {}), comparaison: comparaisonSimple(r.periode?.comparaison) };
   const t = r.totaux ?? {};
   const p = r.precedent ?? null;
   const chiffre = n(t.chiffre);
@@ -85,13 +95,13 @@ export function construireAnalyse(r) {
   const couverture = n(t.chiffre_lignes) > 0 ? n(t.chiffre_cout_connu) / n(t.chiffre_lignes) : null;
 
   const kpis = [
-    kpi('chiffre', 'Chiffre d’affaires', chiffre, p && n(p.chiffre), 'montant'),
-    kpi('tickets', 'Tickets', tickets, p && n(p.tickets), 'nombre', tickets ? `${nbr(n(t.articles) / tickets)} article(s) par ticket` : null),
-    kpi('panier', 'Panier moyen', panier, panierP, 'montant'),
-    kpi('marge', 'Marge brute', margeV, margeV != null ? margeP : null, 'montant',
-      margeV == null ? (n(t.chiffre_lignes) > 0 ? 'Non calculé : prix d’achat manquants' : null) : `Taux ${Math.round((100 * margeV) / Math.max(1, n(t.chiffre_cout_connu)))} %`),
-    kpi('remises', 'Remises accordées', n(t.remises), p && n(p.remises), 'montant'),
-    kpi('annulations', 'Annulations', n(t.annulations), p && n(p.annulations), 'nombre', n(t.annulations) ? m(t.annulations_montant) : null),
+    kpi('chiffre', 'Total des ventes', chiffre, p && n(p.chiffre), 'montant'),
+    kpi('tickets', 'Nombre de ventes', tickets, p && n(p.tickets), 'nombre', tickets ? `${nbr(n(t.articles) / tickets)} produit(s) par vente` : null),
+    kpi('panier', 'Dépense moyenne par client', panier, panierP, 'montant'),
+    kpi('marge', 'Bénéfice sur les produits', margeV, margeV != null ? margeP : null, 'montant',
+      margeV == null ? (n(t.chiffre_lignes) > 0 ? 'Pas calculé : prix d’achat manquants' : null) : `Soit ${Math.round((100 * margeV) / Math.max(1, n(t.chiffre_cout_connu)))} % du prix d’achat`),
+    kpi('remises', 'Réductions données', n(t.remises), p && n(p.remises), 'montant'),
+    kpi('annulations', 'Ventes annulées', n(t.annulations), p && n(p.annulations), 'nombre', n(t.annulations) ? m(t.annulations_montant) : null),
   ];
   for (const k of kpis) k.favorable = k.variation == null || k.variation === 0 ? null : (k.variation > 0) !== ['remises', 'annulations'].includes(k.cle);
 
@@ -167,31 +177,31 @@ export function construireAnalyse(r) {
   const points = [];
   if (ruptures.length) {
     const a = ruptures[0];
-    points.push({ niveau: 'critique', texte: a.epuise ? `${a.libelle} est en rupture (stock à zéro).` : a.joursRestants === 0 ? `${a.libelle} sera en rupture avant demain à ce rythme.` : `${a.libelle} sera en rupture dans ${a.joursRestants} jour${a.joursRestants > 1 ? 's' : ''} à ce rythme.`, route: 'stock?etat=bas' });
+    points.push({ niveau: 'critique', texte: a.epuise ? `${a.libelle} : plus de stock.` : a.joursRestants === 0 ? `${a.libelle} sera fini avant demain si ça continue comme ça.` : `${a.libelle} sera fini dans ${a.joursRestants} jour${a.joursRestants > 1 ? 's' : ''} si ça continue comme ça.`, route: 'stock?etat=bas' });
   }
-  if (ticketZ.ecart != null && ticketZ.ecart !== 0) points.push({ niveau: 'alerte', texte: `Écart de caisse : ${ticketZ.ecart < 0 ? `manque ${m(-ticketZ.ecart)}` : `${m(ticketZ.ecart)} en trop`} sur ${ticketZ.ecarts} ticket(s) Z.`, route: 'clotures' });
+  if (ticketZ.ecart != null && ticketZ.ecart !== 0) points.push({ niveau: 'alerte', texte: `Caisse : ${ticketZ.ecart < 0 ? `il manque ${m(-ticketZ.ecart)}` : `${m(ticketZ.ecart)} en trop`} (${ticketZ.ecarts} fermeture${ticketZ.ecarts > 1 ? 's' : ''} de caisse).`, route: 'clotures' });
   if (tardives.length) {
     const noms = [...new Set(tardives.map((a) => a.par).filter(Boolean))].slice(0, 2).join(', ');
-    points.push({ niveau: 'alerte', texte: `${tardives.length} annulation${tardives.length > 1 ? 's' : ''} plus de 30 min après la vente${noms ? ` (${noms})` : ''}.`, route: 'ventes?statut=annulee' });
+    points.push({ niveau: 'alerte', texte: `${tardives.length} vente${tardives.length > 1 ? 's' : ''} annulée${tardives.length > 1 ? 's' : ''} plus de 30 min après${noms ? ` (${noms})` : ''}.`, route: 'ventes?statut=annulee' });
   }
-  if (varCa != null && varCa <= -15) points.push({ niveau: 'alerte', texte: `Chiffre d’affaires en baisse de ${-varCa} % ${r.periode?.comparaison ?? ''}.`.replace(/ \./, '.'), route: 'ventes' });
-  if (margeV == null && n(t.chiffre_lignes) > 0) points.push({ niveau: 'info', texte: `Marge non calculée : prix d’achat connu sur ${Math.floor(100 * (couverture ?? 0))} % des ventes seulement.`, route: 'articles' });
-  if (r.stock && n(r.stock.dormants_valeur) > 0) points.push({ niveau: 'info', texte: `${m(r.stock.dormants_valeur)} immobilisés dans ${r.stock.dormants} article(s) sans vente sur la période.`, route: 'stock' });
-  if (creux && creux.part <= 6) points.push({ niveau: 'info', texte: `Entre ${creux.de} h et ${creux.a} h : seulement ${creux.part} % du chiffre. Une offre à ce moment-là ?`, route: null });
-  if (varCa != null && varCa >= 10) points.push({ niveau: 'bon', texte: `Bonne période : chiffre d’affaires en hausse de ${varCa} %.`, route: null });
-  if (!points.length && chiffre > 0) points.push({ niveau: 'bon', texte: 'Rien d’anormal sur la période.', route: null });
+  if (varCa != null && varCa <= -15) points.push({ niveau: 'alerte', texte: `Les ventes baissent de ${-varCa} % ${periode.comparaison}.`.replace(/ \./, '.'), route: 'ventes' });
+  if (margeV == null && n(t.chiffre_lignes) > 0) points.push({ niveau: 'info', texte: `Bénéfice pas calculé : il manque le prix d’achat de beaucoup de produits (connu pour ${Math.floor(100 * (couverture ?? 0))} % des ventes seulement).`, route: 'articles' });
+  if (r.stock && n(r.stock.dormants_valeur) > 0) points.push({ niveau: 'info', texte: `${m(r.stock.dormants_valeur)} bloqués dans ${r.stock.dormants} produit(s) qui ne se vendent pas.`, route: 'stock' });
+  if (creux && creux.part <= 6) points.push({ niveau: 'info', texte: `Entre ${creux.de} h et ${creux.a} h, on vend très peu : seulement ${creux.part} % des ventes.`, route: null });
+  if (varCa != null && varCa >= 10) points.push({ niveau: 'bon', texte: `Bonne nouvelle : les ventes montent de ${varCa} %.`, route: null });
+  if (!points.length && chiffre > 0) points.push({ niveau: 'bon', texte: 'Tout va bien, rien de bizarre.', route: null });
 
   // Résumé en une phrase.
-  const morceaux = [`${m(chiffre)} de chiffre d’affaires`];
+  const morceaux = [`${m(chiffre)} de ventes`];
   if (varCa != null) morceaux[0] += ` (${varCa > 0 ? '+' : varCa < 0 ? '−' : ''}${Math.abs(varCa)} %)`;
-  morceaux.push(`${tickets} ticket${tickets > 1 ? 's' : ''}, panier moyen ${m(panier)}`);
-  if (meilleurJour && (r.periode?.jours ?? 0) > 1) morceaux.push(`meilleur jour ${meilleurJour.nom.toLowerCase()}`);
-  if (meilleureHeure) morceaux.push(`meilleure heure ${meilleureHeure.heure} h`);
-  if (n(t.annulations)) morceaux.push(`${n(t.annulations)} annulation${n(t.annulations) > 1 ? 's' : ''}`);
-  const resume = chiffre > 0 || tickets > 0 ? `${morceaux.join(', ')}.` : 'Aucune vente sur la période.';
+  morceaux.push(`${tickets} client${tickets > 1 ? 's' : ''} servi${tickets > 1 ? 's' : ''}, ${m(panier)} par client en moyenne`);
+  if (meilleurJour && (r.periode?.jours ?? 0) > 1) morceaux.push(`le ${meilleurJour.nom.toLowerCase()} est le meilleur jour`);
+  if (meilleureHeure) morceaux.push(`vous vendez le plus à ${meilleureHeure.heure} h`);
+  if (n(t.annulations)) morceaux.push(`${n(t.annulations)} vente${n(t.annulations) > 1 ? 's' : ''} annulée${n(t.annulations) > 1 ? 's' : ''}`);
+  const resume = chiffre > 0 || tickets > 0 ? `${morceaux.join(', ')}.` : 'Aucune vente sur ces dates.';
 
   return {
-    devise, periode: r.periode ?? {}, portee: r.portee ?? {}, kpis, resume, attention: points.slice(0, 3), attentionToutes: points,
+    devise, periode, portee: r.portee ?? {}, kpis, resume, attention: points.slice(0, 3), attentionToutes: points,
     encaisse: t.encaisse == null ? null : n(t.encaisse), encaisseP: p?.encaisse == null ? null : n(p.encaisse),
     articlesParTicket: tickets ? n(t.articles) / tickets : 0, clientsIdentifies: n(t.clients_identifies),
     heures, meilleureHeure, pireHeure, creux, jours, moyenneJour, record, semaine, meilleurJour, pireJour, weekEnd, finDeMois, grille, meilleureCase,
@@ -205,7 +215,7 @@ export function construireAnalyse(r) {
 
 // --- Rapport : types et périodes ---------------------------------------------------------------------------
 
-export const TYPES_RAPPORT = [['jour', 'Journalier'], ['semaine', 'Hebdomadaire'], ['mois', 'Mensuel'], ['libre', 'Période libre']];
+export const TYPES_RAPPORT = [['jour', 'Du jour'], ['semaine', 'De la semaine'], ['mois', 'Du mois'], ['libre', 'Choisir les dates']];
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const date = (s) => new Date(`${s}T12:00:00`);
@@ -238,12 +248,12 @@ export function bornesRapport(type, choix = {}, aujourdhui = iso(new Date())) {
 const enLettres = (s, options) => date(s).toLocaleDateString('fr-FR', options);
 
 export function titreRapport(type, du, au, fin = au) {
-  if (type === 'jour') return `Rapport journalier · ${enLettres(du, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
-  if (type === 'mois') return `Rapport mensuel · ${enLettres(du, { month: 'long', year: 'numeric' })}`;
+  if (type === 'jour') return `Rapport du jour · ${enLettres(du, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+  if (type === 'mois') return `Rapport du mois · ${enLettres(du, { month: 'long', year: 'numeric' })}`;
   const memeMois = du.slice(0, 7) === fin.slice(0, 7);
   const debut = enLettres(du, memeMois ? { day: 'numeric' } : { day: 'numeric', month: 'long' });
   const periode = `du ${debut} au ${enLettres(fin, { day: 'numeric', month: 'long', year: 'numeric' })}`;
-  return type === 'semaine' ? `Rapport hebdomadaire · semaine ${periode}` : `Rapport · ${periode}`;
+  return type === 'semaine' ? `Rapport de la semaine · ${periode}` : `Rapport · ${periode}`;
 }
 
 // Nom du fichier proposé à l'enregistrement en PDF (le titre de la page devient le nom du fichier).

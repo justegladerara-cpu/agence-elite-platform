@@ -2719,6 +2719,19 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .grille-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .carte-app { display: grid; gap: 8px; align-content: start; padding: 14px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
 .carte-app.utilisable { border-color: color-mix(in srgb, var(--accent) 35%, var(--bordure)); }
+/* Fonctions à afficher (Paramètres > Applications) : cartes carrées arrondies, un geste = affiché / caché. */
+.groupe-fonctions { display: grid; gap: 8px; margin-bottom: 14px; }
+.groupe-fonctions h3 { margin: 0; font-size: .9rem; color: var(--texte-doux); }
+.grille-fonctions { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.carte-fonction { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; padding: 14px; text-align: left;
+  border: 1px solid var(--bordure); border-radius: 14px; background: var(--surface); color: var(--texte); font: inherit; cursor: pointer; }
+.carte-fonction:disabled { cursor: default; opacity: .7; }
+.carte-fonction-icone { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-douce, var(--fond)); color: var(--texte-doux); }
+.carte-fonction-nom { min-width: 0; overflow-wrap: anywhere; }
+.carte-fonction-etat { grid-column: 1 / -1; justify-self: start; padding: 3px 10px; border-radius: 999px; font-size: .82rem; font-weight: 600; background: var(--surface-douce, var(--fond)); color: var(--texte-doux); }
+.carte-fonction.allumee { border-color: color-mix(in srgb, var(--accent) 45%, var(--bordure)); }
+.carte-fonction.allumee .carte-fonction-icone { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.carte-fonction.allumee .carte-fonction-etat { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 .carte-app header { display: flex; gap: 10px; align-items: center; }
 .carte-app header > span:last-child { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .carte-app p { margin: 0; font-size: 13px; }
@@ -3787,3 +3800,11 @@ input:not([type='checkbox']):not([type='radio']):not([type='range']), select, te
 @media (prefers-reduced-motion: reduce) {
   .bandeau.fin-licence.urgent, .rappel-fin-licence { animation: none; }
 }
+
+/* Ticket Z de la caissière, en grand (2026-10-23). */
+.carte-dernier-z { display: grid; gap: 6px; justify-items: start; width: 100%; max-width: 520px; margin: 0 0 16px; padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--bordure)); border-radius: 16px; background: var(--surface);
+  color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.carte-dernier-z-titre { display: flex; gap: 8px; align-items: center; color: var(--accent); font-weight: 600; }
+.carte-dernier-z strong { font-size: 1.6rem; }
+.carte-dernier-z .bouton { margin-top: 6px; pointer-events: none; }

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { caisseContinue } from '../../noyau/continuite.js';
 import { formatDate, formatDateHeure, formatMontant, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
-import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Modale, Vide } from '../../ui/composants.jsx';
+import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Icone, Modale, Vide } from '../../ui/composants.jsx';
 import { exporterCsv } from '../../ui/communs.jsx';
 import { imprimer } from '../recus/Recu.jsx';
 import VentesPassees from './VentesPassees.jsx';
@@ -334,7 +334,7 @@ export default function Clotures() {
         Une caisse et un ticket Z par personne (« Tenue par »), plus de ticket X, plus de fermeture automatique à minuit :
         chacune ferme sa caisse quand elle a fini, puis « Terminer et me déconnecter ».
       </BandeauNouveau>
-      <EnTete titre="Clôture de caisse" sousTitre="Chaque personne clôture sa propre caisse : un ticket Z par personne">
+      <EnTete titre={responsable ? 'Ticket Z et clôture de caisse' : 'Mon ticket Z'} sousTitre="Chaque personne ferme sa propre caisse : un ticket Z par personne">
         {peut('caisse.rattraper') && donnees?.points.length > 0 && (
           <Bouton icone="plus" onClick={() => setPassees(true)}>Ventes d’un jour passé</Bouton>
         )}
@@ -354,6 +354,18 @@ export default function Clotures() {
       <Erreur message={erreur} />
       {donnees && (
         <>
+          {/* La caissière voit d'abord SON dernier ticket Z, en grand (demande de Juste, 2026-10-23). */}
+          {!responsable && affiches[0] && (
+            <button type="button" className="carte-dernier-z" onClick={() => setZOuvert(affiches[0])}>
+              <span className="carte-dernier-z-titre"><Icone nom="cloture" /> Mon dernier ticket Z</span>
+              <strong>{affiches[0].numero}</strong>
+              <span>{formatDateHeure(affiches[0].cloturee_le)} · {montant(affiches[0].total_ventes)} de ventes</span>
+              <span className={affiches[0].ecart ? 'texte-alerte' : 'texte-doux'}>
+                {affiches[0].ecart == null ? 'Espèces à compter' : affiches[0].ecart === 0 ? 'Caisse juste' : affiches[0].ecart < 0 ? `Il manque ${montant(-affiches[0].ecart)}` : `${montant(affiches[0].ecart)} en trop`}
+              </span>
+              <span className="bouton principal">Voir et imprimer</span>
+            </button>
+          )}
           {donnees.miennes.map(carteSession)}
           {!donnees.miennes.length && <div className="encart">Votre caisse n’est pas ouverte en ce moment.</div>}
           {donnees.autres.length > 0 && (

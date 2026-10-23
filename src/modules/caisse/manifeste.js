@@ -14,6 +14,8 @@ export default {
   pages: [
     { id: 'caisse', libelle: 'Caisse', icone: 'caisse', groupe: 'Vente', ordre: 10, permission: 'caisse.utiliser', composant: Caisse, pleinEcran: true },
     // Menu en ligne et QR codes des tables (migration 20261012000131) : réglé par le gérant.
+    // Menu QR, Happy hour et Bouteilles en réserve : éteints par défaut depuis le 2026-10-23 (src/noyau/fonctions.js),
+    // rallumables dans Paramètres > Applications. Juste utilise « QR codes », imprimés sur les tables.
     { id: 'menu-qr', libelle: 'Menu QR des tables', icone: 'table', groupe: 'Vente', ordre: 12, permission: 'caisse.menu_qr', composant: MenuQr },
     // QR codes libres (lien, WhatsApp, menu, Wi-Fi), logo au centre et scans comptés (migration 20261017000139).
     { id: 'qr-codes', libelle: 'QR codes', icone: 'cible', groupe: 'Vente', ordre: 12.5, permission: 'caisse.menu_qr', composant: QrCodes },

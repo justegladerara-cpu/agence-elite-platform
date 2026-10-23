@@ -103,10 +103,10 @@
 .rapport-nom { font-size: 13pt; color: var(--r-texte); }
 .rapport-titre { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: .5mm; color: var(--r-doux); }
 .rapport-titre strong { font-size: 10.5pt; color: var(--r-texte); }
-.rapport-resume { margin: 0; padding: 2.2mm 3mm; background: var(--r-fond); border-left: 3px solid var(--r-accent); font-size: 9.2pt; font-weight: 600; }
+.rapport-resume { margin: 0; padding: 2.6mm 3.2mm; background: var(--r-fond); border: 1px solid var(--r-trait); border-left: 3px solid var(--r-accent); border-radius: 3mm; font-size: 9.4pt; font-weight: 600; }
 
 .rapport-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm; }
-.rapport-kpi { display: flex; flex-direction: column; gap: .6mm; padding: 2mm; border: 1px solid var(--r-trait); border-radius: 2mm; min-width: 0; }
+.rapport-kpi { display: flex; flex-direction: column; gap: .6mm; padding: 2.4mm; border: 1px solid var(--r-trait); border-top: 2px solid var(--r-accent); border-radius: 3mm; background: var(--r-fond); min-width: 0; }
 .rapport-kpi-libelle { color: var(--r-doux); font-size: 7.4pt; }
 .rapport-kpi strong { font-size: 10.5pt; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .rapport-kpi-pied { display: flex; flex-direction: column; gap: .3mm; font-size: 7pt; color: var(--r-doux); }
@@ -116,7 +116,7 @@
 .rapport-var.neutre { color: var(--r-doux); }
 
 .rapport-deux, .rapport-bas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4mm; }
-.rapport-bloc { min-width: 0; }
+.rapport-bloc { min-width: 0; padding: 2.6mm 3mm; border: 1px solid var(--r-trait); border-radius: 3mm; background: #fff; }
 .rapport-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .rapport-table th, .rapport-table td { padding: .75mm 1mm; border-bottom: 1px solid var(--r-trait); text-align: right; white-space: nowrap; }
 .rapport-table th:first-child { text-align: left; font-weight: 400; white-space: normal; overflow-wrap: break-word; min-width: 24mm; }
@@ -135,13 +135,25 @@
 .rapport-graphique text { font-size: 6.5px; fill: var(--r-doux); }
 .rapport-axe { stroke: var(--r-trait); }
 .rapport-legende { margin: .5mm 0 1mm; color: var(--r-doux); }
-.rapport-moments { margin: 0; padding-left: 4mm; display: grid; gap: .6mm; }
+.rapport-moments { margin: 0; padding: 0; list-style: none; display: grid; gap: 1.2mm; }
+.rapport-moments li { padding: 1.4mm 2.2mm; border-radius: 2.2mm; background: var(--r-fond); }
 .rapport-vide { color: var(--r-doux); }
 .rapport-attention ol { margin: 0; padding-left: 5mm; display: grid; gap: 1.5mm; }
 .rapport-attention li { padding: 1.5mm 2mm; border-radius: 1.5mm; background: var(--r-fond); }
 .rapport-attention .niveau-critique, .rapport-attention .niveau-alerte { background: #fff1e6; }
 .rapport-attention .niveau-bon { background: #e3f6ee; }
 .rapport-pied { margin-top: auto; display: flex; justify-content: space-between; gap: 4mm; padding-top: 2mm; border-top: 1px solid var(--r-trait); color: var(--r-doux); font-size: 6.8pt; }
+
+.rapport-pages { display: grid; gap: 8mm; }
+.rapport-tete.reduite { justify-content: space-between; align-items: baseline; padding-bottom: 1.5mm; border-bottom-width: 1px; color: var(--r-doux); font-size: 7.6pt; }
+.rapport-tete.reduite strong { color: var(--r-texte); }
+.rapport-page-titre { display: flex; align-items: center; gap: 2.5mm; margin: 0; font-size: 12.5pt; color: var(--r-texte); }
+.rapport-page-titre span { display: grid; place-items: center; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: var(--r-accent); color: #fff; font-size: 9pt; }
+.rapport-colonne { display: grid; gap: 3.2mm; align-content: start; min-width: 0; }
+.rapport-a4 .rapport-sous { margin-top: 3mm; }
+.rapport-table tr.fort th, .rapport-table tr.fort td { font-weight: 700; }
+.rapport-table th small { color: var(--r-doux); }
+.rapport-table tfoot th, .rapport-table tfoot td { border-bottom: 0; }
 
 .rapport-zone { display: none; }
 @media print {
@@ -150,5 +162,8 @@
   body.impression-rapport .rapport-a4 {
     width: 186mm; min-height: 0; height: 272mm; padding: 0; margin: 0; box-shadow: none; border-radius: 0; overflow: hidden;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    break-after: page;
   }
+  body.impression-rapport .rapport-a4:last-child { break-after: auto; }
+  body.impression-rapport .rapport-pages { display: block; }
 }

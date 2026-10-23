@@ -3,6 +3,7 @@
 // - ses widgets de tableau de bord (même règle).
 // Ajouter un module = créer son dossier + son manifeste, puis l'ajouter à MANIFESTES (docs/SOP/02_CREER_UN_MODULE.md).
 // La base reste la seule frontière de sécurité : ce registre ne fait que masquer ce qui n'est pas utilisable.
+import { pageEteinte } from '../noyau/fonctions.js';
 import abonnements from './abonnements/manifeste.js';
 import accueil from './accueil/manifeste.js';
 import achats from './achats/manifeste.js';
@@ -62,7 +63,7 @@ export function pagesAccessibles({ moduleActif, peut }) {
 
 // Pages affichées dans le menu (certaines disparaissent une fois inutiles).
 export function pagesDuMenu(espace) {
-  return pagesAccessibles(espace).filter((p) => !p.horsMenuSi?.(espace.etablissement, espace));
+  return pagesAccessibles(espace).filter((p) => !p.horsMenuSi?.(espace.etablissement, espace) && !pageEteinte(espace.reglagesFonctions, p.id));
 }
 
 export function groupesDuMenu(pages) {

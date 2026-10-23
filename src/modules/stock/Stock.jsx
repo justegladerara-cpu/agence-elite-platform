@@ -182,7 +182,7 @@ function Inventaires({ hubsParId }) {
 }
 
 export default function Stock({ naviguer }) {
-  const { api, etablissement, peut, notifier, hubs, hub, multiHub, montant } = useEspace();
+  const { api, etablissement, peut, notifier, hubs, hub, multiHub, montant, fonctionActive } = useEspace();
   const etab = etablissement.id;
   // Liens profonds : ?vue=mouvements|receptions|inventaires|peremptions, ?vue=inventaire (ouvre « Je compte mon stock »),
   // ?vue=reception (« J'ai reçu de la marchandise »), ?vue=perte (« J'ai perdu / cassé / périmé »).
@@ -234,7 +234,7 @@ export default function Stock({ naviguer }) {
         actions={(
           <>
             {multiHub && peut('stock.transferer') && <Bouton icone="transfert" onClick={() => naviguer('transferts')}>Transférer</Bouton>}
-            {bas > 0 && <Bouton icone="panier" onClick={() => naviguer('preparer-commande')}>Préparer la commande</Bouton>}
+            {bas > 0 && fonctionActive('preparer-commande') && <Bouton icone="panier" onClick={() => naviguer('preparer-commande')}>Préparer la commande</Bouton>}
             {ajuster && <Bouton onClick={() => setAction({ type: 'choix_perte' })} disabled={!donnees}>J’ai perdu / cassé / périmé</Bouton>}
             {ajuster && <Bouton icone="inventaire" onClick={() => setAction({ type: 'comptage' })} disabled={!donnees}>Je compte mon stock</Bouton>}
             {ajuster && <Bouton variante="principal" icone="plus" onClick={() => setAction({ type: 'reception' })} disabled={!donnees}>J’ai reçu de la marchandise</Bouton>}

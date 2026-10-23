@@ -17,6 +17,7 @@ import { ChoixServeur, listeServeurs, lireServeurChoisi, retenirServeurChoisi } 
 import './caisse.css';
 import { BandeauNouveau, NOUVEAU_CAISSE_UNIQUE_JUSQUA, NOUVEAU_LOT3_JUSQUA, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
 import { ListeCommandesQr } from './CommandesQr.jsx';
+import { ModaleSortieArgent } from './SortieArgent.jsx';
 import { happyHourEnCours, texteBandeau } from './happyHour.js';
 import {
   ajouterAuPanier, annulerOffert, changerQuantiteLigne, cleLigne, fusionnerLignes, lignesPourVente, noteOfferts, offertsPourVente, offrirLigne,
@@ -616,7 +617,7 @@ function BandeFactures({ attentes, maintenant, panierOccupe, onReprendre, onTout
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise, fonctionActive } = useEspace();
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
@@ -736,6 +737,7 @@ export default function Caisse({ naviguer }) {
   }, [recharger]);
   // Fermeture de caisse depuis la caisse : comptage, puis MON ticket Z.
   const [fermeture, setFermeture] = useState(false);
+  const [sortie, setSortie] = useState(false);
   const [ticketZ, setTicketZ] = useState(null);
 
   const parId = useMemo(() => Object.fromEntries((donnees?.articles ?? []).map((a) => [a.id, a])), [donnees]);
@@ -788,8 +790,10 @@ export default function Caisse({ naviguer }) {
   const pdvNom = donnees.pointsDeVente.find((p) => p.id === session.point_de_vente_id)?.nom;
   const nombreArticles = lignes.reduce((s, l) => s + l.quantite, 0);
   // Happy hour : évalué à l'heure de l'appareil, rafraîchie chaque minute (« maintenant »).
-  const optionsRemise = { creneaux: donnees.happyHours ?? [], date: new Date(maintenant), decimales: decimalesDevise(devise) };
-  const happyHour = happyHourEnCours(donnees.happyHours ?? [], new Date(maintenant));
+  // Happy hour éteint par défaut depuis le 2026-10-23 (Paramètres > Applications) : les créneaux restent en base.
+  const creneauxHappyHour = fonctionActive('happy-hour') ? donnees.happyHours ?? [] : [];
+  const optionsRemise = { creneaux: creneauxHappyHour, date: new Date(maintenant), decimales: decimalesDevise(devise) };
+  const happyHour = happyHourEnCours(creneauxHappyHour, new Date(maintenant));
   // Total de la barre du bas (téléphone, tablette debout) : mêmes remises que le panier (happy hour, offerts).
   const totalPanier = Math.max(totauxPanier(lignes.filter((l) => parId[l.article_id]), parId, optionsRemise).sousTotal - Number(remise || 0), 0);
   // Le serveur choisi reste affiché même avant la relecture de la liste (prénom tout juste créé).
@@ -958,8 +962,10 @@ export default function Caisse({ naviguer }) {
               Commandes des tables <span className="pastille-compte" aria-label={`${donnees.commandesQr} commande(s)`}>{donnees.commandesQr}</span>
             </Bouton>
           )}
-          {/* Action de fin de service, pas l'action principale de la caisse (c'est « Encaisser ») : bouton secondaire. */}
-          <Bouton icone="cloture" onClick={() => setFermeture(true)}>Fermeture de caisse</Bouton>
+          {/* Sortie d'argent du tiroir (carburant, loyer, technicien…) : déduite des espèces attendues au ticket Z. */}
+          <Bouton icone="depenses" onClick={() => setSortie(true)}>Sortie d’argent</Bouton>
+          {/* Ticket Z bien en avant pour la caissière (demande de Juste, 2026-10-23). */}
+          <Bouton icone="cloture" variante="principal" className="bouton principal caisse-ticket-z" onClick={() => setFermeture(true)}>Ticket Z · Fermeture de caisse</Bouton>
         </div>
         <BandeauNouveau jusqua={NOUVEAU_CAISSE_UNIQUE_JUSQUA}>
           Une seule caisse ouverte à la fois : la suivante ouvre après ton ticket Z. Choisis le serveur en haut du panier
@@ -979,8 +985,7 @@ export default function Caisse({ naviguer }) {
         />
         {happyHour && <p className="bandeau-happy-hour" role="status">{texteBandeau(happyHour)}</p>}
         <BandeauNouveau jusqua={NOUVEAU_LOT3_JUSQUA}>
-          Happy hour automatique, bouton « Offrir » avec la raison, pourboire à l’encaissement et « Plus que N » quand le stock
-          atteint son minimum.
+          Bouton « Offrir » avec la raison, pourboire à l’encaissement et « Plus que N » quand le stock atteint son minimum.
         </BandeauNouveau>
         <BandeFactures
           attentes={attentes}
@@ -1058,6 +1063,9 @@ export default function Caisse({ naviguer }) {
         </button>
       </div>
       {miseEnAttente && <ModaleMiseEnAttente onValider={mettreEnAttente} onFermer={() => setMiseEnAttente(false)} />}
+      {sortie && (
+        <ModaleSortieArgent session={session} onFermer={() => setSortie(false)} onFait={(texte) => { setSortie(false); notifier(texte); recharger(); }} />
+      )}
       {fermeture && (
         <Modale titre="Fermeture de caisse" onFermer={() => setFermeture(false)}>
           <SessionOuverte

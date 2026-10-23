@@ -95,6 +95,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('dialog').getByLabel('Espèces comptées dans le tiroir').waitFor();
       await p.keyboard.press('Escape');
     });
+    // Sortie d'argent du tiroir (migration 20261023000156) : déduite des espèces attendues au ticket Z.
+    await etape('sortie-argent', async () => {
+      await p.getByRole('button', { name: 'Sortie d’argent' }).click();
+      const fenetre = p.getByRole('dialog', { name: 'Sortie d’argent de la caisse' });
+      await fenetre.getByLabel('Combien ?').fill('2000');
+      await fenetre.getByRole('button', { name: 'Carburant', exact: true }).click();
+      await fenetre.getByRole('button', { name: 'Enregistrer la sortie' }).click();
+      await p.getByText(/Sortie d’argent enregistrée/).first().waitFor();
+    });
     await etape('panier', async () => {
       await p.getByPlaceholder('Nom, référence ou code-barres').fill('Casque test');
       await p.locator('.vignette-article, .article-vignette, button:has-text("Casque test")').first().click();
@@ -328,17 +337,17 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     await etape('tableau-ventes', async () => {
       await p.getByRole('navigation', { name: 'Tableaux de bord' }).getByRole('button', { name: 'Ventes', exact: true }).click();
       await p.getByRole('tab', { name: '30 jours' }).click();
-      await p.getByText('Chiffre d’affaires jour par jour').first().waitFor();
-      await p.getByText('Ce qu’il faut retenir').first().waitFor();
+      await p.getByText('Ventes jour par jour').first().waitFor();
+      await p.getByText('Les choses importantes').first().waitFor();
     });
-    await etape('tableau-produits', async () => { await p.goto(U + '#/tableau-de-bord/produits'); await p.getByText('Top 10 en chiffre d’affaires').waitFor(); });
-    await etape('tableau-equipe', async () => { await p.goto(U + '#/tableau-de-bord/equipe'); await p.getByText('Classement de l’équipe').waitFor(); });
+    await etape('tableau-produits', async () => { await p.goto(U + '#/tableau-de-bord/produits'); await p.getByText('Les 10 qui rapportent le plus d’argent').waitFor(); });
+    await etape('tableau-equipe', async () => { await p.goto(U + '#/tableau-de-bord/equipe'); await p.getByText('Classement du personnel').waitFor(); });
     await etape('rapport-a4', async () => {
       await p.getByRole('button', { name: 'Télécharger le rapport' }).click();
-      await p.getByRole('tab', { name: 'Hebdomadaire' }).click();
-      await p.getByText(/Rapport hebdomadaire · semaine du/).waitFor();
-      await p.getByText('Ticket Z consolidé').waitFor();
-      await p.getByText('3 points d’attention').waitFor();
+      await p.getByRole('tab', { name: 'De la semaine' }).click();
+      await p.getByText(/Rapport de la semaine · du/).first().waitFor();
+      await p.getByText('Résumé de la caisse').first().waitFor();
+      await p.getByText('Les produits qui rapportent le plus').first().waitFor();
     });
     await etape('tableau-domaine', async () => {
       await p.goto(U + '#/tableau-de-bord/commerce');
@@ -867,6 +876,19 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText(/Bouteille en réserve \(RB-/).first().waitFor();
       await p.getByRole('article', { name: 'Réserve de Client du parcours' }).waitFor();
       if (await p.locator('.erreur:visible').count()) throw new Error(await p.locator('.erreur:visible').first().textContent());
+    });
+    // Paramètres > Applications : un interrupteur par écran ; caché = disparaît du menu (migration 20261023000156).
+    await etape('ecrans-caches', async () => {
+      await p.goto(U + '#/parametres?onglet=applications');
+      const carte = p.getByRole('switch', { name: 'Emballages consignés' });
+      await carte.waitFor();
+      if (await carte.getAttribute('aria-checked') !== 'true') throw new Error('Emballages consignés devrait être affiché');
+      await carte.click();
+      await p.getByText('Emballages consignés : caché').first().waitFor();
+      await p.getByRole('complementary', { name: 'Navigation principale' }).getByText('Emballages consignés', { exact: true }).waitFor({ state: 'detached' });
+      await carte.click();
+      await p.getByText('Emballages consignés : affiché').first().waitFor();
+      if (await p.getByRole('switch', { name: 'Happy hour' }).getAttribute('aria-checked') !== 'false') throw new Error('Happy hour devrait être caché');
     });
     await etape('qr-codes', async () => {
       // QR code libre avec logo et style, contrôlé avant téléchargement ; son scan passe par #/q/, compte, puis redirige.
