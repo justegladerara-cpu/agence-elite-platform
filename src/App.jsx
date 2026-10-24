@@ -1,6 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
+import { nomLieu } from './noyau/lieux.js';
 import { appliquerMarque } from './noyau/marque.js';
 import { configAuth, marqueAuth, texteAuth } from './noyau/pagesAuth.js';
 import { Marque } from './ui/Marque.jsx';
@@ -567,8 +568,8 @@ function BarreHaut({ filDefaut, surEditeur, onMenu, libelleRole, onCompte, navig
           <label className="selecteur">
             <Icone nom="hub" taille={16} />
             <select value={hub?.id ?? ''} onChange={(e) => choisirHub(e.target.value || null)} aria-label="Hub">
-              <option value="">Tous les Hubs</option>
-              {hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
+              <option value="">Tous les lieux</option>
+              {hubs.map((h) => <option key={h.id} value={h.id}>{nomLieu(h.nom)}</option>)}
             </select>
           </label>
         )}

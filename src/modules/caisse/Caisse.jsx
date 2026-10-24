@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { nomUtilisateur, useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
+import { dateLocale, formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, Erreur, Icone, Modale, Recherche, Vide } from '../../ui/composants.jsx';
 import { ModaleRecu } from '../recus/Recu.jsx';
 import {
@@ -15,6 +15,10 @@ import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import { nomsServeurs } from './serviPar.js';
 import { ChoixServeur, listeServeurs, lireServeurChoisi, retenirServeurChoisi } from './ChoixServeur.jsx';
 import './caisse.css';
+import { CaissesPatron } from './CaissesPatron.jsx';
+import { minutesVerification, ModaleToujoursToi, toujoursToiNecessaire } from './ToujoursToi.jsx';
+import { lireParametres } from '../../noyau/routes.js';
+import { nomLieu } from '../../noyau/lieux.js';
 import { BandeauNouveau, NOUVEAU_CAISSE_UNIQUE_JUSQUA, NOUVEAU_LOT3_JUSQUA, NOUVEAU_PRESENCE_JUSQUA, PastilleNouveau } from '../../ui/Nouveau.jsx';
 import { ListeCommandesQr } from './CommandesQr.jsx';
 import { ModaleSortieArgent } from './SortieArgent.jsx';
@@ -90,7 +94,9 @@ function CaisseOccupee({ occupee, coupures, onFermee, onVendre }) {
 }
 
 function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0, occupees = [], coupures = [], onFermee, onVendre }) {
-  const { hubs, multiHub } = useEspace();
+  const { hubs, multiHub, peut } = useEspace();
+  // Le patron voit toutes les caisses ouvertes et entre dans celle qu'il veut (demande de Juste, 2026-10-24).
+  const patron = peut('cloture.cloturer') && occupees.length > 0;
   const [fond, setFond] = useState('');
   const [pdv, setPdv] = useState(pointsDeVente[0]?.id ?? '');
   const [erreur, setErreur] = useState('');
@@ -117,7 +123,8 @@ function OuvertureCaisse({ pointsDeVente, onOuvrir, fermees = 0, occupees = [], 
   const occupee = occupees.find((o) => o.point_de_vente_id === (pdv || pointsDeVente[0]?.id));
   return (
     <div className="ouverture-caisse">
-      {occupee && <CaisseOccupee occupee={occupee} coupures={coupures} onFermee={onFermee} onVendre={onVendre} />}
+      {patron && <CaissesPatron occupees={occupees} onVendre={onVendre} />}
+      {occupee && <CaisseOccupee occupee={occupee} coupures={coupures} onFermee={onFermee} onVendre={patron ? null : onVendre} />}
       <form className="carte formulaire" onSubmit={valider}>
         <h2>Ouvrir la caisse</h2>
         {fermees > 0 && (
@@ -625,7 +632,7 @@ function BandeFactures({ attentes, maintenant, panierOccupe, onReprendre, onTout
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise, fonctionActive } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise, fonctionActive, reglagesFonctions } = useEspace();
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
@@ -761,6 +768,12 @@ export default function Caisse({ naviguer }) {
   // Caisse d'une autre personne choisie par un responsable (« Vendre sur la caisse de … ») : elle reste ouverte au nom
   // de la caissière, chaque vente porte le nom du responsable (vendeur) ; la base l'autorise à cloture.cloturer.
   const [caisseAutre, setCaisseAutre] = useState(null);
+  // « Entrer dans cette caisse » depuis le tableau de bord : #/caisse?entrer=<caisse>.
+  useEffect(() => {
+    const voulue = lireParametres().get('entrer');
+    const o = voulue && donneesChargees?.occupees?.find((x) => x.session_id === voulue);
+    if (o) setCaisseAutre(o);
+  }, [donneesChargees]);
   const sessionAutre = caisseAutre && !donnees?.sessions.length && peut('cloture.cloturer')
     ? donnees?.toutesOuvertes?.find((s) => s.id === caisseAutre.session_id) ?? null : null;
   const session = sessionAutre ?? donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
@@ -776,6 +789,24 @@ export default function Caisse({ naviguer }) {
     for (const [id, q] of Object.entries(quantitesNonEnvoyees(ventesNonEnvoyees(fileHorsLigne, session?.id)))) parArticle[id] = (parArticle[id] ?? 0) - q;
     return parArticle;
   }, [donnees, session?.hub_id, session?.id, fileHorsLigne]);
+
+  // « Est-ce toujours toi ? » : heure de la dernière vente de MA caisse (ou de la dernière réponse « Oui, c'est moi »).
+  const [derniereVente, setDerniereVente] = useState(null);
+  const [verifier, setVerifier] = useState(null);
+  useEffect(() => {
+    if (!session?.id || sessionAutre) return undefined;
+    let actif = true;
+    setDerniereVente(null);
+    api.lire('ventes', { eq: { session_caisse_id: session.id, statut: 'validee' }, ordre: ['cree_le', 'desc'], limite: 1, colonnes: ['cree_le'] })
+      .then((v) => { if (actif) setDerniereVente(v?.[0]?.cree_le ?? session.ouverte_le); })
+      .catch(() => { if (actif) setDerniereVente(session.ouverte_le); });
+    return () => { actif = false; };
+  }, [api, session?.id, sessionAutre]);
+  const demanderPaiement = (p) => {
+    const minutes = minutesVerification(reglagesFonctions);
+    if (!sessionAutre && toujoursToiNecessaire(derniereVente, minutes)) setVerifier({ paiement: p, depuis: Math.floor((Date.now() - new Date(derniereVente).getTime()) / 60000) });
+    else setPaiement(p);
+  };
 
   if (chargement && !donnees) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
@@ -825,8 +856,23 @@ export default function Caisse({ naviguer }) {
   const ajouter = (article, quantite = 1) => {
     setLignes((liste) => ajouterAuPanier(liste, article.id, arrondirQuantite(quantite)));
   };
+  // Article qui n'est pas compté dans le stock (Juste, 2026-10-24) : la caissière est prévenue une fois par article et
+  // par jour, pour que le responsable l'ajoute au stock (Paramètres › Caisse « responsable_stock », ex. « M. Destin »).
+  const prevenirSansStock = (article) => {
+    if (article.suivi_stock) return;
+    const cle = `sans-stock:${etab}:${dateLocale(0)}:${article.id}`;
+    try {
+      if (sessionStorage.getItem(cle)) return;
+      sessionStorage.setItem(cle, '1');
+    } catch {
+      // Stockage du navigateur indisponible : l'avis s'affiche à chaque fois, sans gêner la vente.
+    }
+    const responsable = String(reglagesFonctions?.caisse?.responsable_stock ?? '').trim();
+    notifier(`« ${article.nom} » n’est pas compté dans le stock. Prévenez ${responsable || 'le responsable'} pour l’ajouter au stock.`, 'attention');
+  };
   // Article au poids : on demande « Combien ? » ; article à l'unité : une touche = un de plus.
   const toucher = (article) => {
+    prevenirSansStock(article);
     if (estVenteAuPoids(article.unite)) setCombien(article);
     else ajouter(article);
   };
@@ -909,6 +955,7 @@ export default function Caisse({ naviguer }) {
     avertissements.forEach((a) => notifier(a, 'erreur'));
     if (pourboire && !avertissements.some((a) => a.startsWith('Pourboire'))) notifier(`Pourboire de ${montant(pourboire.montant)} enregistré`);
     terminer();
+    setDerniereVente(new Date().toISOString());
     setRecu({ ...resultat, lignesVendues });
     notifier(`Vente ${resultat.numero} enregistrée`);
     recharger();
@@ -968,7 +1015,7 @@ export default function Caisse({ naviguer }) {
         <div className="caisse-barre">
           <div className="caisse-session">
             <Badge ton="vert">Caisse ouverte</Badge>
-            <span>{pdvNom}{multiHub ? ` · ${hubs.find((h) => h.id === session.hub_id)?.nom ?? ''}` : ''} · depuis {formatDateHeure(session.ouverte_le)}</span>
+            <span>{pdvNom}{multiHub && !String(pdvNom ?? '').includes(nomLieu(hubs.find((h) => h.id === session.hub_id)?.nom) ?? '') ? ` · ${nomLieu(hubs.find((h) => h.id === session.hub_id)?.nom) ?? ''}` : ''} · ouverte depuis {formatDateHeure(session.ouverte_le)}</span>
             {donnees.sessions.length > 1 && (
               <select value={session.point_de_vente_id} onChange={(e) => setPdvChoisi(e.target.value)} aria-label="Caisse">
                 {donnees.sessions.map((s) => <option key={s.id} value={s.point_de_vente_id}>{donnees.pointsDeVente.find((p) => p.id === s.point_de_vente_id)?.nom}</option>)}
@@ -1074,7 +1121,7 @@ export default function Caisse({ naviguer }) {
           contacts={donnees.contacts}
           contactId={contactId}
           onContact={setContactId}
-          onEncaisser={(total) => setPaiement({ total })}
+          onEncaisser={(total) => demanderPaiement({ total })}
           onAttente={attentes ? () => setMiseEnAttente(true) : null}
           serveur={<ChoixServeur serveurs={serveursListe} valeur={serveur} onChange={setServeur} onCree={() => recharger()} compact />}
         />
@@ -1087,7 +1134,7 @@ export default function Caisse({ naviguer }) {
           <span>{formatQuantite(nombreArticles)} article(s){serveur ? ` · ${serveur}` : ''}</span>
           <small>voir le panier</small>
         </button>
-        <button type="button" className="barre-encaisser-bouton" disabled={!lignes.length} onClick={() => setPaiement({ total: totalPanier })}>
+        <button type="button" className="barre-encaisser-bouton" disabled={!lignes.length} onClick={() => demanderPaiement({ total: totalPanier })}>
           Encaisser {lignes.length > 0 && <span className="montant">{montant(totalPanier)}</span>}
         </button>
       </div>
@@ -1137,6 +1184,13 @@ export default function Caisse({ naviguer }) {
       {recu?.horsLigne && (
         <ModaleRecuHorsLigne ticket={recu.ticket} monnaie={recu.monnaie} onFermer={() => setRecu(null)}
           piedSupplementaire={<Bouton onClick={() => setRecu(null)}>Nouvelle vente</Bouton>} />
+      )}
+      {verifier && (
+        <ModaleToujoursToi
+          depuisMinutes={verifier.depuis}
+          onFermer={() => setVerifier(null)}
+          onOui={() => { setDerniereVente(new Date().toISOString()); setPaiement(verifier.paiement); setVerifier(null); }}
+        />
       )}
       {recu && !recu.horsLigne && (
         <ModaleRecu

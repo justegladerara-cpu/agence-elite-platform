@@ -524,7 +524,7 @@ function StatsQr({ codes, filtre, setFiltre }) {
   );
 }
 
-export default function QrCodes({ naviguer }) {
+export default function QrCodes({ naviguer, sousRoute }) {
   const { api, etablissement, notifier } = useEspace();
   const etab = etablissement.id;
   const apparence = useApparenceQr();
@@ -534,7 +534,6 @@ export default function QrCodes({ naviguer }) {
   });
   const [filtre, setFiltre] = useState('');
   const [formulaire, setFormulaire] = useState(null);
-  const [pageDe, setPageDe] = useState(null);
   const [imprime, setImprime] = useState(null);
   const [taillePng, setTaillePng] = useState(1024);
   const [erreurAction, setErreurAction] = useState('');
@@ -555,6 +554,19 @@ export default function QrCodes({ naviguer }) {
   if (chargement && !donnees) return <Squelette lignes={6} />;
   if (erreur) return <Erreur message={erreur} />;
   const { codes, menu, stats, pages } = donnees;
+  // Constructeur de la page mobile en page entière : #/qr-codes/page/<qr> (Juste, 2026-10-24).
+  const [section, idPage] = (sousRoute ?? lireRoute().split('/').slice(1).join('/')).split('/');
+  const qrPage = section === 'page' ? codes.find((q) => q.id === idPage && q.type !== 'wifi') : null;
+  if (qrPage) {
+    return (
+      <ConstructeurPageQr
+        pleinePage
+        qr={qrPage}
+        onFermer={() => naviguer('qr-codes')}
+        onFait={(m) => { notifier(m); recharger(); naviguer('qr-codes'); }}
+      />
+    );
+  }
   const logoDe = (q) => (q.avec_logo ? apparence.logo : null);
   const scans = Object.fromEntries(stats.codes.map((c) => [c.id, c]));
   const actifs = codes.filter((q) => q.actif);
@@ -648,7 +660,7 @@ export default function QrCodes({ naviguer }) {
                     <button type="button" className="lien" onClick={() => setImprime({ ...q, fois: Date.now() })}>Imprimer</button>
                     {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => copier(contenuQr(q))}>Copier le lien</button>}
                     {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => { setFiltre(`qr:${q.id}`); setOnglet('stats'); }}>Statistiques</button>}
-                    {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => setPageDe(q)}>Page mobile</button>}
+                    {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => naviguer(`qr-codes/page/${q.id}`)}>Page mobile</button>}
                     <button type="button" className="lien" onClick={() => setFormulaire({ qr: q })}>Modifier</button>
                     <button type="button" className="lien" onClick={() => setFormulaire({ modele: q })}>Dupliquer</button>
                     <button type="button" className="lien" onClick={() => action(() => api.rpc('enregistrer_qr_code', { p_etablissement_id: etab, p: { id: q.id, actif: !q.actif } }),
@@ -664,7 +676,6 @@ export default function QrCodes({ naviguer }) {
       )}
       {onglet === 'stats' && <StatsQr codes={stats.codes} filtre={filtre} setFiltre={setFiltre} />}
       {onglet === 'inscrits' && <ClientsInscrits codes={codes} />}
-      {pageDe && <ConstructeurPageQr qr={pageDe} onFermer={() => setPageDe(null)} onFait={(m) => { setPageDe(null); notifier(m); recharger(); }} />}
       {onglet === 'style' && (
         <StyleParDefaut menu={menu} apparence={apparence} enCours={enCours} naviguer={naviguer}
           onLogo={(c) => reglerApparence(c)} onEnregistrer={(style) => reglerApparence({ style }, 'Style par défaut enregistré')} />

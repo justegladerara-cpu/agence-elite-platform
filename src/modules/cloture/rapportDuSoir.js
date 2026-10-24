@@ -10,12 +10,24 @@ export const HEURE_CHANGEMENT_DE_JOUR = 6;
 const deuxChiffres = (n) => String(n).padStart(2, '0');
 const jourIso = (d) => `${d.getFullYear()}-${deuxChiffres(d.getMonth() + 1)}-${deuxChiffres(d.getDate())}`;
 
-// Date proposée par défaut (AAAA-MM-JJ, heure de l'appareil) : aujourd'hui, ou hier avant 6 h du matin.
-export function dateRapportParDefaut(maintenant = new Date()) {
+// Date proposée par défaut (AAAA-MM-JJ, heure de l'appareil) : aujourd'hui, ou hier avant l'heure de début du service
+// (6 h si rien n'est dit ; réglage Clôture « debut_service », 8 h par défaut à l'écran, migration 20261024040000).
+export function dateRapportParDefaut(maintenant = new Date(), heure = HEURE_CHANGEMENT_DE_JOUR) {
   const d = new Date(maintenant);
-  if (d.getHours() < HEURE_CHANGEMENT_DE_JOUR) d.setDate(d.getDate() - 1);
+  if (d.getHours() < heure) d.setDate(d.getDate() - 1);
   return jourIso(d);
 }
+
+// Heure de début du service réglée par l'établissement (Paramètres › Clôture) : 8 h par défaut (The Dream tourne
+// 24 h sur 24, la relève se fait le matin).
+export const DEBUT_SERVICE_PAR_DEFAUT = 8;
+export function heureDebutService(reglages) {
+  const h = Number(reglages?.cloture?.debut_service);
+  return Number.isFinite(h) && h >= 0 && h <= 23 ? h : DEBUT_SERVICE_PAR_DEFAUT;
+}
+
+// Jour de service en cours pour cet établissement.
+export const jourDeService = (reglages, maintenant = new Date()) => dateRapportParDefaut(maintenant, heureDebutService(reglages));
 
 // « lundi 12 octobre 2026 » à partir de « 2026-10-12 ».
 export function dateEnLettres(date) {

@@ -791,6 +791,12 @@ Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout co
   « Déploiement de la base » (`supabase db push` sans `--include-all`) les refusera : les renommer au-dessus de 151
   avant de les appliquer.
 
+## 45 octies. THE DREAM, CLIENT MODÈLE (2026-10-24)
+
+- Migration `20261024040000_the_dream_modele.sql` : compte de la maison, ventes d'essai effacées des écrans (jamais de la
+  base), blocs QR « Réseaux sociaux » et « Wi-Fi », réglages `debut_service`, `verifier_caissiere_minutes`,
+  `responsable_stock`, `pages_cachees_version`. Détail : `docs/THE_DREAM_MODELE.md`.
+
 ## 46–47. Prompt pour la nouvelle session
 
 Voir [`../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md`](../ai/PROMPT_NOUVELLE_SESSION_CLAUDE.md) (à copier-coller tel quel).

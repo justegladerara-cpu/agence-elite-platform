@@ -2,6 +2,7 @@
 // « À surveiller », graphiques, listes, activité, actions rapides.
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
+import { nomLieu } from '../../noyau/lieux.js';
 import { formatDate, formatDateHeure, formatMontantCourt, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Bouton, ChiffreCle, GraphiqueBarres, Icone } from '../../ui/composants.jsx';
 import { NombreAnime } from '../../motion/NombreAnime.jsx';
@@ -66,8 +67,8 @@ export function BarrePeriode({ f, filtresAvances = true, sansPeriodes = false })
         {f.periode !== 'perso' && <span className="cockpit-plage texte-doux">{f.du === f.au ? formatDate(f.du) : `${formatDate(f.du)} → ${formatDate(f.au)}`}</span>}
         {multiHub && (
           <select aria-label="Hub" value={f.hubId} onChange={(e) => { f.setHubId(e.target.value); f.setCaisseId(''); }}>
-            <option value="">Tous les Hubs</option>
-            {hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
+            <option value="">Tous les lieux</option>
+            {hubs.map((h) => <option key={h.id} value={h.id}>{nomLieu(h.nom)}</option>)}
           </select>
         )}
         {avances && (

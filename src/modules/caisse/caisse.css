@@ -732,3 +732,17 @@
   .prendre-commande-grille { grid-template-columns: 1fr; }
   .commande-serveur { position: static; }
 }
+
+/* Le patron voit toutes les caisses ouvertes (2026-10-24). */
+.caisses-patron { width: min(720px, 100%); margin-bottom: 12px; }
+.caisses-patron-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.caisses-patron-caisse { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); min-width: 0; }
+.caisses-patron-caisse header { display: flex; align-items: center; gap: 8px; }
+.caisses-patron-caisse header strong { font-size: var(--texte-lg); overflow-wrap: anywhere; }
+.caisses-patron-caisse dl { margin: 0; display: grid; gap: 6px; }
+.caisses-patron-caisse dl div { display: flex; justify-content: space-between; gap: 10px; font-size: var(--texte-sm); }
+.caisses-patron-caisse dt { color: var(--texte-doux); }
+.caisses-patron-caisse dd { margin: 0; font-weight: var(--poids-fort); text-align: right; }
+.caisses-patron-caisse .bouton { min-height: 48px; justify-content: center; }
+.caisses-patron-note { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; font-size: var(--texte-sm); }
+.caisses-patron-pastille { width: 8px; height: 8px; border-radius: 50%; background: var(--vert); box-shadow: 0 0 0 3px var(--vert-doux); flex: 0 0 auto; }

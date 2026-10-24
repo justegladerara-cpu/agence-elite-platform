@@ -2,7 +2,7 @@
 // Blocs : en-tête, texte, boutons, menu, inscription (envoyer_inscription_qr, sans compte).
 import React, { useState } from 'react';
 import { formatMontant } from '../noyau/format.js';
-import { lienBouton } from '../modules/caisse/pageQr.js';
+import { lienBouton, liensReseaux } from '../modules/caisse/pageQr.js';
 import './page-qr.css';
 
 function Formulaire({ bloc, onEnvoyer, apercu }) {
@@ -30,8 +30,8 @@ function Formulaire({ bloc, onEnvoyer, apercu }) {
     <form className="page-qr-bloc page-qr-formulaire" onSubmit={envoyer}>
       {bloc.titre && <h2>{bloc.titre}</h2>}
       {bloc.texte && <p>{bloc.texte}</p>}
-      <label>Votre nom<input value={v.nom} onChange={changer('nom')} maxLength={80} required autoComplete="name" /></label>
-      <label>Votre numéro (WhatsApp)<input value={v.telephone} onChange={changer('telephone')} type="tel" inputMode="tel" maxLength={25} required placeholder="+242 06 …" autoComplete="tel" /></label>
+      <label>Votre nom et prénom<input value={v.nom} onChange={changer('nom')} maxLength={80} required autoComplete="name" /></label>
+      <label>Votre numéro WhatsApp<input value={v.telephone} onChange={changer('telephone')} type="tel" inputMode="tel" maxLength={25} required placeholder="+242 06 …" autoComplete="tel" /></label>
       {bloc.email && <label>Votre e-mail (facultatif)<input value={v.email} onChange={changer('email')} type="email" maxLength={254} autoComplete="email" /></label>}
       {bloc.anniversaire && <label>Votre anniversaire (facultatif)<input value={v.anniversaire} onChange={changer('anniversaire')} type="date" /></label>}
       {bloc.message && <label>Un mot pour nous (facultatif)<textarea value={v.message} onChange={changer('message')} maxLength={500} rows={3} /></label>}
@@ -105,6 +105,35 @@ export function PageQr({ page, reponse, origine, onInscrire, apercu = false, nom
           );
         }
         if (b.type === 'formulaire') return <Formulaire key={cle} bloc={b} onEnvoyer={onInscrire} apercu={apercu} />;
+        if (b.type === 'reseaux') {
+          const liens = liensReseaux(b);
+          if (!liens.length && !apercu) return null;
+          return (
+            <section key={cle} className="page-qr-bloc page-qr-reseaux">
+              {b.titre && <h2>{b.titre}</h2>}
+              {!liens.length && <p className="page-qr-doux">Ajoutez vos réseaux : ils s’afficheront ici.</p>}
+              <div className="page-qr-reseaux-liens">
+                {liens.map((l) => (
+                  <a key={l.cle} className={`page-qr-reseau ${l.cle}`} href={apercu ? undefined : l.lien} target="_blank" rel="noopener noreferrer"
+                    onClick={apercu ? (e) => e.preventDefault() : undefined}>{l.nom}</a>
+                ))}
+              </div>
+            </section>
+          );
+        }
+        if (b.type === 'wifi') {
+          if (!b.reseau && !apercu) return null;
+          return (
+            <section key={cle} className="page-qr-bloc page-qr-wifi">
+              <h2>{b.titre || 'Wi-Fi'}</h2>
+              <p>Nom du Wi-Fi : <strong>{b.reseau || '…'}</strong></p>
+              <p>Mot de passe : <strong className="page-qr-code">{b.mot_de_passe || (b.reseau ? 'aucun (Wi-Fi ouvert)' : '…')}</strong></p>
+              {b.mot_de_passe && !apercu && navigator.clipboard && (
+                <button type="button" className="page-qr-bouton secondaire" onClick={() => navigator.clipboard.writeText(b.mot_de_passe)}>Copier le mot de passe</button>
+              )}
+            </section>
+          );
+        }
         return null;
       })}
     </div>

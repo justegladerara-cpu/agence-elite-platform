@@ -82,3 +82,8 @@
   .constructeur-page-qr { grid-template-columns: 1fr; }
   .telephone-apercu { position: static; max-height: none; }
 }
+/* Constructeur en page entière (2026-10-24). */
+.constructeur-page-qr-page .constructeur-page-qr { grid-template-columns: minmax(0, 1fr) 380px; }
+.constructeur-page-qr-page .telephone-apercu { top: 12px; max-height: calc(100vh - 120px); }
+.lien-retour-qr { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+@media (max-width: 900px) { .constructeur-page-qr-page .constructeur-page-qr { grid-template-columns: 1fr; } }

@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { nomUtilisateur, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatQuantite } from '../../noyau/format.js';
 import { Bouton, Champ, Erreur, PageHeader, Squelette } from '../../ui/composants.jsx';
-import { dateRapportParDefaut } from '../cloture/rapportDuSoir.js';
+import { jourDeService } from '../cloture/rapportDuSoir.js';
 import { bornesRapport, JOURS_COURTS, nomFichierRapport, titreRapport, TYPES_RAPPORT } from './analyses.js';
 import { useAnalyse } from './Analyses.jsx';
 
@@ -21,7 +21,8 @@ export default function Rapport({ naviguer, filtres }) {
   const { etablissement, utilisateur } = espace;
   const memoire = lireChoix();
   const [type, setType] = useState(TYPES_RAPPORT.some(([id]) => id === memoire.type) ? memoire.type : 'jour');
-  const [choix, setChoix] = useState({ jour: dateRapportParDefaut(), mois: dateRapportParDefaut().slice(0, 7), du: dateRapportParDefaut(), au: dateRapportParDefaut() });
+  const jour = jourDeService(espace.reglagesFonctions);
+  const [choix, setChoix] = useState({ jour, mois: jour.slice(0, 7), du: jour, au: jour });
   const [impression, setImpression] = useState(false);
   const { du, au, fin } = bornesRapport(type, choix, dateLocale(0));
   const { a, chargement, erreur } = useAnalyse(du, au, filtres);

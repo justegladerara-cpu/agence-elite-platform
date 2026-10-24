@@ -1,0 +1,114 @@
+/* Pages d'analyse ouvertes depuis une carte du Tableau de bord (Juste, 2026-10-24). Classes zoom-* seulement. */
+.zoom { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.zoom-retour {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; background: none;
+  color: var(--accent); font: inherit; font-weight: var(--poids-fort); cursor: pointer; border-radius: var(--rayon-petit);
+}
+.zoom-retour:hover { background: var(--accent-doux); }
+.zoom-periodes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.zoom-periodes button {
+  padding: 7px 14px; border-radius: var(--rayon-plein); border: 1px solid var(--bordure); background: var(--surface);
+  color: var(--texte); font: inherit; font-size: var(--texte-sm); cursor: pointer;
+}
+.zoom-periodes button.actif { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: var(--poids-fort); }
+.zoom-periode-texte { font-size: var(--texte-sm); }
+
+.zoom-haut { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; align-items: stretch; }
+.zoom-vedette { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.zoom-vedette.vert { border-top: 4px solid var(--vert); }
+.zoom-vedette-valeur { font-size: var(--texte-3xl); font-weight: var(--poids-gras); font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
+.zoom-vedette-comparaison { color: var(--texte-doux); font-size: var(--texte-sm); }
+.zoom-vedette-phrase { margin: 4px 0 0; padding: 10px 12px; border-radius: var(--rayon-petit); background: var(--accent-doux); line-height: 1.5; }
+
+.zoom-petites { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; min-width: 0; }
+.zoom-petite {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 12px 14px; text-align: left; font: inherit; color: var(--texte);
+  background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre-carte);
+}
+.zoom-petite.cliquable { cursor: pointer; }
+.zoom-petite.cliquable:hover { border-color: var(--accent); box-shadow: var(--ombre-survol); }
+.zoom-petite-tete { display: inline-flex; align-items: center; gap: 6px; color: var(--texte-doux); font-size: var(--texte-sm); }
+.zoom-petite strong { font-size: var(--texte-lg); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.zoom-petite small { color: var(--texte-doux); font-size: var(--texte-xs); }
+.zoom-petite.attention { background: var(--orange-doux); border-color: var(--orange); }
+.zoom-petite.alerte { background: var(--rouge-doux); border-color: var(--rouge); }
+.zoom-petite.bon { background: var(--vert-doux); }
+
+.zoom-parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.zoom-part { display: grid; grid-template-columns: minmax(110px, 180px) minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.zoom-part-barre { height: 12px; border-radius: var(--rayon-plein); background: var(--surface-douce); overflow: hidden; }
+.zoom-part-barre span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.zoom-part.encaisse .zoom-part-barre span { background: var(--vert); }
+.zoom-part.attente .zoom-part-barre span { background: var(--orange); }
+.zoom-part-valeur { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: var(--poids-fort); }
+.zoom-part-valeur small { color: var(--texte-doux); font-weight: normal; margin-left: 4px; }
+
+.zoom-podium { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.zoom-podium button {
+  width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: "rang nom" "rang chiffre" "rang detail";
+  column-gap: 10px; row-gap: 2px; padding: 12px; text-align: left; font: inherit; color: var(--texte); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon);
+}
+.zoom-podium button:hover { border-color: var(--accent); }
+.zoom-podium li.premier button { background: var(--accent-doux); border-color: var(--accent); }
+.zoom-podium-rang {
+  grid-area: rang; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface-douce); font-weight: var(--poids-fort); font-size: var(--texte-sm); color: var(--texte-doux);
+}
+.zoom-podium li.premier .zoom-podium-rang { background: var(--accent); color: #fff; }
+.zoom-podium strong { grid-area: nom; overflow-wrap: anywhere; }
+.zoom-podium-chiffre { grid-area: chiffre; font-size: var(--texte-lg); font-weight: var(--poids-gras); font-variant-numeric: tabular-nums; }
+.zoom-podium small { grid-area: detail; color: var(--texte-doux); font-size: var(--texte-xs); }
+
+.zoom-paniers { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.zoom-panier {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px; text-align: left; font: inherit; color: var(--texte); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon);
+}
+.zoom-panier:hover { border-color: var(--accent); box-shadow: var(--ombre-survol); }
+.zoom-panier-tete { display: flex; align-items: center; gap: 6px; color: var(--accent); }
+.zoom-panier-tete strong { color: var(--texte); font-size: var(--texte-lg); font-variant-numeric: tabular-nums; }
+.zoom-panier-contenu { font-size: var(--texte-sm); line-height: 1.4; overflow-wrap: anywhere; }
+.zoom-panier small { color: var(--texte-doux); font-size: var(--texte-xs); overflow-wrap: anywhere; }
+
+.zoom-caisses { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.zoom-caisse { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); min-width: 0; }
+.zoom-caisse.calme { border-color: var(--orange); }
+.zoom-caisse header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.zoom-caisse header strong { font-size: var(--texte-lg); }
+.zoom-caisse dl { margin: 0; display: grid; gap: 6px; }
+.zoom-caisse dl div { display: flex; justify-content: space-between; gap: 10px; font-size: var(--texte-sm); }
+.zoom-caisse dt { color: var(--texte-doux); }
+.zoom-caisse dd { margin: 0; font-weight: var(--poids-fort); text-align: right; font-variant-numeric: tabular-nums; }
+.zoom-caisse-alerte { display: flex; gap: 6px; margin: 0; padding: 8px 10px; border-radius: var(--rayon-petit); background: var(--orange-doux); font-size: var(--texte-sm); line-height: 1.4; }
+.zoom-caisse-alerte svg { flex: 0 0 auto; margin-top: 2px; color: var(--orange); }
+
+.zoom-articles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.zoom-article {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px; text-align: center; min-width: 0;
+  border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface);
+}
+.zoom-article.ruptures { border-color: var(--rouge); }
+.zoom-article.bas { border-color: var(--orange); }
+.zoom-article strong { overflow-wrap: anywhere; line-height: 1.3; }
+.zoom-article-photo { width: 64px; height: 64px; border-radius: var(--rayon-petit); object-fit: cover; }
+.zoom-article-photo.vide { display: grid; place-items: center; background: var(--surface-douce); color: var(--texte-doux); font-weight: var(--poids-gras); }
+.zoom-article-stock { font-weight: var(--poids-fort); font-size: var(--texte-sm); }
+.zoom-article.ruptures .zoom-article-stock { color: var(--rouge); }
+.zoom-article.bas .zoom-article-stock { color: var(--orange); }
+.zoom-article small { font-size: var(--texte-xs); }
+
+.zoom-pied { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.zoom-pied.debut { justify-content: flex-start; }
+
+@media (max-width: 900px) {
+  .zoom-haut { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .zoom-petites { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .zoom-part { grid-template-columns: minmax(0, 1fr) auto; }
+  .zoom-part-barre { grid-column: 1 / -1; grid-row: 2; }
+  .zoom-vedette-valeur { font-size: var(--texte-2xl); }
+  .zoom-paniers, .zoom-podium { grid-template-columns: minmax(0, 1fr); }
+  .zoom-articles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

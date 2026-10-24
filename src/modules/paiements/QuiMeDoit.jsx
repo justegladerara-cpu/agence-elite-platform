@@ -3,7 +3,7 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDate } from '../../noyau/format.js';
 import { lienWhatsApp, messageRappelClient, numeroWhatsApp } from '../../noyau/messagesWhatsapp.js';
 import { Bouton, Chargement, EmptyState, EnTete, Erreur, Modale, Recherche } from '../../ui/composants.jsx';
-import { ModaleEncaissement } from '../ventes/Ventes.jsx';
+import { ModaleCompteMaison, ModaleEncaissement } from '../ventes/Ventes.jsx';
 import { regrouperCreances } from './dettes.js';
 import './dettes.css';
 import { mesCaisses } from '../caisse/mesCaisses.js';
@@ -20,6 +20,8 @@ export default function QuiMeDoit({ naviguer }) {
   const [recherche, setRecherche] = useState('');
   const [paye, setPaye] = useState(null);
   const [encaissement, setEncaissement] = useState(null);
+  // Vente mise « sur le compte de la maison » par le patron (migration 20261024040000).
+  const [maison, setMaison] = useState(null);
   const aujourdhui = dateLocale();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     if (!lireVentes) return null;
@@ -51,19 +53,20 @@ export default function QuiMeDoit({ naviguer }) {
   if (!lireVentes) {
     return (
       <div className="page">
-        <EnTete titre="Qui me doit ?" />
+        <EnTete titre="En attente de paiement" />
         <EmptyState titre="Accès aux ventes nécessaire" texte="Demandez au gérant le droit de voir les ventes pour suivre ce que les clients doivent." />
       </div>
     );
   }
 
   const groupes = donnees ? regrouperCreances(donnees.ventes, donnees.factures, aujourdhui) : [];
-  const nom = (g) => (g.contact_id ? (donnees.contacts[g.contact_id]?.societe || donnees.contacts[g.contact_id]?.nom || 'Client') : 'Ventes à crédit sans nom de client');
+  const nom = (g) => (g.contact_id ? (donnees.contacts[g.contact_id]?.societe || donnees.contacts[g.contact_id]?.nom || 'Client') : 'Ventes pas encore payées, sans nom de client');
   const texte = recherche.trim().toLowerCase();
   const visibles = groupes.filter((g) => !texte || nom(g).toLowerCase().includes(texte) || (donnees.contacts[g.contact_id]?.telephone ?? '').includes(texte));
   const total = groupes.reduce((s, g) => s + g.total, 0);
   const emetteur = etablissement.identite?.nom_commercial ?? etablissement.nom;
   const encaisser = peut('paiements.encaisser');
+  const patron = peut('cloture.cloturer');
 
   // « Il a payé » : une facture s'encaisse sur la facture (trop-perçu géré), une vente dans l'encaissement des ventes.
   const ouvrirPaiement = (ligne) => {
@@ -82,12 +85,12 @@ export default function QuiMeDoit({ naviguer }) {
 
   return (
     <div className="page">
-      <EnTete titre="Qui me doit ?" sousTitre={groupes.length ? `${montant(total)} à récupérer auprès de ${groupes.filter((g) => g.contact_id).length} client(s)` : 'Ce que les clients vous doivent encore'}>
+      <EnTete titre="En attente de paiement" sousTitre={groupes.length ? `${montant(total)} pas encore payés${groupes.filter((g) => g.contact_id).length ? `, dont ${groupes.filter((g) => g.contact_id).length} client(s) connu(s)` : ''}` : 'Ce que les clients n’ont pas encore payé'}>
         {groupes.length > 3 && <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom ou téléphone" />}
       </EnTete>
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
-      {donnees && !groupes.length && <EmptyState icone="coche" titre="Personne ne vous doit d’argent" texte="Toutes les ventes et factures sont payées." />}
+      {donnees && !groupes.length && <EmptyState icone="coche" titre="Tout est payé" texte="Aucune vente ni facture n’attend de paiement." />}
       <div className="dettes-liste">
         {visibles.map((g) => {
           const contact = donnees.contacts[g.contact_id];
@@ -108,7 +111,15 @@ export default function QuiMeDoit({ naviguer }) {
                 {g.lignes.map((l) => (
                   <li key={l.vente_id}>
                     <span>{l.numero} · {formatDate(l.date)}{l.echeance ? ` · échéance ${formatDate(l.echeance)}` : ''}</span>
-                    <span>{montant(l.reste)}</span>
+                    <span className="dette-ligne-droite">
+                      {montant(l.reste)}
+                      {patron && !l.document_id && (
+                        <button type="button" className="lien" onClick={() => {
+                          const v = donnees.ventes.find((x) => x.id === l.vente_id);
+                          setMaison({ ...v, total: Number(v.total), montant_paye: Number(v.montant_paye) });
+                        }}>Compte de la maison</button>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -143,6 +154,18 @@ export default function QuiMeDoit({ naviguer }) {
           onFait={() => {
             setEncaissement(null);
             notifier('Paiement enregistré');
+            recharger();
+          }}
+          onMaison={() => { setMaison(encaissement); setEncaissement(null); }}
+        />
+      )}
+      {maison && (
+        <ModaleCompteMaison
+          vente={maison}
+          onFermer={() => setMaison(null)}
+          onFait={() => {
+            setMaison(null);
+            notifier('Mise sur le compte de la maison : plus rien à payer');
             recharger();
           }}
         />

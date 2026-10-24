@@ -86,3 +86,14 @@
     gap: 4px;
   }
 }
+
+/* « Compte de la maison » sous le montant de la ligne (patron seulement). */
+.dette-ligne-droite {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.dette-ligne-droite .lien {
+  font-size: 0.82rem;
+}

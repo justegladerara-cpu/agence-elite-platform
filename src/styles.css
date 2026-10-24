@@ -492,6 +492,11 @@ fieldset {
   background: var(--rouge);
 }
 
+.notification.attention {
+  background: var(--orange);
+  color: #fff;
+}
+
 @keyframes apparaitre {
   from {
     transform: translateY(8px);
@@ -2445,6 +2450,11 @@ img.avatar { object-fit: cover; background: var(--surface-douce); }
 .fil-ariane li:last-child span { overflow: hidden; text-overflow: ellipsis; color: var(--texte); font-weight: 600; }
 .fil-ariane a { color: var(--texte-doux); text-decoration: none; }
 .fil-ariane a:hover { color: var(--accent); text-decoration: underline; }
+/* Nom d'établissement long : il se coupe avec « … » au lieu de passer sous le titre (2026-10-24). */
+.fil-ariane li:not(:last-child) { flex: 0 1 auto; max-width: 45%; }
+.fil-ariane li:not(:last-child) > a, .fil-ariane li:not(:last-child) > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fil-ariane li:not(:last-child)::after { flex: 0 0 auto; }
+.fil-ariane li:last-child { flex: 1 1 auto; min-width: 40px; }
 
 /* Profil */
 .profil-chip { position: relative; }
@@ -3834,3 +3844,9 @@ input:not([type='checkbox']):not([type='radio']):not([type='range']), select, te
 
 /* Le patron vend sur la caisse d'une caissière (2026-10-23). */
 .bandeau-caisse-autre { margin: 0 0 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--bordure)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+
+/* Bascule « Par rayon / En liste » (Articles, Stock), 2026-10-24. */
+.bascule-affichage { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--bordure); border-radius: var(--rayon-petit); overflow: hidden; background: var(--surface); }
+.bascule-affichage button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 0; background: none; color: var(--texte-doux); font: inherit; font-size: var(--texte-sm); cursor: pointer; white-space: nowrap; }
+.bascule-affichage button.actif { background: var(--accent-doux); color: var(--accent); font-weight: var(--poids-fort); }
+.bascule-affichage { align-self: flex-start; width: max-content; max-width: 100%; }

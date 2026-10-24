@@ -7,8 +7,19 @@ export const TYPES_BLOCS = {
   texte: { libelle: 'Texte', detail: 'Horaires, adresse, une annonce…' },
   bouton: { libelle: 'Bouton', detail: 'Instagram, WhatsApp, appel, lien…' },
   menu: { libelle: 'Menu', detail: 'Vos articles et leurs prix' },
-  formulaire: { libelle: 'Inscription des clients', detail: 'Nom, téléphone… pour vos offres' },
+  formulaire: { libelle: 'Inscription des clients', detail: 'Nom, prénom, WhatsApp… pour vos offres' },
+  reseaux: { libelle: 'Réseaux sociaux', detail: 'Instagram, Facebook, TikTok…' },
+  wifi: { libelle: 'Code Wi-Fi', detail: 'Nom du Wi-Fi et mot de passe' },
 };
+
+// Réseaux sociaux proposés (bloc « reseaux ») : lien https, WhatsApp par numéro. Ordre d'affichage.
+export const RESEAUX = [
+  ['instagram', 'Instagram', 'https://instagram.com/…'],
+  ['facebook', 'Facebook', 'https://facebook.com/…'],
+  ['tiktok', 'TikTok', 'https://tiktok.com/@…'],
+  ['youtube', 'YouTube', 'https://youtube.com/…'],
+  ['whatsapp', 'WhatsApp', '+242 06 123 45 67'],
+];
 
 export const ACTIONS_BOUTON = [
   ['destination', 'La destination du QR code'],
@@ -27,6 +38,8 @@ export function nouveauBloc(type) {
     case 'bouton': return { type, libelle: 'Écrivez-nous sur WhatsApp', action: 'whatsapp', valeur: '' };
     case 'menu': return { type, titre: 'Notre carte' };
     case 'formulaire': return { type, titre: 'Recevez nos offres', texte: 'Laissez votre numéro : nous vous prévenons des soirées et promotions.', bouton: 'Je m’inscris', merci: 'Merci ! À très bientôt.', email: false, anniversaire: true, message: false };
+    case 'reseaux': return { type, titre: 'Suivez-nous' };
+    case 'wifi': return { type, titre: 'Notre Wi-Fi', reseau: '', mot_de_passe: '' };
     default: return null;
   }
 }
@@ -48,6 +61,16 @@ export function deplacer(blocs, i, sens) {
 }
 
 export const retirer = (blocs, i) => blocs.filter((_, k) => k !== i);
+
+// Liens d'un bloc « reseaux » prêts à afficher (les réseaux mal remplis sont ignorés).
+export function liensReseaux(bloc) {
+  return RESEAUX.map(([cle, nom]) => {
+    const v = String(bloc?.[cle] ?? '').trim();
+    if (!v) return null;
+    if (cle === 'whatsapp') return v.replace(/\D/g, '').length >= 8 ? { cle, nom, lien: lienWhatsapp(v) } : null;
+    return /^https?:\/\/[^\s/?#.][^\s]*$/i.test(v) ? { cle, nom, lien: v } : null;
+  }).filter(Boolean);
+}
 
 export function ajouter(blocs, type) {
   if (blocs.length >= MAX_BLOCS) return blocs;

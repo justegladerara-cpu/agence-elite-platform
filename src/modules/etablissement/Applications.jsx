@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { basculerPage, CLE_PAGES_CACHEES, fonctionActive, PAGES_TOUJOURS_VISIBLES } from '../../noyau/fonctions.js';
+import { fonctionActive, PAGES_TOUJOURS_VISIBLES, reglagesApresBascule } from '../../noyau/fonctions.js';
 import { pagesAccessibles } from '../index.js';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { STATUTS_MODULE } from '../../noyau/format.js';
@@ -41,7 +41,7 @@ function FonctionsAffichees() {
       const visible = fonctionActive(reglagesFonctions, page.id);
       await api.rpc('enregistrer_parametres_module', {
         p_etablissement_id: etablissement.id, p_module_id: 'etablissement',
-        p_data: { ...actuel, [CLE_PAGES_CACHEES]: basculerPage(reglagesFonctions, page.id) },
+        p_data: { ...actuel, ...reglagesApresBascule(reglagesFonctions, page.id) },
       });
       await relireFonctions();
       notifier(`${page.libelle} : ${visible ? 'caché' : 'affiché'}`);

@@ -65,8 +65,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText('Casque test').first().waitFor();
     });
+    // Articles par rayon (2026-10-24) : un cadre par catégorie, puis « En liste » pour les actions groupées.
+    await etape('articles-rayons', async () => {
+      await p.goto(U + '#/articles');
+      await p.getByRole('button', { name: 'Par rayon' }).waitFor();
+      await p.locator('.rayon-article').filter({ hasText: 'Casque test' }).first().waitFor();
+    });
     await etape('articles-lot', async () => {
       await p.goto(U + '#/articles');
+      await p.getByRole('button', { name: 'En liste' }).click();
       const cases = p.getByRole('checkbox', { name: /^Sélectionner (?!les)/ });
       await cases.nth(0).check();
       await cases.nth(1).check();
@@ -184,7 +191,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('10 000 FCFA').first().waitFor().catch(() => {});
     });
     await etape('ventes-selection', async () => {
-      await p.getByRole('tab', { name: 'Mes ventes' }).waitFor();
+      // Le patron choisit « Ventes de » (tout le monde, moi, chaque caissière) ; la caissière a « Mes ventes ».
+      await p.getByLabel('Ventes de').or(p.getByRole('tab', { name: 'Mes ventes' })).first().waitFor();
       await p.getByLabel('Sélectionner toutes les ventes affichées').check();
       await p.getByText(/vente\(s\) sélectionnée\(s\)/).waitFor();
       await p.getByRole('button', { name: 'Exporter la sélection' }).waitFor();

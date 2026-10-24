@@ -16,7 +16,7 @@ export function useAnalyse(du, au, filtres, cle) {
   return { a: donnees ? construireAnalyse(donnees) : null, chargement, erreur };
 }
 
-function Fleche({ k }) {
+export function Fleche({ k }) {
   if (k.variation == null) return null;
   return (
     <span className={`analyse-fleche ${k.favorable === true ? 'bon' : k.favorable === false ? 'mauvais' : ''}`}>
@@ -97,7 +97,7 @@ export function BandeauDirect({ du, filtres }) {
 }
 
 // --- Ventes : quand ça se vend --------------------------------------------------------------------------------
-function Retenir({ a }) {
+export function Retenir({ a }) {
   const { montant } = useEspace();
   const faits = [];
   if (a.meilleureCase) faits.push(['etoile', `${JOURS[a.meilleureCase.jour_semaine - 1]} ${a.meilleureCase.heure} h`, `le jour et l’heure où vous vendez le plus : ${montant(a.meilleureCase.chiffre)} en tout`]);
@@ -164,7 +164,7 @@ export function CarteChaleur({ a }) {
   );
 }
 
-function Barres({ titre, donnees, sousTitre }) {
+export function Barres({ titre, donnees, sousTitre }) {
   const { montant } = useEspace();
   if (!donnees.some((d) => d.valeur > 0)) return null;
   return (
@@ -176,7 +176,7 @@ function Barres({ titre, donnees, sousTitre }) {
   );
 }
 
-function Repartition({ titre, lignes, vide }) {
+export function Repartition({ titre, lignes, vide }) {
   const { montant } = useEspace();
   if (!lignes.length) return vide ? <section className="carte"><div className="titre-ligne"><h2>{titre}</h2></div><p className="texte-doux">{vide}</p></section> : null;
   const max = Math.max(...lignes.map((l) => l.valeur), 1);
@@ -233,7 +233,7 @@ export function VueVentes({ f }) {
   );
 }
 
-function Points({ a }) {
+export function Points({ a }) {
   return (
     <section className="carte">
       <div className="titre-ligne"><h2>À surveiller</h2></div>
@@ -245,7 +245,7 @@ function Points({ a }) {
 }
 
 // --- Clients & produits : ce qui se vend ------------------------------------------------------------------------
-function ListeArticles({ titre, lignes, valeur, detail, vide }) {
+export function ListeArticles({ titre, lignes, valeur, detail, vide }) {
   if (!lignes.length) return vide ? <section className="carte"><div className="titre-ligne"><h2>{titre}</h2></div><p className="texte-doux">{vide}</p></section> : null;
   return (
     <section className="carte">
