@@ -9,6 +9,7 @@ import { ListeApplications } from './Applications.jsx';
 import { Connexions } from './Connexions.jsx';
 import { ConstructeurTicket } from '../recus/ConstructeurTicket.jsx';
 import { BandeauNouveau } from '../../ui/Nouveau.jsx';
+import { SaisieCodeLicence } from '../../ui/FinLicence.jsx';
 
 function Identite({ partie }) {
   const { api, etablissement, peut, notifier, recharger } = useEspace();
@@ -446,36 +447,17 @@ function DemandeRenouvellement({ abonnement, onEnvoye }) {
   );
 }
 
-// Clé d'activation reçue d'Agence Elite ou d'un partenaire : elle remplace la licence en cours (l'historique reste).
+// Renouveler = entrer le code d'activation reçu d'Agence Elite ou d'un partenaire : il remplace la licence en cours
+// (l'historique reste). Marche aussi licence expirée.
 function ActiverCle() {
-  const { api, etablissement, peut, notifier, recharger } = useEspace();
-  const [cle, setCle] = useState('');
-  const [erreur, setErreur] = useState('');
-  const [envoi, setEnvoi] = useState(false);
-  if (!peut('etablissement.modifier')) return null;
-  const activer = async (e) => {
-    e.preventDefault();
-    setErreur('');
-    setEnvoi(true);
-    try {
-      await api.rpc('activer_cle_licence', { p_cle: cle, p_etablissement_id: etablissement.id });
-      setCle('');
-      notifier('Licence activée');
-      await recharger();
-    } catch (err) {
-      setErreur(err.message);
-    } finally {
-      setEnvoi(false);
-    }
-  };
+  const { aLaPermission } = useEspace();
+  if (!aLaPermission('etablissement.modifier')) return null;
   return (
-    <form className="formulaire" onSubmit={activer} aria-label="Activer une clé de licence">
-      <Champ libelle="Activer une clé de licence" aide="Format ELITE-XXX-XXXX-XXXX. Elle remplace la licence en cours.">
-        <input value={cle} onChange={(e) => setCle(e.target.value.toUpperCase())} placeholder="ELITE-COM-XXXX-XXXX" autoComplete="off" />
-      </Champ>
-      <Erreur message={erreur} />
-      <Bouton type="submit" variante="principal" chargement={envoi} disabled={cle.trim().length < 10}>Activer</Bouton>
-    </form>
+    <div className="formulaire">
+      <h3>Renouveler avec un code de licence</h3>
+      <p className="texte-doux">Après le paiement, Agence Elite vous envoie un code ELITE-XXX-XXXX-XXXX. Entrez-le ici : la licence est renouvelée tout de suite.</p>
+      <SaisieCodeLicence />
+    </div>
   );
 }
 

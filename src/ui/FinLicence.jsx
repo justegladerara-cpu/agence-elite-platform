@@ -3,6 +3,61 @@ import { useEspace } from '../noyau/espace.jsx';
 import { dateFinLisible, finLicence, tempsRestant } from '../noyau/continuite.js';
 import { Bouton, Modale } from './composants.jsx';
 
+// Format d'une clé : ELITE-XXX-XXXX-XXXX (lettres et chiffres). Saisie tolérante : minuscules, espaces, tirets oubliés.
+export function formaterCode(texte) {
+  const brut = String(texte ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if ('ELITE'.startsWith(brut)) return brut;
+  const corps = brut.startsWith('ELITE') ? brut.slice(5) : brut;
+  const morceaux = [corps.slice(0, 3), corps.slice(3, 7), corps.slice(7, 11)].filter(Boolean);
+  return morceaux.length ? `ELITE-${morceaux.join('-')}` : 'ELITE';
+}
+export const codeComplet = (code) => /^ELITE-[A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code);
+
+// Renouveler = entrer le code d'activation reçu d'Agence Elite. Réservé au responsable de l'établissement ;
+// marche même licence expirée. La licence du code remplace celle en cours, l'historique reste.
+export function SaisieCodeLicence({ onActive, autoFocus = false }) {
+  const { api, etablissement, notifier, recharger } = useEspace();
+  const [code, setCode] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const activer = async (e) => {
+    e.preventDefault();
+    if (!codeComplet(code) || envoi) return;
+    setErreur('');
+    setEnvoi(true);
+    try {
+      const r = await api.rpc('activer_cle_licence', { p_cle: code, p_etablissement_id: etablissement.id });
+      setCode('');
+      const jusqua = r?.echeance ? ` jusqu’au ${new Date(`${r.echeance}T12:00:00Z`).toLocaleDateString('fr-FR')}` : '';
+      notifier?.(`Licence renouvelée${jusqua}`);
+      onActive?.(r);
+      await recharger?.();
+    } catch (err) {
+      setErreur(err?.message || 'Code refusé');
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  return (
+    <form className="saisie-code-licence" onSubmit={activer} aria-label="Entrer le code de licence">
+      <label htmlFor="code-licence">Code d’activation</label>
+      <input
+        id="code-licence"
+        value={code}
+        onChange={(e) => setCode(formaterCode(e.target.value))}
+        placeholder="ELITE-COM-XXXX-XXXX"
+        autoComplete="off"
+        autoCapitalize="characters"
+        spellCheck={false}
+        maxLength={19}
+        autoFocus={autoFocus}
+      />
+      {erreur && <p className="erreur" role="alert">{erreur}</p>}
+      <Bouton type="submit" variante="principal" chargement={envoi} disabled={!codeComplet(code)}>Activer la licence</Bouton>
+    </form>
+  );
+}
+
 // Compte à rebours de fin de licence (licences.fin_a) : affiché à toute l'équipe dans les 72 dernières heures.
 export const FENETRE_COMPTE_A_REBOURS = 72 * 3600000;
 const RAPPEL_CAISSE = 15 * 60000;
@@ -110,6 +165,8 @@ export function FenetreFinLicence({ contactez, naviguer }) {
         du stock. Vos données restent intactes et consultables.
       </p>
       <p>Avant la fin : tirez le ticket Z et réglez les additions ouvertes. {contactez} pour renouveler.</p>
+      <p><strong>Déjà payé ?</strong> Entrez le code de licence reçu d’Agence Elite :</p>
+      <SaisieCodeLicence onActive={fermer} />
     </Modale>
   );
 }
@@ -117,7 +174,9 @@ export function FenetreFinLicence({ contactez, naviguer }) {
 // Après l'heure de fin : grand message plein écran, permanent (impossible à fermer), pour tous les comptes de
 // l'établissement. Il disparaît seulement quand une licence payée est enregistrée.
 export function EcranLicenceExpiree() {
-  const { etablissement, deconnecter } = useEspace();
+  const { etablissement, deconnecter, aLaPermission } = useEspace();
+  const responsable = Boolean(aLaPermission?.('etablissement.modifier'));
+  const [saisie, setSaisie] = useState(false);
   if (finLicence(etablissement) == null) return null;
   return (
     <div className="ecran-licence-expiree" role="alertdialog" aria-modal="true" aria-labelledby="titre-licence-expiree">
@@ -125,6 +184,18 @@ export function EcranLicenceExpiree() {
         <div className="ecran-licence-expiree-icone" aria-hidden="true">⛔</div>
         <h1 id="titre-licence-expiree">Licence expirée</h1>
         <p className="ecran-licence-expiree-date">Contactez l’administrateur.</p>
+        {responsable && (
+          saisie ? (
+            <div className="ecran-licence-expiree-code">
+              <p>Entrez le code reçu d’Agence Elite : la licence est renouvelée tout de suite.</p>
+              <SaisieCodeLicence autoFocus />
+            </div>
+          ) : (
+            <div className="ecran-licence-expiree-actions">
+              <Bouton variante="principal" onClick={() => setSaisie(true)}>Renouveler · entrer le code de licence</Bouton>
+            </div>
+          )
+        )}
         {deconnecter && (
           <div className="ecran-licence-expiree-actions">
             <button type="button" className="lien" onClick={() => deconnecter()}>Se déconnecter</button>
