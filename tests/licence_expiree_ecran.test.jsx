@@ -2,7 +2,7 @@
 import { describe, expect, test } from 'vitest';
 
 describe('message plein écran après la fin', () => {
-  test('affiché à tout compte après l’heure, refermable pour la session', async () => {
+  test('affiché à tout compte après l’heure, permanent, avec « Contactez l’administrateur »', async () => {
     const { render, screen, fireEvent, cleanup } = await import('@testing-library/react');
     const React = (await import('react')).default;
     const { FournisseurEspace } = await import('../src/noyau/espace.jsx');
@@ -13,12 +13,12 @@ describe('message plein écran après la fin', () => {
     };
     const contexte = { etablissements: [etablissement], editeur: null, compte: {}, utilisateur: { id: 'u' }, invitations: [] };
     render(React.createElement(FournisseurEspace, { api: {}, contexte, onRecharger: () => {}, onDeconnexion: () => {} },
-      React.createElement(EcranLicenceExpiree, { contactez: 'Contactez Agence Elite', naviguer: () => {} })));
+      React.createElement(EcranLicenceExpiree)));
     expect(screen.getByRole('alertdialog', { name: 'Licence expirée' })).toBeTruthy();
-    expect(screen.getByText(/données sont conservées/)).toBeTruthy();
-    expect(screen.queryByText('Renouveler la licence')).toBeNull();
-    fireEvent.click(screen.getByText('Consulter mes données'));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByText('Contactez l’administrateur.')).toBeTruthy();
+    expect(screen.queryByText('Consulter mes données')).toBeNull();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('alertdialog', { name: 'Licence expirée' })).toBeTruthy();
     cleanup();
   });
 });
