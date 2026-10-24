@@ -298,7 +298,7 @@ function Bandeaux({ naviguer }) {
         {gerant && <button className="lien" onClick={() => naviguer('parametres/licence')}>Mon abonnement</button>}
       </div>
     );
-    if (licenceCoupee && l?.fin_a) bandeaux.push(<EcranLicenceExpiree key="expiree" contactez={contactez} naviguer={naviguer} />);
+    if (licenceCoupee && l?.fin_a) bandeaux.push(<EcranLicenceExpiree key="expiree" />);
   } else if (l.fin_a) {
     // Heure de fin précise : compte à rebours pour toute l'équipe, caisse comprise (dans les 72 dernières heures).
     bandeaux.push(<BandeauFinLicence key="fin" contactez={contactez} gerant={gerant} naviguer={naviguer} />);
