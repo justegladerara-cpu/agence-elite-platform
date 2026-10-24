@@ -3850,3 +3850,145 @@ input:not([type='checkbox']):not([type='radio']):not([type='range']), select, te
 .bascule-affichage button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 0; background: none; color: var(--texte-doux); font: inherit; font-size: var(--texte-sm); cursor: pointer; white-space: nowrap; }
 .bascule-affichage button.actif { background: var(--accent-doux); color: var(--accent); font-weight: var(--poids-fort); }
 .bascule-affichage { align-self: flex-start; width: max-content; max-width: 100%; }
+
+/* ---------------------------------------------------------------------------
+   Elite Look « Futur » (2026-10-24, demandé par Juste : « comme les startups américaines, Stripe ») : une seule
+   famille de boutons, de cartes, de champs et d'onglets, ombres en anneau fin, reflets doux, halo de la couleur de
+   marque, petits mouvements au survol. Affichage seulement : tout passe par les jetons (--accent, thème sombre,
+   contraste élevé). Rien ici ne touche aux tickets, reçus ni factures imprimés.
+   --------------------------------------------------------------------------- */
+:root {
+  --anneau: color-mix(in srgb, var(--texte) 9%, transparent);
+  --anneau-fort: color-mix(in srgb, var(--texte) 14%, transparent);
+  --accent-2: color-mix(in srgb, var(--accent) 62%, #8b5cf6);
+  --accent-3: color-mix(in srgb, var(--accent) 55%, #06b6d4);
+  --degrade-marque: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 55%, var(--accent-3) 100%);
+  --ombre-carte: 0 0 0 1px var(--anneau), 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px -4px rgba(50, 50, 93, 0.08);
+  --ombre-survol: 0 0 0 1px var(--anneau-fort), 0 2px 4px rgba(16, 24, 40, 0.04), 0 16px 32px -12px rgba(50, 50, 93, 0.22);
+  --ombre-bouton: 0 0 0 1px var(--anneau-fort), 0 1px 1px rgba(16, 24, 40, 0.04), 0 2px 5px -1px rgba(50, 50, 93, 0.10);
+  --mouvement: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body { font-feature-settings: 'cv11', 'ss01', 'ss03'; }
+@media screen {
+  .contenu {
+    background:
+      radial-gradient(1200px 380px at 85% -120px, color-mix(in srgb, var(--accent-3) 9%, transparent), transparent 70%),
+      radial-gradient(900px 340px at 10% -140px, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 70%);
+  }
+}
+h1 { letter-spacing: -0.03em; }
+.kpi-valeur, .stat-card-valeur, .gros-chiffre, .tableau td { font-variant-numeric: tabular-nums; }
+
+/* Boutons : fond blanc posé sur un anneau fin, le principal en dégradé de marque avec reflet. */
+.bouton { border-color: transparent; box-shadow: var(--ombre-bouton); font-weight: var(--poids-fort); letter-spacing: -0.005em;
+  transition: background 0.15s, box-shadow 0.2s var(--mouvement), transform 0.2s var(--mouvement), color 0.15s; }
+.bouton:hover:not(:disabled) { border-color: transparent; background: var(--surface); box-shadow: var(--ombre-survol); transform: translateY(-1px); }
+.bouton:active:not(:disabled) { transform: translateY(0); box-shadow: var(--ombre-bouton); background: var(--surface-survol); }
+.bouton.principal { border-color: transparent; background: var(--degrade-marque); background-size: 140% 140%; background-position: 0% 50%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 0 1px color-mix(in srgb, var(--accent-fort) 60%, transparent), 0 6px 16px -6px color-mix(in srgb, var(--accent) 75%, transparent);
+  transition: background-position 0.4s var(--mouvement), box-shadow 0.2s var(--mouvement), transform 0.2s var(--mouvement); }
+.bouton.principal:hover:not(:disabled) { background: var(--degrade-marque); background-size: 140% 140%; background-position: 100% 50%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 1px color-mix(in srgb, var(--accent-fort) 60%, transparent), 0 12px 24px -8px color-mix(in srgb, var(--accent) 80%, transparent); }
+.bouton.principal:active:not(:disabled) { background: var(--accent-fort); }
+.bouton.danger { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 0 1px color-mix(in srgb, var(--rouge) 80%, #000), 0 6px 14px -6px color-mix(in srgb, var(--rouge) 70%, transparent); }
+.bouton.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--rouge) 88%, #000); }
+.bouton.discret, .bouton.discret:hover:not(:disabled) { box-shadow: none; transform: none; }
+.bouton.discret:hover:not(:disabled) { background: var(--accent-doux); }
+.bouton:disabled { box-shadow: var(--ombre-bouton); transform: none; }
+.icone-bouton { transition: background 0.15s, color 0.15s; }
+.lien { text-underline-offset: 3px; }
+.lien:hover { text-decoration: underline; }
+
+/* Champs : anneau fin, lueur de marque au focus. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select, textarea {
+  border-color: var(--bordure-forte); background-color: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.2s var(--mouvement); }
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):hover, select:hover, textarea:hover { border-color: var(--texte-faible); }
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); }
+
+/* Onglets : une seule famille « segmentée » (piste douce, pastille blanche qui flotte). */
+.onglets, .bascule-affichage { padding: 4px; gap: 2px; border: 1px solid var(--bordure); border-radius: 12px; background: var(--surface-douce); box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.04); }
+.onglets button, .bascule-affichage button { border-radius: 9px; font-weight: var(--poids-moyen); transition: background 0.15s, color 0.15s, box-shadow 0.2s var(--mouvement); }
+.onglets button:hover:not(.actif), .bascule-affichage button:hover:not(.actif) { color: var(--texte); background: color-mix(in srgb, var(--surface) 60%, transparent); }
+.onglets button.actif, .bascule-affichage button.actif { background: var(--surface); color: var(--accent); font-weight: var(--poids-fort); box-shadow: var(--ombre-bouton); }
+
+/* Puces de filtre et onglets du tableau de bord : pastilles, la choisie en dégradé de marque. */
+.puces button, .cockpit-onglets button { border-color: transparent; box-shadow: var(--ombre-bouton); transition: box-shadow 0.2s var(--mouvement), transform 0.2s var(--mouvement); }
+.puces button:hover:not(.actif), .cockpit-onglets button:hover:not(.actif) { box-shadow: var(--ombre-survol); transform: translateY(-1px); }
+.puces button.actif, .cockpit-onglets button.actif { border-color: transparent; background: var(--degrade-marque); color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 14px -6px color-mix(in srgb, var(--accent) 75%, transparent); }
+
+/* Cartes et indicateurs : anneau fin au lieu d'une bordure, liseré en dégradé, léger soulèvement. */
+.carte, .tableau-conteneur, .stat-card, .kpi { border-color: transparent; box-shadow: var(--ombre-carte); }
+.kpi::before, .stat-card::before { background: var(--degrade-marque); height: 2px; opacity: 1; }
+.kpi.cliquable, .stat-card.cliquable { transition: box-shadow 0.2s var(--mouvement), transform 0.2s var(--mouvement); }
+.kpi.cliquable:hover, .stat-card.cliquable:hover { border-color: transparent; box-shadow: var(--ombre-survol); transform: translateY(-2px); }
+.kpi.fort, .stat-card.fort { background: var(--degrade-marque); border-color: transparent; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 14px 32px -12px color-mix(in srgb, var(--accent) 80%, transparent); }
+.stat-card-icone, .kpi-icone { border-radius: 9px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* Tableaux */
+.tableau th { color: var(--texte-faible); font-weight: var(--poids-fort); border-bottom-color: var(--bordure); }
+.tableau tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
+
+/* Badges : pastilles avec un point de couleur. */
+.badge { gap: 6px; padding: 3px 9px; font-weight: var(--poids-fort); letter-spacing: 0.005em; }
+.badge.vert::before, .badge.orange::before, .badge.rouge::before, .badge.bleu::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* Bulle d'aide : verre dépoli avec un liseré de marque. */
+.bulle-aide { border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--bordure)); background:
+  linear-gradient(90deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), color-mix(in srgb, var(--accent-3) 4%, var(--surface)));
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03); }
+.bulle-aide > .icone:first-child { padding: 6px; width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--surface); color: var(--accent); box-shadow: var(--ombre-bouton); }
+
+/* Menu latéral et barre du haut */
+.menu nav button { position: relative; transition: background 0.15s, color 0.15s; }
+.menu nav button.actif { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, var(--menu)), color-mix(in srgb, var(--accent) 4%, var(--menu))); }
+.menu nav button.actif::before { content: ''; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--degrade-marque); }
+.marque-logo { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
+.barre-haut { background: color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter: saturate(1.8) blur(14px); -webkit-backdrop-filter: saturate(1.8) blur(14px); }
+.barre-haut-recherche { box-shadow: var(--ombre-bouton); border-color: transparent; background: var(--surface); }
+
+/* Fenêtres : fond flouté, carte qui apparaît en douceur. */
+.voile { background: rgba(15, 23, 42, 0.38); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.modale { border-radius: 18px; box-shadow: 0 0 0 1px var(--anneau), 0 24px 64px -16px rgba(15, 23, 42, 0.35); animation: modale-entree 0.22s var(--mouvement); }
+@keyframes modale-entree { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+
+/* Accueil : gros boutons en cartes nettes, « Vendre » en dégradé lumineux. */
+.contenu .accueil-bouton, .contenu .accueil-a-faire button, .contenu .accueil-resultats button { border-color: transparent; box-shadow: var(--ombre-carte);
+  transition: box-shadow 0.2s var(--mouvement), transform 0.2s var(--mouvement); }
+.contenu .accueil-bouton:hover, .contenu .accueil-a-faire button:hover, .contenu .accueil-resultats button:hover { box-shadow: var(--ombre-survol); transform: translateY(-2px); }
+.contenu .accueil-bouton .icone { padding: 6px; width: 40px; height: 40px; border-radius: 11px; background: var(--accent-doux); }
+.contenu .accueil-bouton.principal { position: relative; overflow: hidden; background: var(--degrade-marque);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 18px 36px -14px color-mix(in srgb, var(--accent) 85%, transparent); }
+.contenu .accueil-bouton.principal::after { content: ''; position: absolute; inset: auto -30% -60% auto; width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 65%); pointer-events: none; }
+.contenu .accueil-bouton.principal .icone { background: rgba(255, 255, 255, 0.18); }
+.contenu .accueil-je-veux { border-color: transparent; box-shadow: var(--ombre-carte); transition: box-shadow 0.2s; }
+.contenu .accueil-je-veux:focus-within { box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px color-mix(in srgb, var(--accent) 16%, transparent); }
+.contenu .gros-bouton { border-color: transparent; box-shadow: var(--ombre-carte); }
+.contenu .gros-bouton.principal { background: var(--degrade-marque); }
+
+/* Caisse : tuiles d'articles en cartes nettes, le gros bouton « Encaisser » en dégradé. */
+.contenu .tuile-article { border-color: transparent; box-shadow: var(--ombre-carte); transition: box-shadow 0.2s var(--mouvement), transform 0.12s var(--mouvement); }
+.contenu .tuile-article:hover { border-color: transparent; box-shadow: var(--ombre-survol); transform: translateY(-2px); }
+.contenu .tuile-article:active { transform: scale(0.98); }
+
+/* Encaissement : moyens de paiement et billets dans la même famille de boutons. */
+.modale .modes-paiement button, .modale .billets button, .modale .modes-rapides button { border: 1px solid transparent; box-shadow: var(--ombre-bouton);
+  transition: box-shadow 0.2s var(--mouvement), background 0.15s; }
+.modale .modes-paiement button:hover:not(.actif), .modale .billets button:hover, .modale .modes-rapides button:hover { box-shadow: var(--ombre-survol); }
+.modale .modes-paiement button.actif { border-color: var(--accent); background: var(--accent-doux); color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bouton, .bouton.principal, .stat-card, .kpi, .contenu .accueil-bouton, .contenu .tuile-article, .puces button, .cockpit-onglets button { transition: none; }
+  .bouton:hover:not(:disabled), .stat-card.cliquable:hover, .kpi.cliquable:hover, .contenu .accueil-bouton:hover, .contenu .tuile-article:hover { transform: none; }
+  .modale { animation: none; }
+}
+/* Contraste élevé : on remet des bordures pleines, sans dégradés. */
+:root[data-contraste='eleve'] .bouton, :root[data-contraste='eleve'] .carte, :root[data-contraste='eleve'] .stat-card { border-color: var(--bordure-forte); }
+:root[data-contraste='eleve'] .bouton.principal, :root[data-contraste='eleve'] .puces button.actif { background: var(--accent); }

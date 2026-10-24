@@ -142,3 +142,17 @@ Jetons de durée, de courbe et de distance, niveaux (Complètes / Équilibrées 
 l'appareil respecté : [`docs/motion/`](motion/MOTION_STRATEGY.md) (code : `src/motion/`). Seulement `opacity` et
 `transform` ; durées par les variables `--ems-*` ; jamais de compteur au premier affichage ni dans la caisse ; rien qui
 retarde une saisie ou un paiement.
+
+## Elite Look « Futur » (2026-10-24)
+Couche finale de `src/styles.css`, demandée par Juste (« comme Stripe, les startups américaines »). Affichage seulement.
+- Jetons ajoutés : `--anneau`, `--anneau-fort` (contour fin calculé sur `--texte`, marche en sombre), `--accent-2`, `--accent-3`
+  et `--degrade-marque` (dégradé violet → couleur de marque → cyan, toujours calculé depuis `--accent`), `--ombre-bouton`,
+  `--mouvement`.
+- Boutons : plus de bordure grise, un anneau fin + ombre douce ; le principal en `--degrade-marque` avec reflet ; soulèvement
+  de 1 px au survol.
+- Onglets `.onglets` et `.bascule-affichage` : même contrôle « segmenté » (piste douce, pastille blanche). Puces et onglets du
+  tableau de bord : la choisie en dégradé.
+- Cartes, indicateurs, tableaux, tuiles de caisse, gros boutons de l'Accueil : anneau fin au lieu de la bordure.
+- Fenêtres : fond flouté, apparition douce. Barre du haut en verre dépoli.
+- Mouvement coupé si `prefers-reduced-motion` ; dégradés et anneaux remplacés par des bordures pleines en contraste élevé.
+- Rien ne touche aux tickets, reçus ni factures imprimés.
