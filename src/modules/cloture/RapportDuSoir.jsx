@@ -3,7 +3,7 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Section, StatCard } from '../../ui/composants.jsx';
 import { BandeauNouveau } from '../../ui/Nouveau.jsx';
-import { dateEnLettres, dateRapportParDefaut, ecartEnMots, lienRapportWhatsApp, texteRapportDuSoir } from './rapportDuSoir.js';
+import { dateEnLettres, jourDeService, ecartEnMots, lienRapportWhatsApp, texteRapportDuSoir } from './rapportDuSoir.js';
 
 // Fin du bandeau « Nouveau » de cet écran (72 h environ).
 export const NOUVEAU_RAPPORT_SOIR_JUSQUA = '2026-10-16T12:00:00Z';
@@ -11,9 +11,9 @@ export const NOUVEAU_RAPPORT_SOIR_JUSQUA = '2026-10-16T12:00:00Z';
 // Rapport du soir (migration 20261017000137, fonction rapport_du_soir) : le résumé de la journée en gros blocs, puis
 // « Envoyer au patron sur WhatsApp » (lien wa.me, rien ne part tout seul) ou « Copier le texte ».
 export default function RapportDuSoir() {
-  const { api, etablissement, devise, montant, notifier, peut } = useEspace();
+  const { api, etablissement, devise, montant, notifier, peut, reglagesFonctions } = useEspace();
   const etab = etablissement.id;
-  const [date, setDate] = useState(() => dateRapportParDefaut());
+  const [date, setDate] = useState(() => jourDeService(reglagesFonctions));
   // Numéro tapé à l'écran ; null = celui enregistré (réglage du module Clôture).
   const [numeroSaisi, setNumero] = useState(null);
   const [enregistrement, setEnregistrement] = useState(false);
@@ -86,7 +86,7 @@ export default function RapportDuSoir() {
               ton={Number(rapport.caisses_ouvertes) > 0 ? 'attention' : undefined}
               detail={Number(rapport.caisses_ouvertes) > 0 ? 'à fermer avec un ticket Z' : 'tout est fermé'} />
             <StatCard icone="moins" libelle="Remises" valeur={montant(rapport.total_remises)} />
-            <StatCard icone="annule" libelle="Annulations" valeur={String(rapport.annulations?.nombre ?? 0)} detail={montant(rapport.annulations?.montant)}
+            <StatCard icone="fermer" libelle="Annulations" valeur={String(rapport.annulations?.nombre ?? 0)} detail={montant(rapport.annulations?.montant)}
               note={Number(rapport.retours?.nombre) > 0 ? `retours : ${rapport.retours.nombre} · ${montant(rapport.retours.montant)}` : undefined} />
           </div>
 

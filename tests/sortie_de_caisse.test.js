@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { commeRole, creerBase } from './helpers/db.js';
-import { basculerPage, fonctionActive, pageEteinte, pagesCachees } from '../src/noyau/fonctions.js';
+import { basculerPage, fonctionActive, pageEteinte, pagesCachees, reglagesApresBascule } from '../src/noyau/fonctions.js';
 
 // Sortie d'argent de la caisse (migration 20261023200156, fonction sortie_de_caisse) et interrupteurs des fonctions.
 // Données fictives uniquement.
@@ -80,18 +80,26 @@ describe('sortie_de_caisse', () => {
 
 describe('fonctions affichées ou cachées', () => {
   test('valeurs par défaut, réglage, écrans toujours visibles, bascule', () => {
-    expect(pagesCachees({})).toEqual(['happy-hour', 'reserves', 'menu-qr']);
-    expect(fonctionActive({}, 'emballages')).toBe(true);
+    expect(pagesCachees({})).toEqual(['happy-hour', 'reserves', 'menu-qr', 'offerts-pertes', 'emballages', 'preparer-commande']);
+    expect(fonctionActive({}, 'emballages')).toBe(false);
     expect(fonctionActive({}, 'happy-hour')).toBe(false);
+    expect(fonctionActive({}, 'stock')).toBe(true);
     expect(pageEteinte({}, 'reserves')).toBe(true);
-    const r = { etablissement: { pages_cachees: 'emballages, preparer-commande' } };
+    // Liste enregistrée en version 1 : les écrans de la version 2 sont cachés en plus.
+    const v1 = { etablissement: { pages_cachees: 'happy-hour' } };
+    expect(pageEteinte(v1, 'emballages')).toBe(true);
+    expect(pageEteinte(v1, 'offerts-pertes')).toBe(true);
+    expect(pageEteinte(v1, 'reserves')).toBe(false);
+    // Version 2 : la liste est suivie telle quelle (un écran rallumé reste allumé).
+    const r = { etablissement: { pages_cachees: 'emballages, preparer-commande', pages_cachees_version: 2 } };
     expect(pageEteinte(r, 'emballages')).toBe(true);
     expect(pageEteinte(r, 'preparer-commande')).toBe(true);
     expect(pageEteinte(r, 'happy-hour')).toBe(false);
-    expect(pageEteinte({ etablissement: { pages_cachees: '' } }, 'reserves')).toBe(false);
+    expect(pageEteinte(r, 'offerts-pertes')).toBe(false);
+    expect(pageEteinte({ etablissement: { pages_cachees: '', pages_cachees_version: 2 } }, 'reserves')).toBe(false);
     expect(pageEteinte({ etablissement: { pages_cachees: 'parametres,accueil' } }, 'parametres')).toBe(false);
-    expect(basculerPage({}, 'emballages')).toBe('happy-hour,reserves,menu-qr,emballages');
-    expect(basculerPage({}, 'reserves')).toBe('happy-hour,menu-qr');
+    expect(basculerPage({}, 'reserves')).toBe('happy-hour,menu-qr,offerts-pertes,emballages,preparer-commande');
     expect(basculerPage(r, 'emballages')).toBe('preparer-commande');
+    expect(reglagesApresBascule(v1, 'emballages')).toEqual({ pages_cachees: 'happy-hour,offerts-pertes,preparer-commande', pages_cachees_version: 2 });
   });
 });

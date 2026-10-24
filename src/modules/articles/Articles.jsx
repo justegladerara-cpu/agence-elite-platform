@@ -3,8 +3,9 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
 import { dateLocale, formatQuantite } from '../../noyau/format.js';
 import { exporterCsv } from '../../ui/communs.jsx';
-import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, lireImageReduite, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
+import { Badge, Bouton, Champ, Chargement, EnTete, Erreur, Icone, lireImageReduite, Modale, Onglets, Recherche, Vide } from '../../ui/composants.jsx';
 import { VignetteArticle } from '../caisse/Caisse.jsx';
+import { TableauRayons } from './Rayons.jsx';
 import { lireCsvArticles, MODELE_CSV } from './importCsv.js';
 import Categories from './Categories.jsx';
 import AjoutMultiple from './AjoutMultiple.jsx';
@@ -364,6 +365,9 @@ export default function Articles() {
   const [vue, setVue] = useState('actifs');
   const [filtreCategorie, setFiltreCategorie] = useState('');
   const [selection, setSelection] = useState([]);
+  // « Par rayon » (cadres par catégorie, glisser-déposer) ou « En liste » : le choix reste sur cet appareil.
+  const [affichage, setAffichageEtat] = useState(() => { try { return localStorage.getItem('articles:affichage') ?? 'rayons'; } catch { return 'rayons'; } });
+  const setAffichage = (v) => { setAffichageEtat(v); try { localStorage.setItem('articles:affichage', v); } catch { /* sans stockage : choix non retenu */ } };
   const [destination, setDestination] = useState('');
   const [erreurAction, setErreurAction] = useState('');
   // ?nouveau=1 : ouvre directement le formulaire court de création ; ?nouveau=plusieurs : la saisie de plusieurs articles.
@@ -426,6 +430,18 @@ export default function Articles() {
       setErreurAction(err.message);
     }
   };
+
+  const deplacerUn = async (article, categorieId, nomRayon) => {
+    setErreurAction('');
+    try {
+      await api.rpc('deplacer_articles_categorie', { p_etablissement_id: etab, p_article_ids: [article.id], p_categorie_id: categorieId });
+      notifier(`« ${article.nom} » est maintenant dans « ${nomRayon} »`);
+      recharger();
+    } catch (err) {
+      setErreurAction(err.message);
+    }
+  };
+  const enRayons = vue === 'actifs' && affichage === 'rayons';
 
   return (
     <div className="page">
@@ -497,6 +513,12 @@ export default function Articles() {
             {(donnees?.categories ?? []).map((c) => <option key={c.id} value={c.id}>{c.nom}{c.archivee_le ? ' (archivée)' : ''}</option>)}
           </select>
         )}
+        {vue === 'actifs' && (
+          <div className="bascule-affichage" role="group" aria-label="Affichage">
+            <button type="button" className={affichage === 'rayons' ? 'actif' : ''} aria-pressed={affichage === 'rayons'} onClick={() => setAffichage('rayons')}><Icone nom="modules" taille={15} /> Par rayon</button>
+            <button type="button" className={affichage === 'liste' ? 'actif' : ''} aria-pressed={affichage === 'liste'} onClick={() => setAffichage('liste')}><Icone nom="menu" taille={15} /> En liste</button>
+          </div>
+        )}
         {vue !== 'categories' && (
           <select aria-label="Filtrer par stock" value={filtreStock} onChange={(e) => { setFiltreStock(e.target.value); setSelection([]); }}>
             {FILTRES_STOCK.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -506,10 +528,20 @@ export default function Articles() {
       {chargement && !donnees && <Chargement />}
       <Erreur message={erreur} />
       {vue === 'categories' && donnees && <Categories categories={donnees.categories} articles={donnees.articles} onChange={recharger} />}
-      {vue !== 'categories' && (deplacer || gerer) && articles.length > 0 && selection.length === 0 && (
+      {enRayons && donnees && (
+        <TableauRayons
+          articles={articles}
+          categories={filtreCategorie ? donnees.categories.filter((c) => c.id === filtreCategorie) : donnees.categories}
+          stock={donnees.stock}
+          cacherVides={Boolean(texte) || filtreStock !== FILTRES_STOCK[0][0]}
+          onOuvrir={gerer ? (a) => setEdition({ article: a }) : undefined}
+          onDeplacer={deplacer ? deplacerUn : undefined}
+        />
+      )}
+      {!enRayons && vue !== 'categories' && (deplacer || gerer) && articles.length > 0 && selection.length === 0 && (
         <p className="texte-doux aide-selection">Cochez des articles (ou la case du haut pour tous ceux affichés) pour les modifier ensemble : suivi du stock, disponibilité, catégorie, archivage…</p>
       )}
-      {vue !== 'categories' && (deplacer || gerer) && selection.length > 0 && (
+      {!enRayons && vue !== 'categories' && (deplacer || gerer) && selection.length > 0 && (
         <div className="barre-selection" role="region" aria-label="Articles sélectionnés">
           <strong>{selection.length} sélectionné(s)</strong>
           {!tousCoches && <button type="button" className="lien" onClick={() => setSelection(articles.map((a) => a.id))}>Sélectionner les {articles.length} affichés</button>}
@@ -536,7 +568,7 @@ export default function Articles() {
       {vue !== 'categories' && donnees && !articles.length && (
         <Vide titre="Aucun article" texte={texte || filtreCategorie ? 'Aucun article ne correspond à ces filtres.' : vue === 'actifs' ? 'Créez votre premier article pour commencer à vendre.' : 'Aucun article archivé.'} />
       )}
-      {vue !== 'categories' && articles.length > 0 && (
+      {!enRayons && vue !== 'categories' && articles.length > 0 && (
         <div className="tableau-conteneur">
           <table className={`tableau tableau-articles ${peut('articles.gerer') ? 'cliquable' : ''}`}>
             <thead>

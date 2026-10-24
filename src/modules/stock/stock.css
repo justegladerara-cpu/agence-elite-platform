@@ -69,3 +69,16 @@
     flex: 1 1 100%;
   }
 }
+
+/* Stock par rayon (2026-10-24). */
+.stock-bascule { margin: 4px 0 12px; }
+.stock-rayons { display: flex; flex-direction: column; gap: 14px; }
+.stock-rayon { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.stock-rayon-resume { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.stock-rayon-tableau tr.stock-epuise td:first-child { box-shadow: inset 3px 0 0 var(--rouge); }
+.stock-rayon-tableau tr.stock-bas td:first-child { box-shadow: inset 3px 0 0 var(--orange); }
+.stock-rayon-tableau { table-layout: fixed; width: 100%; }
+.stock-rayon-tableau th:nth-child(2), .stock-rayon-tableau th:nth-child(3) { width: 16%; }
+.stock-rayon-tableau th:nth-child(4) { width: 16%; }
+.stock-rayon-tableau th:nth-child(5) { width: 120px; }
+@media (max-width: 700px) { .stock-rayon-tableau { table-layout: auto; } }

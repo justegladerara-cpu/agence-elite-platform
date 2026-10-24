@@ -8,7 +8,7 @@ const QuiMeDoit = lazy(() => import('./QuiMeDoit.jsx'));
 export default {
   module: 'paiements',
   pages: [
-    { id: 'qui-me-doit', libelle: 'Qui me doit ?', icone: 'clients', groupe: 'Vente', ordre: 22, permission: 'paiements.lire', composant: QuiMeDoit },
+    { id: 'qui-me-doit', libelle: 'En attente de paiement', icone: 'clients', groupe: 'Vente', ordre: 22, permission: 'paiements.lire', composant: QuiMeDoit },
   ],
   widgets: [],
 };

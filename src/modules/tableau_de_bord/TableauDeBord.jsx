@@ -3,12 +3,14 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Badge, Bouton, EmptyState, Erreur, Icone, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { widgetsAccessibles } from '../index.js';
 import { dateLocale } from '../../noyau/format.js';
-import { dateRapportParDefaut } from '../cloture/rapportDuSoir.js';
+import { jourDeService } from '../cloture/rapportDuSoir.js';
 import { BandeauDirect, VueEquipe, VueProduits, VueVentes } from './Analyses.jsx';
+import { avecZoom, ZOOM_PAR_ALERTE } from './zoom.js';
 import { Activite, ActionsRapides, ASurveiller, BarrePeriode, Graphique, GrilleKpis, Kpi, libellePeriode, ListeCockpit, useFiltresCockpit } from './cockpit.jsx';
 import { DOMAINES } from './domaines.js';
 
 const Rapport = lazy(() => import('./Rapport.jsx'));
+const Zoom = lazy(() => import('./Zoom.jsx'));
 
 // Onglets d'analyse (2026-10-23) : présents dès que l'utilisateur voit le domaine Commerce (ventes.lire).
 const ANALYSES = [
@@ -22,7 +24,7 @@ const ANALYSES = [
 // domaine (#/tableau-de-bord/<domaine>). Tout vient des fonctions cockpit_* et analyse_commerce de la base,
 // qui n'agrègent que les modules actifs et autorisés (docs/TABLEAUX_DE_BORD.md).
 export default function TableauDeBord({ naviguer, sousRoute }) {
-  const { api, etablissement, peut } = useEspace();
+  const { api, etablissement, peut, reglagesFonctions } = useEspace();
   const domaine = (sousRoute ?? '').split('/')[0] || null;
   const f = useFiltresCockpit();
   const { donnees: domaines, erreur: erreurDomaines } = useDonnees(
@@ -36,6 +38,11 @@ export default function TableauDeBord({ naviguer, sousRoute }) {
   if (analyses && domaine === 'rapport' && peut('cloture.cloturer')) {
     return <Suspense fallback={<Squelette lignes={8} />}><Rapport naviguer={naviguer} filtres={f.filtres} /></Suspense>;
   }
+  // Page d'analyse d'une carte (#/tableau-de-bord/zoom/<type>?du=&au=), demande de Juste du 2026-10-24.
+  if (domaine === 'zoom') {
+    const type = (sousRoute ?? '').split('/')[1]?.split('?')[0];
+    return <Suspense fallback={<Squelette lignes={8} />}><Zoom type={type} naviguer={naviguer} /></Suspense>;
+  }
   const actif = analyse ? domaine : connu ? domaine : null;
   return (
     <div className="page cockpit">
@@ -44,7 +51,7 @@ export default function TableauDeBord({ naviguer, sousRoute }) {
       {domaines && analyse && <VueAnalyse onglet={analyse} f={f} naviguer={naviguer} />}
       {domaines && !analyse && (connu
         ? <VueDomaine domaine={domaine} titre={domaines.find((d) => d.id === domaine).titre} f={f} naviguer={naviguer} />
-        : <VueGlobale domaines={domaines} f={f} naviguer={naviguer} jour={analyses ? dateRapportParDefaut() : null} />)}
+        : <VueGlobale domaines={domaines} f={f} naviguer={naviguer} jour={analyses ? jourDeService(reglagesFonctions) : null} />)}
       {!domaines && !erreurDomaines && <Squelette lignes={6} />}
     </div>
   );
@@ -93,7 +100,7 @@ function portee(espace, f) {
   const { multiHub, hubs, etablissement } = espace;
   const nom = etablissement.marque?.documents?.nom_commercial ?? etablissement.nom;
   if (!multiHub) return nom;
-  return `${nom} · ${hubs.find((h) => h.id === f.hubId)?.nom ?? 'Tous les Hubs'}`;
+  return `${nom} · ${hubs.find((h) => h.id === f.hubId)?.nom ?? 'Tous les lieux'}`;
 }
 
 // jour : onglet « Aujourd'hui » (tableau du service en cours, avant 6 h celui de la veille), sans choix de période.
@@ -108,7 +115,7 @@ function VueGlobale({ domaines, f: periode, naviguer, jour }) {
   const extras = c ? widgetsAccessibles(espace, 'section', { cockpit: c, du: f.du, au: f.au }) : [];
   // Un seul domaine (ex. un bar) : le bandeau montre ses indicateurs clés (jusqu'à 5) et la carte ne les répète pas.
   const seul = (c?.domaines ?? []).length === 1;
-  const principaux = (c?.domaines ?? []).flatMap((d) => d.kpis.slice(0, seul ? 5 : 1).map((k) => ({ ...k, cle: `${d.id}.${k.cle}`, libelle: domaines.length > 1 ? `${k.libelle} · ${d.titre}` : k.libelle }))).slice(0, seul ? 5 : 4);
+  const principaux = (c?.domaines ?? []).flatMap((d) => d.kpis.slice(0, seul ? 5 : 1).map((k) => (d.id === 'commerce' ? avecZoom(k, f.du, f.au) : k)).map((k) => ({ ...k, cle: `${d.id}.${k.cle}`, libelle: domaines.length > 1 ? `${k.libelle} · ${d.titre}` : k.libelle }))).slice(0, seul ? 5 : 4);
   return (
     <>
       <PageHeader titre="Tableau de bord" sousTitre={portee(espace, f)} actions={<>{jour && <BoutonRapport naviguer={naviguer} />}<ActionsRapides domaines={domaines.map((d) => d.id)} naviguer={naviguer} limite={jour ? 2 : 3} /></>} />
@@ -122,7 +129,7 @@ function VueGlobale({ domaines, f: periode, naviguer, jour }) {
           {domaines.length === 0 && <EmptyState icone="tableau" titre="Aucun indicateur pour vos applications" texte="Les indicateurs apparaissent avec les applications activées et vos droits." />}
           {principaux.length > 0 && <div className="kpis kpis-hero">{principaux.map((k, i) => <Kpi key={k.cle} kpi={k} naviguer={naviguer} mis_en_avant={i === 0} periode={libellePeriode(f)} />)}</div>}
           <div className="cockpit-grille">
-            <ASurveiller elements={c.attention} naviguer={naviguer} avecModule={domaines.length > 1} />
+            <ASurveiller elements={c.attention.map((a) => (a.domaine === 'commerce' ? avecZoom(a, f.du, f.au, ZOOM_PAR_ALERTE) : a))} naviguer={naviguer} avecModule={domaines.length > 1} />
             <Activite elements={c.activite} naviguer={naviguer} avecModule={domaines.length > 1} />
           </div>
           {c.tendance && <Graphique g={c.tendance} naviguer={naviguer} />}
@@ -165,13 +172,13 @@ function VueDomaine({ domaine, titre, f, naviguer }) {
       {vide && <EmptyState icone="tableau" titre="Pas encore de données" texte="Les indicateurs apparaîtront dès les premières opérations." />}
       {d && !vide && (
         <>
-          <GrilleKpis kpis={d.kpis} naviguer={naviguer} periode={libellePeriode(f)} />
+          <GrilleKpis kpis={domaine === 'commerce' ? d.kpis.map((k) => avecZoom(k, f.du, f.au)) : d.kpis} naviguer={naviguer} periode={libellePeriode(f)} />
           {d.periode && d.periode.comparable === false && d.periode.du_precedent && (
             <p className="texte-faible cockpit-note">Pas de comparaison : il n’y a pas assez de ventes avant pour comparer.</p>
           )}
           {d.periode?.regle_jour && <p className="texte-faible cockpit-note">{d.periode.regle_jour}</p>}
           <div className="cockpit-grille">
-            <ASurveiller elements={d.attention} naviguer={naviguer} />
+            <ASurveiller elements={domaine === 'commerce' ? d.attention.map((a) => avecZoom(a, f.du, f.au, ZOOM_PAR_ALERTE)) : d.attention} naviguer={naviguer} />
             <section className="carte">
               <div className="titre-ligne"><h2>Actions rapides</h2></div>
               <ActionsRapides domaines={[domaine]} naviguer={naviguer} />

@@ -29,8 +29,8 @@ describe('page vue par le client', () => {
     expect(screen.getByRole('link', { name: 'Notre Instagram' }).getAttribute('href')).toBe('https://instagram.com/bar');
     expect(screen.getByRole('link', { name: 'WhatsApp' }).getAttribute('href')).toBe('https://wa.me/242060000001');
     expect(screen.getByText('Bière fictive')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Votre nom'), { target: { value: 'Client test' } });
-    fireEvent.change(screen.getByLabelText('Votre numéro (WhatsApp)'), { target: { value: '+242 06 000 00 02' } });
+    fireEvent.change(screen.getByLabelText('Votre nom et prénom'), { target: { value: 'Client test' } });
+    fireEvent.change(screen.getByLabelText('Votre numéro WhatsApp'), { target: { value: '+242 06 000 00 02' } });
     expect(screen.getByLabelText('Votre anniversaire (facultatif)')).toBeTruthy();
     expect(screen.queryByLabelText('Votre e-mail (facultatif)')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Je m’inscris' }));

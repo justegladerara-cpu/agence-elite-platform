@@ -40,3 +40,13 @@
 .page-qr-piege { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .page-qr-erreur { color: #b91c1c; font-weight: 600; }
 .page-qr-merci { text-align: center; font-weight: 700; color: var(--page-qr-couleur); }
+.page-qr-reseaux-liens { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.page-qr-reseau { display: block; padding: 12px; border-radius: 12px; background: #f1f3f6; color: #111827; font-weight: 700; text-align: center; text-decoration: none; }
+.page-qr-reseau.instagram { background: #fde7f1; color: #a3195b; }
+.page-qr-reseau.facebook { background: #e7effd; color: #1a4fa0; }
+.page-qr-reseau.tiktok { background: #111827; color: #fff; }
+.page-qr-reseau.youtube { background: #fde8e8; color: #b42318; }
+.page-qr-reseau.whatsapp { background: #e3f8ea; color: #157a3c; }
+.page-qr-wifi strong { overflow-wrap: anywhere; }
+.page-qr-code { font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .03em; }
+.page-qr-bouton.secondaire { background: #fff; color: var(--page-qr-couleur); border: 2px solid var(--page-qr-couleur); }

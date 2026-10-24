@@ -65,8 +65,15 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: 'Enregistrer' }).click();
       await p.getByText('Casque test').first().waitFor();
     });
+    // Articles par rayon (2026-10-24) : un cadre par catégorie, puis « En liste » pour les actions groupées.
+    await etape('articles-rayons', async () => {
+      await p.goto(U + '#/articles');
+      await p.getByRole('button', { name: 'Par rayon' }).waitFor();
+      await p.locator('.rayon-article').filter({ hasText: 'Casque test' }).first().waitFor();
+    });
     await etape('articles-lot', async () => {
       await p.goto(U + '#/articles');
+      await p.getByRole('button', { name: 'En liste' }).click();
       const cases = p.getByRole('checkbox', { name: /^Sélectionner (?!les)/ });
       await cases.nth(0).check();
       await cases.nth(1).check();
@@ -184,7 +191,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('10 000 FCFA').first().waitFor().catch(() => {});
     });
     await etape('ventes-selection', async () => {
-      await p.getByRole('tab', { name: 'Mes ventes' }).waitFor();
+      // Le patron choisit « Ventes de » (tout le monde, moi, chaque caissière) ; la caissière a « Mes ventes ».
+      await p.getByLabel('Ventes de').or(p.getByRole('tab', { name: 'Mes ventes' })).first().waitFor();
       await p.getByLabel('Sélectionner toutes les ventes affichées').check();
       await p.getByText(/vente\(s\) sélectionnée\(s\)/).waitFor();
       await p.getByRole('button', { name: 'Exporter la sélection' }).waitFor();
@@ -269,7 +277,11 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/offerts-pertes');
       await p.getByRole('heading', { name: 'Offerts et pertes' }).first().waitFor();
       await p.locator('table', { hasText: 'Casque test' }).getByText('Client fidèle').first().waitFor();
-      await p.locator('table', { hasText: 'Alex' }).first().waitFor();
+      // Les pourboires (argent des serveurs) ne sont plus dans « Offerts et pertes » (Juste, 2026-10-24).
+      if (await p.getByRole('heading', { name: 'Pourboires' }).count()) throw new Error('Les pourboires ne doivent plus apparaître ici');
+      // Même écran dans « Ticket Z et rapports ».
+      await p.goto(U + '#/z-et-rapports/offerts');
+      await p.locator('table', { hasText: 'Casque test' }).getByText('Client fidèle').first().waitFor();
       const erreursVisibles = await p.locator('.erreur:visible').allTextContents();
       if (erreursVisibles.length) throw new Error(erreursVisibles.join(' | '));
     });
@@ -357,9 +369,14 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Encaissements par mode').first().waitFor();
     });
     await etape('indicateur-cliquable', async () => {
-      // Un indicateur ouvre l'écran déjà filtré.
+      // Une carte du tableau de bord ouvre sa page d'analyse (2026-10-24), qui mène à la liste des ventes.
       await p.locator('.kpi.cliquable').first().click();
-      await p.waitForFunction(() => !location.hash.startsWith('#/tableau-de-bord'), null, { timeout: 15000 });
+      await p.waitForFunction(() => location.hash.startsWith('#/tableau-de-bord/zoom/'), null, { timeout: 15000 });
+      await p.getByRole('button', { name: 'Tableau de bord' }).first().waitFor();
+      await p.goto(U + '#/tableau-de-bord/zoom/chiffre');
+      await p.getByRole('button', { name: '30 jours' }).click();
+      await p.getByRole('button', { name: 'Voir la liste des ventes' }).click({ timeout: 30000 });
+      await p.waitForFunction(() => location.hash.startsWith('#/ventes'), null, { timeout: 15000 });
     });
     await etape('parametres', async () => { await p.goto(U + '#/parametres'); await p.getByRole('tab', { name: 'Entreprise' }).waitFor(); });
     await etape('ticket-constructeur', async () => {
@@ -899,12 +916,16 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/parametres?onglet=applications');
       const carte = p.getByRole('switch', { name: 'Emballages consignés' });
       await carte.waitFor();
-      if (await carte.getAttribute('aria-checked') !== 'true') throw new Error('Emballages consignés devrait être affiché');
-      await carte.click();
-      await p.getByText('Emballages consignés : caché').first().waitFor();
-      await p.getByRole('complementary', { name: 'Navigation principale' }).getByText('Emballages consignés', { exact: true }).waitFor({ state: 'detached' });
+      // Caché par défaut depuis le 2026-10-24 (The Dream) : on l'allume, il revient au menu, puis on le recache.
+      if (await carte.getAttribute('aria-checked') !== 'false') throw new Error('Emballages consignés devrait être caché par défaut');
+      for (const id of ['Offerts et pertes', 'Préparer la commande']) {
+        if (await p.getByRole('switch', { name: id }).getAttribute('aria-checked') !== 'false') throw new Error(`${id} devrait être caché par défaut`);
+      }
       await carte.click();
       await p.getByText('Emballages consignés : affiché').first().waitFor();
+      await p.getByRole('complementary', { name: 'Navigation principale' }).getByText('Emballages consignés', { exact: true }).first().waitFor();
+      await carte.click();
+      await p.getByText('Emballages consignés : caché').first().waitFor();
       if (await p.getByRole('switch', { name: 'Happy hour' }).getAttribute('aria-checked') !== 'false') throw new Error('Happy hour devrait être caché');
     });
     await etape('qr-codes', async () => {
@@ -958,19 +979,25 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       // Page mobile : construite, allumée ; au scan le client la voit et s'inscrit ; le gérant voit l'inscrit.
       await p.getByRole('tab', { name: /Mes QR codes/ }).click();
       await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByRole('button', { name: 'Page mobile' }).click();
-      const pageQr = p.getByRole('dialog', { name: /Page mobile de/ });
+      // Constructeur en page entière (2026-10-24), téléphone d'aperçu à droite.
+      await p.waitForFunction(() => location.hash.startsWith('#/qr-codes/page/'));
+      const pageQr = p.locator('.constructeur-page-qr-page');
       await pageQr.getByLabel('Aperçu sur un téléphone').getByText('Recevez nos offres').waitFor();
       await pageQr.getByRole('button', { name: /\+ Texte/ }).click();
       await pageQr.getByLabel('Texte', { exact: true }).fill('Soirée tous les vendredis');
       await pageQr.getByLabel('Aperçu sur un téléphone').getByText('Soirée tous les vendredis').waitFor();
+      await pageQr.getByRole('button', { name: /\+ Code Wi-Fi/ }).click();
+      await pageQr.getByLabel('Nom du Wi-Fi').fill('Parcours-WiFi');
+      await pageQr.getByLabel('Aperçu sur un téléphone').getByText('Parcours-WiFi').waitFor();
       await pageQr.getByRole('button', { name: 'Enregistrer la page' }).click();
       await pageQr.waitFor({ state: 'detached' });
       await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByText('page mobile allumée').waitFor();
       await p.goto(lien);
       await p.getByText('Soirée tous les vendredis').waitFor({ timeout: 60000 });
       await p.getByRole('link', { name: 'Parcours Instagram' }).waitFor();
-      await p.getByLabel('Votre nom').fill('Client Parcours');
-      await p.getByLabel('Votre numéro (WhatsApp)').fill('+242 06 000 00 09');
+      await p.getByText('Parcours-WiFi').waitFor();
+      await p.getByLabel('Votre nom et prénom').fill('Client Parcours');
+      await p.getByLabel('Votre numéro WhatsApp').fill('+242 06 000 00 09');
       await p.getByRole('button', { name: 'Je m’inscris' }).click();
       await p.getByText('Merci ! À très bientôt.').waitFor({ timeout: 30000 });
       await p.goto(U + '#/qr-codes?vue=inscrits');

@@ -8,7 +8,8 @@ export default {
   module: 'rapports',
   pages: [
     { id: 'pilotage', libelle: 'Pilotage', icone: 'cible', groupe: 'Pilotage', ordre: 18, permission: 'rapports.pilotage', composant: Pilotage },
-    { id: 'rapports', libelle: 'Rapports', icone: 'graphique', groupe: 'Pilotage', ordre: 20, permission: 'rapports.lire', composant: Rapports },
+    // Rangé dans « Ticket Z et rapports » quand la caisse (module Clôture) est là ; seul au menu sinon.
+    { id: 'rapports', libelle: 'Rapports', icone: 'graphique', groupe: 'Pilotage', ordre: 20, permission: 'rapports.lire', composant: Rapports, horsMenuSi: (e, espace) => Boolean(espace?.moduleActif?.('cloture')) },
   ],
   widgets: [],
 };

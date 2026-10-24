@@ -10,7 +10,7 @@ const EVENEMENT = 'mode-simple';
 
 // Écrans gardés dans le menu en Elite Simple (ceux que la personne a le droit d'ouvrir).
 export const PAGES_MODE_SIMPLE = [
-  'accueil', 'caisse', 'ventes', 'clotures', 'qui-me-doit', 'a-qui-je-dois', 'articles', 'stock', 'achats',
+  'accueil', 'caisse', 'ventes', 'z-et-rapports', 'clotures', 'qui-me-doit', 'a-qui-je-dois', 'articles', 'stock', 'achats',
   'depenses', 'contacts', 'factures', 'menu-qr', 'qr-codes', 'commandes-qr', 'rapport-du-soir',
 ];
 

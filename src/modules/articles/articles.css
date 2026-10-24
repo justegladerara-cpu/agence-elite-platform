@@ -109,3 +109,25 @@
   }
   .tableau-articles .cellule-case input { width: 22px; height: 22px; }
 }
+
+/* Articles par rayon (2026-10-24). */
+.rayons { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.rayon { display: flex; flex-direction: column; gap: 10px; min-width: 0; transition: border-color .15s, background .15s; }
+.rayon.survol { border-color: var(--accent); background: var(--accent-doux); }
+.rayon-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rayon-tete h2 { margin: 0; font-size: var(--texte-md); overflow-wrap: anywhere; }
+.rayon-tete small { margin-left: auto; }
+.rayon-vide { margin: 0; padding: 14px; border: 1px dashed var(--bordure); border-radius: var(--rayon-petit); text-align: center; }
+.rayon-articles { display: flex; flex-direction: column; gap: 6px; }
+.rayon-article {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; text-align: left; font: inherit; color: var(--texte);
+  background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon-petit); cursor: pointer; min-width: 0;
+}
+.rayon-article[draggable="true"] { cursor: grab; }
+.rayon-article:hover { border-color: var(--accent); }
+.rayon-article.glisse { opacity: .45; }
+.rayon-article-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.rayon-article-texte strong { overflow-wrap: anywhere; font-size: var(--texte-sm); }
+.rayon-article-texte small { color: var(--texte-doux); font-size: var(--texte-xs); }
+.rayon-etoile { color: var(--orange); flex: 0 0 auto; display: inline-flex; }
+@media (max-width: 520px) { .rayons { grid-template-columns: minmax(0, 1fr); } }

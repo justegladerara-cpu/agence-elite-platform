@@ -11,7 +11,7 @@ export const GROS_BOUTONS = [
   { id: 'perte', libelle: 'J’ai perdu / cassé / périmé', detail: 'Le stock baisse, la perte est chiffrée', icone: 'alerte', route: 'stock?vue=perte', permission: 'stock.ajuster', mots: 'perte casse vol perime abime retirer' },
   { id: 'depense', libelle: 'J’ai payé une dépense', detail: 'Loyer, transport, électricité…', icone: 'depenses', route: 'depenses?nouveau=1', permission: 'depenses.gerer', mots: 'depense frais loyer transport electricite sortie argent' },
   { id: 'fermer', libelle: 'Fermer ma caisse', detail: 'Ticket Z de ma caisse', icone: 'cloture', route: 'clotures', permission: 'caisse.utiliser', mots: 'cloture fermer fin journee billets z' },
-  { id: 'doit', libelle: 'Qui me doit de l’argent ?', detail: 'Clients à relancer', icone: 'clients', route: 'qui-me-doit', mots: 'dette credit creance doit impaye relance' },
+  { id: 'doit', libelle: 'Qui n’a pas encore payé ?', detail: 'Ventes en attente de paiement', icone: 'clients', route: 'qui-me-doit', mots: 'dette credit creance doit impaye relance' },
   { id: 'commander', libelle: 'Je dois commander', detail: 'Ce qui va manquer', icone: 'panier', route: 'achats?onglet=reappro', permission: 'achats.lire', mots: 'commander commande achat reapprovisionner manque fournisseur' },
   { id: 'je-dois', libelle: 'À qui je dois ?', detail: 'Fournisseurs à payer', icone: 'echeance', route: 'achats?onglet=a_payer', permission: 'achats.lire', mots: 'fournisseur payer dette' },
   { id: 'article', libelle: 'Ajouter des articles', detail: 'Un nom et un prix suffisent', icone: 'articles', route: 'articles?nouveau=1', permission: 'articles.gerer', mots: 'article produit prix catalogue nouveau' },
@@ -54,7 +54,7 @@ export function aFaire({ tdb, caissesAnciennes = 0, facturesEnRetard = 0, peremp
   if (bas.length) liste.push({ id: 'stock', ton: 'orange', texte: `${bas.length >= 10 ? '10 ou plus' : bas.length} article(s) à commander (${bas.slice(0, 3).map((a) => a.nom).join(', ')}${bas.length > 3 ? '…' : ''})`, route: 'achats?onglet=reappro' });
   const perimes = (peremptions ?? []).length;
   if (perimes) liste.push({ id: 'peremption', ton: 'orange', texte: `${perimes} lot(s) périmé(s) ou qui périment bientôt`, route: 'stock?vue=peremptions' });
-  if (Number(tdb?.creances) > 0) liste.push({ id: 'creances', ton: 'bleu', texte: `Des clients vous doivent ${formatMontant(tdb.creances, devise)}`, route: 'qui-me-doit' });
+  if (Number(tdb?.creances) > 0) liste.push({ id: 'creances', ton: 'bleu', texte: `${formatMontant(tdb.creances, devise)} pas encore payés`, route: 'qui-me-doit' });
   if (facturesEnRetard > 0) liste.push({ id: 'factures', ton: 'orange', texte: `${facturesEnRetard} facture(s) en retard de paiement`, route: 'factures?onglet=retards' });
   return liste;
 }

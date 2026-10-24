@@ -96,7 +96,7 @@ export default function EditeurDocument({ type: typeNouveau, documentId, navigue
             {multiHub && (
               <Champ libelle="Hub (stock et suivi)">
                 <select value={v.hub_id} onChange={changer('hub_id')}>
-                  <option value="">Hub principal</option>
+                  <option value="">Lieu principal</option>
                   {hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
                 </select>
               </Champ>

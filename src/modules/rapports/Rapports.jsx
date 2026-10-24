@@ -61,7 +61,7 @@ export default function Rapports() {
         </select>
         {multiHub && (
           <select aria-label="Hub" value={hub} onChange={(e) => setHub(e.target.value)}>
-            <option value="">Tous les Hubs</option>
+            <option value="">Tous les lieux</option>
             {hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
           </select>
         )}

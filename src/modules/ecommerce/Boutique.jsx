@@ -225,7 +225,7 @@ function Reglages({ boutique, onFait }) {
           {hubs.length > 1 && (
             <Champ libelle="Le stock sort du Hub">
               <select value={v.hub_id} onChange={changer('hub_id')}>
-                <option value="">Hub principal</option>
+                <option value="">Lieu principal</option>
                 {hubs.map((h) => <option key={h.id} value={h.id}>{h.nom}</option>)}
               </select>
             </Champ>

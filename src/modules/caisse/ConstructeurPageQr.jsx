@@ -2,9 +2,9 @@
 // aperçu dans un téléphone, page allumée ou éteinte. Enregistré par enregistrer_page_qr (migration 20261023200160).
 import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { Bouton, Champ, Erreur, Modale, Squelette } from '../../ui/composants.jsx';
+import { Bouton, Champ, Erreur, Icone, Modale, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { PageQr } from '../../public/PageQr.jsx';
-import { ACTIONS_BOUTON, ajouter, deplacer, MAX_BLOCS, pageDeDepart, retirer, TYPES_BLOCS } from './pageQr.js';
+import { ACTIONS_BOUTON, ajouter, deplacer, MAX_BLOCS, pageDeDepart, RESEAUX, retirer, TYPES_BLOCS } from './pageQr.js';
 import '../recus/recu.css';
 
 function ChampsBloc({ bloc, changer }) {
@@ -49,12 +49,28 @@ function ChampsBloc({ bloc, changer }) {
           {texte('merci', 'Message après l’envoi', 200)}
         </>
       );
+    case 'reseaux':
+      return (
+        <>
+          {texte('titre', 'Titre', 80)}
+          <p className="texte-doux petit">Remplissez seulement vos réseaux. Les autres ne s’affichent pas.</p>
+          {RESEAUX.map(([cle, nom, exemple]) => <React.Fragment key={cle}>{texte(cle, nom, cle === 'whatsapp' ? 25 : 300, { placeholder: exemple })}</React.Fragment>)}
+        </>
+      );
+    case 'wifi':
+      return (
+        <>
+          {texte('titre', 'Titre', 80)}
+          {texte('reseau', 'Nom du Wi-Fi', 64, { placeholder: 'TheDream-Clients' })}
+          {texte('mot_de_passe', 'Mot de passe', 64, { placeholder: 'Laissez vide si le Wi-Fi est ouvert' })}
+        </>
+      );
     default:
       return null;
   }
 }
 
-export function ConstructeurPageQr({ qr, onFermer, onFait }) {
+export function ConstructeurPageQr({ qr, onFermer, onFait, pleinePage = false }) {
   const { api, etablissement } = useEspace();
   const { donnees, chargement, erreur } = useDonnees(async () => {
     const [pages, menu] = await Promise.all([
@@ -90,8 +106,8 @@ export function ConstructeurPageQr({ qr, onFermer, onFait }) {
   };
   const apercuMenu = [{ nom: 'Menu', articles: (donnees?.menu ?? []).slice(0, 12).map((a) => ({ nom: a.nom, prix: a.prix_vente })) }].filter((c) => c.articles.length);
 
-  return (
-    <Modale titre={`Page mobile de « ${qr.nom} »`} onFermer={onFermer} large>
+  const contenu = (
+    <>
       {chargement && !donnees && <Squelette />}
       <Erreur message={erreur} />
       {etat && (
@@ -141,6 +157,17 @@ export function ConstructeurPageQr({ qr, onFermer, onFait }) {
           </div>
         </form>
       )}
-    </Modale>
+    </>
   );
+  // Page entière (Juste, 2026-10-24) : plus de place pour les blocs, le téléphone reste visible à droite.
+  if (pleinePage) {
+    return (
+      <div className="page constructeur-page-qr-page">
+        <button type="button" className="lien-retour-qr" onClick={onFermer}><Icone nom="retour" taille={16} /> QR codes</button>
+        <PageHeader titre={`Page de « ${qr.nom} »`} sousTitre="Ce que le client voit quand il scanne. Ajoutez des blocs à gauche, regardez le téléphone à droite." />
+        {contenu}
+      </div>
+    );
+  }
+  return <Modale titre={`Page mobile de « ${qr.nom} »`} onFermer={onFermer} large>{contenu}</Modale>;
 }

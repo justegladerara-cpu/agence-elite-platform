@@ -1,0 +1,20 @@
+/* Ventes (2026-10-24) : chiffres en cartes et ventes rangées par personne, serveur, heure ou client. */
+.ventes-chiffres { margin-bottom: 4px; }
+.filtre-personne select { min-height: var(--cible); border-radius: 10px; padding: 6px 10px; border: 1px solid var(--bordure-forte); background: var(--surface); font: inherit; font-weight: 600; max-width: 100%; }
+.ventes-groupes .titre-ligne { flex-wrap: wrap; gap: 10px; }
+.ventes-groupes-liste { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.ventes-groupe {
+  width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--bordure); border-radius: 12px; background: var(--surface-douce); color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.ventes-groupe:disabled { cursor: default; }
+.ventes-groupe:not(:disabled):hover { border-color: var(--accent); background: var(--accent-doux); }
+.ventes-groupe-rang { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface); border: 1px solid var(--bordure); font-weight: 700; font-size: 13px; }
+.ventes-groupe-rang.premier { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+.ventes-groupe-nom { display: grid; min-width: 0; }
+.ventes-groupe-nom strong { overflow-wrap: anywhere; }
+.ventes-groupe-nom small { color: var(--texte-doux); font-size: 12px; }
+.ventes-groupe-valeur { display: grid; justify-items: end; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ventes-groupe-barre { display: block; width: 70px; height: 5px; border-radius: 3px; background: var(--bordure); overflow: hidden; }
+.ventes-groupe-barre span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.ventes-numero { white-space: nowrap; }

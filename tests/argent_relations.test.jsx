@@ -50,7 +50,7 @@ describe('argent et relations (démo)', () => {
   test('Qui me doit ? : clients avec un reste dû, rappel WhatsApp et « Il a payé »', async () => {
     window.location.hash = '#/qui-me-doit';
     render(<App demarrer={demarrer('gerante@demo.agence-elite.fr')} />);
-    expect(await screen.findByRole('heading', { name: 'Qui me doit ?' }, { timeout: 10000 })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'En attente de paiement' }, { timeout: 10000 })).toBeTruthy();
     const payes = await screen.findAllByRole('button', { name: 'Il a payé' }, { timeout: 10000 });
     expect(payes.length).toBeGreaterThan(0);
     const liens = screen.queryAllByRole('link', { name: 'Rappeler sur WhatsApp' });

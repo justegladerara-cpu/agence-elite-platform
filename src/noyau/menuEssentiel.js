@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react';
 export const PAGES_ESSENTIELLES = [
   'mise-en-service', 'accueil', 'tableau-de-bord',
   'caisse', 'salle', 'cuisine', 'hotel', 'chambres', 'boutique',
-  'ventes', 'clotures', 'qui-me-doit', 'factures',
+  'ventes', 'z-et-rapports', 'clotures', 'qui-me-doit', 'factures',
   'articles', 'stock', 'depenses', 'contacts', 'parametres',
 ];
 

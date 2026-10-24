@@ -202,7 +202,7 @@ export default function Contacts({ naviguer, sousRoute }) {
             { libelle: 'Actif', valeur: (c) => (c.actif ? 'oui' : 'non') },
           ], contacts)}>Exporter</Bouton>
         )}
-        {totalDu > 0 && moduleActif('paiements') && peut('paiements.lire') && <Bouton icone="clients" onClick={() => naviguer('qui-me-doit')}>Qui me doit ?</Bouton>}
+        {totalDu > 0 && moduleActif('paiements') && peut('paiements.lire') && <Bouton icone="clients" onClick={() => naviguer('qui-me-doit')}>En attente de paiement</Bouton>}
         {(donnees?.contacts ?? []).some((c) => c.telephone) && <Bouton icone="message" onClick={() => setGroupe(true)}>Message à plusieurs clients</Bouton>}
         {peut('contacts.gerer') && <Bouton variante="principal" icone="plus" onClick={() => setEdition({})}>Nouveau contact</Bouton>}
       </EnTete>

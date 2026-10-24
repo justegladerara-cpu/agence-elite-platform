@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { lireParametres } from '../../noyau/routes.js';
+import { nomLieu } from '../../noyau/lieux.js';
 import { formatDateHeure, formatQuantite } from '../../noyau/format.js';
-import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
+import { Badge, Bouton, Champ, DataTable, EmptyState, Erreur, Icone, Modale, PageHeader, Squelette, Tabs } from '../../ui/composants.jsx';
 import SaisieStock from './SaisieStock.jsx';
 import Peremptions from './Peremptions.jsx';
 import Receptions from './Receptions.jsx';
 import { formatEnCasiers, quantiteHub } from './quantites.js';
 import { lireVueStock, RAISONS_RETRAIT, valeurPerte } from './pertes.js';
 import './stock.css';
+import { StockRayons } from './StockRayons.jsx';
 
 export { quantiteHub };
 
@@ -196,6 +198,10 @@ export default function Stock({ naviguer }) {
     [etab]
   );
   const [version, setVersion] = useState(0);
+  // « Par rayon » (un tableau par catégorie) ou « En liste » : le choix reste sur cet appareil (2026-10-24).
+  const [etatLien] = useState(() => lireParametres().get('etat') ?? '');
+  const [affichage, setAffichageEtat] = useState(() => { try { return localStorage.getItem('stock:affichage') ?? 'rayons'; } catch { return 'rayons'; } });
+  const setAffichage = (v) => { setAffichageEtat(v); try { localStorage.setItem('stock:affichage', v); } catch { /* choix non retenu */ } };
   const { donnees, chargement, erreur, recharger } = useStockHubs();
   const { donnees: mouvements } = useDonnees(
     () => (vue === 'mouvements'
@@ -223,14 +229,14 @@ export default function Stock({ naviguer }) {
   };
 
   const onglets = [['niveaux', 'Niveaux']];
-  if (multiHub && !hub) onglets.push(['par-hub', 'Par Hub']);
+  if (multiHub && !hub) onglets.push(['par-hub', 'Par lieu']);
   onglets.push(['mouvements', 'Mouvements'], ['receptions', 'Réceptions'], ['inventaires', 'Inventaires'], ['peremptions', 'Dates de péremption']);
 
   return (
     <div className="page">
       <PageHeader
         titre="Stock"
-        sousTitre={`${multiHub ? (hub ? hub.nom : 'Tous les Hubs (consolidé)') : 'Stock du magasin'} · ${bas ? `${bas} article(s) à réapprovisionner` : 'tous les niveaux sont corrects'} · valeur d’achat ${montant(valeur)}`}
+        sousTitre={`${multiHub ? (hub ? nomLieu(hub.nom) : 'Tous les lieux') : 'Stock du magasin'} · ${bas ? `${bas} article(s) à réapprovisionner` : 'tous les niveaux sont corrects'} · valeur d’achat ${montant(valeur)}`}
         actions={(
           <>
             {multiHub && peut('stock.transferer') && <Bouton icone="transfert" onClick={() => naviguer('transferts')}>Transférer</Bouton>}
@@ -245,6 +251,20 @@ export default function Stock({ naviguer }) {
       <Erreur message={erreur} />
       {chargement && !donnees && <Squelette lignes={6} />}
       {donnees && vue === 'niveaux' && (
+        <div className="bascule-affichage stock-bascule" role="group" aria-label="Affichage">
+          <button type="button" className={affichage === 'rayons' ? 'actif' : ''} aria-pressed={affichage === 'rayons'} onClick={() => setAffichage('rayons')}><Icone nom="modules" taille={15} /> Par rayon</button>
+          <button type="button" className={affichage === 'liste' ? 'actif' : ''} aria-pressed={affichage === 'liste'} onClick={() => setAffichage('liste')}><Icone nom="menu" taille={15} /> En liste</button>
+        </div>
+      )}
+      {donnees && vue === 'niveaux' && affichage === 'rayons' && (
+        <StockRayons
+          niveaux={niveaux}
+          categories={categories ?? []}
+          etatInitial={etatLien === 'epuise' ? 'epuise' : etatLien === 'bas' ? 'bas' : ''}
+          onRetirer={ajuster ? (n) => setAction({ type: 'retrait', article: n }) : undefined}
+        />
+      )}
+      {donnees && vue === 'niveaux' && affichage === 'liste' && (
         <DataTable
           lignes={niveaux}
           rechercher={(n) => `${n.nom} ${n.reference ?? ''}`}
