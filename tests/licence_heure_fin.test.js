@@ -91,6 +91,28 @@ describe('heure de fin précise', () => {
   });
 });
 
+describe('code d’activation après la coupure', () => {
+  test('le responsable entre une clé annuelle : un an de licence, tout refonctionne ; la caissière ne peut pas', async () => {
+    await db.query('update licences set fin_a = now() - interval \'1 minute\' where etablissement_id = $1 and statut <> \'terminee\'', [etab]);
+    expect((await db.query('select licence_coupee($1) c', [etab])).rows[0].c).toBe(true);
+    const modele = (await db.query("select id from licence_modeles where formule = 'annuel' and offre_id = 'commerce-complet' limit 1")).rows[0].id;
+    const [cle] = await valeur(admin, "select generer_cles_licence($1, 1, null, 'Boutique Fin')", [modele]);
+    await expect(comme(caissiere, 'select activer_cle_licence($1, $2)', [cle, etab])).rejects.toThrow(/responsable/);
+    // Saisie tolérante : minuscules et espaces acceptés.
+    const r = await valeur(gerant, 'select activer_cle_licence($1, $2)', [` ${cle.toLowerCase()} `, etab]);
+    expect(r.formule).toBe('annuel');
+    const l = (await db.query("select formule, fin_a, echeance - debut as jours from licences where etablissement_id = $1 and statut <> 'terminee'", [etab])).rows;
+    expect(l).toHaveLength(1);
+    expect(l[0].formule).toBe('annuel');
+    expect(l[0].fin_a).toBeNull();
+    expect(l[0].jours).toBeGreaterThanOrEqual(365);
+    expect((await db.query('select licence_coupee($1) c, licence_valide($1) v', [etab])).rows[0]).toEqual({ c: false, v: true });
+    const s = await valeur(caissiere, 'select ouvrir_caisse($1, null, 0)', [etab]);
+    expect((await vendre(caissiere, s)).numero).toBeTruthy();
+    await expect(comme(gerant, 'select activer_cle_licence($1, $2)', [cle, etab])).rejects.toThrow(/déjà utilisée/);
+  });
+});
+
 describe('écran', () => {
   const base = { ecriture: true, statut: 'actif', client_statut: 'actif', role: 'employe' };
   const avec = (finMs) => ({ ...base, licence: { statut: 'active', valide: true, fin_a: new Date(finMs).toISOString() } });
