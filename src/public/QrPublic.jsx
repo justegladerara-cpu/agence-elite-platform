@@ -64,6 +64,7 @@ export function QrPublic({ donnees, jeton }) {
   if (reponse?.page) {
     return (
       <PageQr page={reponse.page} reponse={reponse} nom={reponse.etablissement} origine={`${window.location.origin}${window.location.pathname}`}
+        chargerPhotos={(rayon) => donnees.rpc('photos_menu_page_qr', { p_jeton: jeton, p_rayon: rayon })}
         onInscrire={async (v) => {
           const r = await donnees.rpc('envoyer_inscription_qr', { p_jeton: jeton, p: v, p_appareil: typeAppareil(navigator.userAgent, navigator.maxTouchPoints ?? 0) });
           await donnees.attendreEcriture?.().catch(() => {});

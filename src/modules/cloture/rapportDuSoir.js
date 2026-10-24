@@ -57,6 +57,8 @@ export function texteRapportDuSoir(rapport) {
   lignes.push('');
   lignes.push(`*Ventes : ${m(r.total_ventes)}*`);
   lignes.push(`Tickets : ${Number(r.nombre_tickets || 0)}`);
+  if (r.heure_forte) lignes.push(`Heure la plus forte : ${r.heure_forte.heure} h (${m(r.heure_forte.montant)})`);
+  if (r.plus_grosse_vente) lignes.push(`Plus grosse vente : ${m(r.plus_grosse_vente.montant)} à ${r.plus_grosse_vente.heure}`);
 
   const encaissements = (r.encaissements ?? []).filter((e) => Number(e.montant) > 0);
   if (encaissements.length) {
@@ -91,6 +93,11 @@ export function texteRapportDuSoir(rapport) {
   if (caissiers.length) {
     lignes.push('', '*Par caissière / caissier*');
     for (const c of caissiers) lignes.push(`- ${c.nom || 'Sans nom'} : ${pluriel(c.nombre_ventes, 'vente')} · ${m(c.total_ventes)}`);
+  }
+
+  if (r.conseils?.length) {
+    lignes.push('', '*Conseils*');
+    for (const c of r.conseils) lignes.push(`- ${c}`);
   }
 
   lignes.push('');

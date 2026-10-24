@@ -185,6 +185,10 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('button', { name: /^Factures en cours/ }).click();
       await p.getByRole('dialog').getByText(/^Facture \d+$/).waitFor();
       await p.keyboard.press('Escape');
+      // « En attente de paiement » se voit depuis la caisse (2026-10-24) : les ventes pas encore payées de la démo.
+      await p.getByRole('button', { name: /^En attente de paiement ·/ }).click();
+      await p.getByRole('dialog', { name: 'En attente de paiement' }).getByRole('button', { name: 'Il a payé' }).first().waitFor({ timeout: 30000 });
+      await p.keyboard.press('Escape');
     });
     await etape('ventes', async () => {
       await p.goto(U + '#/ventes');
@@ -329,6 +333,9 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('heading', { name: 'Rapport du soir' }).waitFor({ timeout: 60000 });
       await p.locator('.stat-card-valeur', { hasText: 'FCFA' }).first().waitFor();
       await p.getByText('Top 5 des articles').first().waitFor();
+      // La journée en détail (2026-10-24) : heure par heure, à surveiller, conseils.
+      await p.getByRole('heading', { name: 'Quand les clients viennent' }).waitFor({ timeout: 30000 });
+      await p.getByRole('heading', { name: 'Nos conseils' }).waitFor();
       const whatsapp = p.getByRole('link', { name: 'Envoyer au patron sur WhatsApp' });
       await whatsapp.waitFor();
       const href = await whatsapp.getAttribute('href');
@@ -934,7 +941,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.goto(U + '#/qr-codes');
       await p.getByRole('heading', { name: 'QR codes', exact: true }).waitFor({ timeout: 60000 });
       // QR codes fictifs de la démo, avec des scans.
-      await p.getByRole('article', { name: 'QR code Instagram' }).getByText(/[1-9]\d* scan\(s\) sur 30 jours/).waitFor();
+      // Grandes tuiles (2026-10-24) : le nombre de scans sur 30 jours est en gras devant « sur 30 jours ».
+      await p.getByRole('article', { name: 'QR code Instagram' }).locator('.tuile-qr-chiffres span').filter({ hasText: /^[1-9]\d* sur 30 jours$/ }).waitFor();
       await p.getByRole('button', { name: 'Nouveau QR code' }).first().click();
       const d = p.getByRole('dialog', { name: 'Nouveau QR code' });
       await d.getByLabel('Nom du QR code').fill('Parcours Instagram');
@@ -996,6 +1004,10 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByText('Soirée tous les vendredis').waitFor({ timeout: 60000 });
       await p.getByRole('link', { name: 'Parcours Instagram' }).waitFor();
       await p.getByText('Parcours-WiFi').waitFor();
+      // Menu en cartes : toucher une carte montre ses articles, « Retour au menu » revient aux cartes.
+      await p.locator('.page-qr-carte').first().click();
+      await p.getByRole('button', { name: /Retour au menu/ }).click();
+      await p.locator('.page-qr-carte').first().waitFor();
       await p.getByLabel('Votre nom et prénom').fill('Client Parcours');
       await p.getByLabel('Votre numéro WhatsApp').fill('+242 06 000 00 09');
       await p.getByRole('button', { name: 'Je m’inscris' }).click();
@@ -1004,8 +1016,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
       await p.getByRole('table', { name: 'Clients inscrits' }).getByText('Client Parcours').waitFor({ timeout: 60000 });
       // Désactivé : la page publique le dit, rien n'est compté.
       await p.getByRole('tab', { name: /Mes QR codes/ }).click();
-      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByRole('button', { name: 'Désactiver' }).click();
-      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByText('désactivé').waitFor();
+      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByRole('button', { name: 'Mettre en pause' }).click();
+      await p.getByRole('article', { name: 'QR code Parcours Instagram' }).getByText('En pause', { exact: true }).waitFor();
       await p.goto(lien);
       await p.getByText(/Ce QR code n.est plus actif/).waitFor({ timeout: 60000 });
       await p.goto(U + '#/qr-codes?vue=style');

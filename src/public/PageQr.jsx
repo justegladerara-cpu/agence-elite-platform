@@ -1,8 +1,8 @@
 // Page mobile d'un QR code, telle que la voit le client qui scanne (et l'aperçu du constructeur).
 // Blocs : en-tête, texte, boutons, menu, inscription (envoyer_inscription_qr, sans compte).
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { formatMontant } from '../noyau/format.js';
-import { lienBouton, liensReseaux } from '../modules/caisse/pageQr.js';
+import { chercherMenu, lienBouton, liensReseaux, pictoRayon, rayonsMenu } from '../modules/caisse/pageQr.js';
 import './page-qr.css';
 
 function Formulaire({ bloc, onEnvoyer, apercu }) {
@@ -43,7 +43,114 @@ function Formulaire({ bloc, onEnvoyer, apercu }) {
   );
 }
 
-export function PageQr({ page, reponse, origine, onInscrire, apercu = false, nom }) {
+// Couleur douce et stable d'une carte sans photo, d'après le nom du rayon.
+function teinte(nom) {
+  let h = 0;
+  for (const c of String(nom ?? '')) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `linear-gradient(135deg, hsl(${h} 70% 92%), hsl(${(h + 40) % 360} 75% 84%))`;
+}
+
+function ImageCarte({ photo, nom, className }) {
+  if (photo) return <img className={className} src={photo} alt="" loading="lazy" />;
+  return <span className={`${className} sans-photo`} style={{ background: teinte(nom) }} aria-hidden="true">{pictoRayon(nom)}</span>;
+}
+
+function FicheArticle({ a, photo, devise }) {
+  return (
+    <li className="page-qr-article">
+      {(photo || a.photo) ? <img className="page-qr-article-photo" src={photo || a.photo} alt="" loading="lazy" /> : null}
+      <span className="page-qr-article-texte">
+        <strong>{a.nom}</strong>
+        {a.description && <small>{a.description}</small>}
+      </span>
+      <strong className="page-qr-article-prix">{formatMontant(a.prix, devise)}</strong>
+    </li>
+  );
+}
+
+// Bloc « menu » (Juste, 2026-10-24) : en cartes par rayon (par défaut) ou en liste comme avant. Toucher une carte
+// montre ses articles ; leurs photos arrivent à ce moment-là (chargerPhotos), pour que la page s'ouvre vite.
+function MenuPage({ bloc, menu, devise, apercu, chargerPhotos }) {
+  const rayons = rayonsMenu(menu, bloc);
+  const [ouvert, setOuvert] = useState(null);
+  const [texte, setTexte] = useState('');
+  const [photos, setPhotos] = useState({});
+  const rayon = rayons.find((r) => r.id === ouvert) ?? null;
+  useEffect(() => {
+    if (!rayon || !chargerPhotos || photos[rayon.id] || !rayon.articles.some((a) => a.a_photo && !a.photo)) return;
+    let actif = true;
+    chargerPhotos(rayon.id).then((p) => { if (actif) setPhotos((x) => ({ ...x, [rayon.id]: p ?? {} })); }).catch(() => {});
+    return () => { actif = false; };
+  }, [rayon?.id]);
+  const ouvrir = (id) => {
+    setOuvert(id);
+    setTexte('');
+    if (!apercu) document.getElementById('page-qr-menu')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+  const vide = !rayons.length && <p className="page-qr-doux">{apercu ? 'Vos articles « visibles sur le menu » s’afficheront ici.' : 'Le menu arrive bientôt.'}</p>;
+  if (bloc.affichage === 'liste') {
+    return (
+      <section id="page-qr-menu" className="page-qr-bloc page-qr-menu">
+        {bloc.titre && <h2>{bloc.titre}</h2>}
+        {vide}
+        {rayons.map((c) => (
+          <div key={c.id} className="page-qr-categorie">
+            <h3>{c.titre}</h3>
+            <ul>{c.articles.map((a) => <li key={a.id ?? a.nom}><span>{a.nom}</span><strong>{formatMontant(a.prix, devise)}</strong></li>)}</ul>
+          </div>
+        ))}
+      </section>
+    );
+  }
+  const trouves = chercherMenu(rayons, texte);
+  return (
+    <section id="page-qr-menu" className="page-qr-bloc page-qr-menu page-qr-menu-cartes">
+      {rayon ? (
+        <>
+          <button type="button" className="page-qr-retour" onClick={() => setOuvert(null)}>← Retour au menu</button>
+          <header className="page-qr-rayon-tete">
+            <ImageCarte photo={rayon.photo} nom={rayon.nom} className="page-qr-rayon-image" />
+            <div>
+              <h2>{rayon.titre}</h2>
+              <p className="page-qr-doux">{rayon.articles.length} choix{rayon.description ? ` · ${rayon.description}` : ''}</p>
+            </div>
+          </header>
+          <ul className="page-qr-articles">
+            {rayon.articles.map((a) => <FicheArticle key={a.id ?? a.nom} a={a} photo={photos[rayon.id]?.[a.id]} devise={devise} />)}
+          </ul>
+        </>
+      ) : (
+        <>
+          {bloc.titre && <h2>{bloc.titre}</h2>}
+          {vide}
+          {bloc.recherche !== false && rayons.length > 0 && (
+            <input className="page-qr-recherche" type="search" value={texte} onChange={(e) => setTexte(e.target.value)}
+              placeholder="Chercher une boisson, un plat…" aria-label="Chercher dans le menu" />
+          )}
+          {texte.trim() ? (
+            trouves.length ? (
+              <ul className="page-qr-articles">{trouves.map((a) => <FicheArticle key={`${a.rayon}-${a.id ?? a.nom}`} a={a} photo={photos[a.rayon]?.[a.id]} devise={devise} />)}</ul>
+            ) : <p className="page-qr-doux">Rien trouvé pour « {texte.trim()} ».</p>
+          ) : (
+            <div className="page-qr-cartes">
+              {rayons.map((r) => (
+                <button key={r.id} type="button" className="page-qr-carte" onClick={() => ouvrir(r.id)}>
+                  <ImageCarte photo={r.photo} nom={r.nom} className="page-qr-carte-image" />
+                  <span className="page-qr-carte-texte">
+                    <strong>{r.titre}</strong>
+                    <small>{r.articles.length} choix · Voir</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+export function PageQr({ page, reponse, origine, onInscrire, apercu = false, nom, chargerPhotos }) {
   const couleur = page.couleur || '#1F6FEB';
   const devise = page.devise ?? 'XAF';
   return (
@@ -85,25 +192,7 @@ export function PageQr({ page, reponse, origine, onInscrire, apercu = false, nom
             </a>
           );
         }
-        if (b.type === 'menu') {
-          const categories = page.menu ?? [];
-          return (
-            <section key={cle} id="page-qr-menu" className="page-qr-bloc page-qr-menu">
-              {b.titre && <h2>{b.titre}</h2>}
-              {!categories.length && <p className="page-qr-doux">{apercu ? 'Vos articles « visibles sur le menu » s’afficheront ici.' : 'Le menu arrive bientôt.'}</p>}
-              {categories.map((c) => (
-                <div key={c.nom} className="page-qr-categorie">
-                  <h3>{c.nom}</h3>
-                  <ul>
-                    {c.articles.map((a) => (
-                      <li key={a.nom}><span>{a.nom}</span><strong>{formatMontant(a.prix, devise)}</strong></li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </section>
-          );
-        }
+        if (b.type === 'menu') return <MenuPage key={cle} bloc={b} menu={page.menu} devise={devise} apercu={apercu} chargerPhotos={chargerPhotos} />;
         if (b.type === 'formulaire') return <Formulaire key={cle} bloc={b} onEnvoyer={onInscrire} apercu={apercu} />;
         if (b.type === 'reseaux') {
           const liens = liensReseaux(b);

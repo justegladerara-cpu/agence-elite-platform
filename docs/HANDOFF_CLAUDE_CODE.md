@@ -796,6 +796,9 @@ Demande de Juste (cahier « Elite Simple ») : vérifier l'existant puis tout co
 - Migration `20261024040000_the_dream_modele.sql` : compte de la maison, ventes d'essai effacées des écrans (jamais de la
   base), blocs QR « Réseaux sociaux » et « Wi-Fi », réglages `debut_service`, `verifier_caissiere_minutes`,
   `responsable_stock`, `pages_cachees_version`. Détail : `docs/THE_DREAM_MODELE.md`.
+- Migration `20261024060000_menu_cartes_qr.sql` : menu en cartes de la page mobile (photo de rayon, réglages du bloc
+  menu, `photos_menu_page_qr` pour anon), QR codes en tuiles, message WhatsApp prérempli, « Caisses en cours » et
+  « En attente de paiement » dans la caisse, résumé du soir détaillé avec conseils. Même document.
 
 ## 46–47. Prompt pour la nouvelle session
 

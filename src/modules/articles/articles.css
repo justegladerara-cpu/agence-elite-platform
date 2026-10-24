@@ -131,3 +131,8 @@
 .rayon-article-texte small { color: var(--texte-doux); font-size: var(--texte-xs); }
 .rayon-etoile { color: var(--orange); flex: 0 0 auto; display: inline-flex; }
 @media (max-width: 520px) { .rayons { grid-template-columns: minmax(0, 1fr); } }
+/* Photo d'un rayon (carte du menu des QR codes, 2026-10-24). */
+.categorie-photo { display: flex; gap: 12px; align-items: center; }
+.categorie-photo img, .categorie-photo-vide { width: 96px; height: 72px; border-radius: 10px; object-fit: cover; flex: 0 0 96px; }
+.categorie-photo-vide { display: flex; align-items: center; justify-content: center; background: var(--surface-douce, #f2f4f7); color: var(--texte-doux); font-size: .8rem; }
+.categorie-vignette { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex: 0 0 40px; }

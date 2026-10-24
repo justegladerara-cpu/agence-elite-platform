@@ -228,3 +228,29 @@ describe('texte du rapport du soir', () => {
     expect(lienRapportWhatsApp({ ...EXEMPLE, whatsapp_patron: '+225 07 00 00 00 00' }).startsWith('https://wa.me/2250700000000?text=')).toBe(true);
   });
 });
+
+describe('journée détaillée (2026-10-24)', () => {
+  test('le texte WhatsApp reprend l’heure forte, la plus grosse vente et les conseils', async () => {
+    const { texteRapportDuSoir } = await import('../src/modules/cloture/rapportDuSoir.js');
+    const t = texteRapportDuSoir({ devise: 'XAF', total_ventes: 1000, nombre_tickets: 1, heure_forte: { heure: 21, montant: 900 }, plus_grosse_vente: { montant: 600, heure: '21:51' }, conseils: ['Commandez vite Primus.'] });
+    expect(t).toContain('Heure la plus forte : 21 h');
+    expect(t).toContain('Plus grosse vente :');
+    expect(t).toContain('à 21:51');
+    expect(t).toContain('*Conseils*\n- Commandez vite Primus.');
+    expect(texteRapportDuSoir({ total_ventes: 0 })).not.toContain('Conseils');
+  });
+
+  test('conseils tirés des chiffres, jamais sans ventes', async () => {
+    const { conseils } = await import('../src/modules/tableau_de_bord/analyses.js');
+    const m = (x) => `${x} F`;
+    expect(conseils(null, m)).toEqual([]);
+    expect(conseils({ kpis: [{ valeur: 0 }] }, m)).toEqual([]);
+    const c = conseils({
+      kpis: [{ valeur: 5000 }], ruptures: [{ libelle: 'Primus' }], meilleureHeure: { heure: 21 }, creux: { de: 14, a: 17, part: 4 },
+      top: [{ libelle: 'Primus', chiffre: 3000 }], paires: [{ a: 'Primus', b: 'Brochette' }], equipe: [{ nom: 'Mireille', chiffre: 4000 }, { nom: 'Paul', chiffre: 1000 }],
+    }, m);
+    expect(c).toHaveLength(5);
+    expect(c[0]).toMatch(/Commandez vite Primus/);
+    expect(c[1]).toMatch(/21 h/);
+  });
+});

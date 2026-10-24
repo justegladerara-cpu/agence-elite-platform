@@ -261,3 +261,21 @@ export function nomFichierRapport(type, du, au, etablissement) {
   const nom = String(etablissement ?? 'rapport').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
   return `rapport-${type === 'jour' ? 'journalier' : type === 'semaine' ? 'hebdomadaire' : type === 'mois' ? 'mensuel' : 'periode'}-${nom}-${du}${du === au ? '' : `_${au}`}`;
 }
+
+// Conseils simples tirés des chiffres (Juste, 2026-10-24 : « les recommandations »). a : construireAnalyse(...),
+// m : montant formaté. 5 conseils au plus, du plus utile au moins utile ; aucun conseil sans ventes.
+export function conseils(a, m) {
+  if (!a || !(a.kpis?.[0]?.valeur > 0)) return [];
+  const liste = [];
+  const r0 = a.ruptures?.[0];
+  if (r0) liste.push(`Commandez vite ${a.ruptures.slice(0, 3).map((x) => x.libelle).join(', ')} : ${a.ruptures.length > 1 ? 'ils seront finis' : 'il sera fini'} très bientôt.`);
+  if (a.meilleureHeure) liste.push(`Le plus de monde vient vers ${a.meilleureHeure.heure} h : mettez le plus de personnel et de boissons fraîches prêtes avant cette heure.`);
+  if (a.creux && a.creux.part <= 10) liste.push(`Entre ${a.creux.de} h et ${a.creux.a} h c’est calme : profitez-en pour ranger, remplir les frigos, ou faites une petite offre pour attirer du monde.`);
+  if (a.top?.[0]) liste.push(`${a.top[0].libelle} rapporte le plus (${m(a.top[0].chiffre)}) : gardez-le toujours en stock et bien en vue.`);
+  if (a.paires?.[0]) liste.push(`${a.paires[0].a} et ${a.paires[0].b} partent souvent ensemble : proposez les deux à un prix rond.`);
+  if (a.tardives?.length) liste.push(`${a.tardives.length} vente(s) annulée(s) longtemps après : demandez pourquoi à la personne.`);
+  if (a.ticketZ?.ecart != null && a.ticketZ.ecart < 0) liste.push(`Il manque ${m(-a.ticketZ.ecart)} dans la caisse : recomptez avec la caissière.`);
+  if (a.credits?.montant > 0) liste.push(`Les clients doivent encore ${m(a.credits.montant)} : relancez-les sur WhatsApp (menu En attente de paiement).`);
+  if (a.equipe?.length > 1) liste.push(`Bravo à ${a.equipe[0].nom}, qui a le plus vendu (${m(a.equipe[0].chiffre)}).`);
+  return liste.slice(0, 5);
+}

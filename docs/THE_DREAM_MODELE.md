@@ -30,3 +30,20 @@ Migration : `supabase/migrations/20261024040000_the_dream_modele.sql` (additive)
 
 `tests/the_dream_modele.test.js` (calculs), `tests/the_dream_modele_base.test.js` (base : compte de la maison,
 essais effacés, blocs QR), `tests/articles_rayons.test.js`.
+
+## Suite du 2026-10-24 (migration 20261024060000_menu_cartes_qr)
+
+- **Menu en cartes** sur la page mobile des QR codes : une carte par rayon (photo du rayon, « Nos bières », nombre de
+  choix), toucher la carte montre ses articles (photo, description, prix), barre de recherche. Réglages du bloc Menu dans le
+  constructeur : affichage cartes/liste, titre de chaque carte, rayons cachés, ordre. Les anciennes pages (bloc menu sans
+  réglage) s'affichent en cartes. Photo d'un rayon : Articles › Catégories › Modifier (`photo_categorie_article`). Les
+  photos des articles arrivent rayon par rayon (`photos_menu_page_qr`, sans compte, lecture seule).
+- **Bouton WhatsApp avec message tout prêt** : le « texte » du bouton devient le message prérempli (`wa.me/…?text=`).
+- **QR codes en grandes tuiles** : QR à gauche, état En marche / En pause, scans 7 et 30 jours, actions avec icônes
+  (Modifier, Page mobile, Statistiques, Copier le lien, Dupliquer, Mettre en pause), Télécharger PNG / SVG / PDF / Imprimer.
+- **Caisse** : bouton « Caisses en cours » pour le patron même quand sa propre caisse est ouverte (dernières ventes de
+  chaque caisse, « Entrer dans sa caisse ») ; bouton « En attente de paiement · montant » qui ouvre la liste des ventes
+  pas encore payées (même écran que le menu Paiements).
+- **Résumé du soir** : heure par heure, heure la plus forte, plus grosse vente, premier et dernier client, heures
+  calmes, à surveiller, conseils (`conseils()` dans tableau_de_bord/analyses.js), ventes par rayon ; le texte WhatsApp
+  reprend l'heure forte, la plus grosse vente et 3 conseils. Le rapport PDF a aussi « Nos conseils » (page 2).

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { nomUtilisateur, useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatDateHeure, formatQuantite, MODES_PAIEMENT } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Chargement, Erreur, Icone, Modale, Recherche, Vide } from '../../ui/composants.jsx';
@@ -33,6 +33,9 @@ import {
   quantitesNonEnvoyees, ventesAVerifier, ventesEnAttente, ventesNonEnvoyees,
 } from './horsLigne.js';
 import { BandeauHorsLigne, ModaleRecuHorsLigne, ModaleVentesAVerifier, useEnLigne, useEnvoiHorsLigne, useFileHorsLigne } from './EcransHorsLigne.jsx';
+
+// « En attente de paiement » ouvert depuis la caisse (même écran que le menu Paiements).
+const QuiMeDoit = lazy(() => import('../paiements/QuiMeDoit.jsx'));
 
 // Devises sans centimes : la remise du happy hour s'arrondit au franc.
 const decimalesDevise = (devise) => (['XAF', 'XOF', 'GNF', 'CDF'].includes(devise) ? 0 : 2);
@@ -661,6 +664,10 @@ export default function Caisse({ naviguer }) {
       api.lire('serveurs_caisse', { eq: { etablissement_id: etab, actif: true }, ordre: ['prenom'] }).catch(() => []),
       api.rpc('caisse_occupee', { p_etablissement_id: etab }).catch(() => []),
     ]);
+    // « En attente de paiement » visible dans la caisse (Juste, 2026-10-24) : ventes pas encore payées, tous jours.
+    const nonPayees = peut('ventes.lire') ? await api.lire('ventes', {
+      eq: { etablissement_id: etab, statut: 'validee' }, dans: { statut_paiement: ['partielle', 'impayee'] }, colonnes: ['id', 'total', 'montant_paye'], limite: 3000,
+    }).catch(() => []) : [];
     const caisses = pointsDeVente.filter((p) => hubsCaisse.includes(p.hub_id));
     return {
       articles, stock, happyHours: happyHours ?? [], commandesQr: (commandesQr ?? []).length, contacts: contacts.filter((c) => c.type !== 'fournisseur'),
@@ -675,6 +682,7 @@ export default function Caisse({ naviguer }) {
       toutesOuvertes: (sessions ?? []).filter((x) => !x.rattrapage),
       serveurs: serveurs ?? [],
       occupees: (occupees ?? []).filter((o) => !o.mienne),
+      enAttentePaiement: { nombre: nonPayees.length, montant: nonPayees.reduce((t, v) => t + Math.max(0, Number(v.total) - Number(v.montant_paye)), 0) },
     };
   }), [etab, hubsCaisse.join(), utilisateur?.id]);
   // Synchronisation stock ↔ caisse : relecture légère (stock, articles, commandes des tables) toutes les 30 s et au
@@ -774,7 +782,10 @@ export default function Caisse({ naviguer }) {
     const o = voulue && donneesChargees?.occupees?.find((x) => x.session_id === voulue);
     if (o) setCaisseAutre(o);
   }, [donneesChargees]);
-  const sessionAutre = caisseAutre && !donnees?.sessions.length && peut('cloture.cloturer')
+  // Le patron peut entrer dans la caisse d'une autre personne même si la sienne est ouverte (Juste, 2026-10-24).
+  const [voirCaisses, setVoirCaisses] = useState(false);
+  const [voirAttentePaiement, setVoirAttentePaiement] = useState(false);
+  const sessionAutre = caisseAutre && peut('cloture.cloturer')
     ? donnees?.toutesOuvertes?.find((s) => s.id === caisseAutre.session_id) ?? null : null;
   const session = sessionAutre ?? donnees?.sessions.find((s) => s.point_de_vente_id === pdvChoisi) ?? donnees?.sessions[0];
   // Caisse sans internet : ventes gardées sur cet appareil, envoyées automatiquement au retour de la connexion.
@@ -1027,6 +1038,17 @@ export default function Caisse({ naviguer }) {
               Factures en cours <span className="pastille-compte" aria-label={`${attentes.length} facture(s)`}>{attentes.length}</span>
             </Bouton>
           )}
+          {peut('cloture.cloturer') && donnees.occupees?.length > 0 && !sessionAutre && (
+            <Bouton icone="membres" onClick={() => setVoirCaisses(true)}>
+              Caisses en cours <span className="pastille-compte" aria-label={`${donnees.occupees.length} caisse(s)`}>{donnees.occupees.length}</span>
+            </Bouton>
+          )}
+          {donnees.enAttentePaiement?.nombre > 0 && (
+            <Bouton icone="horloge" className="bouton secondaire caisse-attente-paiement" onClick={() => setVoirAttentePaiement(true)}
+              title={`${donnees.enAttentePaiement.nombre} vente(s) pas encore payée(s)`}>
+              En attente de paiement · <strong>{montant(donnees.enAttentePaiement.montant)}</strong>
+            </Bouton>
+          )}
           {donnees.commandesQr > 0 && (
             <Bouton icone="table" onClick={() => setCommandesTables(true)}>
               Commandes des tables <span className="pastille-compte" aria-label={`${donnees.commandesQr} commande(s)`}>{donnees.commandesQr}</span>
@@ -1161,6 +1183,16 @@ export default function Caisse({ naviguer }) {
       {commandesTables && (
         <Modale titre="Commandes des tables" onFermer={() => { setCommandesTables(false); recharger(); }} large>
           <ListeCommandesQr session={session} onPris={() => recharger()} />
+        </Modale>
+      )}
+      {voirCaisses && (
+        <Modale titre="Caisses en cours" onFermer={() => setVoirCaisses(false)} large>
+          <CaissesPatron occupees={donnees.occupees} onVendre={(o) => { setVoirCaisses(false); setCaisseAutre(o); }} />
+        </Modale>
+      )}
+      {voirAttentePaiement && (
+        <Modale titre="En attente de paiement" onFermer={() => { setVoirAttentePaiement(false); recharger(); }} large>
+          <Suspense fallback={<Chargement />}><QuiMeDoit integre naviguer={naviguer} /></Suspense>
         </Modale>
       )}
       {listeAttente && attentes && (
