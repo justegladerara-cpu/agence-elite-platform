@@ -63,7 +63,8 @@ describe('page mobile', () => {
     expect(r.page.blocs).toHaveLength(5);
     expect(r.page.blocs[2].valeur).toBe('242060000001');
     expect(r.page.couleur).toBe('#0E9F6E');
-    expect(r.page.menu[0].articles[0]).toEqual({ nom: 'Bière fictive', prix: 1000 });
+    expect(r.page.menu[0].articles[0]).toMatchObject({ nom: 'Bière fictive', prix: 1000, a_photo: false });
+    expect(r.page.menu[0].id).toBe('autres');
     expect(r.cible).toBe('https://instagram.com/bar-demo');
   });
 
@@ -83,6 +84,35 @@ describe('page mobile', () => {
     expect(lus[0].anniversaire).toBeTruthy();
     expect(await comme(caissiere, 'select * from inscriptions_qr')).toHaveLength(0);
     await expect(commeRole(db, 'anon', null, (tx) => tx.query('select * from inscriptions_qr'))).rejects.toThrow(/permission denied/);
+  });
+
+  test('menu en cartes : réglages vérifiés, photo du rayon, photos des articles rayon par rayon', async () => {
+    const cat = await valeur(gerant, 'select enregistrer_categorie_article($1, $2::jsonb)', [etab, JSON.stringify({ nom: 'Bières' })]);
+    const photo = 'data:image/png;base64,iVBORw0KGgo=';
+    const art = await valeur(gerant, 'select enregistrer_article($1, $2::jsonb)', [etab, JSON.stringify({ nom: 'Primus fictive', prix_vente: 800, suivi_stock: false, categorie_id: cat, photo })]);
+    await comme(gerant, 'select regler_visibilite_menu($1, $2::uuid[], true)', [etab, [art]]);
+    await expect(comme(caissiere, 'select photo_categorie_article($1, $2)', [cat, photo])).rejects.toThrow(/Permission refusée/);
+    await expect(comme(gerant, 'select photo_categorie_article($1, $2)', [cat, 'javascript:alert(1)'])).rejects.toThrow(/Photo refusée/);
+    await comme(gerant, 'select photo_categorie_article($1, $2)', [cat, photo]);
+    await expect(page(gerant, { blocs: [{ type: 'menu', affichage: 'grille' }] })).rejects.toThrow(/cartes/);
+    await expect(page(gerant, { blocs: [{ type: 'menu', cartes: { '<script>': { titre: 'x' } } }] })).rejects.toThrow(/rayon inconnu/);
+    await expect(page(gerant, { blocs: [{ type: 'menu', ordre: ['pas-un-id'] }] })).rejects.toThrow(/ordre/);
+    await page(gerant, { active: true, blocs: [
+      { type: 'menu', titre: 'Notre carte', affichage: 'cartes', recherche: true, cartes: { [cat]: { titre: 'Nos bières', cache: false, autre: 1 }, autres: { cache: true } }, ordre: [cat, 'autres'] },
+      { type: 'bouton', libelle: 'Bonjour', action: 'whatsapp', valeur: '+242 06 000 00 01', texte: 'Bonjour ! Je viens de scanner votre QR code.' },
+    ] });
+    const r = await ouvrir();
+    expect(r.page.blocs[0]).toMatchObject({ affichage: 'cartes', recherche: true, cartes: { [cat]: { titre: 'Nos bières' }, autres: { cache: true } }, ordre: [cat, 'autres'] });
+    expect(r.page.blocs[0].cartes[cat]).toEqual({ titre: 'Nos bières' });
+    expect(r.page.blocs[1].texte).toBe('Bonjour ! Je viens de scanner votre QR code.');
+    const bieres = r.page.menu.find((c) => c.id === cat);
+    expect(bieres).toMatchObject({ nom: 'Bières', photo });
+    expect(bieres.articles[0]).toMatchObject({ id: art, nom: 'Primus fictive', a_photo: true });
+    expect(bieres.articles[0].photo).toBeUndefined();
+    const photos = await anonyme('select photos_menu_page_qr($1, $2)', [jeton, cat]);
+    expect(photos).toEqual({ [art]: photo });
+    expect(await anonyme('select photos_menu_page_qr($1, $2)', [jeton, 'autres'])).toEqual({});
+    await expect(anonyme('select photos_menu_page_qr($1, $2)', ['inconnu', cat])).rejects.toThrow(/introuvable/);
   });
 
   test('page éteinte : le formulaire est fermé', async () => {

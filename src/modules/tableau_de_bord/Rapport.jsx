@@ -7,7 +7,7 @@ import { nomUtilisateur, useEspace } from '../../noyau/espace.jsx';
 import { dateLocale, formatQuantite } from '../../noyau/format.js';
 import { Bouton, Champ, Erreur, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { jourDeService } from '../cloture/rapportDuSoir.js';
-import { bornesRapport, JOURS_COURTS, nomFichierRapport, titreRapport, TYPES_RAPPORT } from './analyses.js';
+import { bornesRapport, conseils, JOURS_COURTS, nomFichierRapport, titreRapport, TYPES_RAPPORT } from './analyses.js';
 import { useAnalyse } from './Analyses.jsx';
 
 const CLE = 'ae-rapport-choix';
@@ -283,6 +283,12 @@ export function PagesRapport({ a, type, du, au, fin, espace, auteur, edition = n
         </section>
       </div>
       <p className="rapport-note">En gras : le meilleur moment. Les heures calmes sont un bon moment pour ranger et remplir les rayons.</p>
+      {conseils(a, montant).length > 0 && (
+        <section className="rapport-bloc rapport-conseils">
+          <h3>Nos conseils</h3>
+          <ol>{conseils(a, montant).map((c) => <li key={c}>{c}</li>)}</ol>
+        </section>
+      )}
     </>
   );
 

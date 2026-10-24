@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Icone, Modale, PageHeader, Squelette } from '../../ui/composants.jsx';
 import { PageQr } from '../../public/PageQr.jsx';
-import { ACTIONS_BOUTON, ajouter, deplacer, MAX_BLOCS, pageDeDepart, RESEAUX, retirer, TYPES_BLOCS } from './pageQr.js';
+import { ACTIONS_BOUTON, ajouter, CLE_SANS_RAYON, deplacer, MAX_BLOCS, pageDeDepart, RESEAUX, retirer, titreCarteParDefaut, TYPES_BLOCS } from './pageQr.js';
 import '../recus/recu.css';
 
-function ChampsBloc({ bloc, changer }) {
+function ChampsBloc({ bloc, changer, rayons = [] }) {
   const texte = (cle, libelle, max, props = {}) => (
     <Champ libelle={libelle} aide={props.aide}>
       {props.long
@@ -33,11 +33,15 @@ function ChampsBloc({ bloc, changer }) {
             </select>
           </Champ>
           {['whatsapp', 'appel'].includes(bloc.action) && texte('valeur', 'Numéro (avec l’indicatif du pays)', 25, { placeholder: '+242 06 123 45 67' })}
+          {bloc.action === 'whatsapp' && texte('texte', 'Message tout prêt', 600, {
+            long: true, placeholder: 'Bonjour ! Je viens de scanner votre QR code…',
+            aide: 'Le client touche le bouton : WhatsApp s’ouvre avec ce message déjà écrit. Il n’a plus qu’à appuyer sur Envoyer.',
+          })}
           {bloc.action === 'lien' && texte('valeur', 'Adresse du lien', 300, { placeholder: 'https://instagram.com/…' })}
         </>
       );
     case 'menu':
-      return (<>{texte('titre', 'Titre', 80)}<p className="texte-doux petit">Montre les articles « visibles sur le menu » (Articles), avec leur prix.</p></>);
+      return <ReglagesMenu bloc={bloc} changer={changer} rayons={rayons} champTitre={texte('titre', 'Titre', 80)} />;
     case 'formulaire':
       return (
         <>
@@ -70,14 +74,88 @@ function ChampsBloc({ bloc, changer }) {
   }
 }
 
+// Menu en cartes (Juste, 2026-10-24) : une carte par rayon ; ici on choisit le titre de chaque carte, les rayons
+// montrés et leur ordre. Les photos se mettent dans Articles › Catégories (rayon) et dans la fiche de chaque article.
+function ReglagesMenu({ bloc, changer, rayons, champTitre }) {
+  const cartes = bloc.cartes ?? {};
+  const ordre = [...rayons].sort((a, b) => {
+    const o = bloc.ordre ?? [];
+    const ia = o.indexOf(a.id); const ib = o.indexOf(b.id);
+    return (ia < 0 ? o.length : ia) - (ib < 0 ? o.length : ib) || a.position - b.position;
+  });
+  const changerCarte = (id, c) => {
+    const une = { ...(cartes[id] ?? {}), ...c };
+    if (!une.titre) delete une.titre;
+    if (!une.cache) delete une.cache;
+    const toutes = { ...cartes, [id]: une };
+    if (!Object.keys(une).length) delete toutes[id];
+    changer({ cartes: toutes });
+  };
+  const bouger = (i, sens) => {
+    const ids = ordre.map((r) => r.id);
+    const j = i + sens;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    changer({ ordre: ids });
+  };
+  return (
+    <>
+      {champTitre}
+      <Champ libelle="Comment montrer le menu">
+        <select value={bloc.affichage === 'liste' ? 'liste' : 'cartes'} onChange={(e) => changer({ affichage: e.target.value })}>
+          <option value="cartes">En cartes : une carte par rayon, avec photo (conseillé)</option>
+          <option value="liste">En liste : tous les articles l’un sous l’autre</option>
+        </select>
+      </Champ>
+      <label className="case"><input type="checkbox" checked={bloc.recherche !== false} onChange={(e) => changer({ recherche: e.target.checked })} /> Barre « Chercher une boisson, un plat… »</label>
+      {ordre.length > 0 ? (
+        <div className="reglages-cartes-menu">
+          <p className="texte-doux petit">Vos rayons (catégories d’articles). Changez le titre de la carte, cachez un rayon ou changez l’ordre. La caisse ne change pas.</p>
+          {ordre.map((r, i) => (
+            <div key={r.id} className={`reglage-carte-menu ${cartes[r.id]?.cache ? 'cachee' : ''}`}>
+              <span className="reglage-carte-ordre">
+                <button type="button" aria-label={`Monter ${r.nom}`} disabled={i === 0} onClick={() => bouger(i, -1)}>↑</button>
+                <button type="button" aria-label={`Descendre ${r.nom}`} disabled={i === ordre.length - 1} onClick={() => bouger(i, 1)}>↓</button>
+              </span>
+              <span className="reglage-carte-nom">
+                <input aria-label={`Titre de la carte ${r.nom}`} maxLength={60} value={cartes[r.id]?.titre ?? ''} placeholder={titreCarteParDefaut(r.nom)}
+                  onChange={(e) => changerCarte(r.id, { titre: e.target.value })} />
+                <small className="texte-doux">{r.nom} · {r.articles.length} article(s){r.photo ? ' · avec photo' : ''}</small>
+              </span>
+              <label className="case"><input type="checkbox" checked={!cartes[r.id]?.cache} onChange={(e) => changerCarte(r.id, { cache: !e.target.checked })} /> Montrer</label>
+            </div>
+          ))}
+          <p className="texte-doux petit">Photo d’un rayon : Articles › Catégories › Modifier. Photo d’un article : sa fiche dans Articles.</p>
+        </div>
+      ) : <p className="texte-doux petit">Montre les articles « visibles sur le menu » (Articles), rangés par rayon, avec leur prix.</p>}
+    </>
+  );
+}
+
+// Menu de l'aperçu, rangé comme celui que voit le client (page_qr_publique).
+function menuApercu(articles, categories) {
+  const parId = Object.fromEntries((categories ?? []).map((c) => [c.id, c]));
+  const groupes = new Map();
+  for (const a of articles ?? []) {
+    if (!(Number(a.prix_vente) > 0) || a.disponible === false || a.epuise) continue;
+    const c = parId[a.categorie_id];
+    if (a.categorie_id && c && !c.actif) continue;
+    const cle = c ? c.id : CLE_SANS_RAYON;
+    if (!groupes.has(cle)) groupes.set(cle, { id: cle, nom: c?.nom ?? 'Autres', description: c?.description ?? null, photo: c?.photo ?? null, ordre: c?.ordre ?? null, articles: [] });
+    groupes.get(cle).articles.push({ id: a.id, nom: a.variante ? `${a.nom} — ${a.variante}` : a.nom, prix: a.prix_vente, description: a.description ?? null, photo: a.photo ?? null });
+  }
+  return [...groupes.values()].sort((x, y) => (x.ordre ?? 1e9) - (y.ordre ?? 1e9) || x.nom.localeCompare(y.nom, 'fr'));
+}
+
 export function ConstructeurPageQr({ qr, onFermer, onFait, pleinePage = false }) {
   const { api, etablissement } = useEspace();
   const { donnees, chargement, erreur } = useDonnees(async () => {
-    const [pages, menu] = await Promise.all([
+    const [pages, articles, categories] = await Promise.all([
       api.lire('pages_qr', { eq: { qr_code_id: qr.id } }).catch(() => []),
-      api.lire('articles', { eq: { etablissement_id: etablissement.id, actif: true, visible_menu: true }, ordre: ['nom'], limite: 40 }).catch(() => []),
+      api.lire('articles', { eq: { etablissement_id: etablissement.id, actif: true, visible_menu: true }, ordre: ['nom'], limite: 300 }).catch(() => []),
+      api.lire('categories_articles', { eq: { etablissement_id: etablissement.id }, ordre: ['ordre'] }).catch(() => []),
     ]);
-    return { page: pages[0] ?? null, menu };
+    return { page: pages[0] ?? null, menu: menuApercu(articles, categories.filter((c) => !c.archivee_le)) };
   }, [qr.id]);
   const [etat, setEtat] = useState(null);
   const [ouvert, setOuvert] = useState(0);
@@ -104,7 +182,8 @@ export function ConstructeurPageQr({ qr, onFermer, onFait, pleinePage = false })
       setEnvoi(false);
     }
   };
-  const apercuMenu = [{ nom: 'Menu', articles: (donnees?.menu ?? []).slice(0, 12).map((a) => ({ nom: a.nom, prix: a.prix_vente })) }].filter((c) => c.articles.length);
+  const apercuMenu = donnees?.menu ?? [];
+  const rayons = apercuMenu.map((r, position) => ({ ...r, position }));
 
   const contenu = (
     <>
@@ -132,7 +211,7 @@ export function ConstructeurPageQr({ qr, onFermer, onFait, pleinePage = false })
                       <button type="button" aria-label={`Enlever : ${TYPES_BLOCS[b.type]?.libelle}`} onClick={() => { setEtat({ ...etat, blocs: retirer(etat.blocs, i) }); setOuvert(-1); }}>✕</button>
                     </span>
                   </div>
-                  {ouvert === i && <ChampsBloc bloc={b} changer={(c) => changerBloc(i, c)} />}
+                  {ouvert === i && <ChampsBloc bloc={b} rayons={rayons} changer={(c) => changerBloc(i, c)} />}
                 </li>
               ))}
             </ol>

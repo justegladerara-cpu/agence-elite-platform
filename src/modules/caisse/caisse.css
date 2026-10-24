@@ -746,3 +746,12 @@
 .caisses-patron-caisse .bouton { min-height: 48px; justify-content: center; }
 .caisses-patron-note { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; font-size: var(--texte-sm); }
 .caisses-patron-pastille { width: 8px; height: 8px; border-radius: 50%; background: var(--vert); box-shadow: 0 0 0 3px var(--vert-doux); flex: 0 0 auto; }
+.caisse-attente-paiement { white-space: nowrap; }
+.caisse-attente-paiement strong { color: var(--orange-fonce, #b54708); }
+.caisses-patron-ventes { display: grid; gap: 4px; font-size: var(--texte-sm); }
+.caisses-patron-ventes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.caisses-patron-ventes li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--bordure); }
+.caisses-patron-ventes li:last-child { border-bottom: 0; }
+.caisses-patron-ventes li.annulee { color: var(--texte-doux); text-decoration: line-through; }
+.modale .caisses-patron { width: 100%; margin: 0; }
+.qui-me-doit-integre h1 { display: none; }

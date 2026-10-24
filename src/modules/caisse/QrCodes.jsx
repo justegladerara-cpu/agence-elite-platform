@@ -7,7 +7,7 @@ import {
 } from '../../noyau/qr.js';
 import { lireParametres, lireRoute } from '../../noyau/routes.js';
 import {
-  Badge, Bouton, Champ, EmptyState, Erreur, GraphiqueBarres, Modale, PageHeader, Section, Squelette, StatCard, Tabs,
+  Badge, Bouton, Champ, EmptyState, Erreur, GraphiqueBarres, Icone, Modale, PageHeader, Section, Squelette, StatCard, Tabs,
 } from '../../ui/composants.jsx';
 import { BandeauNouveau, NOUVEAU_QR_JUSQUA } from '../../ui/Nouveau.jsx';
 import { ReglagesApparenceQr } from './MenuQr.jsx';
@@ -638,35 +638,49 @@ export default function QrCodes({ naviguer, sousRoute }) {
             <EmptyState icone="cible" titre="Aucun QR code" texte="Un lien Instagram, un numéro WhatsApp, vos avis Google ou le Wi-Fi : le client scanne, c’est ouvert."
               action={<Bouton variante="principal" onClick={() => setFormulaire({})}>Nouveau QR code</Bouton>} />
           ) : (
-            <div className="liste-qr">
+            <div className="liste-qr liste-tuiles-qr">
               {codes.map((q) => (
-                <article key={q.id} className={`carte-qr ${q.actif ? '' : 'inactive'}`} aria-label={`QR code ${q.nom}`}>
-                  <ImageQr texte={contenuQr(q)} libelle={q.nom} logo={logoDe(q)} style={q.style} />
-                  <strong className="carte-qr-nom">{q.nom}</strong>
-                  <small className="carte-qr-consigne carte-qr-cible">{resume(q)}</small>
-                  <div className="carte-qr-badges">
-                    <Badge ton="bleu">{TYPES_QR[q.type]?.libelle ?? q.type}</Badge>
-                    {!q.actif && <Badge ton="neutre">désactivé</Badge>}
-                    {q.type === 'wifi'
-                      ? <Badge ton="neutre">non compté</Badge>
-                      : <Badge ton="vert">{scans[q.id]?.trente_jours ?? 0} scan(s) sur 30 jours</Badge>}
-                    {TYPES_QR[q.type]?.suivi && <Badge ton="neutre">modifiable après impression</Badge>}
-                    {pages[q.id] && <Badge ton="vert">page mobile allumée</Badge>}
-                    {(q.valide_du || q.valide_au) && <Badge ton="orange">{q.valide_du ? `du ${formatDate(q.valide_du)} ` : ''}{q.valide_au ? `au ${formatDate(q.valide_au)}` : ''}</Badge>}
+                // Grande tuile (Juste, 2026-10-24) : le QR code à gauche, ses informations, puis toutes les actions avec icône.
+                <article key={q.id} className={`tuile-qr ${q.actif ? '' : 'inactive'}`} aria-label={`QR code ${q.nom}`}>
+                  <div className="tuile-qr-image">
+                    <ImageQr texte={contenuQr(q)} libelle={q.nom} logo={logoDe(q)} style={q.style} />
+                    <span className={`tuile-qr-etat ${q.actif ? 'actif' : 'pause'}`}>{q.actif ? 'En marche' : 'En pause'}</span>
                   </div>
-                  <div className="carte-qr-actions">
-                    <button type="button" className="lien" onClick={() => telecharger(q, 'png')}>PNG</button>
-                    <button type="button" className="lien" onClick={() => telecharger(q, 'svg')}>SVG</button>
-                    <button type="button" className="lien" onClick={() => setImprime({ ...q, fois: Date.now() })}>Imprimer</button>
-                    {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => copier(contenuQr(q))}>Copier le lien</button>}
-                    {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => { setFiltre(`qr:${q.id}`); setOnglet('stats'); }}>Statistiques</button>}
-                    {q.type !== 'wifi' && <button type="button" className="lien" onClick={() => naviguer(`qr-codes/page/${q.id}`)}>Page mobile</button>}
-                    <button type="button" className="lien" onClick={() => setFormulaire({ qr: q })}>Modifier</button>
-                    <button type="button" className="lien" onClick={() => setFormulaire({ modele: q })}>Dupliquer</button>
-                    <button type="button" className="lien" onClick={() => action(() => api.rpc('enregistrer_qr_code', { p_etablissement_id: etab, p: { id: q.id, actif: !q.actif } }),
-                      q.actif ? 'QR code désactivé : il affiche « plus actif »' : 'QR code réactivé')}>
-                      {q.actif ? 'Désactiver' : 'Réactiver'}
-                    </button>
+                  <div className="tuile-qr-corps">
+                    <header className="tuile-qr-tete">
+                      <strong className="tuile-qr-nom">{q.nom}</strong>
+                      <span className="tuile-qr-type">{TYPES_QR[q.type]?.libelle ?? q.type}</span>
+                    </header>
+                    <small className="tuile-qr-cible">{resume(q)}</small>
+                    <div className="tuile-qr-chiffres">
+                      {q.type === 'wifi' ? <span><strong>—</strong> scans non comptés (Wi-Fi)</span> : (
+                        <>
+                          <span><strong>{scans[q.id]?.sept_jours ?? 0}</strong> scans sur 7 jours</span>
+                          <span><strong>{scans[q.id]?.trente_jours ?? 0}</strong> sur 30 jours</span>
+                        </>
+                      )}
+                      {TYPES_QR[q.type]?.suivi && <span>Destination modifiable après impression</span>}
+                      {pages[q.id] && <span className="tuile-qr-page">Page mobile allumée</span>}
+                      {(q.valide_du || q.valide_au) && <span className="tuile-qr-dates">{q.valide_du ? `du ${formatDate(q.valide_du)} ` : ''}{q.valide_au ? `au ${formatDate(q.valide_au)}` : ''}</span>}
+                    </div>
+                    <div className="tuile-qr-actions">
+                      <button type="button" className="tuile-qr-action" onClick={() => setFormulaire({ qr: q })}><Icone nom="crayon" taille={16} /> Modifier</button>
+                      {q.type !== 'wifi' && <button type="button" className="tuile-qr-action" onClick={() => naviguer(`qr-codes/page/${q.id}`)}><Icone nom="telephone" taille={16} /> Page mobile</button>}
+                      {q.type !== 'wifi' && <button type="button" className="tuile-qr-action" onClick={() => { setFiltre(`qr:${q.id}`); setOnglet('stats'); }}><Icone nom="graphique" taille={16} /> Statistiques</button>}
+                      {q.type !== 'wifi' && <button type="button" className="tuile-qr-action" onClick={() => copier(contenuQr(q))}><Icone nom="lien" taille={16} /> Copier le lien</button>}
+                      <button type="button" className="tuile-qr-action" onClick={() => setFormulaire({ modele: q })}><Icone nom="copier" taille={16} /> Dupliquer</button>
+                      <button type="button" className={`tuile-qr-action ${q.actif ? 'attention' : 'bon'}`} onClick={() => action(() => api.rpc('enregistrer_qr_code', { p_etablissement_id: etab, p: { id: q.id, actif: !q.actif } }),
+                        q.actif ? 'QR code en pause : le client voit « plus actif »' : 'QR code remis en marche')}>
+                        <Icone nom={q.actif ? 'pause' : 'lecture'} taille={16} /> {q.actif ? 'Mettre en pause' : 'Remettre en marche'}
+                      </button>
+                    </div>
+                    <div className="tuile-qr-export" role="group" aria-label={`Télécharger ${q.nom}`}>
+                      <span><Icone nom="telecharger" taille={15} /> Télécharger</span>
+                      <button type="button" onClick={() => telecharger(q, 'png')}>PNG</button>
+                      <button type="button" onClick={() => telecharger(q, 'svg')}>SVG</button>
+                      <button type="button" onClick={() => setImprime({ ...q, fois: Date.now() })} title="Choisissez « Enregistrer au format PDF » dans la fenêtre d’impression">PDF</button>
+                      <button type="button" onClick={() => setImprime({ ...q, fois: Date.now() })}><Icone nom="imprimer" taille={15} /> Imprimer</button>
+                    </div>
                   </div>
                 </article>
               ))}

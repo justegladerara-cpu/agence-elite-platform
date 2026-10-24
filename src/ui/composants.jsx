@@ -65,6 +65,12 @@ const CHEMINS = {
   message: 'M4 5h16v11H8l-4 4z',
   graphique: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   repeter: 'M17 2l3 3-3 3M4 11V9a4 4 0 014-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 01-4 4H4',
+  copier: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  crayon: 'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4',
+  pause: 'M8 5v14M16 5v14',
+  lecture: 'M7 4l13 8-13 8z',
+  lien: 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1',
+  telephone: 'M8 2h8a1 1 0 011 1v18a1 1 0 01-1 1H8a1 1 0 01-1-1V3a1 1 0 011-1zM11 18h2',
 };
 
 export const NOMS_ICONES = Object.keys(CHEMINS);

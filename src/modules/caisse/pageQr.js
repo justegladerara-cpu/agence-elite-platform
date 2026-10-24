@@ -35,8 +35,8 @@ export function nouveauBloc(type) {
   switch (type) {
     case 'entete': return { type, titre: 'Bienvenue !', texte: '', logo: true };
     case 'texte': return { type, titre: '', texte: '' };
-    case 'bouton': return { type, libelle: 'Écrivez-nous sur WhatsApp', action: 'whatsapp', valeur: '' };
-    case 'menu': return { type, titre: 'Notre carte' };
+    case 'bouton': return { type, libelle: 'Écrivez-nous sur WhatsApp', action: 'whatsapp', valeur: '', texte: 'Bonjour ! Je viens de scanner votre QR code. Je veux recevoir vos offres et vos soirées.' };
+    case 'menu': return { type, titre: 'Notre carte', affichage: 'cartes', recherche: true };
     case 'formulaire': return { type, titre: 'Recevez nos offres', texte: 'Laissez votre numéro : nous vous prévenons des soirées et promotions.', bouton: 'Je m’inscris', merci: 'Merci ! À très bientôt.', email: false, anniversaire: true, message: false };
     case 'reseaux': return { type, titre: 'Suivez-nous' };
     case 'wifi': return { type, titre: 'Notre Wi-Fi', reseau: '', mot_de_passe: '' };
@@ -86,7 +86,8 @@ export function lienBouton(bloc, reponse, origine) {
       if (reponse.type === 'menu') return reponse.menu ? lienMenu(reponse.menu, origine) : null;
       return destinationQr(reponse, origine);
     }
-    case 'whatsapp': return String(bloc.valeur ?? '').replace(/\D/g, '').length >= 8 ? lienWhatsapp(bloc.valeur) : null;
+    // Message tout prêt (Juste, 2026-10-24) : WhatsApp s'ouvre avec le texte déjà écrit, le client n'a qu'à envoyer.
+    case 'whatsapp': return String(bloc.valeur ?? '').replace(/\D/g, '').length >= 8 ? lienWhatsapp(bloc.valeur, bloc.texte) : null;
     case 'appel': return String(bloc.valeur ?? '').replace(/\D/g, '').length >= 8 ? lienTelephone(bloc.valeur) : null;
     case 'lien': return /^https?:\/\/[^\s/?#.][^\s]*$/i.test(String(bloc.valeur ?? '').trim()) ? String(bloc.valeur).trim() : null;
     case 'menu': return '#page-qr-menu';
@@ -105,4 +106,50 @@ export function csvInscrits(inscrits, nomsQr = {}) {
     lignes.push([String(i.cree_le ?? '').slice(0, 10), i.nom, i.telephone ? `+${i.telephone}` : '', i.email, i.anniversaire, i.message, nomsQr[i.qr_code_id] ?? '']);
   }
   return lignes.map((l) => l.map(echapper).join(';')).join('\r\n');
+}
+
+// Menu en cartes (migration 20261024060000) : une carte par rayon, dans l'ordre choisi, sans les rayons cachés.
+// menu : page.menu ({ id, nom, photo, articles }) ; bloc : le bloc « menu » ({ cartes, ordre }).
+export const CLE_SANS_RAYON = 'autres';
+
+export function titreCarteParDefaut(nom) {
+  const n = String(nom ?? '').trim();
+  if (!n || n === 'Autres') return 'Autres choix';
+  // « Bières » → « Nos bières » ; un nom au singulier reste tel quel (« Whisky »).
+  return /[sx]$/i.test(n) && !/\s/.test(n) ? `Nos ${n.charAt(0).toLowerCase()}${n.slice(1)}` : n;
+}
+
+export function rayonsMenu(menu, bloc = {}) {
+  const cartes = bloc.cartes ?? {};
+  const ordre = Array.isArray(bloc.ordre) ? bloc.ordre : [];
+  const rang = (id) => {
+    const i = ordre.indexOf(id);
+    return i < 0 ? ordre.length : i;
+  };
+  return (menu ?? [])
+    .map((c, i) => ({ ...c, id: c.id ?? (c.nom === 'Autres' ? CLE_SANS_RAYON : `rayon-${i}`), position: i }))
+    .filter((c) => !cartes[c.id]?.cache && (c.articles ?? []).length)
+    .sort((a, b) => rang(a.id) - rang(b.id) || a.position - b.position)
+    .map((c) => ({ ...c, titre: cartes[c.id]?.titre || titreCarteParDefaut(c.nom) }));
+}
+
+// Recherche dans le menu (sans accents ni majuscules) : articles de tous les rayons visibles.
+const sansAccents = (t) => String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae');
+export function chercherMenu(rayons, texte) {
+  const t = sansAccents(texte).trim();
+  if (!t) return [];
+  return rayons.flatMap((r) => r.articles.filter((a) => sansAccents(a.nom).includes(t) || sansAccents(a.description).includes(t)).map((a) => ({ ...a, rayon: r.id })));
+}
+
+// Petite image de secours d'une carte sans photo, d'après le nom du rayon.
+const PICTOS = [
+  [/bi[eè]re|beer/, '🍺'], [/champagne/, '🍾'], [/vin\b|vins|ros[eé]|wine/, '🍷'], [/cocktail|mojito/, '🍹'],
+  [/whisk|vodka|rhum|gin|liqueur|spiritueux|cognac|alcool/, '🥃'], [/caf[eé]|th[eé]\b|chaud/, '☕'], [/eau\b|eaux/, '💧'],
+  [/jus|soda|soft|boisson|sucr/, '🥤'], [/chicha|shisha/, '💨'], [/pizza/, '🍕'], [/burger|sandwich/, '🍔'],
+  [/frite|snack|ap[eé]ro|amuse/, '🍟'], [/poisson|fruits de mer/, '🐟'], [/grill|viande|brochette|poulet/, '🍖'],
+  [/dessert|g[aâ]teau|glace|sucr[eé]/, '🍰'], [/plat|cuisine|repas|menu|entr[eé]e/, '🍽️'],
+];
+export function pictoRayon(nom) {
+  const n = sansAccents(nom);
+  return PICTOS.find(([re]) => re.test(n))?.[1] ?? '✨';
 }

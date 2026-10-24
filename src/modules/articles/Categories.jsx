@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
-import { Badge, Bouton, Champ, Erreur, MenuActions, Modale, Recherche, Vide } from '../../ui/composants.jsx';
+import { Badge, Bouton, Champ, Erreur, lireImageReduite, MenuActions, Modale, Recherche, Vide } from '../../ui/composants.jsx';
 
 // Administration des catégories d'articles : créer, renommer, décrire, ordonner, activer/désactiver,
 // archiver (en choisissant où vont les articles), restaurer. Toutes les règles sont vérifiées par la base.
@@ -8,12 +8,25 @@ import { Badge, Bouton, Champ, Erreur, MenuActions, Modale, Recherche, Vide } fr
 function FormulaireCategorie({ categorie, onFermer, onFait }) {
   const { api, etablissement } = useEspace();
   const [v, setV] = useState({ nom: categorie?.nom ?? '', description: categorie?.description ?? '', actif: categorie?.actif ?? true });
+  // Photo du rayon (migration 20261024060000) : la carte du menu sur la page mobile des QR codes.
+  const [photo, setPhoto] = useState(categorie?.photo ?? '');
   const [erreur, setErreur] = useState('');
+  const choisirPhoto = async (e) => {
+    const fichier = e.target.files?.[0];
+    e.target.value = '';
+    if (!fichier) return;
+    try {
+      setPhoto(await lireImageReduite(fichier, 800));
+    } catch (err) {
+      setErreur(err.message);
+    }
+  };
   const valider = async (e) => {
     e.preventDefault();
     setErreur('');
     try {
-      await api.rpc('enregistrer_categorie_article', { p_etablissement_id: etablissement.id, p: { id: categorie?.id, ...v } });
+      const id = await api.rpc('enregistrer_categorie_article', { p_etablissement_id: etablissement.id, p: { id: categorie?.id, ...v } });
+      if ((photo || '') !== (categorie?.photo ?? '')) await api.rpc('photo_categorie_article', { p_categorie_id: id ?? categorie?.id, p_photo: photo || null });
       onFait(categorie ? 'Catégorie modifiée' : 'Catégorie créée');
     } catch (err) {
       setErreur(err.message);
@@ -24,6 +37,16 @@ function FormulaireCategorie({ categorie, onFermer, onFait }) {
       <form className="formulaire" onSubmit={valider}>
         <Champ libelle="Nom de la catégorie"><input value={v.nom} maxLength={80} required autoFocus onChange={(e) => setV({ ...v, nom: e.target.value })} /></Champ>
         <Champ libelle="Description (facultatif)"><textarea rows={2} maxLength={300} value={v.description} onChange={(e) => setV({ ...v, description: e.target.value })} /></Champ>
+        <div className="categorie-photo">
+          {photo ? <img src={photo} alt="" /> : <span className="categorie-photo-vide">Pas de photo</span>}
+          <div className="pile">
+            <span className="texte-doux petit">Photo du rayon : elle s’affiche sur la carte du menu quand un client scanne un QR code.</span>
+            <span className="actions-ligne">
+              <label className="bouton">Choisir une photo<input type="file" accept="image/*" hidden onChange={choisirPhoto} /></label>
+              {photo && <button type="button" className="lien" onClick={() => setPhoto('')}>Retirer la photo</button>}
+            </span>
+          </div>
+        </div>
         <label className="case">
           <input type="checkbox" checked={v.actif} onChange={(e) => setV({ ...v, actif: e.target.checked })} />
           Visible dans la caisse et la prise de commande (ses articles restent vendables dans « Tout »)
@@ -137,6 +160,7 @@ export default function Categories({ categories, articles, onChange }) {
                   <button type="button" className="icone-bouton" aria-label={`Descendre ${c.nom}`} disabled={index === actives.length - 1} onClick={() => deplacer(index, 1)}>↓</button>
                 </span>
               )}
+              {c.photo && <img className="categorie-vignette" src={c.photo} alt="" />}
               <span>
                 <strong>{c.nom}</strong>
                 {c.description && <small className="bloc texte-doux">{c.description}</small>}

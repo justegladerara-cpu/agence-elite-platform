@@ -50,3 +50,25 @@
 .page-qr-wifi strong { overflow-wrap: anywhere; }
 .page-qr-code { font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .03em; }
 .page-qr-bouton.secondaire { background: #fff; color: var(--page-qr-couleur); border: 2px solid var(--page-qr-couleur); }
+/* Menu en cartes (2026-10-24) : une tuile par rayon, puis les articles du rayon en fiches. */
+.page-qr-recherche { width: 100%; box-sizing: border-box; font: inherit; padding: 12px 14px; border: 1px solid #d0d5dd; border-radius: 12px; margin-bottom: 12px; background: #f9fafb; color: #111827; }
+.page-qr-cartes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.page-qr-carte { display: flex; flex-direction: column; padding: 0; border: 0; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 1px 4px rgba(16, 24, 40, .12); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.page-qr-carte:active { transform: scale(.98); }
+.page-qr-carte-image { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; font-size: 2.6rem; }
+.page-qr-carte-texte { display: grid; gap: 2px; padding: 10px 12px 12px; }
+.page-qr-carte-texte strong { font-size: 1rem; line-height: 1.2; overflow-wrap: anywhere; }
+.page-qr-carte-texte small { color: var(--page-qr-couleur); font-weight: 600; }
+.page-qr-retour { border: 0; background: none; color: var(--page-qr-couleur); font: inherit; font-weight: 700; padding: 4px 0 10px; cursor: pointer; }
+.page-qr-rayon-tete { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.page-qr-rayon-tete h2 { margin: 0 0 2px; }
+.page-qr-rayon-tete p { margin: 0; }
+.page-qr-rayon-image { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+.page-qr-menu .page-qr-articles { display: grid; gap: 8px; }
+.page-qr-menu .page-qr-article { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid #eef0f3; border-radius: 14px; }
+.page-qr-menu .page-qr-article:last-child { border-bottom: 1px solid #eef0f3; }
+.page-qr-article-photo { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
+.page-qr-article-texte { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.page-qr-article-texte strong { overflow-wrap: anywhere; }
+.page-qr-article-texte small { color: #6b7280; }
+.page-qr-article-prix { white-space: nowrap; font-size: 1.05rem; color: var(--page-qr-couleur); }

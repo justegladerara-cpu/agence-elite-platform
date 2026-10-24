@@ -11,7 +11,7 @@ import { mesCaisses } from '../caisse/mesCaisses.js';
 // « Qui me doit ? » : les clients qui doivent encore de l'argent (ventes à crédit, payées en partie, factures non
 // soldées), le total par client, depuis quand, un rappel WhatsApp prêt à envoyer et « Il a payé » qui ouvre
 // l'encaissement déjà existant (vente) ou la facture. Rien n'est envoyé automatiquement.
-export default function QuiMeDoit({ naviguer }) {
+export default function QuiMeDoit({ naviguer, integre = false }) {
   const { api, etablissement, montant, peut, moduleActif, notifier, hub, multiHub, utilisateur } = useEspace();
   const etab = etablissement.id;
   const hubFiltre = multiHub ? hub?.id ?? null : null;
@@ -84,7 +84,7 @@ export default function QuiMeDoit({ naviguer }) {
   };
 
   return (
-    <div className="page">
+    <div className={integre ? 'qui-me-doit-integre' : 'page'}>
       <EnTete titre="En attente de paiement" sousTitre={groupes.length ? `${montant(total)} pas encore payés${groupes.filter((g) => g.contact_id).length ? `, dont ${groupes.filter((g) => g.contact_id).length} client(s) connu(s)` : ''}` : 'Ce que les clients n’ont pas encore payé'}>
         {groupes.length > 3 && <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom ou téléphone" />}
       </EnTete>

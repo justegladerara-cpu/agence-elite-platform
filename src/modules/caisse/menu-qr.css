@@ -87,3 +87,48 @@
 .constructeur-page-qr-page .telephone-apercu { top: 12px; max-height: calc(100vh - 120px); }
 .lien-retour-qr { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
 @media (max-width: 900px) { .constructeur-page-qr-page .constructeur-page-qr { grid-template-columns: 1fr; } }
+/* Réglages du menu en cartes dans le constructeur (2026-10-24). */
+.reglages-cartes-menu { display: grid; gap: 6px; }
+.reglage-carte-menu { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface); }
+.reglage-carte-menu.cachee { opacity: .55; }
+.reglage-carte-ordre { display: flex; flex-direction: column; gap: 2px; }
+.reglage-carte-ordre button { border: 1px solid var(--bordure); background: var(--surface); border-radius: 6px; width: 26px; height: 20px; line-height: 1; cursor: pointer; color: inherit; }
+.reglage-carte-ordre button:disabled { opacity: .35; cursor: default; }
+.reglage-carte-nom { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.reglage-carte-nom input { width: 100%; box-sizing: border-box; }
+.reglage-carte-nom small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* QR codes en grandes tuiles (Juste, 2026-10-24) : QR à gauche, informations, actions avec icônes. */
+.liste-qr.liste-tuiles-qr { grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); }
+.tuile-qr { display: flex; gap: 1.1rem; padding: 1rem; border: 1px solid var(--bordure); border-radius: 16px; background: var(--surface); box-shadow: 0 1px 2px rgba(16, 24, 40, .05); transition: box-shadow .15s ease; min-width: 0; }
+.tuile-qr:hover { box-shadow: 0 6px 18px rgba(16, 24, 40, .08); }
+.tuile-qr.inactive { background: var(--surface-douce, #f7f8fa); }
+.tuile-qr.inactive .tuile-qr-image .image-qr { opacity: .45; }
+.tuile-qr-image { flex: 0 0 150px; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+.tuile-qr-image .image-qr { width: 150px; height: 150px; border-radius: 10px; padding: 6px; box-sizing: border-box; border: 1px solid var(--bordure); }
+.tuile-qr-etat { font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.tuile-qr-etat.actif { background: #e3f8ea; color: #157a3c; }
+.tuile-qr-etat.pause { background: #fff4e5; color: #9a5b00; }
+.tuile-qr-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .5rem; }
+.tuile-qr-tete { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem .6rem; }
+.tuile-qr-nom { font-size: 1.15rem; line-height: 1.25; overflow-wrap: anywhere; }
+.tuile-qr-type { font-size: .75rem; font-weight: 600; color: var(--accent, #1f6feb); background: color-mix(in srgb, var(--accent, #1f6feb) 10%, transparent); padding: 2px 8px; border-radius: 999px; }
+.tuile-qr-cible { color: var(--texte-doux); overflow-wrap: anywhere; }
+.tuile-qr-chiffres { display: flex; flex-wrap: wrap; gap: .35rem 1rem; font-size: .85rem; color: var(--texte-doux); }
+.tuile-qr-chiffres strong { color: var(--texte); font-size: 1rem; }
+.tuile-qr-page { color: #157a3c; font-weight: 600; }
+.tuile-qr-dates { color: #9a5b00; font-weight: 600; }
+.tuile-qr-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .35rem; margin-top: .15rem; }
+.tuile-qr-action { display: flex; align-items: center; gap: .45rem; padding: .5rem .65rem; border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface); color: var(--texte); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tuile-qr-action:hover { background: var(--surface-douce, #f2f4f7); }
+.tuile-qr-action .icone { flex: 0 0 auto; color: var(--texte-doux); }
+.tuile-qr-action.attention .icone { color: #b54708; }
+.tuile-qr-action.bon .icone { color: #157a3c; }
+.tuile-qr-export { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; padding-top: .5rem; border-top: 1px dashed var(--bordure); font-size: .85rem; }
+.tuile-qr-export > span { display: inline-flex; align-items: center; gap: .3rem; color: var(--texte-doux); margin-right: .25rem; }
+.tuile-qr-export button { display: inline-flex; align-items: center; gap: .3rem; border: 0; background: var(--surface-douce, #f2f4f7); color: var(--texte); border-radius: 8px; padding: .35rem .7rem; font: inherit; font-weight: 700; cursor: pointer; }
+.tuile-qr-export button:hover { background: var(--bordure); }
+@media (max-width: 560px) {
+  .tuile-qr { flex-direction: column; align-items: stretch; }
+  .tuile-qr-image { flex-basis: auto; }
+  .tuile-qr-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

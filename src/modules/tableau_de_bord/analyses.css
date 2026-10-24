@@ -167,3 +167,22 @@
   body.impression-rapport .rapport-a4:last-child { break-after: auto; }
   body.impression-rapport .rapport-pages { display: block; }
 }
+/* Conseils dans le rapport PDF et la journée en détail du résumé (2026-10-24). */
+.rapport-conseils ol { margin: 0; padding-left: 5mm; display: grid; gap: 1.5mm; }
+.rapport-conseils li { padding: 1.5mm 2mm; border-radius: 1.5mm; background: #ecfdf3; }
+.rapport-soir-graphique { max-width: 760px; }
+.rapport-soir-graphique { --r-accent: var(--accent, #1f6feb); --r-doux: var(--texte-doux, #667085); --r-trait: var(--bordure, #e4e7ec); }
+.rapport-soir-graphique .rapport-graphique { width: 100%; max-width: 760px; max-height: 260px; }
+.rapport-soir-graphique .rapport-graphique text { font-size: 7px; }
+.rapport-soir-moments { margin-top: 12px; }
+.rapport-soir-liste { margin: 0; padding-left: 1.2rem; display: grid; gap: 6px; }
+.rapport-soir-liste li { padding: 8px 10px; border-radius: 10px; background: var(--surface-douce, #f5f7fa); line-height: 1.4; }
+.rapport-soir-liste li.niveau-critique, .rapport-soir-liste li.niveau-alerte { background: #fff1e6; }
+.rapport-soir-liste li.niveau-bon { background: #ecfdf3; }
+.rapport-soir-liste.conseils li { background: #eef4ff; }
+.rapport-soir-rayons { display: grid; gap: 8px; }
+.rapport-soir-rayon { display: grid; grid-template-columns: minmax(90px, 1.2fr) 2fr auto 3rem; align-items: center; gap: 10px; }
+.rapport-soir-rayon > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rapport-soir-jauge { height: 10px; border-radius: 999px; background: var(--surface-douce, #eef0f3); overflow: hidden; }
+.rapport-soir-jauge span { display: block; height: 100%; border-radius: 999px; background: var(--accent, #1f6feb); }
+@media (max-width: 560px) { .rapport-soir-rayon { grid-template-columns: 1fr auto; } .rapport-soir-jauge { grid-column: 1 / -1; } }
