@@ -3992,3 +3992,31 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); }
 /* Contraste élevé : on remet des bordures pleines, sans dégradés. */
 :root[data-contraste='eleve'] .bouton, :root[data-contraste='eleve'] .carte, :root[data-contraste='eleve'] .stat-card { border-color: var(--bordure-forte); }
 :root[data-contraste='eleve'] .bouton.principal, :root[data-contraste='eleve'] .puces button.actif { background: var(--accent); }
+
+/* Licence expirée (heure de fin passée) : grand message plein écran pour tous les comptes. */
+.ecran-licence-expiree {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 0, 0, 0.82);
+  overflow-y: auto;
+}
+.ecran-licence-expiree-carte {
+  width: min(640px, 100%);
+  padding: 32px 28px;
+  border-radius: 16px;
+  background: var(--fond, #fff);
+  color: var(--texte, #111);
+  border-top: 8px solid var(--rouge, #c62828);
+  box-shadow: var(--ombre-forte);
+  text-align: center;
+}
+.ecran-licence-expiree-icone { font-size: 56px; line-height: 1; }
+.ecran-licence-expiree h1 { margin: 12px 0 8px; font-size: clamp(28px, 6vw, 44px); color: var(--rouge, #c62828); }
+.ecran-licence-expiree-date { font-size: 18px; font-weight: 600; }
+.ecran-licence-expiree ul { text-align: left; margin: 16px auto; padding-left: 20px; font-size: 16px; line-height: 1.5; }
+.ecran-licence-expiree-contact { font-weight: 600; }
+.ecran-licence-expiree-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 20px; }

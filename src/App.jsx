@@ -40,7 +40,7 @@ const ConnexionPartenaire = pagePublique(chargerPartenaire, 'ConnexionPartenaire
 const DemandePartenaire = pagePublique(chargerPartenaire, 'DemandePartenaire');
 const EspacePartenaire = pagePublique(chargerPartenaire, 'EspacePartenaire');
 import { GardeAppareil } from './ui/GardeAppareil.jsx';
-import { BandeauFinLicence, FenetreFinLicence, RappelFinLicence } from './ui/FinLicence.jsx';
+import { BandeauFinLicence, EcranLicenceExpiree, FenetreFinLicence, RappelFinLicence } from './ui/FinLicence.jsx';
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from './modules/editeur/EspaceEditeur.jsx';
 import { groupesDuMenu, pagesAccessibles, pagesDuMenu } from './modules/index.js';
 import VerrouCaisse from './modules/caisse/VerrouCaisse.jsx';
@@ -298,6 +298,7 @@ function Bandeaux({ naviguer }) {
         {gerant && <button className="lien" onClick={() => naviguer('parametres/licence')}>Mon abonnement</button>}
       </div>
     );
+    if (licenceCoupee && l?.fin_a) bandeaux.push(<EcranLicenceExpiree key="expiree" contactez={contactez} naviguer={naviguer} />);
   } else if (l.fin_a) {
     // Heure de fin précise : compte à rebours pour toute l'équipe, caisse comprise (dans les 72 dernières heures).
     bandeaux.push(<BandeauFinLicence key="fin" contactez={contactez} gerant={gerant} naviguer={naviguer} />);

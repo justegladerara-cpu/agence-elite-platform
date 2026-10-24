@@ -113,3 +113,57 @@ export function FenetreFinLicence({ contactez, naviguer }) {
     </Modale>
   );
 }
+
+const CLE_EXPIREE = 'ae-licence-expiree-vue';
+// Contact public d'Agence Elite, utilisé quand le contact du support n'est pas réglé dans les pages de connexion.
+const CONTACT_EDITEUR = '+242 05 522 29 68 (WhatsApp) ou contact@agence-elite.fr';
+
+// Après l'heure de fin : grand message plein écran pour tous les comptes de l'établissement. « Consulter mes données »
+// le referme pour cette session (le bandeau rouge reste), il revient à chaque connexion.
+export function EcranLicenceExpiree({ contactez, naviguer }) {
+  const { etablissement, aLaPermission } = useEspace();
+  const cle = `${CLE_EXPIREE}-${etablissement?.id}`;
+  const [ferme, setFerme] = useState(() => {
+    try {
+      return sessionStorage.getItem(cle) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const fin = finLicence(etablissement);
+  if (ferme || fin == null) return null;
+  const gerant = Boolean(aLaPermission?.('etablissement.modifier'));
+  const fermer = () => {
+    try {
+      sessionStorage.setItem(cle, '1');
+    } catch {
+      // Non mémorisé : le message reviendra au prochain affichage.
+    }
+    setFerme(true);
+  };
+  return (
+    <div className="ecran-licence-expiree" role="alertdialog" aria-modal="true" aria-labelledby="titre-licence-expiree">
+      <div className="ecran-licence-expiree-carte">
+        <div className="ecran-licence-expiree-icone" aria-hidden="true">⛔</div>
+        <h1 id="titre-licence-expiree">Licence expirée</h1>
+        <p className="ecran-licence-expiree-date">
+          La licence de {etablissement.nom} a expiré le {dateFinLisible(fin, etablissement.fuseau || undefined)}.
+        </p>
+        <ul>
+          <li>Les ventes, l’ouverture de caisse et la gestion du stock sont bloquées.</li>
+          <li>Toutes vos données sont conservées et restent consultables.</li>
+          <li>Pour réactiver l’accès : réglez la licence auprès d’Agence Elite. Tout refonctionne dès le paiement enregistré.</li>
+        </ul>
+        <p className="ecran-licence-expiree-contact">
+          {contactez.includes('(') ? `${contactez}.` : `${contactez} : ${CONTACT_EDITEUR}.`}
+        </p>
+        <div className="ecran-licence-expiree-actions">
+          {gerant && (
+            <Bouton variante="principal" onClick={() => { fermer(); naviguer('parametres/licence'); }}>Renouveler la licence</Bouton>
+          )}
+          <Bouton onClick={fermer}>Consulter mes données</Bouton>
+        </div>
+      </div>
+    </div>
+  );
+}
