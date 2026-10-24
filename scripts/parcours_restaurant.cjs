@@ -132,6 +132,8 @@ const U = process.env.URL_APP ?? 'http://localhost:4173/';
     });
     await etape('deplacement-en-masse', async () => {
       await p.getByRole('tab', { name: 'En vente' }).click();
+      // Articles « Par rayon » par défaut (2026-10-24) : les cases à cocher sont dans « En liste ».
+      await p.getByRole('button', { name: 'En liste' }).click();
       await p.locator('tbody input[type=checkbox]').nth(0).check();
       await p.locator('tbody input[type=checkbox]').nth(1).check();
       await p.getByText('2 sélectionné(s)').waitFor();
