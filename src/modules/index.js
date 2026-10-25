@@ -40,8 +40,9 @@ import stock from './stock/manifeste.js';
 import support from './support/manifeste.js';
 import tableauDeBord from './tableau_de_bord/manifeste.js';
 import ventes from './ventes/manifeste.js';
+import experience, { PAGES_REMPLACEES } from './experience/manifeste.js';
 
-export const MANIFESTES = [accueil, tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, contrats, abonnements, livraisons, location, articles, stock, production, achats, crm, marketing, portailClient, contacts, scolaire, agenda, support, fidelite, siteWeb, depenses, comptabilite, rh, projets, documents, etablissement, membres];
+export const MANIFESTES = [experience, accueil, tableauDeBord, assistant, rapports, restaurantSalle, restaurantCuisine, hotelReservations, hotelChambres, ecommerceBoutique, caisse, ventes, paiements, cloture, facturation, contrats, abonnements, livraisons, location, articles, stock, production, achats, crm, marketing, portailClient, contacts, scolaire, agenda, support, fidelite, siteWeb, depenses, comptabilite, rh, projets, documents, etablissement, membres];
 
 // Ordre des groupes du menu ; un groupe inconnu déclaré par un nouveau module s'ajoute à la fin.
 export const GROUPES = ['Pilotage', 'Vente', 'Catalogue et stock', 'Relations', 'Ressources humaines', 'Organisation'];
@@ -56,14 +57,17 @@ export const WIDGETS = MANIFESTES
   .flatMap((m) => (m.widgets ?? []).map((w) => ({ ...w, module: w.module ?? m.module })))
   .sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99));
 
-export function pagesAccessibles({ moduleActif, peut }) {
+export function pagesAccessibles(espace) {
+  const { moduleActif, peut } = espace;
   // Une page peut accepter plusieurs droits (tableau) : un seul suffit.
-  return PAGES.filter((p) => moduleActif(p.module) && [].concat(p.permission).some((x) => peut(x)));
+  return PAGES.filter((p) => moduleActif(p.module) && [].concat(p.permission).some((x) => peut(x)) && (!p.seulementSi || p.seulementSi(espace)));
 }
 
 // Pages affichées dans le menu (certaines disparaissent une fois inutiles).
 export function pagesDuMenu(espace) {
-  return pagesAccessibles(espace).filter((p) => !p.horsMenuSi?.(espace.etablissement, espace) && !pageEteinte(espace.reglagesFonctions, p.id));
+  // Nouvelle version (The Dream) : les anciens écrans remplacés quittent le menu (ils restent ouvrables par leur lien).
+  const remplacees = espace.nouvelleVersion ? PAGES_REMPLACEES : [];
+  return pagesAccessibles(espace).filter((p) => !p.horsMenuSi?.(espace.etablissement, espace) && !pageEteinte(espace.reglagesFonctions, p.id) && !remplacees.includes(p.id));
 }
 
 export function groupesDuMenu(pages) {

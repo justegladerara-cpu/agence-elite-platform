@@ -24,7 +24,10 @@ describe('registre des écrans', () => {
     const espace = (modules, permissions) => ({ moduleActif: (m) => modules.includes(m), peut: (p) => permissions.includes(p) });
     expect(pagesAccessibles(espace(['caisse'], ['caisse.utiliser'])).map((p) => p.id)).toEqual(['caisse', 'commandes-qr']);
     expect(pagesAccessibles(espace([], ['caisse.utiliser']))).toEqual([]);
-    expect(pagesAccessibles(espace(PAGES.map((p) => p.module), PAGES.map((p) => p.permission)))).toHaveLength(PAGES.length);
+    const tout = espace(PAGES.map((p) => p.module), PAGES.map((p) => p.permission));
+    expect(pagesAccessibles({ ...tout, nouvelleVersion: true })).toHaveLength(PAGES.length);
+    // Sans la nouvelle version, ses écrans restent cachés.
+    expect(pagesAccessibles(tout)).toHaveLength(PAGES.filter((p) => !p.seulementSi).length);
   });
 });
 

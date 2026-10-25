@@ -7,6 +7,8 @@ import { appliquerAnimations, suivreSysteme } from './motion/preferences.js';
 import './styles.css';
 // Elite Motion System (docs/motion/) : retirer cette ligne retire toutes les animations ajoutées.
 import './motion/motion.css';
+// Nouvelle version (The Dream) : formes des écrans en tuiles et ambiance noir et or (inactives ailleurs).
+import './modules/experience/experience.css';
 
 // Thème, taille du texte, contraste et gros boutons choisis sur cet appareil (avant le premier affichage).
 appliquerAffichage();

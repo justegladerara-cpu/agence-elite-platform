@@ -3,6 +3,7 @@ import { demarrerDonnees } from './noyau/donnees/index.js';
 import { FournisseurEspace, nomUtilisateur, useEspace } from './noyau/espace.jsx';
 import { nomLieu } from './noyau/lieux.js';
 import { appliquerMarque } from './noyau/marque.js';
+import { ambianceDe, appliquerAmbiance } from './modules/experience/ambiance.js';
 import { configAuth, marqueAuth, texteAuth } from './noyau/pagesAuth.js';
 import { Marque } from './ui/Marque.jsx';
 import {
@@ -34,6 +35,7 @@ const SitePublic = pagePublique(() => import('./public/RenduSite.jsx'), 'SitePub
 const PartagePublic = pagePublique(() => import('./public/Partage.jsx'), 'PartagePublic');
 const MenuPublic = pagePublique(() => import('./public/MenuPublic.jsx'), 'MenuPublic');
 const QrPublic = pagePublique(() => import('./public/QrPublic.jsx'), 'QrPublic');
+const AvisPublic = pagePublique(() => import('./public/AvisPublic.jsx'), 'AvisPublic');
 const EspaceClientPublic = pagePublique(() => import('./public/EspaceClient.jsx'), 'EspaceClientPublic');
 const ActivationCle = pagePublique(chargerPartenaire, 'ActivationCle');
 const ConnexionPartenaire = pagePublique(chargerPartenaire, 'ConnexionPartenaire');
@@ -610,15 +612,21 @@ function Coquille() {
   // Sinon : la page d'accueil choisie dans son profil, si elle lui est accessible.
   const pageParDefaut = pages.find((p) => p.id === 'mise-en-service' && !etablissement?.mis_en_service_le)
     ?? pages.find((p) => p.id === contexte.utilisateur?.preferences?.page_accueil)
+    // Nouvelle version (The Dream) : le gérant arrive sur le centre de commande, la caissière sur sa caisse.
+    ?? (espace.nouvelleVersion ? pages.find((p) => p.id === 'centre') ?? pages.find((p) => p.id === 'caisse') : null)
     ?? pages[0];
   const page = surEditeur ? null : pages.find((p) => p.id === premier) ?? pageParDefaut;
   // Sous-pages : #/<page>/<suite> (ex. #/employes/<id>) ; la suite est transmise à la page.
   const sousRoute = page && premier === page.id ? route.slice(page.id.length + 1) : '';
   const routeAttendue = surEditeur ? (route.startsWith('editeur') ? route : 'editeur') : page && (sousRoute ? `${page.id}/${sousRoute}` : page.id);
 
+  // Réglages pas encore lus : une page de la nouvelle version (#/centre…) n'est pas encore connue, on attend avant de
+  // corriger l'adresse (sinon un rechargement ramènerait toujours à l'accueil).
+  const attenteReglages = Boolean(etablissement) && !espace.reglagesPrets && Boolean(premier) && !surEditeur && !pages.some((p) => p.id === premier);
   useEffect(() => {
+    if (attenteReglages) return;
     if (routeAttendue && route !== routeAttendue) window.history.replaceState(null, '', `#/${routeAttendue}`);
-  }, [routeAttendue, route]);
+  }, [routeAttendue, route, attenteReglages]);
 
   // Menu court : écrans de tous les jours d'abord, le reste replié dans « Plus d'outils ».
   const { recents, plusOuvert } = useMenuEssentiel();
@@ -640,7 +648,14 @@ function Coquille() {
   // Identité affichée : celle de la plateforme dans l'espace Agence Elite, celle de l'établissement ailleurs.
   const marque = surEditeur ? contexte.plateforme : etablissement?.marque ?? contexte.plateforme;
   const titrePage = surEditeur ? nomEditeur : page?.libelle;
-  useEffect(() => appliquerMarque(marque, titrePage), [marque, titrePage]);
+  // Ambiance noir et or de la nouvelle version (The Dream) : posée après la couleur de marque, retirée ailleurs.
+  const ambiance = ambianceDe(espace.reglagesFonctions);
+  const cleAmbiance = ambiance ? `${ambiance.mode}` : '';
+  useEffect(() => {
+    appliquerMarque(marque, titrePage);
+    appliquerAmbiance(surEditeur ? null : ambiance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marque, titrePage, cleAmbiance, surEditeur]);
   const filDefaut = surEditeur
     ? [{ libelle: nomEditeur }]
     : [{ libelle: nomEtablissement ?? '' }, ...(espace.hub && espace.multiHub ? [{ libelle: espace.hub.nom }] : []), { libelle: page?.libelle ?? '' }];
@@ -712,7 +727,8 @@ function Coquille() {
                 <EspaceEditeur route={route} naviguer={aller} />
               </GardeErreur>
             )}
-            {!surEditeur && (Page
+            {!surEditeur && attenteReglages && <Chargement texte="Ouverture de l’écran…" />}
+            {!surEditeur && !attenteReglages && (Page
               ? <GardeAppareil key={etablissement.id}><GardeErreur key={`${etablissement.id}-${page.id}-${requete}`}><Suspense fallback={<Chargement texte="Ouverture de l’écran…" />}><Page naviguer={aller} sousRoute={sousRoute} /></Suspense></GardeErreur></GardeAppareil>
               : <Vide titre="Aucun module accessible" texte="Demandez à votre responsable d’ouvrir vos droits." />)}
           </main>
@@ -827,6 +843,8 @@ export default function App({ demarrer = demarrerDonnees }) {
   if (publique === 'menu' && cle) return <MenuPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
   // QR code suivi (lien, WhatsApp, menu sans table) : le scan est compté puis le client est envoyé vers la cible.
   if (publique === 'q' && cle) return <QrPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
+  // Boîte à suggestions du QR « Menu The Dream » (nouvelle version) : une note, sans compte ni suivi.
+  if (publique === 'avis' && cle) return <AvisPublic key={cle} donnees={donnees} jeton={cle.toLowerCase()} />;
   if (publique === 'partage' && cle) return <PartagePublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'espace' && cle) return <EspaceClientPublic key={cle} donnees={donnees} jeton={cle} />;
   if (publique === 'partenaire' && cle === 'demande' && sousPage) return <DemandePartenaire key={sousPage} donnees={donnees} code={sousPage} />;

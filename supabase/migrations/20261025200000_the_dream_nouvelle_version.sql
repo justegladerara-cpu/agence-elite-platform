@@ -32,7 +32,10 @@ where id = 'caisse' and not coalesce(parametres_schema, '[]'::jsonb) @> '[{"cle"
 -- 2. Fiche des serveurs (badge) : photo, rôle, téléphone, statut.
 -- ---------------------------------------------------------------------------
 alter table public.serveurs_caisse add column if not exists photo_url text
-  check (photo_url is null or (length(photo_url) <= 2000 and photo_url ~ '^https?://[^[:space:]]+$'));
+  check (photo_url is null
+    or (length(photo_url) <= 2000 and photo_url ~ '^https?://[^[:space:]]+$')
+    -- Photo prise sur la tablette, réduite à 320 px par l'écran (comme les photos d'articles).
+    or (length(photo_url) <= 200000 and photo_url ~ '^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$'));
 alter table public.serveurs_caisse add column if not exists role text not null default 'Serveur'
   check (length(btrim(role)) between 1 and 40);
 alter table public.serveurs_caisse add column if not exists telephone text
