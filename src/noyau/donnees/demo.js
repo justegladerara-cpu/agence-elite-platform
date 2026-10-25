@@ -4,6 +4,8 @@
 import scriptDemo from '../../../supabase/demo/commerce_demo.sql?raw';
 import scriptModules from '../../../supabase/demo/modules_demo.sql?raw';
 import scriptHistorique from '../../../supabase/demo/historique_demo.sql?raw';
+// Lounge bar fictif « The Dream (démo) » pour essayer la nouvelle version (comptes Georges et Caissiere).
+import scriptTheDream from '../../../supabase/demo/the_dream_demo.sql?raw';
 
 // Mot de passe temporaire des comptes de démonstration locaux (changement obligatoire à la connexion).
 export const MOT_DE_PASSE_DEMO_LOCAL = '1234';
@@ -13,19 +15,32 @@ export async function baseVide(db) {
 }
 
 // historique : ajoute les mois d'activité fictive (mode local de l'application ; les tests l'activent au besoin).
-export async function semerDemo(db, script = scriptDemo, modules = scriptModules, { historique = false } = {}) {
+// theDream : ajoute le lounge bar fictif ; seulTheDream : uniquement lui (démo d'essai plus rapide à préparer).
+export async function semerDemo(db, script = scriptDemo, modules = scriptModules, { historique = false, theDream = false, seulTheDream = false } = {}) {
   // Super administrateur local (en ligne, c'est le compte existant d'Agence Elite).
   const sa = (await db.query("insert into auth.users(email) values ('editeur@demo.local') returning id")).rows[0].id;
   await db.query("update public.profils set nom_complet = 'Juste Glade' where id = $1", [sa]);
   await db.query("insert into public.plateforme_admins(user_id, role) values ($1, 'super_admin')", [sa]);
   await db.transaction(async (tx) => {
     await tx.query("select set_config('app.demo_mot_de_passe', $1, true), set_config('app.demo_super_admin_email', 'editeur@demo.local', true)", [MOT_DE_PASSE_DEMO_LOCAL]);
-    await tx.exec(script);
-    if (modules) await tx.exec(modules);
-    if (historique) await tx.exec(scriptHistorique);
+    if (!seulTheDream) {
+      await tx.exec(script);
+      if (modules) await tx.exec(modules);
+      if (historique) await tx.exec(scriptHistorique);
+    }
+    if (theDream || seulTheDream) await tx.exec(scriptTheDream);
   });
-  const etablissement = (await db.query("select id from public.etablissements where nom = 'Commerce Démo'")).rows[0].id;
+  const etablissement = (await db.query("select id from public.etablissements where nom in ('Commerce Démo', 'The Dream (démo)') order by nom = 'Commerce Démo' desc limit 1")).rows[0].id;
   return { etablissements: [etablissement], superAdmin: sa };
+}
+
+// Base déjà préparée avant l'arrivée du bar fictif : on l'ajoute une fois.
+export async function ajouterTheDream(db) {
+  if ((await db.query("select 1 from public.clients where nom = 'The Dream (démo)'")).rows.length) return;
+  await db.transaction(async (tx) => {
+    await tx.query("select set_config('app.demo_mot_de_passe', $1, true)", [MOT_DE_PASSE_DEMO_LOCAL]);
+    await tx.exec(scriptTheDream);
+  });
 }
 
 export async function listerComptesDemo(db) {
