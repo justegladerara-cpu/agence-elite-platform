@@ -153,7 +153,7 @@ describe("contexte d'appel", () => {
     // et le formulaire de la page mobile d'un QR code (page allumée seulement, plafonds, piège à robots),
     // et les photos du menu en cartes de cette page (lecture seule, articles visibles sur le menu seulement).
     expect(executables.map((e) => e.proname).sort()).toEqual([
-      'boutique_publique', 'commander_boutique', 'commander_par_qr', 'demande_partenaire', 'envoyer_inscription_qr', 'envoyer_message_site', 'marque_connexion', 'menu_public', 'noter_scan_menu', 'ouvrir_lien_partage', 'ouvrir_qr_code', 'pages_connexion', 'partenaire_public',
+      'boutique_publique', 'commander_boutique', 'commander_par_qr', 'demande_partenaire', 'envoyer_inscription_qr', 'envoyer_message_site', 'laisser_suggestion', 'marque_connexion', 'menu_public', 'noter_scan_menu', 'ouvrir_lien_partage', 'ouvrir_qr_code', 'pages_connexion', 'partenaire_public',
       'photos_menu_page_qr', 'portail_agenda', 'portail_aide', 'portail_annuler_rdv', 'portail_bilan_vu', 'portail_confirmer_rdv', 'portail_decider_livrable', 'portail_demander_rdv',
       'portail_deplacer_rdv', 'portail_deposer_fichier', 'portail_document_vu', 'portail_envoyer_message', 'portail_ouvrir',
       'portail_recommander', 'portail_repondre_devis', 'portail_suivi', 'portail_telecharger', 'resoudre_connexion', 'site_public', 'suivi_commande_boutique',

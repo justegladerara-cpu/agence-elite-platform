@@ -1,0 +1,385 @@
+/* ---------------------------------------------------------------------------
+   Nouvelle version The Dream (2026-10-25) : noir et or tiré du logo, tuiles, animations légères.
+   Les jetons de couleur sont posés par ambiance.js (data-ambiance="dream") ; ce fichier ne garde que les formes.
+   Règles : animations courtes (≤ 400 ms) sur transform/opacity seulement, rien qui tourne en boucle sauf le point
+   « en direct », tout s'arrête avec « réduire les animations ».
+   --------------------------------------------------------------------------- */
+
+/* --- Ambiance : texte foncé sur l'or (le blanc sur or se lit mal) ---------------------------------------- */
+:root[data-ambiance='dream'] body { background: var(--fond); }
+:root[data-ambiance='dream'] .bouton.principal,
+:root[data-ambiance='dream'] .puces button.actif,
+:root[data-ambiance='dream'] .cockpit-onglets button.actif,
+:root[data-ambiance='dream'] .cockpit-periodes button.actif,
+:root[data-ambiance='dream'] .kpi.fort,
+:root[data-ambiance='dream'] .stat-card.fort,
+:root[data-ambiance='dream'] .paiement-total,
+:root[data-ambiance='dream'] .pastille-nouveau,
+:root[data-ambiance='dream'] .tuile-compte,
+:root[data-ambiance='dream'] .etapes li.faite .etape-puce,
+:root[data-ambiance='dream'] .menu nav button.actif .icone,
+:root[data-ambiance='dream'] .menu-groupe button.actif .icone,
+:root[data-ambiance='dream'] .barre-encaisser-bouton,
+:root[data-ambiance='dream'] .modes-paiement button.actif { color: var(--sur-or); }
+:root[data-ambiance='dream'] .bouton.principal { position: relative; overflow: hidden; font-weight: 650; }
+/* Reflet doré qui passe une fois au survol. */
+:root[data-ambiance='dream'] .bouton.principal::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 250, 230, 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+}
+:root[data-ambiance='dream'] .bouton.principal:hover:not(:disabled)::after { transform: translateX(120%); transition: transform 0.7s var(--mouvement); }
+:root[data-ambiance='dream'] .menu { border-right: 1px solid var(--menu-bordure); }
+:root[data-ambiance='dream'] .menu nav button.actif { color: var(--menu-fort-actif); box-shadow: inset 2px 0 0 var(--accent); }
+:root[data-ambiance='dream'] .barre-haut { background: color-mix(in srgb, var(--fond) 88%, transparent); border-bottom-color: var(--bordure); }
+:root[data-ambiance='dream'] .contenu { background: radial-gradient(1000px 360px at 85% -140px, rgba(212, 175, 55, 0.10), transparent 70%), var(--fond); }
+:root[data-ambiance='dream'] h1,
+:root[data-ambiance='dream'] .xp-titre,
+:root[data-ambiance='dream'] .marque strong { font-family: var(--police-titre); letter-spacing: -0.01em; font-weight: 700; }
+:root[data-ambiance='dream'] .carte,
+:root[data-ambiance='dream'] .modale { border-color: var(--bordure); }
+:root[data-ambiance='dream'] .modale { box-shadow: 0 0 0 1px var(--anneau-fort), var(--ombre-forte); }
+:root[data-ambiance='dream'] input,
+:root[data-ambiance='dream'] select,
+:root[data-ambiance='dream'] textarea { color: var(--texte); }
+:root[data-ambiance='dream'] .tuile-article { border-color: var(--bordure); background: var(--surface); }
+:root[data-ambiance='dream'] .tuile-article:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 24px -14px rgba(212, 175, 55, 0.6); }
+:root[data-ambiance='dream'] .tuile-prix { color: var(--accent-2); }
+:root[data-ambiance='dream'][data-dream='jour'] .tuile-prix { color: var(--accent-fort); }
+:root[data-ambiance='dream'] .panier { background: var(--surface); border-left: 1px solid var(--bordure); }
+:root[data-ambiance='dream'] .panier-total strong { color: var(--accent-2); font-family: var(--police-titre); }
+:root[data-ambiance='dream'][data-dream='jour'] .panier-total strong { color: var(--accent-fort); }
+
+/* --- Écran : titres, tuiles, verdicts -------------------------------------------------------------- */
+.xp-page { display: flex; flex-direction: column; gap: 20px; padding: 24px 28px 40px; max-width: 1480px; min-width: 0; animation: xp-entree 0.32s var(--mouvement, ease) both; }
+@keyframes xp-entree { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.xp-entete { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.xp-surtitre { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.xp-titre { margin: 4px 0 0; font-size: clamp(24px, 3.2vw, 32px); line-height: 1.15; text-wrap: balance; }
+.xp-sous-titre { margin: 6px 0 0; color: var(--texte-doux); max-width: 62ch; }
+.xp-entete-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.xp-grille { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.xp-grille.etroite { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.xp-grille.large { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.xp-deux { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+@media (max-width: 1100px) { .xp-deux { grid-template-columns: 1fr; } }
+
+.xp-tuile {
+  position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  padding: 16px; border-radius: 16px; background: var(--surface); color: var(--texte);
+  border: 1px solid var(--bordure); box-shadow: var(--ombre-carte); text-align: left; font: inherit;
+  transition: transform 0.2s var(--mouvement, ease), box-shadow 0.2s var(--mouvement, ease), border-color 0.2s;
+}
+.xp-tuile.large { grid-column: span 2; }
+@media (max-width: 640px) { .xp-tuile.large { grid-column: auto; } }
+.xp-tuile.cliquable { cursor: pointer; }
+.xp-tuile.cliquable:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 55%, var(--bordure)); box-shadow: var(--ombre-survol); }
+.xp-tuile.cliquable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.xp-tuile-tete { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.xp-tuile-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; color: var(--accent); background: var(--accent-doux); flex: none; }
+.xp-tuile-titre { font-size: 13px; color: var(--texte-doux); font-weight: 550; flex: 1 1 auto; min-width: 0; line-height: 1.3; overflow-wrap: anywhere; }
+.xp-tuile-tete .xp-verdict { flex: none; margin-left: auto; }
+.xp-tuile-valeur { font-size: clamp(22px, 2.4vw, 28px); font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.xp-tuile-valeur small { font-size: 13px; font-weight: 500; color: var(--texte-doux); margin-left: 6px; }
+.xp-tuile-pourquoi { font-size: 13px; color: var(--texte-doux); line-height: 1.45; }
+.xp-tuile-conseil { display: flex; gap: 6px; align-items: flex-start; font-size: 13px; color: var(--accent); font-weight: 550; line-height: 1.4; margin-top: auto; }
+.xp-tuile-conseil .icone { flex: none; margin-top: 2px; }
+.xp-tuile.or { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface) 60%); border-color: color-mix(in srgb, var(--accent) 40%, var(--bordure)); }
+
+.xp-verdict { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.xp-verdict::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.xp-verdict.bon { color: var(--vert); background: var(--vert-doux); }
+.xp-verdict.attention { color: var(--orange); background: var(--orange-doux); }
+.xp-verdict.mauvais { color: var(--rouge); background: var(--rouge-doux); }
+.xp-verdict.neutre { color: var(--accent); background: var(--accent-doux); }
+
+.xp-section { display: flex; flex-direction: column; gap: 12px; }
+.xp-section > h2, .xp-section-titre { margin: 0; font-size: 17px; display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.xp-section-titre small { font-size: 13px; color: var(--texte-doux); font-weight: 500; }
+.xp-carte { padding: 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--bordure); box-shadow: var(--ombre-carte); min-width: 0; }
+
+/* --- Puces de période, segments --------------------------------------------------------------------- */
+.xp-segments { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-douce); border: 1px solid var(--bordure); }
+.xp-segments button { border: 0; background: transparent; color: var(--texte-doux); font: inherit; font-size: 13px; font-weight: 550; padding: 7px 12px; border-radius: 9px; cursor: pointer; min-height: 34px; }
+.xp-segments button.actif { background: var(--degrade-marque); color: var(--sur-or, #fff); box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--accent) 80%, transparent); }
+.xp-segments button:focus-visible { outline: 2px solid var(--accent); }
+
+/* --- Anneau, courbe, barres ---------------------------------------------------------------------------- */
+.xp-anneau { position: relative; flex: none; }
+.xp-anneau svg { display: block; }
+.xp-anneau-trait { transition: stroke-dashoffset 0.9s var(--mouvement, ease); }
+.xp-anneau-centre { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 2px; }
+.xp-anneau-centre strong { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.xp-anneau-centre small { font-size: 12px; color: var(--texte-doux); }
+
+.xp-courbe { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.xp-courbe svg { width: 100%; height: 140px; overflow: visible; }
+.xp-courbe-grille { stroke: var(--bordure); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.xp-courbe-maintenant { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.xp-courbe-axe { display: flex; justify-content: space-between; font-size: 11px; color: var(--texte-faible); }
+.xp-courbe-trace { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: xp-trace 1.1s var(--mouvement, ease) forwards; }
+@keyframes xp-trace { to { stroke-dashoffset: 0; } }
+.xp-pulse { animation: xp-pulse 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes xp-pulse { 50% { transform: scale(1.6); opacity: 0.55; } }
+.xp-legende { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--texte-doux); }
+.xp-legende i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.xp-legende i.pointille { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; }
+
+.xp-barres { display: flex; flex-direction: column; gap: 10px; }
+.xp-barre { display: flex; flex-direction: column; gap: 5px; border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; width: 100%; }
+.xp-barre.cliquable { cursor: pointer; border-radius: 8px; }
+.xp-barre.cliquable:hover .xp-barre-texte span { color: var(--accent); }
+.xp-barre-texte { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; min-width: 0; }
+.xp-barre-texte span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xp-barre-texte strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.xp-barre-piste { height: 7px; border-radius: 99px; background: var(--surface-douce); overflow: hidden; border: 1px solid var(--bordure); }
+.xp-barre-piste span { display: block; height: 100%; border-radius: 99px; transform-origin: left; animation: xp-barre 0.7s var(--mouvement, ease) both; }
+@keyframes xp-barre { from { transform: scaleX(0); } }
+.xp-barre small { font-size: 12px; color: var(--texte-faible); }
+
+/* --- Carte de chaleur (jours × heures) ------------------------------------------------------------------ */
+.xp-chaleur { display: grid; gap: 3px; grid-template-columns: 34px repeat(var(--colonnes, 12), minmax(0, 1fr)); font-size: 11px; color: var(--texte-faible); overflow-x: auto; }
+.xp-chaleur span { text-align: center; }
+.xp-chaleur .case { aspect-ratio: 1.6; border-radius: 4px; background: color-mix(in srgb, var(--accent) calc(var(--n, 0) * 100%), var(--surface-douce)); border: 1px solid var(--bordure); min-width: 14px; }
+
+/* --- Photos des serveurs ------------------------------------------------------------------------------ */
+.xp-photo { display: inline-grid; place-items: center; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px color-mix(in srgb, var(--accent) 50%, transparent); }
+.xp-photo-initiales { background: color-mix(in srgb, var(--teinte) 22%, var(--surface)); color: var(--teinte); font-weight: 700; }
+
+/* --- Modifier sur place, interrupteur --------------------------------------------------------------- */
+.xp-en-place { display: inline-flex; align-items: center; gap: 6px; border: 1px dashed transparent; background: none; color: inherit; font: inherit; padding: 2px 6px; margin: -2px -6px; border-radius: 7px; cursor: text; min-height: 28px; }
+.xp-en-place .icone { opacity: 0; color: var(--accent); transition: opacity 0.15s; }
+.xp-en-place:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.xp-en-place:hover .icone, .xp-en-place:focus-visible .icone, .xp-en-place.ok .icone { opacity: 1; }
+.xp-en-place.ok { background: var(--vert-doux); }
+.xp-en-place.erreur { background: var(--rouge-doux); }
+.xp-en-place:disabled { cursor: default; }
+.xp-en-place-champ { font: inherit; padding: 3px 8px; min-height: 30px; border-radius: 8px; width: 9ch; }
+.xp-interrupteur { width: 44px; height: 26px; border-radius: 99px; border: 1px solid var(--bordure-forte); background: var(--surface-douce); position: relative; cursor: pointer; flex: none; padding: 0; transition: background 0.2s; }
+.xp-interrupteur span { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--texte-faible); transition: transform 0.2s var(--mouvement, ease), background 0.2s; }
+.xp-interrupteur.actif { background: var(--degrade-marque); border-color: transparent; }
+.xp-interrupteur.actif span { transform: translateX(18px); background: #fff; }
+.xp-lien-ancien { font-size: 13px; }
+
+/* --- Encaissement ------------------------------------------------------------------------------------- */
+.xp-enc { display: flex; flex-direction: column; gap: 16px; }
+.xp-enc-total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 16px; background: var(--degrade-marque); color: var(--sur-or, #fff); }
+.xp-enc-total span { font-weight: 600; }
+.xp-enc-total strong { font-size: clamp(26px, 5vw, 36px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.xp-moyens { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.xp-moyen { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--bordure-forte); background: var(--surface); color: var(--texte); font: inherit; font-weight: 600; cursor: pointer; text-align: left; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
+.xp-moyen i, .xp-enc-puce i { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--surface) 70%, transparent); }
+.xp-moyen:hover { transform: translateY(-1px); border-color: var(--accent); }
+.xp-moyen.actif { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 10px 22px -12px color-mix(in srgb, var(--accent) 80%, transparent); background: var(--accent-doux); }
+.xp-enc-lignes { display: flex; gap: 8px; flex-wrap: wrap; }
+.xp-enc-puce { display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--bordure-forte); background: var(--surface-douce); }
+.xp-enc-puce.actif { border-color: var(--accent); background: var(--accent-doux); }
+.xp-enc-puce button { border: 0; background: none; color: inherit; font: inherit; font-size: 13px; font-weight: 600; padding: 7px 10px; display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+.xp-enc-retirer { padding: 7px 10px 7px 2px !important; color: var(--texte-doux) !important; }
+.xp-gros-champ { font-size: 22px !important; font-weight: 650; min-height: 54px !important; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.xp-chiffres { letter-spacing: 0.3em; }
+.xp-billets { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.xp-billets button { min-height: 52px; border-radius: 12px; border: 1px solid var(--bordure-forte); background: var(--surface); color: var(--texte); font: inherit; font-weight: 650; font-size: 15px; cursor: pointer; font-variant-numeric: tabular-nums; transition: transform 0.1s, border-color 0.15s; }
+.xp-billets button small { color: var(--accent); margin-right: 3px; font-weight: 700; }
+.xp-billets button:active { transform: scale(0.97); }
+.xp-billets button:hover { border-color: var(--accent); }
+.xp-billets button.juste { background: var(--accent-doux); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.xp-monnaie { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 18px; border-radius: 14px; border: 1px dashed var(--bordure-forte); color: var(--texte-doux); }
+.xp-monnaie strong { font-size: 30px; font-variant-numeric: tabular-nums; color: var(--texte-doux); }
+.xp-monnaie.oui { border-style: solid; border-color: var(--vert); background: var(--vert-doux); color: var(--vert); }
+.xp-monnaie.oui strong { font-size: clamp(34px, 7vw, 46px); color: var(--vert); animation: xp-pop 0.28s var(--mouvement, ease); }
+@keyframes xp-pop { from { transform: scale(0.92); opacity: 0.4; } }
+.xp-enc-especes, .xp-enc-reference { display: flex; flex-direction: column; gap: 12px; }
+.xp-enc-ajouter { align-self: flex-start; }
+.xp-enc-reste { display: flex; justify-content: space-between; gap: 10px; padding: 12px 16px; border-radius: 12px; background: var(--orange-doux); color: var(--orange); font-weight: 600; }
+.xp-enc-reste.erreur { background: var(--rouge-doux); color: var(--rouge); }
+.xp-enc-reste strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.xp-qui-a-servi { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.xp-qui-a-servi legend { font-weight: 650; margin-bottom: 10px; }
+.xp-serveurs { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.xp-serveur { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 14px; border: 1px solid var(--bordure); background: var(--surface); color: var(--texte); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.xp-serveur:hover { transform: translateY(-1px); border-color: var(--accent); }
+.xp-serveur.actif { border-color: var(--accent); background: var(--accent-doux); box-shadow: 0 0 0 2px var(--accent); }
+.xp-valider { min-width: 200px; min-height: 52px; font-size: 16px; }
+
+/* Coche verte d'encaissement (effets.js). */
+.xp-coche { position: fixed; inset: 0; z-index: 2000; display: grid; place-content: center; justify-items: center; gap: 14px; pointer-events: none;
+  background: radial-gradient(circle at center, rgba(11, 11, 13, 0.55), rgba(11, 11, 13, 0.15) 60%, transparent); animation: xp-fondu 0.2s ease both; }
+.xp-coche.sortie { opacity: 0; transition: opacity 0.3s ease; }
+.xp-coche-rond { width: 112px; height: 112px; border-radius: 50%; background: #2FBF71; display: grid; place-items: center; box-shadow: 0 0 0 10px rgba(47, 191, 113, 0.22), 0 20px 50px -10px rgba(47, 191, 113, 0.7); animation: xp-coche-entree 0.36s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.xp-coche svg { width: 64px; height: 64px; stroke: #fff; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.xp-coche svg circle { stroke: none; }
+.xp-coche svg path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: xp-trace-coche 0.35s 0.12s ease forwards; }
+.xp-coche strong { color: #fff; font-size: 22px; padding: 6px 16px; border-radius: 999px; background: rgba(11, 11, 13, 0.75); }
+@keyframes xp-fondu { from { opacity: 0; } }
+@keyframes xp-coche-entree { from { transform: scale(0.4); opacity: 0; } }
+@keyframes xp-trace-coche { to { stroke-dashoffset: 0; } }
+
+/* --- Recommandations « Utile / Pas pour moi » ---------------------------------------------------------- */
+.xp-reco { border-left: 3px solid var(--accent); }
+.xp-reco.attention { border-left-color: var(--orange); }
+.xp-reco.mauvais { border-left-color: var(--rouge); }
+.xp-reco.bon { border-left-color: var(--vert); }
+.xp-reco-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.xp-reco-actions button { border: 1px solid var(--bordure-forte); background: var(--surface-douce); color: var(--texte); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.xp-reco-actions button.choisi { border-color: var(--accent); background: var(--accent-doux); color: var(--accent); }
+.xp-reco.masquee { opacity: 0.55; }
+
+/* --- Panneau latéral (détail d'une tuile) --------------------------------------------------------------- */
+.xp-panneau-voile { position: fixed; inset: 0; z-index: 900; background: rgba(5, 5, 7, 0.5); animation: xp-fondu 0.2s ease both; }
+.xp-panneau { position: fixed; z-index: 901; top: 0; right: 0; bottom: 0; width: min(520px, 100vw); background: var(--fond); border-left: 1px solid var(--bordure-forte); box-shadow: var(--ombre-forte);
+  display: flex; flex-direction: column; animation: xp-glisse 0.28s var(--mouvement, ease) both; padding-bottom: env(safe-area-inset-bottom, 0px); }
+@keyframes xp-glisse { from { transform: translateX(40px); opacity: 0; } }
+.xp-panneau-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--bordure); }
+.xp-panneau-tete h2 { margin: 0; font-size: 18px; font-family: var(--police-titre, inherit); }
+.xp-panneau-corps { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+
+/* --- Listes compactes ---------------------------------------------------------------------------------- */
+.xp-liste { display: flex; flex-direction: column; border: 1px solid var(--bordure); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.xp-ligne { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--bordure); min-width: 0; background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; text-align: left; width: 100%; }
+.xp-ligne:last-child { border-bottom: 0; }
+.xp-ligne.cliquable { cursor: pointer; }
+.xp-ligne.cliquable:hover { background: var(--surface-survol); }
+.xp-ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.xp-ligne-texte strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xp-ligne-texte small { color: var(--texte-doux); font-size: 12.5px; }
+.xp-ligne-valeur { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* --- Articles et stock en tuiles ------------------------------------------------------------------------ */
+.xp-produits { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.xp-produit { display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: var(--surface); border: 1px solid var(--bordure); box-shadow: var(--ombre-carte); min-width: 0; transition: border-color 0.15s, box-shadow 0.15s; }
+.xp-produit.depot { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.xp-produit-photo { position: relative; aspect-ratio: 4 / 3; background: var(--surface-douce); display: grid; place-items: center; overflow: hidden; }
+.xp-produit-photo img { width: 100%; height: 100%; object-fit: cover; }
+.xp-produit-photo .sans-photo { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--texte-faible); font-size: 12px; text-align: center; padding: 10px; }
+.xp-produit-photo label { position: absolute; inset: 0; cursor: pointer; }
+.xp-produit-photo input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.xp-produit-corps { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.xp-produit-corps strong { font-size: 14px; }
+.xp-produit-prix { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--texte-doux); align-items: center; flex-wrap: wrap; }
+.xp-produit-prix .prix { color: var(--texte); font-weight: 700; font-size: 16px; }
+.xp-marge { font-size: 12px; font-weight: 600; }
+.xp-stock-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.xp-stock-actions button, .xp-pm button { min-height: 38px; border-radius: 10px; border: 1px solid var(--bordure-forte); background: var(--surface-douce); color: var(--texte); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.xp-stock-actions button:hover, .xp-pm button:hover { border-color: var(--accent); }
+.xp-pm { display: flex; align-items: center; gap: 8px; }
+.xp-pm button { width: 40px; font-size: 18px; }
+.xp-pm strong { flex: 1; text-align: center; font-size: 24px; font-variant-numeric: tabular-nums; }
+.xp-jauge { height: 6px; border-radius: 99px; background: var(--surface-douce); overflow: hidden; }
+.xp-jauge span { display: block; height: 100%; border-radius: 99px; transition: width 0.4s var(--mouvement, ease); }
+
+/* --- Badges serveurs (imprimables) ------------------------------------------------------------------------ */
+.xp-badges { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.xp-badge { position: relative; aspect-ratio: 54 / 86; max-width: 260px; border-radius: 16px; overflow: hidden; color: #F5F1E6; background: radial-gradient(circle at 50% -10%, #2A2414, #0B0B0D 62%); border: 1px solid #3D3522; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 18px 14px; text-align: center; }
+.xp-badge::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(212, 175, 55, 0.45); border-radius: 12px; pointer-events: none; }
+.xp-badge-marque { font-family: var(--police-titre, Georgia, serif); font-size: 18px; letter-spacing: 0.08em; color: #D4AF37; }
+.xp-badge-nom { font-family: var(--police-titre, Georgia, serif); font-size: 24px; font-weight: 700; margin: 0; }
+.xp-badge-role { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #F3D98B; }
+.xp-badge-qr { background: #fff; padding: 6px; border-radius: 8px; width: 92px; height: 92px; }
+.xp-badge-qr svg, .xp-badge-qr canvas, .xp-badge-qr img { width: 100%; height: 100%; display: block; }
+.xp-badge .xp-photo { box-shadow: 0 0 0 3px #0B0B0D, 0 0 0 4px #D4AF37; }
+
+/* --- Paramètres en tuiles -------------------------------------------------------------------------------- */
+.xp-reglage { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--bordure); }
+.xp-reglage:last-child { border-bottom: 0; }
+.xp-reglage-texte { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.xp-reglage-texte small { color: var(--texte-doux); }
+.xp-apercu-caisse { border-radius: 18px; border: 1px solid var(--bordure-forte); background: var(--fond); padding: 12px; display: grid; gap: 8px; }
+.xp-apercu-caisse .tuile { border-radius: 12px; background: var(--surface); border: 1px solid var(--bordure); padding: 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; min-height: 64px; }
+.xp-apercu-caisse .tuile.grande { grid-column: span 2; }
+.xp-apercu-caisse .tuile strong { font-size: 13px; }
+.xp-modeles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.xp-modele { padding: 14px; border-radius: 14px; border: 1px solid var(--bordure-forte); background: var(--surface); color: var(--texte); text-align: left; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.xp-modele small { color: var(--texte-doux); }
+.xp-modele.actif { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); background: var(--accent-doux); }
+
+/* --- Présence en caisse --------------------------------------------------------------------------------------- */
+.xp-presence { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; background: rgba(5, 5, 7, 0.78); padding: 16px; animation: xp-fondu 0.2s ease both; }
+.xp-presence-carte { width: min(420px, 100%); border-radius: 22px; padding: 26px 22px; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.14), var(--ombre-forte); display: flex; flex-direction: column; gap: 16px; text-align: center; align-items: center; }
+.xp-presence-carte h2 { margin: 0; font-size: 24px; font-family: var(--police-titre, inherit); }
+.xp-presence-chrono { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+.xp-presence-carte .bouton { width: 100%; min-height: 56px; font-size: 17px; }
+.xp-absente { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--orange-doux); color: var(--orange); font-weight: 600; }
+
+/* --- Liens (graphe) ------------------------------------------------------------------------------------------- */
+.xp-graphe { width: 100%; height: auto; min-height: 360px; }
+.xp-graphe .lien-trait { stroke: color-mix(in srgb, var(--accent) 45%, transparent); fill: none; }
+.xp-graphe .noeud circle { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; cursor: pointer; transition: r 0.2s; }
+.xp-graphe .noeud.actif circle { fill: var(--accent); }
+.xp-graphe .noeud text { fill: var(--texte); font-size: 12px; pointer-events: none; }
+.xp-graphe .noeud.serveur circle { stroke: var(--vert); }
+.xp-graphe .noeud.produit circle { stroke: var(--accent-2); }
+.xp-graphe .noeud.moyen circle { stroke: var(--orange); }
+.xp-graphe .noeud.attenue { opacity: 0.25; }
+.xp-graphe .lien-trait.attenue { opacity: 0.08; }
+
+/* --- Suggestions (QR public) ---------------------------------------------------------------------------- */
+.xp-notes { display: flex; gap: 8px; justify-content: center; }
+.xp-notes button { font-size: 30px; width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--bordure-forte); background: var(--surface); cursor: pointer; line-height: 1; transition: transform 0.15s; }
+.xp-notes button.actif { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); transform: scale(1.08); }
+
+@media (max-width: 640px) {
+  .xp-tuile { padding: 14px; }
+  .xp-moyens { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xp-billets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xp-page, .xp-courbe-trace, .xp-barre-piste span, .xp-pulse, .xp-coche-rond, .xp-coche svg path, .xp-panneau, .xp-monnaie.oui strong { animation: none !important; }
+  .xp-courbe-trace { stroke-dashoffset: 0; }
+  .xp-coche svg path { stroke-dashoffset: 0; }
+}
+
+:root[data-animations='reduit'] .xp-page, :root[data-animations='reduit'] .xp-courbe-trace, :root[data-animations='reduit'] .xp-pulse { animation: none !important; stroke-dashoffset: 0; }
+@media print {
+  body.impression-badges .menu, body.impression-badges .barre-haut, body.impression-badges .xp-entete,
+  body.impression-badges .onglets-mobile, body.impression-badges .bulle-aide { display: none !important; }
+  body.impression-badges .coquille { display: block; height: auto; }
+  body.impression-badges .colonne, body.impression-badges .contenu { overflow: visible; height: auto; }
+  body.impression-badges .xp-badge { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* --- Défilement de la caisse (bloqué sur la tablette de The Dream) --------------------------------------------
+   Hauteur réelle de l'écran (dvh : la barre d'adresse qui apparaît ne coupe plus le bas), chaque zone défile seule,
+   un toucher sur une tuile laisse toujours glisser, et la page entière peut défiler en dernier recours. */
+:root[data-ambiance='dream'] .coquille { height: 100dvh; }
+:root[data-ambiance='dream'] .coquille.plein-ecran .contenu { overflow-y: auto; }
+:root[data-ambiance='dream'] .caisse { min-height: 0; }
+:root[data-ambiance='dream'] .caisse-catalogue,
+:root[data-ambiance='dream'] .panier-lignes,
+:root[data-ambiance='dream'] .contenu { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+:root[data-ambiance='dream'] .tuile-article,
+:root[data-ambiance='dream'] .xp-tuile,
+:root[data-ambiance='dream'] .xp-moyen,
+:root[data-ambiance='dream'] .xp-billets button { touch-action: manipulation; }
+@media print {
+  body.impression-centre .menu, body.impression-centre .barre-haut, body.impression-centre .xp-pas-imprimer,
+  body.impression-centre .onglets-mobile, body.impression-centre .bulle-aide { display: none !important; }
+  body.impression-centre .coquille { display: block; height: auto; }
+  body.impression-centre .colonne, body.impression-centre .contenu { overflow: visible; height: auto; }
+  body.impression-centre .xp-tuile, body.impression-centre .xp-carte { break-inside: avoid; box-shadow: none; }
+}
+
+/* --- Bloc « Aujourd'hui » du centre de commande ---------------------------------------------------------- */
+.xp-aujourdhui { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface) 55%); border-color: color-mix(in srgb, var(--accent) 35%, var(--bordure)); }
+.xp-aujourdhui-grille { display: grid; gap: 22px; grid-template-columns: auto minmax(200px, 0.8fr) minmax(0, 1.6fr); align-items: center; }
+.xp-aujourdhui-chiffres { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; min-width: 0; }
+.xp-gros-chiffre { font-size: clamp(30px, 4vw, 44px); font-weight: 750; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+:root[data-ambiance='dream'] .xp-gros-chiffre { color: var(--accent-2); font-family: var(--police-titre); }
+:root[data-ambiance='dream'][data-dream='jour'] .xp-gros-chiffre { color: var(--accent-fort); }
+.xp-aujourdhui-courbe { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 1100px) { .xp-aujourdhui-grille { grid-template-columns: auto minmax(0, 1fr); } .xp-aujourdhui-courbe { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .xp-aujourdhui-grille { grid-template-columns: 1fr; justify-items: start; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* --- Caisse : taille des tuiles réglée dans « Ma caisse » ------------------------------------------------- */
+.xp-caisse.xp-taille-petite .grille-articles { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+.xp-caisse.xp-taille-grande .grille-articles { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.xp-caisse.xp-taille-grande .tuile-nom { font-size: 16px; }
+.xp-caisse.xp-taille-grande .tuile-prix { font-size: 18px; }
+.xp-bouton-absence { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.xp-reco-actions input[type='color'] { width: 44px; height: 32px; min-height: 0; padding: 2px; border-radius: 8px; flex: none; }
+
+@media (max-width: 640px) { .xp-page { padding: 16px max(14px, env(safe-area-inset-left, 0px)) 32px; } }
+
+.xp-enc-erreur { flex: 1 1 200px; color: #F87171; font-weight: 600; font-size: 14px; align-self: center; }

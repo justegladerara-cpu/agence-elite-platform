@@ -75,16 +75,31 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
 
   // Fonctions allumées ou éteintes (Paramètres > Applications) : relues à chaque changement d'établissement.
   const [reglagesFonctions, setReglagesFonctions] = useState({});
+  // Vrai une fois les réglages lus (la nouvelle version de The Dream en dépend pour ses pages).
+  const [reglagesPrets, setReglagesPrets] = useState(false);
   const lireFonctions = useCallback(() => {
-    if (!etablissement?.id || !api?.lire) return Promise.resolve();
+    if (!etablissement?.id || !api?.lire) {
+      setReglagesPrets(true);
+      return Promise.resolve();
+    }
     return api.lire('etablissement_parametres', { eq: { etablissement_id: etablissement.id } })
       .then((lignes) => setReglagesFonctions(Object.fromEntries((lignes ?? []).map((l) => [l.module_id, l.data ?? {}]))))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setReglagesPrets(true));
   }, [api, etablissement?.id]);
   useEffect(() => {
     setReglagesFonctions({});
+    setReglagesPrets(false);
     lireFonctions();
   }, [lireFonctions]);
+  // Enregistre une partie des réglages d'un module (les autres clés sont gardées) et met l'écran à jour tout de suite.
+  const enregistrerReglages = useCallback(async (moduleId, modification) => {
+    const actuel = reglagesFonctions[moduleId] ?? {};
+    const data = { ...actuel, ...modification };
+    await api.rpc('enregistrer_parametres_module', { p_etablissement_id: etablissement.id, p_module_id: moduleId, p_data: data });
+    setReglagesFonctions((r) => ({ ...r, [moduleId]: data }));
+    return data;
+  }, [api, etablissement?.id, reglagesFonctions]);
 
   const notifier = useCallback((texte, ton = 'succes') => {
     compteur.current += 1;
@@ -127,6 +142,10 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       aLaPermission: (permission) => permissions.has(permission),
       moduleActif: (module) => modules.has(module),
       reglagesFonctions,
+      reglagesPrets,
+      enregistrerReglages,
+      // Nouvelle version (The Dream, 2026-10-25) : allumée établissement par établissement, rien ne change ailleurs.
+      nouvelleVersion: reglagesFonctions.etablissement?.nouvelle_version === true,
       fonctionActive: (id) => fonctionActive(reglagesFonctions, id),
       relireFonctions: lireFonctions,
       montant: (n) => formatMontant(n, devise),
@@ -138,7 +157,7 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
       recharger: onRecharger,
       deconnecter: onDeconnexion,
     };
-  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion, coupure, reglagesFonctions, lireFonctions]);
+  }, [api, contexte, etablissements, etablissement, hubChoisi, notifier, onRecharger, onDeconnexion, coupure, reglagesFonctions, reglagesPrets, lireFonctions, enregistrerReglages]);
 
   return (
     <ContexteEspace.Provider value={valeur}>

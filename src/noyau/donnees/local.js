@@ -2,12 +2,14 @@
 import { PGlite } from '@electric-sql/pglite';
 import shim from '../../../tests/sql/supabase_shim.sql?raw';
 import complement from '../../../tests/sql/supabase_shim_auth.sql?raw';
-import { baseVide, listerComptesDemo, semerDemo } from './demo.js';
+import { ajouterTheDream, baseVide, listerComptesDemo, semerDemo } from './demo.js';
 import { creerApiLocale, executerComme, messageErreur, optionsPGlite, preparerBase } from './moteurLocal.js';
 
 const fichiers = import.meta.glob('../../../supabase/migrations/*.sql', { query: '?raw', import: 'default', eager: true });
 const migrations = Object.entries(fichiers).map(([chemin, sql]) => ({ nom: chemin.split('/').pop(), sql }));
-const NOM_BASE = 'idb://agence-elite-commerce';
+// Démo d'essai de la nouvelle version (VITE_ESSAI_THE_DREAM=1) : base à part, seulement le lounge bar fictif.
+const ESSAI_THE_DREAM = import.meta.env.VITE_ESSAI_THE_DREAM === '1';
+const NOM_BASE = ESSAI_THE_DREAM ? 'idb://the-dream-essai' : 'idb://agence-elite-commerce';
 const CLE_UTILISATEUR = 'ae-utilisateur-local';
 
 function lireStockage(cle) {
@@ -31,7 +33,8 @@ export async function demarrerLocal() {
   const db = new PGlite(NOM_BASE, optionsPGlite);
   await db.waitReady;
   await preparerBase(db, { shim, complement, migrations });
-  if (await baseVide(db)) await semerDemo(db, undefined, undefined, { historique: true });
+  if (await baseVide(db)) await semerDemo(db, undefined, undefined, { historique: !ESSAI_THE_DREAM, theDream: true, seulTheDream: ESSAI_THE_DREAM });
+  else await ajouterTheDream(db).catch(() => {});
   let utilisateur = lireStockage(CLE_UTILISATEUR);
   const api = creerApiLocale(db, () => utilisateur);
   return {

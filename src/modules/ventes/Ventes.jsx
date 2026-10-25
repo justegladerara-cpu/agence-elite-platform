@@ -189,14 +189,15 @@ function ModaleRetour({ vente, lignes, retours, sessions, onFermer, onFait }) {
 // Qui, où, quand : caisse, personne qui a encaissé (le patron sur la caisse d'une caissière est nommé), ticket Z,
 // serveur, offerts et pourboire.
 function InfosVente({ vente, infos }) {
-  const { montant, multiHub } = useEspace();
+  const { montant, multiHub, nouvelleVersion } = useEspace();
   const lignes = [
     ['Encaissée par', infos.caissier ? `${infos.caissier}${infos.vendu_par_autre ? ` (le patron, sur la caisse de ${infos.caisse_tenue_par})` : ''}` : null],
     ['Servi par', vente.servi_par],
     ['Caisse', [infos.point_de_vente, multiHub ? nomLieu(infos.hub) : null].filter(Boolean).join(' · ') || null],
     ['Caisse ouverte le', infos.caisse_ouverte_le ? formatDateHeure(infos.caisse_ouverte_le) : null],
     ['Ticket Z', infos.ticket_z ? `${infos.ticket_z.numero} (caisse fermée le ${formatDateHeure(infos.ticket_z.cloturee_le)})` : (vente.session_caisse_id ? 'Caisse encore ouverte' : null)],
-    ['Pourboire', infos.pourboire ? `${montant(infos.pourboire.montant)} · ${MODES_PAIEMENT[infos.pourboire.mode] ?? infos.pourboire.mode}${infos.pourboire.serveur ? ` · ${infos.pourboire.serveur}` : ''}` : null],
+    // Plus aucun pourboire dans la nouvelle version (The Dream, 2026-10-25).
+    ['Pourboire', infos.pourboire && !nouvelleVersion ? `${montant(infos.pourboire.montant)} · ${MODES_PAIEMENT[infos.pourboire.mode] ?? infos.pourboire.mode}${infos.pourboire.serveur ? ` · ${infos.pourboire.serveur}` : ''}` : null],
   ].filter(([, v]) => v);
   return (
     <>

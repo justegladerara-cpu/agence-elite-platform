@@ -15,6 +15,9 @@ import { attenteFacture, totalFactures } from './facturesEnCours.js';
 import { nomsServeurs } from './serviPar.js';
 import { ChoixServeur, listeServeurs, lireServeurChoisi, retenirServeurChoisi } from './ChoixServeur.jsx';
 import './caisse.css';
+import { Encaissement } from '../experience/Encaissement.jsx';
+import { BoutonAbsence, EcransPresence, usePresence } from '../experience/Presence.jsx';
+import { ModalePrixAchat, ordonnerPourModele } from '../experience/caisseDream.jsx';
 import { CaissesPatron } from './CaissesPatron.jsx';
 import { minutesVerification, ModaleToujoursToi, toujoursToiNecessaire } from './ToujoursToi.jsx';
 import { lireParametres } from '../../noyau/routes.js';
@@ -206,7 +209,21 @@ export function ClientRapide({ onCree }) {
 // serveurs : liste de noms pour « Servi par » (facultatif) ; sans elle, le champ n'apparaît pas. serviParInitial : serveur
 // déjà choisi à la commande.
 // avecPourboire : champ « Pourboire » facultatif (information seulement : le total de la vente ne change pas).
-export function ModalePaiement({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs, serviParInitial = '', avecPourboire = false }) {
+// Nouvelle version (The Dream) : moyens réglables, billets du Congo, « Qui a servi ? » en photos, plus de pourboire.
+export function ModalePaiement(props) {
+  const { nouvelleVersion, peut } = useEspace();
+  if (!nouvelleVersion) return <ModalePaiementClassique {...props} />;
+  const { avecPourboire: _sansPourboire, onContactCree, ...reste } = props;
+  return (
+    <Encaissement
+      {...reste}
+      serveurs={props.serveurs ?? []}
+      clientRapide={peut('contacts.gerer') ? (retenir) => <ClientRapide onCree={(c) => { retenir(c); props.onContact(c.id); onContactCree?.(c); }} /> : null}
+    />
+  );
+}
+
+function ModalePaiementClassique({ total, contacts, contactId, onContact, onContactCree, onValider, onFermer, libelleRetour = 'Retour au panier', serveurs, serviParInitial = '', avecPourboire = false }) {
   const { montant, devise, peut } = useEspace();
   // Clients créés dans cette fenêtre : visibles tout de suite, avant le rechargement des données.
   const [nouveaux, setNouveaux] = useState([]);
@@ -635,7 +652,7 @@ function BandeFactures({ attentes, maintenant, panierOccupe, onReprendre, onTout
 }
 
 export default function Caisse({ naviguer }) {
-  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise, fonctionActive, reglagesFonctions } = useEspace();
+  const { api, etablissement, montant, notifier, peut, hubs, hub, multiHub, utilisateur, devise, fonctionActive, reglagesFonctions, nouvelleVersion } = useEspace();
   const etab = etablissement.id;
   // Caisses visibles : celles des Hubs autorisés, ou du seul Hub choisi.
   const hubsCaisse = (multiHub && hub ? [hub] : hubs).filter((h) => h.capacite_caisse).map((h) => h.id);
@@ -819,6 +836,11 @@ export default function Caisse({ naviguer }) {
     else setPaiement(p);
   };
 
+  // Nouvelle version (The Dream) : contrôle de présence sur MA caisse, prix d'achat demandé au gérant après la vente.
+  const presence = usePresence(nouvelleVersion && Boolean(session) && !sessionAutre);
+  const [prixAchat, setPrixAchat] = useState(null);
+  const maCaisse = nouvelleVersion ? reglagesFonctions?.caisse?.ma_caisse ?? {} : {};
+
   if (chargement && !donnees) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
   // Ticket Z qui vient d'être édité : il reste affiché même si la caisse est maintenant fermée.
@@ -852,6 +874,7 @@ export default function Caisse({ naviguer }) {
     ? favoris.map((id) => parId[id])
     : donnees.articles.filter((a) => (!filtre || filtre === FAVORIS || a.categorie_id === filtre)
       && (!texte || a.nom.toLowerCase().includes(texte) || (a.reference ?? '').toLowerCase().includes(texte) || (a.code_barres ?? '') === texte));
+  const visiblesOrdonnes = nouvelleVersion ? ordonnerPourModele(visibles, maCaisse.modele, donnees.categories) : visibles;
   const pdvNom = donnees.pointsDeVente.find((p) => p.id === session.point_de_vente_id)?.nom;
   const nombreArticles = lignes.reduce((s, l) => s + l.quantite, 0);
   // Happy hour : évalué à l'heure de l'appareil, rafraîchie chaque minute (« maintenant »).
@@ -967,6 +990,11 @@ export default function Caisse({ naviguer }) {
     if (pourboire && !avertissements.some((a) => a.startsWith('Pourboire'))) notifier(`Pourboire de ${montant(pourboire.montant)} enregistré`);
     terminer();
     setDerniereVente(new Date().toISOString());
+    // Nouvelle version : le gérant donne le prix d'achat des articles qui n'en ont pas, juste après l'impression.
+    if (nouvelleVersion && peut('articles.gerer') && maCaisse.demander_prix_achat !== false) {
+      const sansCout = [...new Set(lignesVendues.map((l) => l.article_id))].map((id) => parId[id]).filter((a) => a && !(Number(a.cout_achat) > 0));
+      if (sansCout.length) setPrixAchat(sansCout);
+    }
     setRecu({ ...resultat, lignesVendues });
     notifier(`Vente ${resultat.numero} enregistrée`);
     recharger();
@@ -1021,7 +1049,8 @@ export default function Caisse({ naviguer }) {
   };
 
   return (
-    <div className="caisse">
+    <div className={`caisse ${nouvelleVersion ? `xp-caisse xp-taille-${maCaisse.taille ?? 'normale'} xp-modele-${maCaisse.modele ?? 'normale'}` : ''}`}>
+      <EcransPresence presence={presence} prenom={nomUtilisateur(utilisateur).split(' ')[0]} />
       <section className="caisse-catalogue">
         <div className="caisse-barre">
           <div className="caisse-session">
@@ -1046,7 +1075,7 @@ export default function Caisse({ naviguer }) {
           {donnees.enAttentePaiement?.nombre > 0 && (
             <Bouton icone="horloge" className="bouton secondaire caisse-attente-paiement" onClick={() => setVoirAttentePaiement(true)}
               title={`${donnees.enAttentePaiement.nombre} vente(s) pas encore payée(s)`}>
-              En attente de paiement · <strong>{montant(donnees.enAttentePaiement.montant)}</strong>
+              {nouvelleVersion ? 'À encaisser' : 'En attente de paiement'} · <strong>{montant(donnees.enAttentePaiement.montant)}</strong>
             </Bouton>
           )}
           {donnees.commandesQr > 0 && (
@@ -1056,6 +1085,7 @@ export default function Caisse({ naviguer }) {
           )}
           {/* Sortie d'argent du tiroir (carburant, loyer, technicien…) : déduite des espèces attendues au ticket Z. */}
           <Bouton icone="depenses" onClick={() => setSortie(true)}>Sortie d’argent</Bouton>
+          <BoutonAbsence presence={presence} />
           {/* Ticket Z bien en avant pour la caissière (demande de Juste, 2026-10-23). */}
           <Bouton icone="cloture" variante="principal" className="bouton principal caisse-ticket-z" onClick={() => setFermeture(true)}>Ticket Z · Fermeture de caisse</Bouton>
         </div>
@@ -1108,7 +1138,7 @@ export default function Caisse({ naviguer }) {
           <Vide titre="Aucun article" texte="Créez vos articles avant de vendre." action={peut('articles.gerer') && <Bouton onClick={() => naviguer('articles')}>Créer un article</Bouton>} />
         )}
         <div className="grille-articles">
-          {visibles.map((a) => {
+          {visiblesOrdonnes.map((a) => {
             const quantite = stockParId[a.id] ?? 0;
             const dansPanier = lignes.filter((l) => l.article_id === a.id).reduce((t, l) => t + l.quantite, 0);
             const epuise = a.suivi_stock && quantite - dansPanier <= 0;
@@ -1191,7 +1221,7 @@ export default function Caisse({ naviguer }) {
         </Modale>
       )}
       {voirAttentePaiement && (
-        <Modale titre="En attente de paiement" onFermer={() => { setVoirAttentePaiement(false); recharger(); }} large>
+        <Modale titre={nouvelleVersion ? 'À encaisser' : 'En attente de paiement'} onFermer={() => { setVoirAttentePaiement(false); recharger(); }} large>
           <Suspense fallback={<Chargement />}><QuiMeDoit integre naviguer={naviguer} /></Suspense>
         </Modale>
       )}
@@ -1208,10 +1238,12 @@ export default function Caisse({ naviguer }) {
           onValider={validerVente}
           onFermer={() => setPaiement(null)}
           serveurs={serveursListe}
+          serveursFiches={donnees.serveurs}
           serviParInitial={serveur}
           avecPourboire
         />
       )}
+      {prixAchat && !recu && <ModalePrixAchat articles={prixAchat} onFermer={() => { setPrixAchat(null); recharger(); }} />}
       {voirAVerifier && <ModaleVentesAVerifier etab={etab} liste={fileHorsLigne} onFermer={() => setVoirAVerifier(false)} />}
       {recu?.horsLigne && (
         <ModaleRecuHorsLigne ticket={recu.ticket} monnaie={recu.monnaie} onFermer={() => setRecu(null)}
