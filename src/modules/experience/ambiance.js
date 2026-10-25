@@ -88,7 +88,46 @@ export const PALETTES = {
 // Dégradé or : champagne → or → bronze, avec le même nom que le dégradé de marque du reste du logiciel.
 const DEGRADE = 'linear-gradient(135deg, #F3D98B 0%, #D4AF37 48%, #9C7A2B 100%)';
 
-const CLES = [...new Set([...Object.keys(PALETTES.nuit), ...Object.keys(PALETTES.jour), '--degrade-marque', '--police-titre'])];
+// Polices au choix (Paramètres > Apparence) : titres, textes, chiffres. Toutes viennent de Google Fonts ; « Système »
+// garde la police de l'appareil (rien à télécharger, le plus rapide sur une connexion lente).
+export const POLICES = {
+  titre: ['Playfair Display', 'Cormorant Garamond', 'DM Serif Display', 'Cinzel', 'Lora', 'Montserrat', 'Poppins', 'Oswald', 'Bebas Neue', 'Inter'],
+  texte: ['Inter', 'Poppins', 'Montserrat', 'Nunito', 'Lato', 'Open Sans', 'Roboto', 'Source Sans 3', 'DM Sans', 'Système'],
+  chiffres: ['Inter', 'Poppins', 'Montserrat', 'Roboto', 'Space Grotesk', 'Oswald', 'Roboto Mono', 'JetBrains Mono', 'Playfair Display', 'Système'],
+};
+export const POLICES_DEFAUT = { titre: 'Playfair Display', texte: 'Inter', chiffres: 'Inter' };
+export const TAILLES_TEXTE = { normal: 1, grand: 1.12, 'tres-grand': 1.25 };
+const TAILLES_BASE = { '--texte-xs': 12, '--texte-sm': 13, '--texte-base': 14, '--texte-md': 15, '--texte-lg': 17, '--texte-xl': 20 };
+const SECOURS = { titre: 'Georgia, serif', texte: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", chiffres: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" };
+const SERIF = new Set(['Playfair Display', 'Cormorant Garamond', 'DM Serif Display', 'Cinzel', 'Lora']);
+
+// Un nom de police tapé à la main : lettres, chiffres et espaces seulement (rien d'autre n'entre dans le lien).
+export function nomPoliceValide(nom) {
+  return typeof nom === 'string' && /^[A-Za-zÀ-ÿ0-9 ]{2,40}$/.test(nom.trim());
+}
+
+export function policesDe(apparence) {
+  const choix = apparence?.polices ?? {};
+  const res = {};
+  for (const cle of Object.keys(POLICES_DEFAUT)) res[cle] = nomPoliceValide(choix[cle]) ? choix[cle].trim() : POLICES_DEFAUT[cle];
+  return res;
+}
+
+export function pilePolice(nom, role) {
+  if (nom === 'Système') return SECOURS[role];
+  const secours = SERIF.has(nom) ? 'Georgia, serif' : SECOURS[role];
+  return `'${nom}', ${secours}`;
+}
+
+// Lien Google Fonts d'une police. Avec les graisses 400 à 700 ; « simple » = sans graisse (pour une police qui n'a
+// qu'une graisse, comme Bebas Neue : Google refuse sinon le lien entier).
+export function lienPolice(nom, simple = false) {
+  if (!nom || nom === 'Système') return null;
+  const famille = nom.trim().replace(/ /g, '+');
+  return `https://fonts.googleapis.com/css2?family=${famille}${simple ? '' : ':wght@400;500;600;700'}&display=swap`;
+}
+
+const CLES = [...new Set([...Object.keys(PALETTES.nuit), ...Object.keys(PALETTES.jour), '--degrade-marque', '--police-titre', '--police', '--police-chiffres', ...Object.keys(TAILLES_BASE)])];
 
 // Réglages lus dans Paramètres > Apparence (module etablissement, clé apparence).
 export function ambianceDe(reglages) {
@@ -97,7 +136,8 @@ export function ambianceDe(reglages) {
   const apparence = etab.apparence ?? {};
   if ((apparence.theme ?? 'dream') !== 'dream') return null;
   const mode = ['nuit', 'jour', 'auto'].includes(apparence.mode) ? apparence.mode : 'nuit';
-  return { theme: 'dream', mode, animations: apparence.animations !== false };
+  const taille = Object.hasOwn(TAILLES_TEXTE, apparence.taille_texte) ? apparence.taille_texte : 'normal';
+  return { theme: 'dream', mode, animations: apparence.animations !== false, polices: policesDe(apparence), taille };
 }
 
 function modeEffectif(mode) {
@@ -107,15 +147,21 @@ function modeEffectif(mode) {
   return h >= 18 || h < 7 ? 'nuit' : 'jour';
 }
 
-let policeChargee = false;
-function chargerPolices() {
-  if (policeChargee || typeof document === 'undefined') return;
-  policeChargee = true;
-  // Une seule police de titre, chargée seulement pour cette ambiance (connexion lente : rien de plus).
-  const lien = document.createElement('link');
-  lien.rel = 'stylesheet';
-  lien.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap';
-  document.head.appendChild(lien);
+// Un lien par police choisie (seules celles-là sont téléchargées) ; les liens des polices quittées sont retirés.
+export function chargerPolices(noms) {
+  if (typeof document === 'undefined') return;
+  const voulus = [...new Set(noms.filter((n) => n && n !== 'Système'))];
+  const presents = [...document.querySelectorAll('link[data-police-dream]')];
+  presents.forEach((l) => { if (!voulus.includes(l.dataset.policeDream)) l.remove(); });
+  voulus.forEach((nom) => {
+    if (presents.some((l) => l.dataset.policeDream === nom && l.isConnected)) return;
+    const lien = document.createElement('link');
+    lien.rel = 'stylesheet';
+    lien.dataset.policeDream = nom;
+    lien.href = lienPolice(nom);
+    lien.addEventListener('error', () => { if (!lien.dataset.simple) { lien.dataset.simple = '1'; lien.href = lienPolice(nom, true); } });
+    document.head.appendChild(lien);
+  });
 }
 
 export function appliquerAmbiance(ambiance, racine = typeof document !== 'undefined' ? document.documentElement : null) {
@@ -132,11 +178,19 @@ export function appliquerAmbiance(ambiance, racine = typeof document !== 'undefi
   const palette = PALETTES[mode];
   Object.entries(palette).forEach(([cle, valeur]) => racine.style.setProperty(cle, valeur));
   racine.style.setProperty('--degrade-marque', DEGRADE);
-  racine.style.setProperty('--police-titre', "'Playfair Display', 'Cormorant Garamond', Georgia, serif");
+  const polices = ambiance.polices ?? POLICES_DEFAUT;
+  racine.style.setProperty('--police-titre', pilePolice(polices.titre, 'titre'));
+  racine.style.setProperty('--police', pilePolice(polices.texte, 'texte'));
+  racine.style.setProperty('--police-chiffres', pilePolice(polices.chiffres, 'chiffres'));
+  const facteur = TAILLES_TEXTE[ambiance.taille] ?? 1;
+  Object.entries(TAILLES_BASE).forEach(([cle, px]) => {
+    if (facteur === 1) racine.style.removeProperty(cle);
+    else racine.style.setProperty(cle, `${Math.round(px * facteur)}px`);
+  });
   racine.dataset.ambiance = 'dream';
   racine.dataset.dream = mode;
   if (typeof document !== 'undefined') {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', mode === 'nuit' ? '#0B0B0D' : '#FAF7F0');
-    chargerPolices();
+    chargerPolices(Object.values(polices));
   }
 }

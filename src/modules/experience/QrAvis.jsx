@@ -82,8 +82,8 @@ export default function QrAvis({ naviguer }) {
         </section>
         <section className="xp-carte xp-section">
           <h2 className="xp-section-titre">Ce que disent les clients</h2>
-          <Tuile titre="Note moyenne" valeur={moyenne == null ? '—' : `${moyenne.toFixed(1)} / 5`}
-            verdict={moyenne == null ? undefined : { ton: moyenne >= 4 ? 'bon' : moyenne >= 3 ? 'attention' : 'mauvais', texte: `${avis.length} avis` }}
+          <Tuile titre="Note moyenne" valeur={moyenne == null ? '—' : `${moyenne.toFixed(1).replace(".", ",")} / 5`}
+            verdict={moyenne == null ? undefined : { ton: moyenne >= 4 ? 'bon' : moyenne >= 3 ? 'vigilance' : 'mauvais', texte: `${avis.length} avis` }}
             pourquoi={avis.filter((a) => !a.lue).length ? `${avis.filter((a) => !a.lue).length} avis pas encore lus.` : 'Tous les avis sont lus.'} />
           <div className="xp-barres">
             {sujetsTries.slice(0, 5).map(([s, n]) => <Barre key={s} libelle={s} valeur={`${n} fois`} part={n / Math.max(1, sujetsTries[0][1])} />)}
@@ -99,7 +99,7 @@ export default function QrAvis({ naviguer }) {
         <div className="xp-liste">
           {visibles.map((a) => (
             <div key={a.id} className="xp-ligne">
-              <span className={`xp-verdict ${a.note >= 4 ? 'bon' : a.note === 3 ? 'attention' : 'mauvais'}`}>{a.note} ★</span>
+              <span className={`xp-verdict ${a.note >= 4 ? 'bon' : a.note === 3 ? 'vigilance' : 'mauvais'}`}>{a.note} ★</span>
               <span className="xp-ligne-texte">
                 <strong>{a.message || 'Sans commentaire'}</strong>
                 <small>{(a.sujets ?? []).join(' · ')}{a.sujets?.length ? ' · ' : ''}{formatDateHeure(a.cree_le)}</small>

@@ -78,8 +78,8 @@ export function EcransPresence({ presence, prenom }) {
       <div className="xp-presence" role="dialog" aria-modal="true" aria-label="Caisse en pause">
         <div className="xp-presence-carte">
           <h2>Caisse en pause</h2>
-          <p className="texte-doux">{prenom ? `${prenom} s’est absentée` : 'Absente'} : {presence.absence.motif}. Depuis {new Date(presence.absence.depuis).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.</p>
-          <Bouton variante="principal" onClick={presence.revenir}>Je suis revenue</Bouton>
+          <p className="texte-doux">{prenom ? `${prenom} est en pause` : 'En pause'} : {presence.absence.motif}. Depuis {new Date(presence.absence.depuis).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.</p>
+          <Bouton variante="principal" onClick={presence.revenir}>Je suis de retour</Bouton>
         </div>
       </div>
     );

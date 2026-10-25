@@ -87,9 +87,9 @@ export default function Liens() {
         <div className="xp-grille large">
           {donnees.remarquables.map((r) => (
             <Tuile key={`${r.s}${r.p}`} titre="Duo qui marche" valeur={`${nomS(r.s)} × ${nomP(r.p)}`}
-              verdict={{ ton: 'bon', texte: `${r.force.toFixed(1)}× la normale` }}
+              verdict={{ ton: 'bon', texte: `${r.force.toFixed(1).replace(".", ",")} fois plus que la moyenne` }}
               pourquoi={`${montant(Math.round(r.v))} vendus. ${nomS(r.s)} vend ce produit bien plus que les autres.`}
-              conseil={`Demandez à ${nomS(r.s)} comment il le propose, et partagez l’astuce à l’équipe.`} />
+              conseil={`Demandez à ${nomS(r.s)} sa façon de le proposer, et partagez l’astuce avec l’équipe.`} />
           ))}
         </div>
       )}

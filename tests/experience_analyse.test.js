@@ -159,3 +159,28 @@ describe('ambiance et liens', () => {
     expect(l.liens[0]).toMatchObject({ s: 's1', p: 'a1', v: 9000 });
   });
 });
+
+describe('polices au choix (Apparence)', () => {
+  test('nom de police : lettres, chiffres et espaces seulement', async () => {
+    const { nomPoliceValide, policesDe, lienPolice, pilePolice } = await import('../src/modules/experience/ambiance.js');
+    expect(nomPoliceValide('Roboto Slab')).toBe(true);
+    expect(nomPoliceValide('Inter&family=x')).toBe(false);
+    expect(nomPoliceValide('')).toBe(false);
+    expect(policesDe({ polices: { titre: 'Cinzel', texte: '<script>' } })).toEqual({ titre: 'Cinzel', texte: 'Inter', chiffres: 'Inter' });
+    expect(lienPolice('Bebas Neue', true)).toBe('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+    expect(lienPolice('Système')).toBeNull();
+    expect(pilePolice('Système', 'texte')).toMatch(/^system-ui/);
+  });
+
+  test('ambiance : polices et taille du texte posées sur la page', async () => {
+    const { ambianceDe, appliquerAmbiance } = await import('../src/modules/experience/ambiance.js');
+    const racine = document.createElement('div');
+    const a = ambianceDe({ etablissement: { nouvelle_version: true, apparence: { polices: { titre: 'Cinzel' }, taille_texte: 'grand' } } });
+    appliquerAmbiance(a, racine);
+    expect(racine.style.getPropertyValue('--police-titre')).toContain('Cinzel');
+    expect(racine.style.getPropertyValue('--texte-base')).toBe('16px');
+    appliquerAmbiance(null, racine);
+    expect(racine.style.getPropertyValue('--police-titre')).toBe('');
+    expect(racine.style.getPropertyValue('--texte-base')).toBe('');
+  });
+});

@@ -63,7 +63,7 @@ export default function Stock({ naviguer }) {
         <LienAncien page="stock" naviguer={naviguer} texte="Mouvements, réceptions, inventaire : écran complet" />
       </EnteteXp>
       <div className="xp-grille">
-        <Tuile icone="stock" titre="Articles suivis" valeur={liste.length} onClick={() => setFiltre('tout')} pourquoi="Comptés à chaque vente." />
+        <Tuile icone="inventaire" titre="Articles suivis" valeur={liste.length} onClick={() => setFiltre('tout')} pourquoi="Comptés à chaque vente." />
         <Tuile icone="alerte" titre="Vont manquer" valeur={bas.length} onClick={() => setFiltre('bas')}
           verdict={{ ton: bas.length ? 'mauvais' : 'bon', texte: bas.length ? 'à commander' : 'tout va bien' }}
           pourquoi={bas.length ? bas.slice(0, 3).map((a) => a.nom).join(', ') : 'Aucun article sous son minimum.'}
@@ -80,12 +80,12 @@ export default function Stock({ naviguer }) {
                 <strong>{a.nom}</strong>
                 <span className="xp-produit-prix">
                   <span className="prix" style={{ fontSize: 26 }}>{a.q}</span>
-                  <span className={`xp-verdict ${a.etat === 'ok' ? 'bon' : a.etat === 'bas' ? 'attention' : 'mauvais'}`}>
+                  <span className={`xp-verdict ${a.etat === 'ok' ? 'bon' : a.etat === 'bas' ? 'vigilance' : 'mauvais'}`}>
                     {a.q <= 0 ? 'épuisé' : a.jours == null ? 'pas vendu récemment' : a.jours < 1 ? 'moins d’une soirée' : `${Math.floor(a.jours)} soirée${a.jours >= 2 ? 's' : ''}`}
                   </span>
                 </span>
                 <span className="xp-jauge"><span style={{ width: `${part * 100}%`, background: couleur }} /></span>
-                <small className="texte-doux">{a.unite ?? 'unité'}{Number(a.stock_minimum) > 0 ? ` · minimum ${a.stock_minimum}` : ''}</small>
+                <small className="texte-doux">{Number(a.stock_minimum) > 0 ? `Minimum : ${a.stock_minimum} ${a.unite && a.unite !== 'unité' ? a.unite : ''}`.trim() : 'Pas de minimum'}</small>
                 {peutAjuster && hubId && (
                   <span className="xp-stock-actions">
                     <button type="button" onClick={() => setAction({ article: a, cle: 'recu' })}>+ Reçu</button>

@@ -92,9 +92,9 @@ function Tickets({ naviguer }) {
         options={jours.map((j, i) => [j, i === 0 ? 'Ce soir' : i === 1 ? 'Hier' : new Date(`${j}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' })])} />
       <div className="xp-grille">
         <Tuile icone="ventes" titre="Tickets" valeur={valides.length} pourquoi={`${montant(ca)} encaissés ou à encaisser`} onClick={() => setFiltre('tout')} />
-        <Tuile icone="horloge" titre="À encaisser" valeur={impayes.length} verdict={{ ton: impayes.length ? 'attention' : 'bon', texte: impayes.length ? montant(impayes.reduce((s, v) => s + Number(v.total) - Number(v.montant_paye), 0)) : 'tout payé' }}
+        <Tuile icone="horloge" titre="À encaisser" valeur={impayes.length} verdict={{ ton: impayes.length ? 'vigilance' : 'bon', texte: impayes.length ? montant(impayes.reduce((s, v) => s + Number(v.total) - Number(v.montant_paye), 0)) : 'tout payé' }}
           onClick={() => setFiltre('impaye')} conseil={impayes.length ? 'Voir lesquels' : undefined} />
-        <Tuile icone="fermer" titre="Annulés" valeur={annulees.length} verdict={{ ton: annulees.length ? 'attention' : 'bon', texte: annulees.length ? montant(annulees.reduce((s, v) => s + Number(v.total), 0)) : 'aucun' }}
+        <Tuile icone="fermer" titre="Annulés" valeur={annulees.length} verdict={{ ton: annulees.length ? 'vigilance' : 'bon', texte: annulees.length ? montant(annulees.reduce((s, v) => s + Number(v.total), 0)) : 'aucun' }}
           onClick={() => setFiltre('annule')} conseil={annulees.length ? 'Voir lesquels' : undefined} />
       </div>
       <div className="xp-entete" style={{ alignItems: 'center' }}>
@@ -111,7 +111,7 @@ function Tickets({ naviguer }) {
               <small>{[v.serveur, v.moyens.join(' + ') || (v.statut === 'annulee' ? '' : 'pas encore payé')].filter(Boolean).join(' · ')}</small>
             </span>
             {v.statut === 'annulee' ? <span className="xp-verdict mauvais">annulé</span>
-              : Number(v.montant_paye) < Number(v.total) ? <span className="xp-verdict attention">reste {montant(Number(v.total) - Number(v.montant_paye))}</span> : null}
+              : Number(v.montant_paye) < Number(v.total) ? <span className="xp-verdict vigilance">reste {montant(Number(v.total) - Number(v.montant_paye))}</span> : null}
             <span className="xp-ligne-valeur">{montant(v.total)}</span>
           </button>
         ))}
@@ -145,7 +145,7 @@ function TicketsZ() {
       <div className="xp-grille">
         {z.map((x) => (
           <Tuile key={x.id} icone="cloture" titre={`${x.numero} · ${x.caissier ?? ''}`} valeur={montant(x.total_ventes)} onClick={() => setOuvert(x)}
-            verdict={x.ecart == null ? { ton: 'neutre', texte: 'à compter' } : Number(x.ecart) === 0 ? { ton: 'bon', texte: 'juste' } : { ton: Number(x.ecart) < 0 ? 'mauvais' : 'attention', texte: montant(x.ecart) }}
+            verdict={x.ecart == null ? { ton: 'neutre', texte: 'à compter' } : Number(x.ecart) === 0 ? { ton: 'bon', texte: 'juste' } : { ton: Number(x.ecart) < 0 ? 'mauvais' : 'vigilance', texte: montant(x.ecart) }}
             pourquoi={`${x.nombre_ventes} ventes · ${formatDateHeure(x.cloturee_le)}`} conseil="Ouvrir le ticket" />
         ))}
       </div>
