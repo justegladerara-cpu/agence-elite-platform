@@ -76,9 +76,9 @@
 .xp-tuile.cliquable { cursor: pointer; }
 .xp-tuile.cliquable:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 55%, var(--bordure)); box-shadow: var(--ombre-survol); }
 .xp-tuile.cliquable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.xp-tuile-tete { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.xp-tuile-tete { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .xp-tuile-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; color: var(--accent); background: var(--accent-doux); flex: none; }
-.xp-tuile-titre { font-size: 13px; color: var(--texte-doux); font-weight: 550; flex: 1 1 auto; min-width: 0; line-height: 1.3; overflow-wrap: anywhere; }
+.xp-tuile-titre { font-size: 13px; color: var(--texte-doux); font-weight: 550; flex: 1 1 70px; min-width: 0; line-height: 1.3; overflow-wrap: break-word; hyphens: auto; }
 .xp-tuile-tete .xp-verdict { flex: none; margin-left: auto; }
 .xp-tuile-valeur { font-size: clamp(22px, 2.4vw, 28px); font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .xp-tuile-valeur small { font-size: 13px; font-weight: 500; color: var(--texte-doux); margin-left: 6px; }
@@ -90,7 +90,7 @@
 .xp-verdict { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .xp-verdict::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .xp-verdict.bon { color: var(--vert); background: var(--vert-doux); }
-.xp-verdict.attention { color: var(--orange); background: var(--orange-doux); }
+.xp-verdict.vigilance { color: var(--orange); background: var(--orange-doux); }
 .xp-verdict.mauvais { color: var(--rouge); background: var(--rouge-doux); }
 .xp-verdict.neutre { color: var(--accent); background: var(--accent-doux); }
 
@@ -193,7 +193,7 @@
 .xp-enc-especes, .xp-enc-reference { display: flex; flex-direction: column; gap: 12px; }
 .xp-enc-ajouter { align-self: flex-start; }
 .xp-enc-reste { display: flex; justify-content: space-between; gap: 10px; padding: 12px 16px; border-radius: 12px; background: var(--orange-doux); color: var(--orange); font-weight: 600; }
-.xp-enc-reste.erreur { background: var(--rouge-doux); color: var(--rouge); }
+.xp-enc-reste.trop { background: var(--rouge-doux); color: var(--rouge); }
 .xp-enc-reste strong { font-size: 20px; font-variant-numeric: tabular-nums; }
 .xp-qui-a-servi { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .xp-qui-a-servi legend { font-weight: 650; margin-bottom: 10px; }
@@ -218,7 +218,7 @@
 
 /* --- Recommandations « Utile / Pas pour moi » ---------------------------------------------------------- */
 .xp-reco { border-left: 3px solid var(--accent); }
-.xp-reco.attention { border-left-color: var(--orange); }
+.xp-reco.vigilance { border-left-color: var(--orange); }
 .xp-reco.mauvais { border-left-color: var(--rouge); }
 .xp-reco.bon { border-left-color: var(--vert); }
 .xp-reco-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
@@ -383,3 +383,38 @@
 @media (max-width: 640px) { .xp-page { padding: 16px max(14px, env(safe-area-inset-left, 0px)) 32px; } }
 
 .xp-enc-erreur { flex: 1 1 200px; color: #F87171; font-weight: 600; font-size: 14px; align-self: center; }
+
+/* --- Polices choisies dans Paramètres > Apparence ------------------------------------------------------------
+   --police (textes) est déjà la police de tout le logiciel ; ici, les titres et les chiffres. */
+:root[data-ambiance='dream'] .xp-entete h1, :root[data-ambiance='dream'] .xp-section-titre,
+:root[data-ambiance='dream'] .page-entete h1, :root[data-ambiance='dream'] .modale-tete h2 { font-family: var(--police-titre); }
+:root[data-ambiance='dream'] .xp-tuile-valeur, :root[data-ambiance='dream'] .xp-anneau-centre strong,
+:root[data-ambiance='dream'] .xp-barre-texte strong, :root[data-ambiance='dream'] .xp-enc-total strong,
+:root[data-ambiance='dream'] .xp-gros-champ, :root[data-ambiance='dream'] .xp-billets button,
+:root[data-ambiance='dream'] .xp-monnaie strong, :root[data-ambiance='dream'] .xp-enc-reste strong,
+:root[data-ambiance='dream'] .xp-ligne-valeur, :root[data-ambiance='dream'] .xp-pm strong,
+:root[data-ambiance='dream'] .xp-presence-chrono, :root[data-ambiance='dream'] .tuile-prix,
+:root[data-ambiance='dream'] .panier-total strong { font-family: var(--police-chiffres); }
+:root[data-ambiance='dream'] .xp-gros-chiffre { font-family: var(--police-chiffres); }
+.xp-polices { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.xp-police-choix { display: flex; flex-direction: column; gap: 8px; }
+.xp-police-choix select, .xp-police-choix input { width: 100%; }
+.xp-apercu-polices { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
+.xp-apercu-polices .apercu-titre { font-size: 26px; font-weight: 700; margin: 0; }
+.xp-apercu-polices .apercu-texte { margin: 0; color: var(--texte-doux); line-height: 1.5; }
+.xp-apercu-polices .apercu-chiffre { font-size: 34px; font-weight: 700; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.xp-reglage-ligne { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.xp-segments button { white-space: nowrap; }
+@media (max-width: 640px) {
+  .xp-reglage { flex-direction: column; align-items: stretch; }
+  .xp-reglage .xp-segments { display: flex; }
+  .xp-reglage .xp-segments button { flex: 1 1 0; }
+}
+/* Choix dans une tuile : toujours sur une ligne, chaque bouton prend sa part. */
+.xp-tuile .xp-segments { display: flex; flex-wrap: nowrap; }
+.xp-tuile .xp-segments button { flex: 1 1 0; padding: 7px 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.xp-gros-chiffre { white-space: nowrap; font-size: clamp(28px, 3.2vw, 40px); }
+.xp-aujourdhui-chiffres .xp-verdict { white-space: normal; }
+:root[data-ambiance='dream'] .xp-section-titre small { font-family: var(--police); }
+.xp-marge.xp-verdict { white-space: normal; max-width: 100%; font-size: 11.5px; }
+.xp-segments button { font-family: var(--police); }

@@ -200,8 +200,8 @@ export function Encaissement({
         )}
 
         {(reste > 0 || trop) && (
-          <div className={`xp-enc-reste ${trop ? 'erreur' : ''}`}>
-            <span>{trop ? 'Trop saisi' : 'Il paiera plus tard (reste dû)'}</span>
+          <div className={`xp-enc-reste ${trop ? 'trop' : ''}`}>
+            <span>{trop ? 'Montant trop élevé' : 'Il paiera plus tard (reste dû)'}</span>
             <strong>{montant(trop ? horsEspeces - total : reste)}</strong>
           </div>
         )}

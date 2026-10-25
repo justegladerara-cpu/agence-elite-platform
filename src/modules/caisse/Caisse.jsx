@@ -62,7 +62,8 @@ function couleurDe(texte) {
 }
 
 function initiales(nom) {
-  return nom.split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('');
+  // Lettres seulement : « Black Label (bouteille) » donne « BL », jamais « B( ».
+  return String(nom ?? '').replace(/\(.*?\)/g, ' ').split(/\s+/).map((m) => m.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
 }
 
 export function VignetteArticle({ article, taille = 'normale' }) {
@@ -1183,7 +1184,7 @@ export default function Caisse({ naviguer }) {
       <div className="barre-encaisser">
         <button type="button" className="barre-encaisser-panier" onClick={() => setPanierMobile(true)}>
           <Icone nom="panier" />
-          <span>{formatQuantite(nombreArticles)} article(s){serveur ? ` · ${serveur}` : ''}</span>
+          <span>{nombreArticles ? `${formatQuantite(nombreArticles)} article${nombreArticles > 1 ? 's' : ''}` : 'Panier vide'}{serveur ? ` · ${serveur}` : ''}</span>
           <small>voir le panier</small>
         </button>
         <button type="button" className="barre-encaisser-bouton" disabled={!lignes.length} onClick={() => demanderPaiement({ total: totalPanier })}>

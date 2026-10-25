@@ -64,15 +64,15 @@ export default function Articles({ naviguer }) {
       </EnteteXp>
       <div className="xp-grille">
         <Tuile icone="articles" titre="Articles en vente" valeur={articles.length} onClick={() => setFiltre('tout')}
-          verdict={filtre === 'tout' ? { ton: 'neutre', texte: 'affichés' } : undefined} pourquoi={`${donnees.categories.length} catégories`} />
-        <Tuile icone="oeil" titre="Sans photo" valeur={sansPhoto.length} onClick={() => setFiltre(filtre === 'photo' ? 'tout' : 'photo')}
-          verdict={{ ton: sansPhoto.length ? 'attention' : 'bon', texte: sansPhoto.length ? 'à compléter' : 'complet' }}
+          pourquoi={`${donnees.categories.length} catégories`} />
+        <Tuile icone="photo" titre="Sans photo" valeur={sansPhoto.length} onClick={() => setFiltre(filtre === 'photo' ? 'tout' : 'photo')}
+          verdict={{ ton: sansPhoto.length ? 'vigilance' : 'bon', texte: sansPhoto.length ? 'à compléter' : 'complet' }}
           pourquoi="Une photo aide la caissière à trouver vite le bon article." conseil={sansPhoto.length ? 'Voir ceux sans photo' : undefined} />
-        <Tuile icone="cible" titre="Sans prix d’achat" valeur={sansCout.length} onClick={() => setFiltre(filtre === 'cout' ? 'tout' : 'cout')}
-          verdict={{ ton: sansCout.length ? 'attention' : 'bon', texte: sansCout.length ? 'marge inconnue' : 'complet' }}
+        <Tuile icone="billet" titre="Sans prix d’achat" valeur={sansCout.length} onClick={() => setFiltre(filtre === 'cout' ? 'tout' : 'cout')}
+          verdict={{ ton: sansCout.length ? 'vigilance' : 'bon', texte: sansCout.length ? 'marge inconnue' : 'complet' }}
           pourquoi="Sans prix d’achat, le logiciel ne sait pas ce que l’article vous rapporte." conseil={sansCout.length ? 'Les compléter' : undefined} />
         <Tuile icone="graphique" titre="Marge moyenne" valeur={margeMoyenne == null ? '—' : `${Math.round(margeMoyenne * 100)} %`}
-          verdict={margeMoyenne == null ? undefined : { ton: margeMoyenne >= 0.5 ? 'bon' : margeMoyenne >= 0.3 ? 'attention' : 'mauvais', texte: margeMoyenne >= 0.5 ? 'bonne' : 'faible' }}
+          verdict={margeMoyenne == null ? undefined : { ton: margeMoyenne >= 0.5 ? 'bon' : margeMoyenne >= 0.3 ? 'vigilance' : 'mauvais', texte: margeMoyenne >= 0.5 ? 'bonne' : margeMoyenne >= 0.3 ? 'moyenne' : 'faible' }}
           pourquoi="Sur les articles qui ont un prix d’achat." />
       </div>
       <div className="xp-entete" style={{ alignItems: 'center' }}>
@@ -110,7 +110,7 @@ export default function Articles({ naviguer }) {
                     onEnregistrer={(v) => modifier(a, { cout_achat: v == null || v === '' ? null : v }, `Prix d’achat de ${a.nom} enregistré`)} />
                 </span>
                 {marge != null && (
-                  <span className={`xp-marge xp-verdict ${marge >= 0.5 ? 'bon' : marge >= 0.3 ? 'attention' : 'mauvais'}`}>
+                  <span className={`xp-marge xp-verdict ${marge >= 0.5 ? 'bon' : marge >= 0.3 ? 'vigilance' : 'mauvais'}`}>
                     rapporte {montant(a.prix_vente - a.cout_achat)} ({Math.round(marge * 100)} %)
                   </span>
                 )}

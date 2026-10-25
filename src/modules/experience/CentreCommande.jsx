@@ -8,7 +8,7 @@ import {
   soireeDe, texteVariation, tonVariation, totaux, troisSignaux, variation, ajouterJours, rangHeure,
 } from './analyse.js';
 import { couleurMoyen, libelleMoyen, lireMoyens } from './moyens.js';
-import { Anneau, Barre, Courbe, EnteteXp, Panneau, PhotoServeur, Segments, Tuile } from './communs.jsx';
+import { Anneau, Barre, Courbe, EnteteXp, Panneau, PhotoServeur, pluriel, Segments, Tuile } from './communs.jsx';
 
 // Centre de commande (nouvelle version The Dream) : la soirée en direct, 3 signaux, des tuiles qui répondent aux
 // 4 questions, des conseils notés « Utile / Pas pour moi ». Le logiciel conseille, le patron décide.
@@ -62,8 +62,9 @@ export default function CentreCommande({ naviguer }) {
   const calc = useMemo(() => {
     if (!d) return null;
     const t = totaux(d.r, b.du, b.au);
-    const tAvant = totaux(d.avant, b.avantDu, b.avantAu);
     const courbe = b.longueur === 1 ? courbeDuJour(d.historique, d.r, b.du, new Date(), fuseau, debut) : null;
+    // Ce soir en direct : on compare à la même heure la semaine passée, pas à toute sa soirée.
+    const tAvant = totaux(d.avant, b.avantDu, b.avantAu, enDirect && courbe ? courbe.rang : null, debut);
     const recos = recommandationsVisibles(
       recommandations({ r: d.r, avant: d.avant, articles: d.articles, stock: d.stock, montant, objectif, courbe, du: b.du, au: b.au }),
       { ...(d.r.avis ?? {}), ...avisLocaux },
@@ -102,7 +103,7 @@ export default function CentreCommande({ naviguer }) {
   const vCa = variation(t.ca, tAvant.ca);
   const vVentes = variation(t.ventes, tAvant.ventes);
   const vPanier = variation(t.panier, tAvant.panier);
-  const libelleAvant = b.longueur === 1 ? `${JOURS_LONGS[jourDeSemaine(b.avantDu)]} dernier` : 'la période d’avant';
+  const libelleAvant = b.longueur === 1 ? `${JOURS_LONGS[jourDeSemaine(b.avantDu)]} dernier${enDirect ? ' à la même heure' : ''}` : 'la période d’avant';
   const z = (d.r.clotures ?? []).slice(0, 6);
   const suggestions = d.r.suggestions ?? [];
   const noteMoyenne = suggestions.length ? suggestions.reduce((s, x) => s + x.note, 0) / suggestions.length : null;
@@ -116,7 +117,7 @@ export default function CentreCommande({ naviguer }) {
         surtitre={`${etablissement.nom} · centre de commande`}
         titre={`${salutation(maintenant.heure)} ${nomUtilisateur(utilisateur).split(' ')[0]}`}
         sousTitre={b.longueur === 1
-          ? `Soirée du ${dateLongue(b.du)}${enDirect ? ` · en direct, mis à jour à ${d.lu.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}`
+          ? `Soirée du ${dateLongue(b.du)}${enDirect ? ` · en direct, mis à jour à ${d.lu.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: fuseau || undefined })}` : ''}`
           : `Du ${dateLongue(b.du)} au ${dateLongue(b.au)} · comparé à ${libelleAvant}`}
       >
         <Segments options={PERIODES} valeur={periode} onChange={setPeriode} libelle="Période" />
@@ -167,7 +168,7 @@ export default function CentreCommande({ naviguer }) {
           <h2 className="xp-section-titre">À regarder maintenant <small>les {signaux.length} points les plus importants</small></h2>
           <div className="xp-grille large">
             {signaux.map((s) => (
-              <Tuile key={s.cle} className={`xp-reco ${s.ton}`} titre={s.titre} verdict={{ ton: s.ton, texte: s.ton === 'bon' ? 'Bien' : s.ton === 'mauvais' ? 'Urgent' : s.ton === 'attention' ? 'À surveiller' : 'Info' }}
+              <Tuile key={s.cle} className={`xp-reco ${s.ton}`} titre={s.titre} verdict={{ ton: s.ton, texte: s.ton === 'bon' ? 'Bien' : s.ton === 'mauvais' ? 'Urgent' : s.ton === 'vigilance' ? 'À surveiller' : 'Info' }}
                 valeur={s.valeur} pourquoi={s.pourquoi} conseil={s.conseil} onClick={() => setPanneau(s.panneau)} />
             ))}
           </div>
@@ -191,16 +192,16 @@ export default function CentreCommande({ naviguer }) {
             conseil={vPanier != null && vPanier < -0.05 ? 'Faites proposer une bouteille ou une chicha.' : 'Gardez les serveurs qui font monter le panier.'}
             onClick={() => setPanneau('serveurs')} />
           <Tuile icone="cible" titre="Ce qui vous reste (marge)" valeur={t.tauxMarge == null ? '—' : montant(Math.round(t.marge))}
-            verdict={t.tauxMarge == null ? { ton: 'neutre', texte: 'prix d’achat manquants' } : { ton: t.tauxMarge >= 0.5 ? 'bon' : t.tauxMarge >= 0.3 ? 'attention' : 'mauvais', texte: `${Math.round(t.tauxMarge * 100)} %` }}
+            verdict={t.tauxMarge == null ? { ton: 'neutre', texte: 'prix d’achat manquants' } : { ton: t.tauxMarge >= 0.5 ? 'bon' : t.tauxMarge >= 0.3 ? 'vigilance' : 'mauvais', texte: `${Math.round(t.tauxMarge * 100)} %` }}
             pourquoi={`Calculée sur ${Math.round(t.partCouverte * 100)} % des ventes (les articles qui ont un prix d’achat).`}
             conseil={t.partCouverte < 0.95 ? 'Complétez les prix d’achat dans Articles' : 'Voir les produits qui rapportent le plus'}
             onClick={() => (t.partCouverte < 0.95 ? naviguer('mes-articles') : setPanneau('produits'))} />
           <Tuile icone="fermer" titre="Annulations" valeur={t.annulations}
-            verdict={{ ton: t.annulations === 0 ? 'bon' : t.annulations / Math.max(1, t.ventes + t.annulations) > 0.04 ? 'mauvais' : 'attention', texte: t.annulations === 0 ? 'aucune' : montant(t.montantAnnule) }}
+            verdict={{ ton: t.annulations === 0 ? 'bon' : t.annulations / Math.max(1, t.ventes + t.annulations) > 0.04 ? 'mauvais' : 'vigilance', texte: t.annulations === 0 ? 'aucune' : montant(t.montantAnnule) }}
             pourquoi={t.annulations ? 'Une annulation fait disparaître une vente : chacune doit avoir une raison.' : 'Aucune vente annulée sur la période.'}
             conseil={t.annulations ? 'Voir qui a annulé et pourquoi' : undefined} onClick={t.annulations ? () => setPanneau('annulations') : undefined} />
           <Tuile icone="horloge" titre="À encaisser" valeur={montant(t.resteDu)}
-            verdict={{ ton: t.resteDu === 0 ? 'bon' : t.resteDu / Math.max(1, t.ca) > 0.05 ? 'mauvais' : 'attention', texte: t.resteDu === 0 ? 'tout est payé' : `${Math.round((t.resteDu / Math.max(1, t.ca)) * 100)} % du chiffre` }}
+            verdict={{ ton: t.resteDu === 0 ? 'bon' : t.resteDu / Math.max(1, t.ca) > 0.05 ? 'mauvais' : 'vigilance', texte: t.resteDu === 0 ? 'tout est payé' : `${Math.round((t.resteDu / Math.max(1, t.ca)) * 100)} % du chiffre` }}
             pourquoi="Ventes servies mais pas encore payées (clients en compte)."
             conseil={t.resteDu ? 'Relancer les clients' : undefined} onClick={t.resteDu ? () => naviguer('qui-me-doit') : undefined} />
         </div>
@@ -238,7 +239,7 @@ export default function CentreCommande({ naviguer }) {
                 <PhotoServeur prenom={s.prenom} photo={s.photo} taille={38} />
                 <span className="xp-ligne-texte">
                   <strong>{i === 0 && s.id ? '★ ' : ''}{s.prenom}</strong>
-                  <small>{s.nb} tickets · panier {montant(Math.round(s.panier))}</small>
+                  <small>{pluriel(s.nb, 'ticket')} · panier moyen {montant(Math.round(s.panier))}</small>
                   <span className="xp-barre-piste"><span style={{ width: `${(s.ca / maxServeur) * 100}%`, background: 'var(--accent)' }} /></span>
                 </span>
                 <span className="xp-ligne-valeur">{montant(s.ca)}</span>
@@ -255,9 +256,9 @@ export default function CentreCommande({ naviguer }) {
                 <PhotoServeur prenom={c.nom} taille={38} />
                 <span className="xp-ligne-texte">
                   <strong>{c.nom}</strong>
-                  <small>{c.nb} tickets · {c.z} Z{c.annulations ? ` · ${c.annulations} annulation${c.annulations > 1 ? 's' : ''}` : ''}</small>
+                  <small>{pluriel(c.nb, 'ticket')} · {c.z ? pluriel(c.z, 'ticket Z', 'tickets Z') : 'caisse pas encore fermée'}{c.annulations ? ` · ${pluriel(c.annulations, 'annulation')}` : ''}</small>
                 </span>
-                <span className={`xp-verdict ${c.ecartTotal < 0 ? (c.ecartsNegatifs >= 2 ? 'mauvais' : 'attention') : 'bon'}`}>
+                <span className={`xp-verdict ${c.ecartTotal < 0 ? (c.ecartsNegatifs >= 2 ? 'mauvais' : 'vigilance') : 'bon'}`}>
                   {c.ecartTotal < 0 ? `manque ${montant(-c.ecartTotal)}` : 'caisse juste'}
                 </span>
               </div>
@@ -281,7 +282,7 @@ export default function CentreCommande({ naviguer }) {
               </Tuile>
             ))}
           </div>
-          {recos.some((x) => x.masquee) && <small className="texte-doux">{recos.filter((x) => x.masquee).length} conseil(s) mis de côté (« Pas pour moi ») : ils reviennent dans 30 jours ou si la situation change beaucoup.</small>}
+          {recos.some((x) => x.masquee) && <small className="texte-doux">{recos.filter((x) => x.masquee).length > 1 ? `${recos.filter((x) => x.masquee).length} conseils mis de côté` : '1 conseil mis de côté'} (« Pas pour moi ») : ils reviennent dans 30 jours ou si la situation change beaucoup.</small>}
         </section>
       )}
 
@@ -316,11 +317,11 @@ export default function CentreCommande({ naviguer }) {
           <h2 className="xp-section-titre">Avis des clients <button type="button" className="lien" onClick={() => naviguer('qr-et-avis')}>Ouvrir</button></h2>
           {noteMoyenne != null ? (
             <>
-              <div className="xp-tuile-valeur">{noteMoyenne.toFixed(1)} <small>/ 5 · {suggestions.length} avis</small></div>
+              <div className="xp-tuile-valeur">{noteMoyenne.toFixed(1).replace(".", ",")} <small>/ 5 · {suggestions.length} avis</small></div>
               <div className="xp-liste">
                 {suggestions.slice(0, 4).map((s) => (
                   <div key={s.id} className="xp-ligne">
-                    <span className={`xp-verdict ${s.note >= 4 ? 'bon' : s.note === 3 ? 'attention' : 'mauvais'}`}>{s.note} ★</span>
+                    <span className={`xp-verdict ${s.note >= 4 ? 'bon' : s.note === 3 ? 'vigilance' : 'mauvais'}`}>{s.note} ★</span>
                     <span className="xp-ligne-texte">
                       <strong>{s.message || (s.sujets ?? []).join(', ') || 'Sans commentaire'}</strong>
                       <small>{formatDateHeure(s.quand)}</small>
@@ -338,7 +339,7 @@ export default function CentreCommande({ naviguer }) {
         <div className="xp-grille">
           {z.map((c) => (
             <Tuile key={c.id} icone="cloture" titre={`${c.numero} · ${c.caissier_nom ?? ''}`} valeur={montant(c.total_ventes)}
-              verdict={c.ecart == null ? { ton: 'neutre', texte: 'à compter' } : Number(c.ecart) === 0 ? { ton: 'bon', texte: 'caisse juste' } : { ton: Number(c.ecart) < 0 ? 'mauvais' : 'attention', texte: `${Number(c.ecart) > 0 ? '+' : ''}${montant(c.ecart)}` }}
+              verdict={c.ecart == null ? { ton: 'neutre', texte: 'à compter' } : Number(c.ecart) === 0 ? { ton: 'bon', texte: 'caisse juste' } : { ton: Number(c.ecart) < 0 ? 'mauvais' : 'vigilance', texte: `${Number(c.ecart) > 0 ? '+' : ''}${montant(c.ecart)}` }}
               pourquoi={`${c.nombre_ventes} ventes · fermée le ${formatDateHeure(c.cloturee_le)}${c.automatique ? ' (fermeture automatique)' : ''}`} />
           ))}
           {!z.length && <p className="texte-doux">Aucun ticket Z sur la période.</p>}
@@ -397,7 +398,7 @@ function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut }) {
         {calc.caissiers.map((c) => (
           <Tuile key={c.id} titre={c.nom} valeur={montant(c.ca)}
             verdict={{ ton: c.ecartTotal < 0 ? 'mauvais' : 'bon', texte: c.ecartTotal < 0 ? `manque ${montant(-c.ecartTotal)}` : 'caisse juste' }}
-            pourquoi={`${c.nb} tickets · ${c.z} tickets Z · ${c.ecartsNegatifs} Z avec un manque · ${c.annulations} annulation(s)`} />
+            pourquoi={`${pluriel(c.nb, 'ticket')} · ${pluriel(c.z, 'ticket Z', 'tickets Z')} · ${c.ecartsNegatifs ? `${pluriel(c.ecartsNegatifs, 'manque')} à la fermeture` : 'aucun manque'} · ${c.annulations ? pluriel(c.annulations, 'annulation') : 'aucune annulation'}`} />
         ))}
         <h3>Tickets Z de la période</h3>
         <div className="xp-liste">
@@ -418,7 +419,7 @@ function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut }) {
     return (
       <>
         <div className="xp-grille etroite">
-          {Object.entries(parPersonne).map(([id, n]) => <Tuile key={id} titre={d.r.personnes?.[id] ?? 'Inconnu'} valeur={n} unite="annulation(s)" />)}
+          {Object.entries(parPersonne).map(([id, n]) => <Tuile key={id} titre={d.r.personnes?.[id] ?? 'Inconnu'} valeur={n} unite={n > 1 ? 'annulations' : 'annulation'} />)}
         </div>
         <div className="xp-liste">
           {liste.map((a) => (
@@ -444,7 +445,7 @@ function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut }) {
           {liste.map((p) => (
             <div key={p.id} className="xp-ligne">
               <span className="xp-ligne-texte"><strong>{p.nom}</strong><small>Il en reste {p.reste} · environ {Math.round((p.qte / soirees) * 10) / 10} vendus par soirée</small></span>
-              <span className={`xp-verdict ${p.jours < 1 ? 'mauvais' : p.jours < 3 ? 'attention' : 'bon'}`}>{p.jours < 1 ? '< 1 soirée' : `${Math.floor(p.jours)} soirées`}</span>
+              <span className={`xp-verdict ${p.jours < 1 ? 'mauvais' : p.jours < 3 ? 'vigilance' : 'bon'}`}>{p.jours < 1 ? '< 1 soirée' : `${Math.floor(p.jours)} soirées`}</span>
             </div>
           ))}
         </div>
@@ -457,7 +458,7 @@ function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut }) {
       <div className="xp-liste">
         {(d.r.suggestions ?? []).map((s) => (
           <div key={s.id} className="xp-ligne">
-            <span className={`xp-verdict ${s.note >= 4 ? 'bon' : s.note === 3 ? 'attention' : 'mauvais'}`}>{s.note} ★</span>
+            <span className={`xp-verdict ${s.note >= 4 ? 'bon' : s.note === 3 ? 'vigilance' : 'mauvais'}`}>{s.note} ★</span>
             <span className="xp-ligne-texte"><strong>{s.message || 'Sans commentaire'}</strong><small>{(s.sujets ?? []).join(', ')} · {formatDateHeure(s.quand)}</small></span>
           </div>
         ))}

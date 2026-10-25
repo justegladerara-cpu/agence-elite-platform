@@ -6,8 +6,14 @@ import { Icone } from '../../ui/composants.jsx';
 
 const COULEURS_INITIALES = ['#D4AF37', '#2FBF71', '#F2A93B', '#8AA4FF', '#E5484D', '#C9A0FF', '#4FD1C5'];
 
+// « 1 ticket », « 3 tickets » : jamais de « ticket(s) ».
+export function pluriel(n, singulier, plurielForme = `${singulier}s`) {
+  return `${n} ${Math.abs(Number(n)) > 1 ? plurielForme : singulier}`;
+}
+
 export function initialesDe(nom) {
-  return String(nom ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
+  // Lettres seulement : « Black Label (bouteille) » donne « BL », jamais « B( ».
+  return String(nom ?? '').replace(/\(.*?\)/g, ' ').split(/\s+/).map((m) => m.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
 }
 
 function couleurNom(nom) {
@@ -26,7 +32,7 @@ export function PhotoServeur({ prenom, photo, taille = 56 }) {
   );
 }
 
-// Ton d'un verdict : bon (émeraude), attention (ambre), mauvais (rubis), neutre (or discret).
+// Ton d'un verdict : bon (émeraude), vigilance (ambre), mauvais (rubis), neutre (or discret).
 export function Verdict({ ton = 'neutre', children }) {
   return <span className={`xp-verdict ${ton}`}>{children}</span>;
 }

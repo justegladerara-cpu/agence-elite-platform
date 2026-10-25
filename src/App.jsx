@@ -650,7 +650,7 @@ function Coquille() {
   const titrePage = surEditeur ? nomEditeur : page?.libelle;
   // Ambiance noir et or de la nouvelle version (The Dream) : posée après la couleur de marque, retirée ailleurs.
   const ambiance = ambianceDe(espace.reglagesFonctions);
-  const cleAmbiance = ambiance ? `${ambiance.mode}` : '';
+  const cleAmbiance = ambiance ? JSON.stringify(ambiance) : '';
   useEffect(() => {
     appliquerMarque(marque, titrePage);
     appliquerAmbiance(surEditeur ? null : ambiance);

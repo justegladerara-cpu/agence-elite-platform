@@ -73,8 +73,9 @@ export function bornesPeriode(cle, aujourdhui) {
 const dans = (jour, du, au) => jour >= du && jour <= au;
 const somme = (liste, f) => liste.reduce((s, x) => s + (Number(f(x)) || 0), 0);
 
-export function totaux(r, du = r?.du, au = r?.au) {
-  const heures = (r?.heures ?? []).filter((h) => dans(h[0], du, au));
+// rangMax (facultatif) : ne compter que les heures de la soirée jusqu'à ce rang (comparer « à la même heure »).
+export function totaux(r, du = r?.du, au = r?.au, rangMax = null, debut = 8) {
+  const heures = (r?.heures ?? []).filter((h) => dans(h[0], du, au) && (rangMax == null || rangHeure(h[1], debut) <= rangMax));
   const produits = (r?.produits ?? []).filter((p) => dans(p[0], du, au));
   const ca = somme(heures, (h) => h[3]);
   const ventes = somme(heures, (h) => h[2]);
@@ -271,7 +272,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
     if (e != null && Math.abs(e) >= 0.1) {
       sortie.push({
         cle: `rythme-${du}`,
-        ton: e > 0 ? 'bon' : 'attention',
+        ton: e > 0 ? 'bon' : 'vigilance',
         titre: e > 0 ? 'Soirée en avance' : 'Soirée en retard',
         valeur: texteVariation(e),
         pourquoi: `À cette heure, un ${JOURS_LONGS[jourDeSemaine(du)]} habituel est à ${montant(courbe.attenduMaintenant)}. Ce soir : ${montant(courbe.actuel)}.`,
@@ -290,7 +291,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
   ruptures.slice(0, 3).forEach((p) => {
     sortie.push({
       cle: `rupture-${p.id}`,
-      ton: p.jours < 1 ? 'mauvais' : 'attention',
+      ton: p.jours < 1 ? 'mauvais' : 'vigilance',
       titre: `${p.nom} : bientôt fini`,
       valeur: p.jours < 1 ? 'moins d’une soirée' : `${Math.floor(p.jours)} soirée${p.jours >= 2 ? 's' : ''}`,
       pourquoi: `Il en reste ${p.stock}. Vous en vendez environ ${Math.round((p.qte / soirees) * 10) / 10} par soirée.`,
@@ -318,7 +319,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
   if (t.annulations >= 3 && t.ventes > 0 && t.annulations / (t.ventes + t.annulations) > 0.04) {
     sortie.push({
       cle: `annulations-${du}-${au}`,
-      ton: 'attention',
+      ton: 'vigilance',
       titre: 'Beaucoup d’annulations',
       valeur: `${t.annulations} · ${montant(t.montantAnnule)}`,
       pourquoi: `${Math.round((t.annulations / (t.ventes + t.annulations)) * 100)} % des tickets ont été annulés. Au-delà de 4 %, il faut regarder qui et pourquoi.`,
@@ -331,7 +332,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
   if (t.resteDu > 0 && t.ca > 0 && t.resteDu / t.ca > 0.05) {
     sortie.push({
       cle: `reste-du-${du}-${au}`,
-      ton: 'attention',
+      ton: 'vigilance',
       titre: 'Argent pas encore encaissé',
       valeur: montant(t.resteDu),
       pourquoi: `${Math.round((t.resteDu / t.ca) * 100)} % des ventes de la période ne sont pas payées.`,
@@ -362,7 +363,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
       .filter((p) => p.v != null && p.v < -0.25 && (avantParId[p.id]?.ca ?? 0) > t.ca * 0.03);
     baisses.slice(0, 1).forEach((p) => sortie.push({
       cle: `baisse-${p.id}-${du}`,
-      ton: 'attention',
+      ton: 'vigilance',
       titre: `${p.nom} se vend moins`,
       valeur: texteVariation(p.v),
       pourquoi: `${montant(p.ca)} sur la période, contre ${montant(avantParId[p.id].ca)} avant.`,
@@ -377,7 +378,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
     if (courbe.projection < objectif * 0.9 && part < 1) {
       sortie.push({
         cle: `objectif-${du}`,
-        ton: 'attention',
+        ton: 'vigilance',
         titre: 'Objectif du jour menacé',
         valeur: `${Math.round(part * 100)} %`,
         pourquoi: `Au rythme actuel, la soirée finira vers ${montant(courbe.projection)} pour un objectif de ${montant(objectif)}.`,
@@ -397,9 +398,9 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
     if (moyenne < 4 && premier) {
       sortie.push({
         cle: `avis-${premier[0]}`,
-        ton: 'attention',
+        ton: 'vigilance',
         titre: `Les clients parlent de « ${premier[0]} »`,
-        valeur: `${moyenne.toFixed(1)} / 5`,
+        valeur: `${moyenne.toFixed(1).replace(".", ",")} / 5`,
         pourquoi: `${premier[1]} avis moyens ou mauvais citent ce sujet sur la période.`,
         conseil: 'Parlez-en à l’équipe au briefing de ce soir.',
         panneau: 'avis',
@@ -423,7 +424,7 @@ export function recommandations({ r, avant, articles, stock, montant, objectif, 
     }
   }
 
-  const ordre = { mauvais: 0, attention: 1, bon: 2, neutre: 3 };
+  const ordre = { mauvais: 0, vigilance: 1, bon: 2, neutre: 3 };
   return sortie.sort((a, b) => ordre[a.ton] - ordre[b.ton]);
 }
 

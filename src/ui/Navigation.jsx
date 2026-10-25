@@ -87,7 +87,7 @@ export function BarreOngletsMobile({ pages, pageActive, aller, onMenu }) {
       {onglets.map((p) => (
         <button key={p.id} type="button" className={p.id === pageActive ? 'actif' : ''} aria-current={p.id === pageActive ? 'page' : undefined} onClick={() => aller(p.id)}>
           <Icone nom={p.icone} />
-          <span>{p.libelle}</span>
+          <span>{p.libelleCourt ?? p.libelle}</span>
         </button>
       ))}
       <button type="button" onClick={onMenu} aria-label="Tout le menu">

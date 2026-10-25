@@ -5,6 +5,12 @@ import { lireParametres } from '../noyau/routes.js';
 import { useLignesNouvelles } from '../motion/lignes.js';
 
 const CHEMINS = {
+  qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3M6 6h1v1H6zM17 6h1v1h-1zM6 17h1v1H6z',
+  photo: 'M3 8a2 2 0 012-2h2l2-2h6l2 2h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM12 17a4 4 0 100-8 4 4 0 000 8z',
+  billet: 'M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM5.5 12h.01M18.5 12h.01',
+  carte: 'M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2zM2 10h20M6 15h4',
+  palette: 'M12 3a9 9 0 100 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0021 9.7C21 6 17 3 12 3zM7.5 11.5h.01M9.5 7.5h.01M14.5 7.5h.01',
+  badge: 'M9 2h6v4H9zM5 6h14v15H5zM12 14a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8.5 18.5c.7-1.6 2-2.4 3.5-2.4s2.8.8 3.5 2.4',
   tableau: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
   coche: 'M5 12.5l4.5 4.5L19 7.5',
   caisse: 'M4 4h16v4H4zM6 10h12l1 10H5zM9 13h2v2H9zm4 0h2v2h-2z',
@@ -334,7 +340,7 @@ export function lireImageReduite(fichier, taille = 600) {
 // Voir docs/DESIGN_SYSTEM.md. Les anciens noms (EnTete, Indicateur, Onglets, Vide) restent valides.
 
 export function Avatar({ nom, taille = 'normal', image, initiales }) {
-  const lettres = initiales || String(nom ?? '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
+  const lettres = initiales || String(nom ?? '?').replace(/\(.*?\)/g, ' ').split(/[\s@.]+/).map((m) => m.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('') || '?';
   if (image) return <img className={`avatar ${taille}`} src={image} alt="" aria-hidden="true" />;
   return <span className={`avatar ${taille}`} aria-hidden="true">{lettres}</span>;
 }
