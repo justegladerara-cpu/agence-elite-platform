@@ -2,13 +2,13 @@
 // Nouvelle version The Dream : calculs du centre de commande et moyens d'encaissement (fonctions pures).
 import { describe, expect, test } from 'vitest';
 import {
-  bornesPeriode, carteChaleur, classementCaissiers, classementServeurs, courbeDuJour, joursRestants, rangHeure, recommandations,
-  recommandationsVisibles, soireeDe, texteVariation, tonVariation, totaux, troisSignaux,
+  analyseServeur, analysesApprofondies, bornesPeriode, carteChaleur, classementCaissiers, classementServeurs, courbeDuJour,
+  instantsSoirees, joursRestants, rangHeure, recommandations, recommandationsVisibles, soireeDe, texteVariation, tonVariation,
+  totaux, troisSignaux,
 } from '../src/modules/experience/analyse.js';
 import {
   ajouterBillet, erreurLigne, lireMoyens, moyenDuPaiement, MOYENS_DEFAUT, paiementsPourVente, referencePaiement,
 } from '../src/modules/experience/moyens.js';
-import { calculerLiens } from '../src/modules/experience/Liens.jsx';
 import { ambianceDe, appliquerAmbiance } from '../src/modules/experience/ambiance.js';
 
 const montant = (n) => `${Math.round(n)} FCFA`;
@@ -137,7 +137,7 @@ describe('moyens d’encaissement', () => {
   });
 });
 
-describe('ambiance et liens', () => {
+describe('ambiance', () => {
   test('noir et or seulement quand la nouvelle version est allumée', () => {
     expect(ambianceDe({})).toBeNull();
     expect(ambianceDe({ etablissement: { nouvelle_version: true } })).toMatchObject({ theme: 'dream', mode: 'nuit' });
@@ -148,15 +148,6 @@ describe('ambiance et liens', () => {
     appliquerAmbiance(null, racine);
     expect(racine.dataset.ambiance).toBeUndefined();
     expect(racine.style.getPropertyValue('--fond')).toBe('');
-  });
-  test('duos serveur × produit', () => {
-    const l = calculerLiens(
-      [{ id: 'v1', serveur_id: 's1' }, { id: 'v2', serveur_id: 's2' }],
-      [{ vente_id: 'v1', article_id: 'a1', total: 9000 }, { vente_id: 'v2', article_id: 'a2', total: 1000 }, { vente_id: 'v1', article_id: 'a2', total: 1000 }],
-      { a1: { nom: 'Moët' }, a2: { nom: 'Primus' } }, { s1: { prenom: 'Prisca' }, s2: { prenom: 'Jordy' } },
-    );
-    expect(l.serveurs[0].nom).toBe('Prisca');
-    expect(l.liens[0]).toMatchObject({ s: 's1', p: 'a1', v: 9000 });
   });
 });
 
@@ -182,5 +173,41 @@ describe('polices au choix (Apparence)', () => {
     appliquerAmbiance(null, racine);
     expect(racine.style.getPropertyValue('--police-titre')).toBe('');
     expect(racine.style.getPropertyValue('--texte-base')).toBe('');
+  });
+});
+
+describe('fiche serveur et analyses approfondies (The Dream, vues uniques)', () => {
+  test('instantsSoirees couvre du début de service au lendemain', () => {
+    const { de, a } = instantsSoirees('2026-10-25', '2026-10-25', 'Africa/Brazzaville', 8);
+    expect(de).toBe('2026-10-25T07:00:00.000Z');
+    expect(a).toBe('2026-10-26T07:00:00.000Z');
+  });
+  test('analyseServeur résume ventes, articles et annulations', () => {
+    const ventes = [
+      { id: 'v1', statut: 'validee', total: 12000, cree_le: '2026-10-25T20:00:00Z' },
+      { id: 'v2', statut: 'validee', total: 8000, cree_le: '2026-10-25T21:00:00Z' },
+      { id: 'v3', statut: 'annulee', total: 5000, cree_le: '2026-10-25T22:00:00Z' },
+    ];
+    const lignes = [
+      { vente_id: 'v1', article_id: 'a1', libelle: 'Primus', quantite: 6, total: 12000, cout_unitaire: 1000 },
+      { vente_id: 'v2', article_id: 'a1', libelle: 'Primus', quantite: 4, total: 8000, cout_unitaire: 1000 },
+    ];
+    const f = analyseServeur({ ventes, lignes, equipe: { ca: 40000, ventes: 5 }, fuseau: 'Africa/Brazzaville', debut: 8 });
+    expect(f.ca).toBe(20000);
+    expect(f.ventes).toBe(2);
+    expect(f.annulees).toBe(1);
+    expect(f.articles[0]).toMatchObject({ nom: 'Primus', qte: 10 });
+    expect(f.partEquipe).toBeCloseTo(0.5, 2);
+    expect(f.analyses.length).toBeGreaterThan(0);
+  });
+  test('analysesApprofondies tire des phrases des chiffres', () => {
+    const a = analysesApprofondies({
+      r: { heures: [['2026-10-25', 8, 3, 20000]] },
+      t: { ca: 20000, ventes: 3, marge: 12000, tauxMarge: 0.6, partCouverte: 1, annulations: 0, montantAnnule: 0, resteDu: 0, soirees: 1 },
+      produits: [{ id: 'a1', nom: 'Primus', qte: 10, ca: 20000, marge: 12000 }],
+      serveurs: [], moyens: [{ cle: 'especes', montant: 20000, part: 1 }], montant, debut: 8, du: '2026-10-25', au: '2026-10-25',
+    });
+    expect(Array.isArray(a)).toBe(true);
+    expect(a.some((x) => /espèces/i.test(x.texte))).toBe(true);
   });
 });

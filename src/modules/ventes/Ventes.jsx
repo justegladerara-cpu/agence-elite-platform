@@ -406,7 +406,8 @@ export function DetailVente({ venteId, onFermer, onChange }) {
 
 // Paramètres reconnus dans l'adresse (ouverts depuis le tableau de bord) :
 // du, au, paiement=impaye, statut=annulee, origine, vendeur, q, vue=retours ; #/ventes/<id> ouvre une vente.
-export default function Ventes({ sousRoute }) {
+// integre : la page est affichée à l'intérieur du Centre des ventes (nouvelle version) : pas de deuxième en-tête.
+export default function Ventes({ sousRoute, integre = false, vueInitiale, filtreInitial }) {
   const { api, etablissement, montant, hubs, hub, multiHub, peut, utilisateur } = useEspace();
   const etab = etablissement.id;
   // Une personne qui tient une caisse suit d'abord SES ventes ; le responsable voit tout le monde par défaut.
@@ -416,9 +417,9 @@ export default function Ventes({ sousRoute }) {
   const nomHub = (id) => nomLieu(hubs.find((h) => h.id === id)?.nom) ?? '—';
   const p = lireParametres();
   const plage = p.get('du') && p.get('au') ? { du: p.get('du'), au: p.get('au') } : null;
-  const [vue, setVue] = useState(p.get('vue') === 'retours' ? 'retours' : 'ventes');
+  const [vue, setVue] = useState(vueInitiale ?? (p.get('vue') === 'retours' ? 'retours' : 'ventes'));
   const [periode, setPeriode] = useState(plage ? 'plage' : (p.get('paiement') ? 'tout' : 'jour'));
-  const [filtre, setFiltre] = useState(p.get('paiement') ? 'credit' : p.get('statut') === 'annulee' ? 'annulees' : 'toutes');
+  const [filtre, setFiltre] = useState(filtreInitial ?? (p.get('paiement') ? 'credit' : p.get('statut') === 'annulee' ? 'annulees' : 'toutes'));
   const [recherche, setRecherche] = useState(p.get('q') ?? '');
   const [origine, setOrigine] = useState(p.get('origine') ?? '');
   const [vendeur, setVendeur] = useState(p.get('vendeur') ?? (responsable ? '' : utilisateur?.id ?? ''));
@@ -505,7 +506,8 @@ export default function Ventes({ sousRoute }) {
   const choixPersonne = vendeur === utilisateur?.id ? 'moi' : vendeur || 'tous';
 
   return (
-    <div className="page">
+    <div className={integre ? 'page-integree' : 'page'}>
+      {!integre && (
       <EnTete
         titre="Ventes"
         sousTitre={vue === 'retours'
@@ -518,6 +520,7 @@ export default function Ventes({ sousRoute }) {
           </Bouton>
         )}
       </EnTete>
+      )}
       <Onglets onglets={[['ventes', 'Ventes'], ['retours', 'Retours et remboursements']]} actif={vue} onChange={setVue} />
       <div className="filtres">
         <Onglets onglets={ongletsPeriode} actif={periode} onChange={setPeriode} />

@@ -45,7 +45,7 @@ const VIDE = {
 
 // Création : formulaire court (nom, prix, « Vendu à », photo) ; « Plus d’options » ouvre le reste sans perdre la saisie.
 // Modification : formulaire complet.
-function FormulaireArticle({ article, categories, onFermer, onEnregistre, onPlusieurs }) {
+export function FormulaireArticle({ article, categories, onFermer, onEnregistre, onPlusieurs }) {
   const { api, etablissement, peut } = useEspace();
   const [valeurs, setValeurs] = useState(() => (article
     ? { ...VIDE, ...Object.fromEntries(Object.entries(article).map(([k, v]) => [k, v ?? ''])) }
@@ -245,7 +245,7 @@ function RapportImport({ rapport }) {
   );
 }
 
-function ImportArticles({ onFermer, onImporte }) {
+export function ImportArticles({ onFermer, onImporte }) {
   const { api, etablissement, peut, hubs } = useEspace();
   const [lignes, setLignes] = useState(null);
   const [nomFichier, setNomFichier] = useState('');

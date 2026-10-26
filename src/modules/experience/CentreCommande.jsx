@@ -3,15 +3,17 @@ import { nomUtilisateur, useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
 import { Bouton, Chargement, Erreur } from '../../ui/composants.jsx';
 import {
-  bornesPeriode, carteChaleur, classementCaissiers, classementProduits, classementServeurs, courbeDuJour, heureLocale,
+  analysesApprofondies, bornesPeriode, carteChaleur, classementCaissiers, classementProduits, classementServeurs, courbeDuJour, heureLocale,
   JOURS_LONGS, JOURS_SEMAINE, jourDeSemaine, PERIODES, recommandations, recommandationsVisibles, repartitionMoyens,
   soireeDe, texteVariation, tonVariation, totaux, troisSignaux, variation, ajouterJours, rangHeure,
 } from './analyse.js';
 import { couleurMoyen, libelleMoyen, lireMoyens } from './moyens.js';
-import { Anneau, Barre, Courbe, EnteteXp, Panneau, PhotoServeur, pluriel, Segments, Tuile } from './communs.jsx';
+import { Anneau, Barre, Chiffre, Courbe, EnteteXp, Panneau, PhotoServeur, pluriel, Segments, Tuile } from './communs.jsx';
+import FicheServeur from './FicheServeur.jsx';
 
-// Centre de commande (nouvelle version The Dream) : la soirée en direct, 3 signaux, des tuiles qui répondent aux
-// 4 questions, des conseils notés « Utile / Pas pour moi ». Le logiciel conseille, le patron décide.
+// Tableau de bord (nouvelle version The Dream) : la soirée en direct, les points à regarder, des tuiles qui
+// répondent aux 4 questions (combien, est-ce bien, pourquoi, que faire) et des analyses approfondies.
+// Un toucher sur un serveur ouvre sa fiche : ce qu'il a servi, quand, ses chiffres et l'analyse.
 const RAFRAICHIR_MS = 60000;
 
 function salutation(heure) {
@@ -33,7 +35,7 @@ export default function CentreCommande({ naviguer }) {
   const [periode, setPeriode] = useState('aujourdhui');
   const [tic, setTic] = useState(0);
   const [panneau, setPanneau] = useState(null);
-  const [avisLocaux, setAvisLocaux] = useState({});
+  const [serveurOuvert, setServeurOuvert] = useState(null);
   const aujourdhui = soireeDe(new Date(), fuseau, debut);
   const b = bornesPeriode(periode, aujourdhui);
   const enDirect = b.au === aujourdhui;
@@ -67,7 +69,7 @@ export default function CentreCommande({ naviguer }) {
     const tAvant = totaux(d.avant, b.avantDu, b.avantAu, enDirect && courbe ? courbe.rang : null, debut);
     const recos = recommandationsVisibles(
       recommandations({ r: d.r, avant: d.avant, articles: d.articles, stock: d.stock, montant, objectif, courbe, du: b.du, au: b.au }),
-      { ...(d.r.avis ?? {}), ...avisLocaux },
+      d.r.avis ?? {},
     );
     return {
       t, tAvant, courbe, recos, signaux: troisSignaux(recos),
@@ -77,12 +79,7 @@ export default function CentreCommande({ naviguer }) {
       moyensPayes: repartitionMoyens(d.r, b.du, b.au),
       chaleur: carteChaleur(d.historique ?? d.r, debut),
     };
-  }, [d, b.du, b.au, b.avantDu, b.avantAu, b.longueur, fuseau, debut, objectif, montant, avisLocaux]);
-
-  const donnerAvis = async (reco, avis) => {
-    setAvisLocaux((a) => ({ ...a, [reco.cle]: { avis, quand: new Date().toISOString(), valeur: reco.valeurDepart ?? null } }));
-    await api.rpc('donner_avis_recommandation', { p_etablissement_id: etab, p_cle: reco.cle, p_avis: avis, p_valeur: reco.valeurDepart ?? null }).catch(() => {});
-  };
+  }, [d, b.du, b.au, b.avantDu, b.avantAu, b.longueur, fuseau, debut, objectif, montant]);
 
   const imprimer = () => {
     document.body.classList.add('impression-centre');
@@ -95,7 +92,7 @@ export default function CentreCommande({ naviguer }) {
     setTimeout(fin, 60000);
   };
 
-  if (chargement && !d) return <div className="xp-page"><Chargement texte="Le centre de commande rassemble la soirée…" /></div>;
+  if (chargement && !d) return <div className="xp-page"><Chargement texte="Le tableau de bord rassemble la soirée…" /></div>;
   if (erreur && !d) return <Erreur message={erreur} />;
   const { t, tAvant, courbe, recos, signaux, produits, serveurs, caissiers, moyensPayes, chaleur } = calc;
   const maintenant = heureLocale(new Date(), fuseau);
@@ -110,11 +107,12 @@ export default function CentreCommande({ naviguer }) {
   const maxServeur = Math.max(1, ...serveurs.map((s) => s.ca));
   const maxProduit = Math.max(1, ...produits.map((p) => p.ca));
   const etiquettesHeures = [0, 4, 8, 12, 16, 20, 23].map((i) => `${(i + debut) % 24} h`);
+  const analyses = analysesApprofondies({ r: d.r, t, produits, serveurs, moyens: moyensPayes, chaleur, courbe, objectif, montant, debut, du: b.du, au: b.au });
 
   return (
     <div className="xp-page">
       <EnteteXp
-        surtitre={`${etablissement.nom} · centre de commande`}
+        surtitre={`${etablissement.nom} · tableau de bord`}
         titre={`${salutation(maintenant.heure)} ${nomUtilisateur(utilisateur).split(' ')[0]}`}
         sousTitre={b.longueur === 1
           ? `Soirée du ${dateLongue(b.du)}${enDirect ? ` · en direct, mis à jour à ${d.lu.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: fuseau || undefined })}` : ''}`
@@ -133,7 +131,7 @@ export default function CentreCommande({ naviguer }) {
             </Anneau>
             <div className="xp-aujourdhui-chiffres">
               <span className="xp-surtitre">{enDirect ? 'Ce soir, en ce moment' : 'Total de la soirée'}</span>
-              <strong className="xp-gros-chiffre">{montant(courbe.actuel)}</strong>
+              <strong className="xp-gros-chiffre"><Chiffre valeur={montant(courbe.actuel)} /></strong>
               {courbe.comparaisons > 0 && courbe.ecart != null && (
                 <span className={`xp-verdict ${tonVariation(courbe.ecart)}`}>
                   {texteVariation(courbe.ecart)} par rapport à un {JOURS_LONGS[jourDeSemaine(b.du)]} habituel à cette heure
@@ -200,10 +198,6 @@ export default function CentreCommande({ naviguer }) {
             verdict={{ ton: t.annulations === 0 ? 'bon' : t.annulations / Math.max(1, t.ventes + t.annulations) > 0.04 ? 'mauvais' : 'vigilance', texte: t.annulations === 0 ? 'aucune' : montant(t.montantAnnule) }}
             pourquoi={t.annulations ? 'Une annulation fait disparaître une vente : chacune doit avoir une raison.' : 'Aucune vente annulée sur la période.'}
             conseil={t.annulations ? 'Voir qui a annulé et pourquoi' : undefined} onClick={t.annulations ? () => setPanneau('annulations') : undefined} />
-          <Tuile icone="horloge" titre="À encaisser" valeur={montant(t.resteDu)}
-            verdict={{ ton: t.resteDu === 0 ? 'bon' : t.resteDu / Math.max(1, t.ca) > 0.05 ? 'mauvais' : 'vigilance', texte: t.resteDu === 0 ? 'tout est payé' : `${Math.round((t.resteDu / Math.max(1, t.ca)) * 100)} % du chiffre` }}
-            pourquoi="Ventes servies mais pas encore payées (clients en compte)."
-            conseil={t.resteDu ? 'Relancer les clients' : undefined} onClick={t.resteDu ? () => naviguer('qui-me-doit') : undefined} />
         </div>
       </section>
 
@@ -235,15 +229,15 @@ export default function CentreCommande({ naviguer }) {
           <h2 className="xp-section-titre">Les serveurs <button type="button" className="lien" onClick={() => setPanneau('serveurs')}>Détail</button></h2>
           <div className="xp-liste">
             {serveurs.slice(0, 6).map((s, i) => (
-              <div key={s.id ?? 'aucun'} className="xp-ligne">
+              <button type="button" key={s.id ?? 'aucun'} className="xp-ligne cliquable" onClick={() => setServeurOuvert(s)}>
                 <PhotoServeur prenom={s.prenom} photo={s.photo} taille={38} />
                 <span className="xp-ligne-texte">
                   <strong>{i === 0 && s.id ? '★ ' : ''}{s.prenom}</strong>
-                  <small>{pluriel(s.nb, 'ticket')} · panier moyen {montant(Math.round(s.panier))}</small>
+                  <small>{pluriel(s.nb, 'ticket')} · panier moyen {montant(Math.round(s.panier))} · touchez pour sa fiche</small>
                   <span className="xp-barre-piste"><span style={{ width: `${(s.ca / maxServeur) * 100}%`, background: 'var(--accent)' }} /></span>
                 </span>
                 <span className="xp-ligne-valeur">{montant(s.ca)}</span>
-              </div>
+              </button>
             ))}
             {!serveurs.length && <div className="xp-ligne"><span className="texte-doux">Aucun serveur noté sur la période.</span></div>}
           </div>
@@ -268,21 +262,15 @@ export default function CentreCommande({ naviguer }) {
         </section>
       </div>
 
-      {recos.length > 0 && (
+      {analyses.length > 0 && (
         <section className="xp-section">
-          <h2 className="xp-section-titre">Conseils <small>dites si c’est utile : le logiciel apprend ce qui compte pour vous</small></h2>
+          <h2 className="xp-section-titre">Analyses approfondies <small>ce que disent vos chiffres</small></h2>
           <div className="xp-grille large">
-            {recos.filter((x) => !x.masquee).map((x) => (
-              <Tuile key={x.cle} className={`xp-reco ${x.ton}`} titre={x.titre} valeur={x.valeur} pourquoi={x.pourquoi} conseil={x.conseil}>
-                <span className="xp-reco-actions">
-                  <button type="button" className={x.avis === 'utile' ? 'choisi' : ''} onClick={() => donnerAvis(x, 'utile')}>Utile</button>
-                  <button type="button" className={x.avis === 'pas_pour_moi' ? 'choisi' : ''} onClick={() => donnerAvis(x, 'pas_pour_moi')}>Pas pour moi</button>
-                  <button type="button" onClick={() => setPanneau(x.panneau)}>Voir le détail</button>
-                </span>
-              </Tuile>
+            {analyses.map((x) => (
+              <Tuile key={x.titre} className={`xp-reco ${x.ton}`} titre={x.titre} pourquoi={x.texte} conseil={x.conseil}
+                verdict={{ ton: x.ton, texte: x.ton === 'bon' ? 'Bien' : x.ton === 'mauvais' ? 'À corriger' : x.ton === 'vigilance' ? 'À surveiller' : 'Info' }} />
             ))}
           </div>
-          {recos.some((x) => x.masquee) && <small className="texte-doux">{recos.filter((x) => x.masquee).length > 1 ? `${recos.filter((x) => x.masquee).length} conseils mis de côté` : '1 conseil mis de côté'} (« Pas pour moi ») : ils reviennent dans 30 jours ou si la situation change beaucoup.</small>}
         </section>
       )}
 
@@ -346,9 +334,16 @@ export default function CentreCommande({ naviguer }) {
         </div>
       </section>
 
+      {serveurOuvert && (
+        <Panneau titre={`${serveurOuvert.prenom} · sa fiche`} onFermer={() => setServeurOuvert(null)}>
+          <FicheServeur serveur={serveurOuvert} du={b.du} au={b.au} debut={debut} equipe={{ ca: t.ca, ventes: t.ventes }} />
+        </Panneau>
+      )}
+
       {panneau && (
         <Panneau titre={TITRES_PANNEAU[panneau] ?? 'Détail'} onFermer={() => setPanneau(null)}>
-          <DetailPanneau cle={panneau} d={d} calc={calc} b={b} montant={montant} moyens={moyens} naviguer={naviguer} debut={debut} />
+          <DetailPanneau cle={panneau} d={d} calc={calc} b={b} montant={montant} moyens={moyens} naviguer={naviguer} debut={debut}
+            onServeur={(s) => { setPanneau(null); setServeurOuvert(s); }} />
         </Panneau>
       )}
     </div>
@@ -360,7 +355,7 @@ const TITRES_PANNEAU = {
   stock: 'Stock qui s’épuise', reste: 'À encaisser', avis: 'Avis des clients', jour: 'La soirée heure par heure',
 };
 
-function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut }) {
+function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut, onServeur }) {
   if (cle === 'produits') {
     return (
       <div className="xp-liste">
@@ -380,14 +375,14 @@ function DetailPanneau({ cle, d, calc, b, montant, naviguer, debut }) {
     return (
       <div className="xp-liste">
         {calc.serveurs.map((s) => (
-          <div key={s.id ?? 'aucun'} className="xp-ligne">
+          <button type="button" key={s.id ?? 'aucun'} className="xp-ligne cliquable" onClick={() => onServeur(s)}>
             <PhotoServeur prenom={s.prenom} photo={s.photo} taille={40} />
             <span className="xp-ligne-texte">
               <strong>{s.prenom}{s.role ? ` · ${s.role}` : ''}</strong>
               <small>{s.nb} tickets en {s.soirees} soirée{s.soirees > 1 ? 's' : ''} · panier moyen {montant(Math.round(s.panier))}</small>
             </span>
             <span className="xp-ligne-valeur">{montant(s.ca)}</span>
-          </div>
+          </button>
         ))}
       </div>
     );

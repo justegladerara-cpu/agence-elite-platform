@@ -183,13 +183,15 @@ function Inventaires({ hubsParId }) {
   );
 }
 
-export default function Stock({ naviguer }) {
+// integre : affiché dans « Stock » de la nouvelle version. Les niveaux y sont déjà montrés en cartes :
+// ici on ne garde que les mouvements, les réceptions, les inventaires et les péremptions.
+export default function Stock({ naviguer, integre = false }) {
   const { api, etablissement, peut, notifier, hubs, hub, multiHub, montant, fonctionActive } = useEspace();
   const etab = etablissement.id;
   // Liens profonds : ?vue=mouvements|receptions|inventaires|peremptions, ?vue=inventaire (ouvre « Je compte mon stock »),
   // ?vue=reception (« J'ai reçu de la marchandise »), ?vue=perte (« J'ai perdu / cassé / périmé »).
   const [lien] = useState(() => lireVueStock(lireParametres().get('vue')));
-  const [vue, setVue] = useState(lien.onglet);
+  const [vue, setVue] = useState(integre && ['niveaux', 'par-hub'].includes(lien.onglet) ? 'mouvements' : lien.onglet);
   const [action, setAction] = useState(() => (
     lien.action && peut('stock.ajuster') && etablissement.ecriture ? { type: lien.action } : null
   ));
@@ -228,12 +230,13 @@ export default function Stock({ naviguer }) {
     setVersion((v) => v + 1);
   };
 
-  const onglets = [['niveaux', 'Niveaux']];
-  if (multiHub && !hub) onglets.push(['par-hub', 'Par lieu']);
+  const onglets = integre ? [] : [['niveaux', 'Niveaux']];
+  if (!integre && multiHub && !hub) onglets.push(['par-hub', 'Par lieu']);
   onglets.push(['mouvements', 'Mouvements'], ['receptions', 'Réceptions'], ['inventaires', 'Inventaires'], ['peremptions', 'Dates de péremption']);
 
   return (
-    <div className="page">
+    <div className={integre ? 'page-integree' : 'page'}>
+      {!integre && (
       <PageHeader
         titre="Stock"
         sousTitre={`${multiHub ? (hub ? nomLieu(hub.nom) : 'Tous les lieux') : 'Stock du magasin'} · ${bas ? `${bas} article(s) à réapprovisionner` : 'tous les niveaux sont corrects'} · valeur d’achat ${montant(valeur)}`}
@@ -247,6 +250,7 @@ export default function Stock({ naviguer }) {
           </>
         )}
       />
+      )}
       <Tabs onglets={onglets} actif={vue} onChange={setVue} />
       <Erreur message={erreur} />
       {chargement && !donnees && <Squelette lignes={6} />}

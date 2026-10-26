@@ -331,3 +331,6 @@ textarea {
 .voile:has(.bouton-valider-vente) .carte {
   animation: none !important;
 }
+
+/* Notification avec un bouton (« Annuler ») : elle reste 7 s. */
+.notification.avec-action { --ems-toast-vie: 7000ms; }

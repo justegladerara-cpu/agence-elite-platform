@@ -1,9 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { useEspace } from '../../noyau/espace.jsx';
-import { Bouton, Champ, Erreur, Icone } from '../../ui/composants.jsx';
+import { Bouton, Champ, Chargement, Erreur, Icone } from '../../ui/composants.jsx';
 import { ChampEnPlace, EnteteXp, Interrupteur, Segments, Tuile } from './communs.jsx';
 import { identifiantMoyen, lireMoyens, MODES_BASE } from './moyens.js';
 import { nomPoliceValide, POLICES, policesDe } from './ambiance.js';
+
+// Les écrans complets de réglages (entreprise, caisse, ticket, applications, sécurité…) sont montrés ici même.
+const Parametres = lazy(() => import('../etablissement/Parametres.jsx'));
 
 // Paramètres en tuiles (nouvelle version The Dream). Chaque tuile ouvre une petite page ; tout s'enregistre sur place,
 // sans recharger. Les réglages rares restent dans l'écran complet (« Tous les réglages »).
@@ -23,10 +26,25 @@ function useEnregistrer() {
   };
 }
 
+const ONGLET_SOUSROUTE = { avance: undefined, applications: 'applications', recus: 'ticket' };
+const TITRE_SOUSROUTE = { avance: 'Tous les réglages', applications: 'Applications', recus: 'Reçus et tickets' };
+
 export default function Reglages({ naviguer, sousRoute }) {
   if (sousRoute === 'encaissement') return <ReglagesEncaissement naviguer={naviguer} />;
   if (sousRoute === 'apparence') return <ReglagesApparence naviguer={naviguer} />;
   if (sousRoute === 'caisse') return <MaCaisse naviguer={naviguer} />;
+  if (sousRoute && sousRoute in ONGLET_SOUSROUTE) {
+    return (
+      <div className="xp-page">
+        <EnteteXp titre={TITRE_SOUSROUTE[sousRoute]} sousTitre="Tout se règle ici, sans quitter l’écran.">
+          {RETOUR(naviguer)}
+        </EnteteXp>
+        <Suspense fallback={<Chargement />}>
+          <Parametres naviguer={naviguer} integre ongletInitial={ONGLET_SOUSROUTE[sousRoute]} />
+        </Suspense>
+      </div>
+    );
+  }
   return <AccueilReglages naviguer={naviguer} />;
 }
 
@@ -53,7 +71,7 @@ function AccueilReglages({ naviguer }) {
         <Tuile icone="cible" titre="Objectif de la soirée"
           valeur={<ChampEnPlace type="number" min={0} libelle="objectif de la soirée" desactive={!modifiable} valeur={etab.objectif_jour ?? null} format={(v) => montant(v)}
             onEnregistrer={(v) => enregistrer('etablissement', { objectif_jour: Number(v) || 0 }, 'Objectif enregistré')} />}
-          pourquoi="L’anneau doré du centre de commande se remplit avec les ventes de la soirée." />
+          pourquoi="L’anneau doré du tableau de bord se remplit avec les ventes de la soirée." />
         <Tuile icone="message" titre="Boîte à suggestions" valeur={etab.suggestions_actives === false ? 'Fermée' : 'Ouverte'}
           pourquoi="Les clients donnent une note depuis le QR « Menu The Dream », sans nom ni numéro.">
           <span className="xp-reglage" style={{ padding: 0, border: 0 }}>
@@ -65,9 +83,9 @@ function AccueilReglages({ naviguer }) {
         <Tuile icone="qr" titre="QR et avis" pourquoi="Le QR « Menu The Dream », ses scans et les avis des clients." conseil="Ouvrir" onClick={() => naviguer('qr-et-avis')} />
         <Tuile icone="badge" titre="Serveurs et badges" pourquoi="Photos, rôles et badges des serveurs." conseil="Ouvrir" onClick={() => naviguer('mon-equipe')} />
         <Tuile icone="depot" titre="Mes espaces" pourquoi="La salle, la terrasse, le dépôt : ce qui se vend et se range où." conseil="Ouvrir" onClick={() => naviguer('mes-espaces')} />
-        <Tuile icone="modules" titre="Applications" pourquoi="Allumer ou éteindre une fonction (happy hour, réserves…)." conseil="Ouvrir" onClick={() => naviguer('applications')} />
-        <Tuile icone="imprimer" titre="Reçus et tickets" pourquoi="Ce qui est écrit sur le ticket, le logo, le pied de page." conseil="Ouvrir" onClick={() => naviguer('parametres')} />
-        <Tuile icone="parametres" titre="Tous les réglages" pourquoi="Entreprise, caisse, clôture, stock : l’écran complet." conseil="Ouvrir" onClick={() => naviguer('parametres')} />
+        <Tuile icone="modules" titre="Applications" pourquoi="Allumer ou éteindre une fonction (happy hour, réserves…)." conseil="Ouvrir" onClick={() => naviguer('reglages/applications')} />
+        <Tuile icone="imprimer" titre="Reçus et tickets" pourquoi="Ce qui est écrit sur le ticket, le logo, le pied de page." conseil="Ouvrir" onClick={() => naviguer('reglages/recus')} />
+        <Tuile icone="parametres" titre="Tous les réglages" pourquoi="Entreprise, caisse, clôture, stock : au même endroit." conseil="Ouvrir" onClick={() => naviguer('reglages/avance')} />
       </div>
     </div>
   );

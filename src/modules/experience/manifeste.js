@@ -10,23 +10,26 @@ const Equipe = lazy(() => import('./Equipe.jsx'));
 const MesEspaces = lazy(() => import('./MesEspaces.jsx'));
 const Reglages = lazy(() => import('./Reglages.jsx'));
 const QrAvis = lazy(() => import('./QrAvis.jsx'));
-const Liens = lazy(() => import('./Liens.jsx'));
 
 const nouvelle = (espace) => espace.nouvelleVersion === true;
 
-// Anciens écrans remplacés : ils quittent le menu (ils restent ouvrables par les liens « écran complet »).
-export const PAGES_REMPLACEES = ['accueil', 'tableau-de-bord', 'ventes', 'z-et-rapports', 'articles', 'stock', 'hubs', 'parametres', 'qr-codes'];
+// Anciens écrans fusionnés dans les nouveaux : ils quittent le menu (leur adresse marche encore pour les anciens liens).
+// « En attente de paiement » vit dans la caisse (bouton « À encaisser ») ; les comptes de l'équipe dans « Équipe » ;
+// les applications dans « Paramètres ».
+export const PAGES_REMPLACEES = [
+  'accueil', 'tableau-de-bord', 'ventes', 'z-et-rapports', 'articles', 'stock', 'hubs', 'parametres', 'qr-codes',
+  'qui-me-doit', 'equipe', 'applications',
+];
 
 export default {
   module: 'tableau_de_bord',
   pages: [
-    { id: 'centre', libelle: 'Centre de commande', libelleCourt: 'Pilotage', icone: 'tableau', groupe: 'Pilotage', ordre: 0.5, permission: 'cloture.cloturer', module: 'cloture', composant: CentreCommande, seulementSi: nouvelle },
-    { id: 'liens', libelle: 'Liens', icone: 'lien', groupe: 'Pilotage', ordre: 30, permission: 'cloture.cloturer', module: 'cloture', composant: Liens, seulementSi: nouvelle },
+    { id: 'centre', libelle: 'Tableau de bord', libelleCourt: 'Tableau', icone: 'tableau', groupe: 'Pilotage', ordre: 0.5, permission: 'cloture.cloturer', module: 'cloture', composant: CentreCommande, seulementSi: nouvelle },
     { id: 'centre-ventes', libelle: 'Centre des ventes', libelleCourt: 'Ventes', icone: 'ventes', groupe: 'Vente', ordre: 19, permission: 'ventes.lire', module: 'ventes', composant: CentreVentes, seulementSi: nouvelle },
     { id: 'qr-et-avis', libelle: 'QR et avis', icone: 'qr', groupe: 'Vente', ordre: 12.4, permission: ['caisse.menu_qr', 'cloture.cloturer'], module: 'caisse', composant: QrAvis, seulementSi: nouvelle },
     { id: 'mes-articles', libelle: 'Articles', icone: 'articles', groupe: 'Catalogue et stock', ordre: 9, permission: 'articles.lire', module: 'articles', composant: Articles, seulementSi: nouvelle },
     { id: 'mon-stock', libelle: 'Stock', icone: 'inventaire', groupe: 'Catalogue et stock', ordre: 19, permission: 'stock.lire', module: 'stock', composant: Stock, seulementSi: nouvelle },
-    { id: 'mon-equipe', libelle: 'Serveurs et badges', icone: 'badge', groupe: 'Organisation', ordre: 19, permission: 'cloture.cloturer', module: 'caisse', composant: Equipe, seulementSi: nouvelle },
+    { id: 'mon-equipe', libelle: 'Équipe', icone: 'badge', groupe: 'Organisation', ordre: 19, permission: ['cloture.cloturer', 'membres.lire'], module: 'etablissement', composant: Equipe, seulementSi: nouvelle },
     { id: 'mes-espaces', libelle: 'Mes espaces', icone: 'depot', groupe: 'Organisation', ordre: 9, permission: 'etablissement.lire', module: 'etablissement', composant: MesEspaces, seulementSi: nouvelle },
     { id: 'reglages', libelle: 'Paramètres', icone: 'parametres', groupe: 'Organisation', ordre: 49, permission: 'etablissement.lire', module: 'etablissement', composant: Reglages, seulementSi: nouvelle },
   ],

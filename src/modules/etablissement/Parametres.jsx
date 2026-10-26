@@ -484,15 +484,16 @@ const ONGLETS = [
 ];
 
 // Paramètres de l'établissement. Les onglets n'existent que si la fonction existe vraiment.
-export default function Parametres({ naviguer }) {
+// integre : affiché à l'intérieur des Paramètres de la nouvelle version. ongletInitial : onglet ouvert au départ.
+export default function Parametres({ naviguer, integre = false, ongletInitial }) {
   const { etablissement, peut, moduleActif } = useEspace();
   const onglets = ONGLETS.filter(([id]) => (!['caisses', 'ticket'].includes(id) || moduleActif('caisse')) && (id !== 'connexions' || peut('etablissement.integrations')));
   // ?onglet=… ou #/parametres/licence (lien des alertes d'échéance).
-  const demande = lireParametres().get('onglet') ?? lireRoute().split('/')[1];
+  const demande = ongletInitial ?? lireParametres().get('onglet') ?? lireRoute().split('/')[1];
   const [onglet, setOnglet] = useState(onglets.some(([id]) => id === demande) ? demande : 'entreprise');
   return (
-    <div className="page">
-      <EnTete titre="Paramètres" sousTitre={`${etablissement.nom} · ${etablissement.client}`} />
+    <div className={integre ? 'page-integree' : 'page'}>
+      {!integre && <EnTete titre="Paramètres" sousTitre={`${etablissement.nom} · ${etablissement.client}`} />}
       <Tabs onglets={onglets} actif={onglet} onChange={setOnglet} />
       {onglet === 'entreprise' && <Identite key={`e-${etablissement.id}`} partie="entreprise" />}
       {onglet === 'documents' && <Identite key={`d-${etablissement.id}`} partie="documents" />}

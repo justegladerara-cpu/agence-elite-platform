@@ -24,10 +24,12 @@ export function ongletsRapports(peut, moduleActif) {
   return ONGLETS.filter((o) => o.permission.some((x) => peut(x)) && (!o.module || moduleActif(o.module)));
 }
 
-export default function ZEtRapports({ naviguer, sousRoute }) {
+// integre : affiché à l'intérieur d'un autre écran (nouvelle version). exclure : onglets à ne pas répéter.
+// onglet / onOnglet : l'écran parent garde le choix (aucun changement d'adresse).
+export default function ZEtRapports({ naviguer, sousRoute, exclure = [], onglet, onOnglet }) {
   const { peut, moduleActif } = useEspace();
-  const onglets = ongletsRapports(peut, moduleActif);
-  const demande = (sousRoute ?? '').split('/')[0];
+  const onglets = ongletsRapports(peut, moduleActif).filter((o) => !exclure.includes(o.id));
+  const demande = onglet ?? (sousRoute ?? '').split('/')[0];
   const actif = onglets.find((o) => o.id === demande) ?? onglets[0];
   if (!actif) return null;
   const Vue = actif.composant;
@@ -37,7 +39,7 @@ export default function ZEtRapports({ naviguer, sousRoute }) {
         <nav className="cockpit-onglets z-rapports-onglets" aria-label="Ticket Z et rapports">
           {onglets.map((o) => (
             <button key={o.id} type="button" className={o.id === actif.id ? 'actif' : ''} aria-current={o.id === actif.id ? 'page' : undefined}
-              onClick={() => naviguer(`z-et-rapports/${o.id}`)}>
+              onClick={() => (onOnglet ? onOnglet(o.id) : naviguer(`z-et-rapports/${o.id}`))}>
               <Icone nom={o.icone} taille={15} /> {o.libelle}
             </button>
           ))}
