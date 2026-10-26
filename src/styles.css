@@ -1932,13 +1932,11 @@ fieldset {
 .zone-impression .ticket .ticket-qr .image-qr { width: 30mm; }
 
 @media print {
-  html, body {
+  /* Le fond de body couvre toute la feuille (html n'a pas de fond) : blanc, même en thème sombre. */
+  body.impression-ticket {
     background: #fff !important;
     color: #000 !important;
     color-scheme: light;
-  }
-
-  body.impression-ticket {
     margin: 0 !important;
     padding: 0 !important;
     min-height: 0 !important;
