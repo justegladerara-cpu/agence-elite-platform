@@ -524,7 +524,7 @@ function StatsQr({ codes, filtre, setFiltre }) {
   );
 }
 
-export default function QrCodes({ naviguer, sousRoute }) {
+export default function QrCodes({ naviguer, sousRoute, integre = false }) {
   const { api, etablissement, notifier } = useEspace();
   const etab = etablissement.id;
   const apparence = useApparenceQr();
@@ -608,21 +608,31 @@ export default function QrCodes({ naviguer, sousRoute }) {
   };
 
   return (
-    <div className="page menu-qr qr-codes">
-      <PageHeader
-        titre="QR codes"
-        sousTitre={`${actifs.length} QR code(s) actif(s) · ${stats.sept_jours} scan(s) sur 7 jours`}
-        actions={(
-          <>
-            <Bouton onClick={() => naviguer('menu-qr')}>QR codes des tables</Bouton>
-            <Bouton variante="principal" icone="plus" onClick={() => setFormulaire({})}>Nouveau QR code</Bouton>
-          </>
-        )}
-      />
-      <BandeauNouveau jusqua={NOUVEAU_QR_JUSQUA}>
-        Créez vos QR codes ici (Instagram, avis Google, WhatsApp, appel, e-mail, fiche contact, menu, Wi-Fi) : formes, couleurs,
-        cadre « Scannez-moi », logo au centre si vous voulez. La destination se change après impression et chaque scan est compté.
-      </BandeauNouveau>
+    <div className={`${integre ? 'page-integree' : 'page'} menu-qr qr-codes`}>
+      {!integre && (
+        <>
+          <PageHeader
+            titre="QR codes"
+            sousTitre={`${actifs.length} QR code(s) actif(s) · ${stats.sept_jours} scan(s) sur 7 jours`}
+            actions={(
+              <>
+                <Bouton onClick={() => naviguer('menu-qr')}>QR codes des tables</Bouton>
+                <Bouton variante="principal" icone="plus" onClick={() => setFormulaire({})}>Nouveau QR code</Bouton>
+              </>
+            )}
+          />
+          <BandeauNouveau jusqua={NOUVEAU_QR_JUSQUA}>
+            Créez vos QR codes ici (Instagram, avis Google, WhatsApp, appel, e-mail, fiche contact, menu, Wi-Fi) : formes, couleurs,
+            cadre « Scannez-moi », logo au centre si vous voulez. La destination se change après impression et chaque scan est compté.
+          </BandeauNouveau>
+        </>
+      )}
+      {integre && (
+        <div className="xp-entete">
+          <span />
+          <Bouton variante="principal" icone="plus" onClick={() => setFormulaire({})}>Nouveau QR code</Bouton>
+        </div>
+      )}
       <Erreur message={erreurAction} />
       <Tabs onglets={[['codes', 'Mes QR codes', codes.length], ['stats', 'Statistiques des scans'], ['inscrits', 'Clients inscrits'], ['style', 'Style par défaut']]} actif={onglet} onChange={setOnglet} />
       {onglet === 'codes' && (

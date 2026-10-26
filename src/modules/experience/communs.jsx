@@ -32,6 +32,68 @@ export function PhotoServeur({ prenom, photo, taille = 56 }) {
   );
 }
 
+const mouvementReduit = () => typeof window === 'undefined' || /jsdom/i.test(navigator.userAgent ?? '')
+  || (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.animations === 'reduit');
+
+// Le premier nombre d'un texte (« 1 250 000 FCFA », « 4,2 / 5 », « 38 % ») : sa valeur et son nombre de décimales.
+export function premierNombre(texte) {
+  const m = /\d[\d\u202f\u00a0 ]*(?:,\d+)?/.exec(String(texte ?? ''));
+  if (!m) return null;
+  const brut = m[0].replace(/[\s\u202f\u00a0]/g, '').trim();
+  const valeur = Number(brut.replace(',', '.'));
+  if (!Number.isFinite(valeur)) return null;
+  return { valeur, decimales: (brut.split(',')[1] ?? '').length, debut: m.index, fin: m.index + m[0].trimEnd().length };
+}
+
+// Chiffre qui monte de 0 à sa valeur (0,8 s) à l'arrivée et à chaque changement. Le texte final est exactement celui reçu.
+export function Chiffre({ valeur, duree = 800 }) {
+  const texte = typeof valeur === 'number' ? String(valeur) : valeur;
+  const [t, setT] = useState(() => (mouvementReduit() ? 1 : 0));
+  const precedent = useRef(null);
+  useEffect(() => {
+    if (typeof texte !== 'string' || precedent.current === texte) return undefined;
+    const avant = precedent.current;
+    precedent.current = texte;
+    const n = premierNombre(texte);
+    if (!n || n.valeur === 0 || mouvementReduit() || (avant != null && premierNombre(avant)?.valeur === n.valeur)) {
+      setT(1);
+      return undefined;
+    }
+    let image;
+    const depart = performance.now();
+    const pas = (maintenant) => {
+      const p = Math.min(1, (maintenant - depart) / duree);
+      setT(1 - (1 - p) ** 3);
+      if (p < 1) image = requestAnimationFrame(pas);
+    };
+    setT(0);
+    image = requestAnimationFrame(pas);
+    return () => cancelAnimationFrame(image);
+  }, [texte, duree]);
+  if (typeof texte !== 'string' || t >= 1) return texte ?? null;
+  const n = premierNombre(texte);
+  if (!n) return texte;
+  const courant = (n.valeur * t).toLocaleString('fr-FR', { minimumFractionDigits: n.decimales, maximumFractionDigits: n.decimales });
+  return <span className="xp-chiffre-anime">{texte.slice(0, n.debut)}{courant}{texte.slice(n.fin)}</span>;
+}
+
+// Petite courbe sans axes (14 à 30 points) pour une carte : la tendance d'un article ou d'un serveur.
+export function MiniCourbe({ points, couleur = 'var(--accent)', hauteur = 34, libelle }) {
+  const pts = (points ?? []).map((v) => Number(v) || 0);
+  if (pts.length < 2) return null;
+  const max = Math.max(1, ...pts);
+  const l = 100;
+  const x = (i) => (i / (pts.length - 1)) * l;
+  const y = (v) => hauteur - 3 - (v / max) * (hauteur - 6);
+  const ligne = pts.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return (
+    <svg className="xp-mini-courbe" viewBox={`0 0 ${l} ${hauteur}`} preserveAspectRatio="none" role="img" aria-label={libelle ?? 'Tendance'}>
+      <polygon points={`0,${hauteur} ${ligne} ${l},${hauteur}`} fill={couleur} opacity="0.12" />
+      <polyline points={ligne} fill="none" stroke={couleur} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className="xp-courbe-trace" />
+    </svg>
+  );
+}
+
 // Ton d'un verdict : bon (émeraude), vigilance (ambre), mauvais (rubis), neutre (or discret).
 export function Verdict({ ton = 'neutre', children }) {
   return <span className={`xp-verdict ${ton}`}>{children}</span>;
@@ -48,7 +110,7 @@ export function Tuile({ titre, icone, valeur, unite, verdict, pourquoi, conseil,
         {verdict && <Verdict ton={verdict.ton}>{verdict.texte}</Verdict>}
       </span>
       {valeur != null && (
-        <span className="xp-tuile-valeur">{valeur}{unite && <small>{unite}</small>}</span>
+        <span className="xp-tuile-valeur">{typeof valeur === 'string' || typeof valeur === 'number' ? <Chiffre valeur={valeur} /> : valeur}{unite && <small>{unite}</small>}</span>
       )}
       {pourquoi && <span className="xp-tuile-pourquoi">{pourquoi}</span>}
       {children}
@@ -75,7 +137,13 @@ export function Anneau({ part, taille = 132, epaisseur = 10, children, libelle }
   const id = useId().replace(/:/g, '');
   const r = (taille - epaisseur) / 2;
   const tour = 2 * Math.PI * r;
-  const p = Math.max(0, Math.min(1, Number(part) || 0));
+  const cible = Math.max(0, Math.min(1, Number(part) || 0));
+  // L'anneau part de zéro puis se remplit (transition CSS de 0,9 s).
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    const image = requestAnimationFrame(() => setP(cible));
+    return () => cancelAnimationFrame(image);
+  }, [cible]);
   return (
     <div className="xp-anneau" style={{ width: taille, height: taille }} role="img" aria-label={libelle}>
       <svg width={taille} height={taille} viewBox={`0 0 ${taille} ${taille}`}>
@@ -204,11 +272,6 @@ export function ChampEnPlace({ valeur, onEnregistrer, format = (v) => v, type = 
       }}
     />
   );
-}
-
-// Lien discret vers l'ancien écran complet (rien n'est perdu : tout ce qui n'est pas en tuiles reste là).
-export function LienAncien({ page, naviguer, texte = 'Ouvrir l’écran complet' }) {
-  return <button type="button" className="lien xp-lien-ancien" onClick={() => naviguer(page)}>{texte}</button>;
 }
 
 // Interrupteur doré.

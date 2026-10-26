@@ -492,6 +492,13 @@ fieldset {
   background: var(--rouge);
 }
 
+.notification.avec-action { display: flex; align-items: center; gap: 14px; }
+.notification-action {
+  border: 1px solid rgba(255, 255, 255, 0.45); background: transparent; color: inherit; font: inherit; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; cursor: pointer;
+}
+.notification-action:hover { background: rgba(255, 255, 255, 0.14); }
+
 .notification.attention {
   background: var(--orange);
   color: #fff;
@@ -678,6 +685,14 @@ fieldset {
 
 .voile-menu {
   display: none;
+}
+
+.page-integree {
+  /* Ancien écran affiché à l'intérieur d'un écran de la nouvelle version : même grille, sans la marge de page. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  min-width: 0;
 }
 
 .page {

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDateHeure } from '../../noyau/format.js';
-import { Bouton, Chargement, Erreur } from '../../ui/composants.jsx';
+import { Bouton, Chargement, Erreur, Squelette } from '../../ui/composants.jsx';
 import { ImageQr, telechargerSvg } from '../caisse/qrOutils.jsx';
-import { Barre, EnteteXp, LienAncien, Segments, Tuile } from './communs.jsx';
+import { Barre, EnteteXp, Segments, Tuile } from './communs.jsx';
+
+// La gestion complète des QR codes (création, style, pages mobiles, inscrits) est l'ancien écran, montré ici même.
+const QrCodes = lazy(() => import('../caisse/QrCodes.jsx'));
 
 // QR et avis (nouvelle version The Dream) : le QR « Menu The Dream » en grand (scans du jour, de la semaine, heure de
 // pointe) et la boîte à suggestions. Aucun client n'est suivi : on compte des scans et on lit des avis anonymes.
@@ -12,6 +15,7 @@ export default function QrAvis({ naviguer }) {
   const etab = etablissement.id;
   const [filtre, setFiltre] = useState('nouveaux');
   const [lues, setLues] = useState({});
+  const [gestion, setGestion] = useState(false);
   const { donnees, chargement, erreur } = useDonnees(async () => {
     const [codes, stats, avis] = await Promise.all([
       api.lire('qr_codes', { eq: { etablissement_id: etab }, ordre: ['cree_le'] }),
@@ -34,6 +38,13 @@ export default function QrAvis({ naviguer }) {
   avis.forEach((a) => (a.sujets ?? []).forEach((s) => { sujets[s] = (sujets[s] ?? 0) + 1; }));
   const sujetsTries = Object.entries(sujets).sort((a, b) => b[1] - a[1]);
   const pic = stats?.heures?.length ? stats.heures.reduce((m, h) => (h.scans > m.scans ? h : m), stats.heures[0]) : null;
+  const analyses = [];
+  if (moyenne != null) {
+    if (moyenne < 3.5) analyses.push({ titre: 'La note est basse', ton: 'mauvais', texte: `Note moyenne ${moyenne.toFixed(1).replace('.', ',')} / 5 sur ${avis.length} avis.`, conseil: sujetsTries[0] ? `Le sujet qui revient le plus : « ${sujetsTries[0][0]} ». Commencez par là.` : 'Lisez les avis récents pour trouver la cause.' });
+    else analyses.push({ titre: 'Les clients sont contents', ton: 'bon', texte: `Note moyenne ${moyenne.toFixed(1).replace('.', ',')} / 5 sur ${avis.length} avis.`, conseil: 'Affichez le QR « Menu The Dream » sur chaque table pour en recevoir plus.' });
+  }
+  if (pic && pic.scans > 0) analyses.push({ titre: 'Quand on scanne le menu', ton: 'info', texte: `Le plus de scans vers ${pic.heure} h.`, conseil: 'Mettez les nouveautés en haut du menu avant cette heure.' });
+  if ((stats?.sept_jours ?? 0) === 0 && (stats?.trente_jours ?? 0) === 0) analyses.push({ titre: 'Le QR n’est pas encore utilisé', ton: 'info', texte: 'Aucun scan sur 30 jours.', conseil: 'Imprimez le QR et posez-le sur les tables et au comptoir.' });
   const marquer = async (a) => {
     setLues((l) => ({ ...l, [a.id]: true }));
     await api.rpc('marquer_suggestion_lue', { p_suggestion_id: a.id }).catch((err) => notifier(err.message, 'erreur'));
@@ -49,9 +60,7 @@ export default function QrAvis({ naviguer }) {
 
   return (
     <div className="xp-page">
-      <EnteteXp surtitre={etablissement.nom} titre="QR et avis" sousTitre="Un seul QR pour tout le bar. Les clients ouvrent le menu ; ceux qui veulent laissent une note, sans nom ni numéro.">
-        <LienAncien page="qr-codes" naviguer={naviguer} texte="Tous les QR codes : écran complet" />
-      </EnteteXp>
+      <EnteteXp surtitre={etablissement.nom} titre="QR et avis" sousTitre="Un seul QR pour tout le bar. Les clients ouvrent le menu ; ceux qui veulent laissent une note, sans nom ni numéro." />
 
       <div className="xp-deux">
         <section className="xp-carte xp-section xp-tuile or" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
@@ -110,6 +119,39 @@ export default function QrAvis({ naviguer }) {
           {!visibles.length && <div className="xp-ligne"><span className="texte-doux">Rien ici pour le moment.</span></div>}
         </div>
       </section>
+
+      <section className="xp-section">
+        <h2 className="xp-section-titre">Statistiques approfondies <small>le détail des scans</small></h2>
+        <div className="xp-grille">
+          <Tuile icone="qr" titre="Scans aujourd’hui" valeur={stats?.aujourdhui ?? 0} />
+          <Tuile icone="graphique" titre="7 derniers jours" valeur={stats?.sept_jours ?? 0} />
+          <Tuile icone="graphique" titre="30 derniers jours" valeur={stats?.trente_jours ?? 0} />
+          <Tuile icone="horloge" titre="Heure de pointe" valeur={pic && pic.scans > 0 ? `${pic.heure} h` : '—'}
+            pourquoi={pic && pic.scans > 0 ? 'Le menu doit être à jour avant cette heure.' : 'Pas encore assez de scans.'} />
+        </div>
+        {analyses.length > 0 && (
+          <div className="xp-grille large">
+            {analyses.map((x) => (
+              <Tuile key={x.titre} className={`xp-reco ${x.ton}`} titre={x.titre} pourquoi={x.texte} conseil={x.conseil}
+                verdict={{ ton: x.ton, texte: x.ton === 'bon' ? 'Bien' : 'Info' }} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {peut('caisse.menu_qr') && (
+        <section className="xp-section">
+          <h2 className="xp-section-titre">
+            Gérer les QR codes <small>créer, style, pages mobiles, clients inscrits</small>
+            <button type="button" className="lien" onClick={() => setGestion((x) => !x)}>{gestion ? 'Masquer' : 'Afficher'}</button>
+          </h2>
+          {gestion && (
+            <Suspense fallback={<Squelette lignes={6} />}>
+              <QrCodes naviguer={naviguer} integre />
+            </Suspense>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -101,11 +101,12 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
     return data;
   }, [api, etablissement?.id, reglagesFonctions]);
 
-  const notifier = useCallback((texte, ton = 'succes') => {
+  // options.action = { libelle, faire } : un bouton dans la notification (ex. « Annuler » après une modification).
+  const notifier = useCallback((texte, ton = 'succes', options = {}) => {
     compteur.current += 1;
     const id = compteur.current;
-    setMessages((liste) => [...liste, { id, texte, ton }]);
-    setTimeout(() => setMessages((liste) => liste.filter((m) => m.id !== id)), 4200);
+    setMessages((liste) => [...liste, { id, texte, ton, action: options?.action ?? null }]);
+    setTimeout(() => setMessages((liste) => liste.filter((m) => m.id !== id)), options?.action ? 7000 : 4200);
   }, []);
 
   const valeur = useMemo(() => {
@@ -163,7 +164,17 @@ export function FournisseurEspace({ api, contexte, onRecharger, onDeconnexion, c
     <ContexteEspace.Provider value={valeur}>
       {children}
       <div className="notifications" aria-live="polite">
-        {messages.map((m) => <div key={m.id} className={`notification ${m.ton}`}>{m.texte}</div>)}
+        {messages.map((m) => (
+          <div key={m.id} className={`notification ${m.ton} ${m.action ? 'avec-action' : ''}`}>
+            <span>{m.texte}</span>
+            {m.action && (
+              <button type="button" className="notification-action" onClick={() => {
+                setMessages((liste) => liste.filter((x) => x.id !== m.id));
+                m.action.faire();
+              }}>{m.action.libelle}</button>
+            )}
+          </div>
+        ))}
       </div>
     </ContexteEspace.Provider>
   );

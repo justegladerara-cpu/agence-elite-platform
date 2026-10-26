@@ -260,12 +260,29 @@
 .xp-produit-prix { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--texte-doux); align-items: center; flex-wrap: wrap; }
 .xp-produit-prix .prix { color: var(--texte); font-weight: 700; font-size: 16px; }
 .xp-marge { font-size: 12px; font-weight: 600; }
+.xp-produit-mesures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 6px; border-top: 1px solid var(--bordure); }
+.xp-produit-mesures > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.xp-produit-mesures strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+.xp-produit-mesures small { font-size: 11px; }
+.xp-produit-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.xp-produit-actions .bouton { flex: 1 1 auto; justify-content: center; }
+.xp-mini-courbe { width: 100%; height: 34px; display: block; }
+.xp-chiffre-anime { font-variant-numeric: tabular-nums; }
+
+/* Fiche d'un serveur (panneau du tableau de bord) */
+.xp-fiche { display: flex; flex-direction: column; gap: 18px; }
+.xp-fiche-tete { display: flex; gap: 14px; align-items: center; }
+.xp-fiche-nom { font-size: 22px; font-family: var(--police-titre, inherit); display: block; }
+.xp-analyses { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.xp-analyses li { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; font-size: 14px; line-height: 1.45; }
 .xp-stock-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .xp-stock-actions button, .xp-pm button { min-height: 38px; border-radius: 10px; border: 1px solid var(--bordure-forte); background: var(--surface-douce); color: var(--texte); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .xp-stock-actions button:hover, .xp-pm button:hover { border-color: var(--accent); }
 .xp-pm { display: flex; align-items: center; gap: 8px; }
 .xp-pm button { width: 40px; font-size: 18px; }
 .xp-pm strong { flex: 1; text-align: center; font-size: 24px; font-variant-numeric: tabular-nums; }
+.xp-produit-cliquable { cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.xp-produit-cliquable:hover { border-color: var(--accent); }
 .xp-jauge { height: 6px; border-radius: 99px; background: var(--surface-douce); overflow: hidden; }
 .xp-jauge span { display: block; height: 100%; border-radius: 99px; transition: width 0.4s var(--mouvement, ease); }
 
@@ -301,18 +318,6 @@
 .xp-presence-chrono { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
 .xp-presence-carte .bouton { width: 100%; min-height: 56px; font-size: 17px; }
 .xp-absente { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--orange-doux); color: var(--orange); font-weight: 600; }
-
-/* --- Liens (graphe) ------------------------------------------------------------------------------------------- */
-.xp-graphe { width: 100%; height: auto; min-height: 360px; }
-.xp-graphe .lien-trait { stroke: color-mix(in srgb, var(--accent) 45%, transparent); fill: none; }
-.xp-graphe .noeud circle { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; cursor: pointer; transition: r 0.2s; }
-.xp-graphe .noeud.actif circle { fill: var(--accent); }
-.xp-graphe .noeud text { fill: var(--texte); font-size: 12px; pointer-events: none; }
-.xp-graphe .noeud.serveur circle { stroke: var(--vert); }
-.xp-graphe .noeud.produit circle { stroke: var(--accent-2); }
-.xp-graphe .noeud.moyen circle { stroke: var(--orange); }
-.xp-graphe .noeud.attenue { opacity: 0.25; }
-.xp-graphe .lien-trait.attenue { opacity: 0.08; }
 
 /* --- Suggestions (QR public) ---------------------------------------------------------------------------- */
 .xp-notes { display: flex; gap: 8px; justify-content: center; }
@@ -418,3 +423,16 @@
 :root[data-ambiance='dream'] .xp-section-titre small { font-family: var(--police); }
 .xp-marge.xp-verdict { white-space: normal; max-width: 100%; font-size: 11.5px; }
 .xp-segments button { font-family: var(--police); }
+
+/* Badges : créateur, carte, partage */
+.xp-badge-carte { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.xp-badge-carte .bouton { width: 100%; max-width: 260px; justify-content: center; }
+.xp-badge-reglages { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; }
+.xp-badge-logo { max-height: 42px; max-width: 160px; object-fit: contain; }
+.xp-badge-devise { color: rgba(245, 241, 230, 0.78); font-size: 10px; }
+.xp-form-serveur { display: flex; flex-direction: column; gap: 10px; }
+.xp-badge { background: radial-gradient(circle at 50% -10%, var(--badge-fond2, #2A2414), var(--badge-fond, #0B0B0D) 62%); }
+.xp-badge::before { border-color: color-mix(in srgb, var(--badge-accent, #D4AF37) 55%, transparent); }
+.xp-badge-marque { color: var(--badge-accent, #D4AF37); }
+.xp-badge-role { color: var(--badge-accent, #F3D98B); }
+.xp-badge .xp-photo { box-shadow: 0 0 0 3px var(--badge-fond, #0B0B0D), 0 0 0 4px var(--badge-accent, #D4AF37); }

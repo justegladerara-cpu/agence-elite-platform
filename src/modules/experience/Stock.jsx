@@ -1,17 +1,22 @@
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
-import { Bouton, Champ, Chargement, Erreur, Modale, Recherche } from '../../ui/composants.jsx';
+import { formatQuantite } from '../../noyau/format.js';
+import { Bouton, Champ, Chargement, Erreur, Modale, Recherche, Squelette } from '../../ui/composants.jsx';
 import { ajouterJours, joursRestants, soireeDe } from './analyse.js';
-import { EnteteXp, LienAncien, Segments, Tuile } from './communs.jsx';
+import { EnteteXp, Panneau, Segments, Tuile } from './communs.jsx';
 
-// Stock en tuiles (nouvelle version The Dream) : combien il en reste, pour combien de soirées, et trois gestes :
-// « Reçu » (livraison), « Compté » (inventaire), « Perte » (casse, périmé, offert non noté…).
+// Stock (nouvelle version The Dream) : une seule page, rangée par catégorie. Ce qui manque d'abord, puis ce qui va
+// manquer, puis le reste. « Soirées » = combien de temps le stock tient au rythme des 4 dernières semaines. Un
+// toucher sur un article ouvre son détail et ses gestes. Les mouvements, réceptions et inventaires sont ici aussi.
+const AncienStock = lazy(() => import('../stock/Stock.jsx'));
+
 const ACTIONS = {
   recu: { titre: 'Reçu', aide: 'Combien d’unités sont arrivées ?', type: 'entree' },
   compte: { titre: 'Compté', aide: 'Combien en avez-vous compté en vrai ?', type: 'inventaire' },
   perte: { titre: 'Perte', aide: 'Combien sont perdus ?', type: 'ajustement' },
 };
 const RAISONS = ['Cassé', 'Périmé', 'Bu par le personnel', 'Disparu', 'Autre'];
+const RANG = { vide: 0, bas: 1, ok: 2 };
 
 export default function Stock({ naviguer }) {
   const { api, etablissement, hubs, hub, peut, notifier, reglagesFonctions } = useEspace();
@@ -21,20 +26,22 @@ export default function Stock({ naviguer }) {
   const [filtre, setFiltre] = useState('tout');
   const [texte, setTexte] = useState('');
   const [action, setAction] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [mouvements, setMouvements] = useState(false);
   const debut = Number(reglagesFonctions?.cloture?.debut_service ?? 8) || 8;
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const aujourdhui = soireeDe(new Date(), etablissement.fuseau || 'Africa/Brazzaville', debut);
-    const [articles, stock, pilotage] = await Promise.all([
+    const [articles, categories, stock, pilotage] = await Promise.all([
       api.lire('articles', { eq: { etablissement_id: etab, actif: true, suivi_stock: true }, ordre: ['nom'] }),
+      api.lire('categories_articles', { eq: { etablissement_id: etab, actif: true }, ordre: ['nom'] }).catch(() => []),
       api.lire('stock_hubs', { eq: { etablissement_id: etab } }),
-      // Ventes des 28 dernières soirées : pour dire « encore N soirées » (gérant seulement).
       peut('cloture.cloturer') ? api.rpc('pilotage_bar', { p_etablissement_id: etab, p_du: ajouterJours(aujourdhui, -27), p_au: aujourdhui }).catch(() => null) : null,
     ]);
     const vendus = {};
     const soirees = new Set();
     (pilotage?.produits ?? []).forEach(([jour, id, qte]) => { vendus[id] = (vendus[id] ?? 0) + Number(qte); soirees.add(jour); });
     (pilotage?.heures ?? []).forEach(([jour]) => soirees.add(jour));
-    return { articles, stock, vendus, soirees: soirees.size };
+    return { articles, categories, stock, vendus, soirees: soirees.size };
   }, [etab]);
   const quantites = useMemo(() => {
     const q = {};
@@ -44,63 +51,108 @@ export default function Stock({ naviguer }) {
 
   if (chargement && !donnees) return <Chargement />;
   if (erreur) return <Erreur message={erreur} />;
+  const nomCategorie = Object.fromEntries((donnees.categories ?? []).map((c) => [c.id, c.nom]));
   const liste = donnees.articles.map((a) => {
     const q = quantites[a.id] ?? 0;
     const jours = joursRestants(q, donnees.vendus[a.id] ?? 0, donnees.soirees);
     const etat = q <= 0 ? 'vide' : (jours != null && jours < 2) || q <= Number(a.stock_minimum || 0) ? 'bas' : 'ok';
-    return { ...a, q, jours, etat };
+    return { ...a, q, jours, etat, categorie: nomCategorie[a.categorie_id] ?? 'Sans catégorie' };
   });
   const t = texte.trim().toLowerCase();
-  const visibles = liste.filter((a) => (filtre === 'tout' || a.etat === filtre || (filtre === 'bas' && a.etat === 'vide')) && (!t || a.nom.toLowerCase().includes(t)))
-    .sort((a, b) => (a.jours ?? 999) - (b.jours ?? 999));
+  const visibles = liste.filter((a) => (filtre === 'tout' || a.etat === filtre || (filtre === 'bas' && a.etat === 'vide')) && (!t || a.nom.toLowerCase().includes(t)));
   const bas = liste.filter((a) => a.etat !== 'ok');
   const peutAjuster = peut('stock.ajuster');
 
+  // Groupé par catégorie ; dans chaque catégorie, ce qui manque d'abord ; les catégories les plus en tension en premier.
+  const groupes = {};
+  visibles.forEach((a) => { (groupes[a.categorie] ??= []).push(a); });
+  const categoriesTriees = Object.entries(groupes)
+    .map(([nom, items]) => ({
+      nom,
+      items: items.sort((a, b) => RANG[a.etat] - RANG[b.etat] || (a.jours ?? 999) - (b.jours ?? 999) || a.nom.localeCompare(b.nom, 'fr')),
+      tension: items.filter((a) => a.etat !== 'ok').length,
+    }))
+    .sort((a, b) => b.tension - a.tension || a.nom.localeCompare(b.nom, 'fr'));
+
   return (
     <div className="xp-page">
-      <EnteteXp surtitre={etablissement.nom} titre="Stock" sousTitre="Les articles qui vont manquer d’abord. « Soirées » = combien de soirées le stock tiendra, au rythme des 4 dernières semaines.">
+      <EnteteXp surtitre={etablissement.nom} titre="Stock"
+        sousTitre="Rangé par catégorie, ce qui manque d’abord. « Soirées » = combien de soirées le stock tiendra. Touchez un article pour son détail et ses gestes.">
         {hubsStock.length > 1 && <Segments libelle="Espace" valeur={hubId} onChange={setHubId} options={hubsStock.map((h) => [h.id, h.nom])} />}
-        <LienAncien page="stock" naviguer={naviguer} texte="Mouvements, réceptions, inventaire : écran complet" />
       </EnteteXp>
       <div className="xp-grille">
         <Tuile icone="inventaire" titre="Articles suivis" valeur={liste.length} onClick={() => setFiltre('tout')} pourquoi="Comptés à chaque vente." />
-        <Tuile icone="alerte" titre="Vont manquer" valeur={bas.length} onClick={() => setFiltre('bas')}
+        <Tuile icone="alerte" titre="Vont manquer" valeur={bas.length} onClick={() => setFiltre(filtre === 'bas' ? 'tout' : 'bas')}
           verdict={{ ton: bas.length ? 'mauvais' : 'bon', texte: bas.length ? 'à commander' : 'tout va bien' }}
           pourquoi={bas.length ? bas.slice(0, 3).map((a) => a.nom).join(', ') : 'Aucun article sous son minimum.'}
           conseil={bas.length ? 'Préparer la commande au dépôt' : undefined} />
       </div>
-      <div style={{ maxWidth: 360 }}><Recherche valeur={texte} onChange={setTexte} placeholder="Chercher un article" /></div>
-      <div className="xp-produits">
-        {visibles.map((a) => {
-          const part = a.jours == null ? (a.q > 0 ? 0.6 : 0) : Math.min(1, a.jours / 7);
-          const couleur = a.etat === 'ok' ? 'var(--vert)' : a.etat === 'bas' ? 'var(--orange)' : 'var(--rouge)';
-          return (
-            <div key={a.id} className="xp-produit">
-              <div className="xp-produit-corps">
-                <strong>{a.nom}</strong>
-                <span className="xp-produit-prix">
-                  <span className="prix" style={{ fontSize: 26 }}>{a.q}</span>
-                  <span className={`xp-verdict ${a.etat === 'ok' ? 'bon' : a.etat === 'bas' ? 'vigilance' : 'mauvais'}`}>
-                    {a.q <= 0 ? 'épuisé' : a.jours == null ? 'pas vendu récemment' : a.jours < 1 ? 'moins d’une soirée' : `${Math.floor(a.jours)} soirée${a.jours >= 2 ? 's' : ''}`}
-                  </span>
-                </span>
-                <span className="xp-jauge"><span style={{ width: `${part * 100}%`, background: couleur }} /></span>
-                <small className="texte-doux">{Number(a.stock_minimum) > 0 ? `Minimum : ${a.stock_minimum} ${a.unite && a.unite !== 'unité' ? a.unite : ''}`.trim() : 'Pas de minimum'}</small>
-                {peutAjuster && hubId && (
-                  <span className="xp-stock-actions">
-                    <button type="button" onClick={() => setAction({ article: a, cle: 'recu' })}>+ Reçu</button>
-                    <button type="button" onClick={() => setAction({ article: a, cle: 'compte' })}>Compté</button>
-                    <button type="button" onClick={() => setAction({ article: a, cle: 'perte' })}>− Perte</button>
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="xp-entete" style={{ alignItems: 'center' }}>
+        <Segments libelle="Filtre" valeur={filtre} onChange={setFiltre} options={[['tout', 'Tout'], ['bas', 'À commander'], ['ok', 'Bien fournis']]} />
+        <div style={{ minWidth: 220, flex: '0 1 320px' }}><Recherche valeur={texte} onChange={setTexte} placeholder="Chercher un article" /></div>
       </div>
+
+      {categoriesTriees.map((cat) => (
+        <section key={cat.nom} className="xp-section">
+          <h2 className="xp-section-titre">{cat.nom} <small>{cat.tension ? `${cat.tension} à surveiller` : `${cat.items.length} article${cat.items.length > 1 ? 's' : ''}`}</small></h2>
+          <div className="xp-produits">
+            {cat.items.map((a) => {
+              const part = a.jours == null ? (a.q > 0 ? 0.6 : 0) : Math.min(1, a.jours / 7);
+              const couleur = a.etat === 'ok' ? 'var(--vert)' : a.etat === 'bas' ? 'var(--orange)' : 'var(--rouge)';
+              return (
+                <button type="button" key={a.id} className="xp-produit xp-produit-cliquable" onClick={() => setDetail(a)}>
+                  <div className="xp-produit-corps">
+                    <strong>{a.nom}</strong>
+                    <span className="xp-produit-prix">
+                      <span className="prix" style={{ fontSize: 26 }}>{formatQuantite(a.q, a.unite)}</span>
+                      <span className={`xp-verdict ${a.etat === 'ok' ? 'bon' : a.etat === 'bas' ? 'vigilance' : 'mauvais'}`}>
+                        {a.q <= 0 ? 'épuisé' : a.jours == null ? 'pas vendu récemment' : a.jours < 1 ? 'moins d’une soirée' : `${Math.floor(a.jours)} soirée${a.jours >= 2 ? 's' : ''}`}
+                      </span>
+                    </span>
+                    <span className="xp-jauge"><span style={{ width: `${part * 100}%`, background: couleur }} /></span>
+                    <small className="texte-doux">{Number(a.stock_minimum) > 0 ? `Minimum : ${a.stock_minimum} ${a.unite && a.unite !== 'unité' ? a.unite : ''}`.trim() : 'Pas de minimum'} · touchez pour le détail</small>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+      {!visibles.length && <p className="texte-doux">Aucun article ne correspond.</p>}
+
+      <section className="xp-section">
+        <h2 className="xp-section-titre">
+          Mouvements, réceptions et inventaires
+          <button type="button" className="lien" onClick={() => setMouvements((x) => !x)}>{mouvements ? 'Masquer' : 'Afficher'}</button>
+        </h2>
+        {mouvements && (
+          <Suspense fallback={<Squelette lignes={6} />}>
+            <AncienStock naviguer={naviguer} integre />
+          </Suspense>
+        )}
+      </section>
+
+      {detail && (
+        <Panneau titre={detail.nom} onFermer={() => setDetail(null)}>
+          <div className="xp-grille etroite">
+            <Tuile icone="inventaire" titre="En stock" valeur={formatQuantite(detail.q, detail.unite)}
+              verdict={{ ton: detail.etat === 'ok' ? 'bon' : detail.etat === 'bas' ? 'vigilance' : 'mauvais', texte: detail.etat === 'vide' ? 'épuisé' : detail.etat === 'bas' ? 'bas' : 'correct' }} />
+            <Tuile icone="horloge" titre="Tient encore" valeur={detail.jours == null ? '—' : detail.jours < 1 ? '< 1 soirée' : `${Math.floor(detail.jours)} soirée${detail.jours >= 2 ? 's' : ''}`} />
+            <Tuile icone="graphique" titre="Vendu (4 semaines)" valeur={donnees.vendus[detail.id] ? formatQuantite(Math.round(donnees.vendus[detail.id]), detail.unite) : '—'} />
+          </div>
+          <p className="texte-doux">{Number(detail.stock_minimum) > 0 ? `On recommande de garder au moins ${detail.stock_minimum} ${detail.unite && detail.unite !== 'unité' ? detail.unite : ''}.`.trim() : 'Aucun minimum réglé pour cet article.'}</p>
+          {peutAjuster && hubId ? (
+            <div className="xp-stock-actions">
+              <button type="button" onClick={() => setAction({ article: detail, cle: 'recu' })}>+ Reçu</button>
+              <button type="button" onClick={() => setAction({ article: detail, cle: 'compte' })}>Compté</button>
+              <button type="button" onClick={() => setAction({ article: detail, cle: 'perte' })}>− Perte</button>
+            </div>
+          ) : <p className="texte-faible">Vous pouvez regarder le stock. Seul un responsable peut le corriger.</p>}
+        </Panneau>
+      )}
       {action && (
         <ModaleAction action={action} hubId={hubId} onFermer={() => setAction(null)}
-          onFait={(texteFait) => { setAction(null); notifier(texteFait); recharger(); }} />
+          onFait={(texteFait) => { setAction(null); setDetail(null); notifier(texteFait); recharger(); }} />
       )}
     </div>
   );
@@ -134,6 +186,7 @@ function ModaleAction({ action, hubId, onFermer, onFait }) {
       setErreur(err.message);
       setEnvoi(false);
     }
+    return undefined;
   };
   return (
     <Modale titre={`${config.titre} · ${a.nom}`} onFermer={onFermer}>

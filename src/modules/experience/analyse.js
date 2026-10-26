@@ -442,3 +442,171 @@ export function recommandationsVisibles(liste, avis = {}, maintenant = Date.now(
 export function troisSignaux(liste) {
   return liste.filter((x) => !x.masquee).slice(0, 3);
 }
+
+// Soirées du..au → instants [de, a[ (début de service le premier jour, début de service le lendemain du dernier),
+// dans le fuseau du bar. Sert à lire les ventes d'une période directement dans la table.
+export function instantsSoirees(du, au, fuseau = 'Africa/Brazzaville', debut = 8) {
+  const decalage = heureLocale(new Date(`${du}T12:00:00Z`), fuseau).heure - 12;
+  const de = new Date(Date.parse(`${du}T${String(debut).padStart(2, '0')}:00:00Z`) - decalage * 3600000);
+  const a = new Date(de.getTime() + (ecartJours(du, au) + 1) * 86400000);
+  return { de: de.toISOString(), a: a.toISOString() };
+}
+
+// Fiche d'un serveur sur une période : ses ventes (avec leurs lignes) → chiffres, heures, articles, analyses.
+// equipe = { ca, ventes } de toute l'équipe sur la même période, pour comparer.
+export function analyseServeur({ ventes, lignes, equipe, fuseau = 'Africa/Brazzaville', debut = 8 }) {
+  const valides = ventes.filter((v) => v.statut === 'validee');
+  const annulees = ventes.filter((v) => v.statut === 'annulee');
+  const ca = valides.reduce((s, v) => s + Number(v.total || 0), 0);
+  const panier = valides.length ? ca / valides.length : 0;
+  const parHeure = new Array(24).fill(0);
+  const parSoiree = {};
+  valides.forEach((v) => {
+    const h = heureLocale(v.cree_le, fuseau);
+    parHeure[rangHeure(h.heure, debut)] += Number(v.total || 0);
+    const s = soireeDe(v.cree_le, fuseau, debut);
+    parSoiree[s] = (parSoiree[s] ?? 0) + Number(v.total || 0);
+  });
+  const idsValides = new Set(valides.map((v) => v.id));
+  const parArticle = {};
+  lignes.filter((l) => idsValides.has(l.vente_id)).forEach((l) => {
+    const x = (parArticle[l.article_id] ??= { id: l.article_id, nom: l.libelle, qte: 0, ca: 0, marge: 0, avecCout: true });
+    x.qte += Number(l.quantite || 0);
+    x.ca += Number(l.total || 0);
+    if (l.cout_unitaire == null) x.avecCout = false;
+    else x.marge += Number(l.total || 0) - Number(l.cout_unitaire) * Number(l.quantite || 0);
+  });
+  const articles = Object.values(parArticle).sort((a, b) => b.ca - a.ca);
+  const rangMeilleur = parHeure.reduce((m, v, i) => (v > parHeure[m] ? i : m), 0);
+  const plusGrosse = valides.reduce((m, v) => (!m || Number(v.total) > Number(m.total) ? v : m), null);
+  const partEquipe = equipe?.ca ? ca / equipe.ca : null;
+  const panierEquipe = equipe?.ventes ? equipe.ca / equipe.ventes : null;
+  const ecartPanier = panierEquipe ? panier / panierEquipe - 1 : null;
+  const analyses = [];
+  if (valides.length) {
+    if (parHeure[rangMeilleur] > 0) analyses.push({ ton: 'neutre', texte: `Son heure forte : ${(rangMeilleur + debut) % 24} h – ${(rangMeilleur + debut + 1) % 24} h (${Math.round((parHeure[rangMeilleur] / Math.max(1, ca)) * 100)} % de ses ventes).` });
+    if (ecartPanier != null && Math.abs(ecartPanier) >= 0.05) {
+      analyses.push({
+        ton: ecartPanier > 0 ? 'bon' : 'vigilance',
+        texte: `Ses clients dépensent ${Math.round(Math.abs(ecartPanier) * 100)} % ${ecartPanier > 0 ? 'de plus' : 'de moins'} que la moyenne de l’équipe.`,
+      });
+    }
+    if (partEquipe != null) analyses.push({ ton: 'neutre', texte: `Ses ventes font ${Math.round(partEquipe * 100)} % du total vendu de l’équipe sur la période.` });
+    if (articles[0]) analyses.push({ ton: 'neutre', texte: `Article le plus vendu : ${articles[0].nom} (${articles[0].qte} vendu${articles[0].qte > 1 ? 's' : ''}).` });
+  }
+  if (annulees.length) {
+    const part = annulees.length / Math.max(1, valides.length + annulees.length);
+    analyses.push({ ton: part > 0.04 ? 'mauvais' : 'vigilance', texte: `${annulees.length} vente${annulees.length > 1 ? 's' : ''} annulée${annulees.length > 1 ? 's' : ''} sur ses tables : à vérifier.` });
+  }
+  return {
+    ca, ventes: valides.length, panier, annulees: annulees.length, parHeure, parSoiree, articles, plusGrosse,
+    partEquipe, ecartPanier, heureForte: parHeure[rangMeilleur] > 0 ? (rangMeilleur + debut) % 24 : null, analyses,
+  };
+}
+
+// Analyses approfondies : des phrases tirées des chiffres, sans jargon. Chaque phrase dit ce qui est vu, pourquoi
+// ça compte et, quand c'est utile, quoi faire. { titre, texte, ton, conseil }.
+export function analysesApprofondies({ r, t, produits, serveurs, moyens, chaleur, courbe, objectif, montant, debut = 8, du, au }) {
+  const a = [];
+  const f = (n) => (montant ? montant(Math.round(n)) : Math.round(n));
+  const jours = {};
+  (r?.heures ?? []).filter((h) => dans(h[0], du, au)).forEach(([jour, , , total]) => { jours[jour] = (jours[jour] ?? 0) + Number(total || 0); });
+  const listeJours = Object.entries(jours).sort((x, y) => y[1] - x[1]);
+  if (listeJours.length > 2) {
+    const [meilleur] = listeJours;
+    const pire = listeJours[listeJours.length - 1];
+    a.push({
+      titre: 'Vos bonnes et mauvaises soirées', ton: 'neutre',
+      texte: `La meilleure soirée de la période : ${JOURS_LONGS[jourDeSemaine(meilleur[0])]} ${meilleur[0].slice(8)} (${f(meilleur[1])}). La plus faible : ${JOURS_LONGS[jourDeSemaine(pire[0])]} ${pire[0].slice(8)} (${f(pire[1])}), soit ${Math.round((1 - pire[1] / Math.max(1, meilleur[1])) * 100)} % de moins.`,
+      conseil: 'Mettez l’équipe et le stock sur les soirées fortes ; essayez une animation sur la plus faible.',
+    });
+  }
+  if (chaleur?.meilleur && chaleur.meilleur.v > 0) {
+    a.push({
+      titre: 'L’heure qui rapporte le plus', ton: 'neutre',
+      texte: `En moyenne, le ${JOURS_LONGS[chaleur.meilleur.js]} vers ${chaleur.meilleur.heure} h vous faites ${f(chaleur.meilleur.v)} en une heure.`,
+      conseil: 'Tout doit être prêt une heure avant : glace, bouteilles fraîches, serveurs en salle.',
+    });
+  }
+  if (produits?.length) {
+    const total = produits.reduce((s, p) => s + p.ca, 0);
+    const top = produits.slice(0, 3);
+    const part = total ? top.reduce((s, p) => s + p.ca, 0) / total : 0;
+    a.push({
+      titre: 'Ce qui fait votre chiffre', ton: part > 0.6 ? 'vigilance' : 'neutre',
+      texte: `${top.map((p) => p.nom).join(', ')} font ${Math.round(part * 100)} % du total vendu.`,
+      conseil: part > 0.6 ? 'Ne tombez jamais en rupture sur ces articles : c’est la majorité de votre chiffre.' : 'Vos ventes sont bien réparties : un article en rupture ne casse pas la soirée.',
+    });
+    const perdants = produits.filter((p) => p.marge != null && p.ca > 0 && p.marge / p.ca < 0.2);
+    if (perdants.length) {
+      a.push({
+        titre: 'Ce qui ne rapporte presque rien', ton: 'vigilance',
+        texte: `${perdants.slice(0, 3).map((p) => p.nom).join(', ')} : moins de 20 % de marge.`,
+        conseil: 'Revoyez le prix de vente, ou le prix d’achat avec le fournisseur.',
+      });
+    }
+  }
+  if (serveurs?.length > 1) {
+    const avec = serveurs.filter((s) => s.id && s.nb > 0);
+    if (avec.length > 1) {
+      const meilleur = avec.reduce((m, s) => (s.panier > m.panier ? s : m), avec[0]);
+      const faible = avec.reduce((m, s) => (s.panier < m.panier ? s : m), avec[0]);
+      const ecart = faible.panier ? meilleur.panier / faible.panier - 1 : null;
+      if (ecart != null && ecart > 0.15) {
+        a.push({
+          titre: 'Les serveurs ne vendent pas pareil', ton: 'neutre',
+          texte: `${meilleur.prenom} fait monter la table à ${f(meilleur.panier)} en moyenne, ${faible.prenom} à ${f(faible.panier)} : ${Math.round(ecart * 100)} % d’écart.`,
+          conseil: `Demandez à ${meilleur.prenom} ce qu’il propose aux clients, et faites-le apprendre aux autres.`,
+        });
+      }
+    }
+  }
+  if (moyens?.length) {
+    const especes = moyens.find((m) => m.cle === 'especes');
+    if (especes && especes.part > 0.7) {
+      a.push({
+        titre: 'Beaucoup d’espèces', ton: 'vigilance',
+        texte: `${Math.round(especes.part * 100)} % des paiements sont en espèces (${f(especes.montant)}).`,
+        conseil: 'Comptez la caisse à chaque fermeture et mettez en avant le Mobile Money : moins d’argent à garder.',
+      });
+    }
+  }
+  if (t?.resteDu > 0 && t.ca > 0) {
+    a.push({
+      titre: 'Ce qui n’est pas encore payé', ton: t.resteDu / t.ca > 0.05 ? 'mauvais' : 'vigilance',
+      texte: `${f(t.resteDu)} servis mais pas payés, soit ${Math.round((t.resteDu / t.ca) * 100)} % du chiffre de la période.`,
+      conseil: 'Relancez depuis la caisse, bouton « À encaisser ».',
+    });
+  }
+  if (t?.annulations > 0) {
+    const part = t.annulations / Math.max(1, t.ventes + t.annulations);
+    a.push({
+      titre: 'Les annulations', ton: part > 0.04 ? 'mauvais' : 'vigilance',
+      texte: `${t.annulations} vente${t.annulations > 1 ? 's' : ''} annulée${t.annulations > 1 ? 's' : ''} (${f(t.montantAnnule)}), ${Math.round(part * 100)} % des tickets.`,
+      conseil: part > 0.04 ? 'Regardez qui annule et pourquoi : c’est souvent là que l’argent part.' : 'Niveau normal, mais chaque annulation doit avoir une raison écrite.',
+    });
+  }
+  if (t?.tauxMarge != null) {
+    a.push({
+      titre: 'Ce qui vous reste', ton: t.tauxMarge >= 0.5 ? 'bon' : t.tauxMarge >= 0.3 ? 'vigilance' : 'mauvais',
+      texte: `Sur ${f(t.ca)} vendus, il vous reste ${f(t.marge)} (${Math.round(t.tauxMarge * 100)} %) avant les charges.`,
+      conseil: t.partCouverte < 0.95 ? `Complétez les prix d’achat : le calcul ne couvre que ${Math.round(t.partCouverte * 100)} % des ventes.` : undefined,
+    });
+  }
+  if (objectif > 0 && t?.soirees > 0) {
+    const atteintes = Object.values(jours).filter((v) => v >= objectif).length;
+    a.push({
+      titre: 'Votre objectif', ton: atteintes / t.soirees >= 0.5 ? 'bon' : 'vigilance',
+      texte: `Objectif atteint ${atteintes} soirée${atteintes > 1 ? 's' : ''} sur ${t.soirees}.`,
+      conseil: atteintes === 0 ? 'Objectif peut-être trop haut : réglez-le dans Paramètres.' : undefined,
+    });
+  }
+  if (courbe?.comparaisons > 0 && courbe.projection > 0) {
+    a.push({
+      titre: 'Comment finit la soirée', ton: 'neutre',
+      texte: `Au rythme actuel, la soirée devrait finir vers ${f(courbe.projection)}.`,
+      conseil: 'Estimation faite sur les mêmes jours des dernières semaines.',
+    });
+  }
+  return a;
+}
