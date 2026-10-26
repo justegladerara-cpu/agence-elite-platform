@@ -12,7 +12,11 @@ import './recu.css';
 // En-tête : informations de l'établissement, sinon celles de sa société (recu.documents, calculé par la base).
 // modele : Paramètres › Ticket de caisse (modeleTicket.js). Sans modèle, le ticket est celui d'avant.
 // Les mentions obligatoires (numéro, date, lignes, total, paiements, NIU/RCCM connus) ne sont jamais retirables.
-export function Ticket({ recu, modele: modeleBrut = null }) {
+// Typographie française : la ponctuation haute (: ; ! ?) ne part jamais seule au début d'une ligne du ticket.
+export const insecables = (texte) => (texte ?? '').replace(/ ([:;!?»])/g, '\u00a0$1').replace(/« /g, '«\u00a0');
+
+// monnaie : rendue au client juste après la vente (connue seulement à ce moment) ; imprimée sous les paiements.
+export function Ticket({ recu, modele: modeleBrut = null, monnaie = 0 }) {
   const modele = lireModele(modeleBrut);
   const { vente, etablissement, lignes, paiements } = recu;
   const doc = recu.documents ?? {};
@@ -51,7 +55,7 @@ export function Ticket({ recu, modele: modeleBrut = null }) {
         {identite.niu && <>NIU {identite.niu}</>}
       </div>
     ),
-    message_haut: () => textes.message_haut.trim() && <div className="ticket-message">{textes.message_haut}</div>,
+    message_haut: () => textes.message_haut.trim() && <div className="ticket-message">{insecables(textes.message_haut)}</div>,
     numero: () => (
       <>
         <div className="ticket-ligne"><span>Reçu</span><strong>{vente.numero}</strong></div>
@@ -61,10 +65,10 @@ export function Ticket({ recu, modele: modeleBrut = null }) {
     ),
     infos: () => (
       <>
-        {infos.caisse && recu.point_de_vente && <div className="ticket-ligne"><span>Caisse</span><span>{recu.point_de_vente}</span></div>}
-        {infos.vendeur && recu.vendeur && <div className="ticket-ligne"><span>Vendeur</span><span>{recu.vendeur}</span></div>}
-        {infos.servi_par && vente.servi_par && <div className="ticket-ligne"><span>Servi par</span><span>{vente.servi_par}</span></div>}
-        {infos.client && recu.contact && <div className="ticket-ligne"><span>Contact</span><span>{recu.contact.nom}</span></div>}
+        {infos.caisse && recu.point_de_vente && <div className="ticket-ligne ticket-info"><span>Caisse</span><span>{recu.point_de_vente}</span></div>}
+        {infos.vendeur && recu.vendeur && <div className="ticket-ligne ticket-info"><span>Vendeur</span><span>{recu.vendeur}</span></div>}
+        {infos.servi_par && vente.servi_par && <div className="ticket-ligne ticket-info"><span>Servi par</span><span>{vente.servi_par}</span></div>}
+        {infos.client && recu.contact && <div className="ticket-ligne ticket-info"><span>Contact</span><span>{recu.contact.nom}</span></div>}
         {bandeaux}
       </>
     ),
@@ -85,13 +89,19 @@ export function Ticket({ recu, modele: modeleBrut = null }) {
         {valides.map((p, i) => (
           <div key={i} className="ticket-ligne"><span>{MODES_PAIEMENT[p.mode]}{p.reference ? ` (${p.reference})` : ''}</span><span>{m(p.montant)}</span></div>
         ))}
+        {monnaie > 0 && valides.some((p) => p.mode === 'especes') && (
+          <>
+            <div className="ticket-ligne"><span>Donné</span><span>{m(valides.filter((p) => p.mode === 'especes').reduce((t, p) => t + Number(p.montant), 0) + monnaie)}</span></div>
+            <div className="ticket-ligne"><span>Monnaie rendue</span><span>{m(monnaie)}</span></div>
+          </>
+        )}
         {vente.total - vente.montant_paye > 0 && vente.statut === 'validee' && (
           <div className="ticket-ligne ticket-total"><span>Reste dû</span><span>{m(vente.total - vente.montant_paye)}</span></div>
         )}
       </>
     ),
-    message_bas: () => <div className="ticket-pied">{textes.message_bas.trim() || (identite.mentions_recu ?? 'Merci de votre visite.')}</div>,
-    pied: () => identite.pied && <div className="ticket-petit">{identite.pied}</div>,
+    message_bas: () => <div className="ticket-pied">{insecables(textes.message_bas.trim() || (identite.mentions_recu ?? 'Merci de votre visite.'))}</div>,
+    pied: () => identite.pied && <div className="ticket-petit">{insecables(identite.pied)}</div>,
     qr: () => lienDuQr && (
       <div className="ticket-qr">
         {textes.qr_texte.trim() && <div className="ticket-petit">{textes.qr_texte}</div>}
@@ -152,7 +162,36 @@ export function ZoneImpression({ children }) {
   return createPortal(<div className="zone-impression">{children}</div>, document.body);
 }
 
+// Taille de la feuille = taille du ticket (80 ou 58 mm de large, hauteur mesurée) et aucune marge : l'imprimante
+// thermique sort un ticket entier, sans la date ni le titre que le navigateur ajoute dans les marges.
+const MM = 96 / 25.4;
+export function preparerPageTicket(doc = document) {
+  doc.getElementById('page-ticket')?.remove();
+  const zone = doc.querySelector('.zone-impression');
+  const ticket = zone?.querySelector('.ticket');
+  if (!ticket) return null;
+  const largeur = ticket.classList.contains('ticket-58') ? 58 : 80;
+  const avant = zone.getAttribute('style');
+  zone.setAttribute('style', 'display:block;position:fixed;left:-10000px;top:0;visibility:hidden');
+  const hauteurPx = ticket.getBoundingClientRect().height;
+  if (avant == null) zone.removeAttribute('style');
+  else zone.setAttribute('style', avant);
+  // jsdom ne mesure rien : on garde alors une feuille longue, l'imprimante coupe après le ticket.
+  const hauteur = hauteurPx > 0 ? Math.ceil(hauteurPx / MM) + 10 : 297;
+  const style = doc.createElement('style');
+  style.id = 'page-ticket';
+  style.textContent = `@media print { @page { size: ${largeur}mm ${Math.max(hauteur, 50)}mm; margin: 0; } }`;
+  doc.head.appendChild(style);
+  return { largeur, hauteur: Math.max(hauteur, 50) };
+}
+
 export function imprimer() {
+  preparerPageTicket();
+  const fin = () => {
+    window.removeEventListener('afterprint', fin);
+    document.getElementById('page-ticket')?.remove();
+  };
+  window.addEventListener('afterprint', fin);
   setTimeout(() => window.print(), 50);
 }
 
@@ -228,8 +267,8 @@ export function ModaleRecu({ venteId, onFermer, monnaie, piedSupplementaire, ann
       <Erreur message={erreur} />
       {recu && (
         <>
-          <div className="ticket-apercu"><Ticket recu={recu} modele={modele} /></div>
-          <ZoneImpression><Ticket recu={recu} modele={modele} /></ZoneImpression>
+          <div className="ticket-apercu"><Ticket recu={recu} modele={modele} monnaie={monnaie} /></div>
+          <ZoneImpression><Ticket recu={recu} modele={modele} monnaie={monnaie} /></ZoneImpression>
         </>
       )}
     </Modale>

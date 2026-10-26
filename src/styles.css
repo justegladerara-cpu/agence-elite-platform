@@ -1856,9 +1856,24 @@ fieldset {
   gap: 8px;
 }
 
-.ticket-ligne span:last-child {
+.ticket-ligne > :first-child {
+  flex: 0 0 auto;
+}
+
+.ticket-ligne > :last-child {
+  min-width: 0;
   text-align: right;
   white-space: nowrap;
+}
+
+/* Caisse, vendeur, serveur, client : un nom long passe à la ligne au lieu de sortir du ticket. */
+.ticket-ligne.ticket-info > :last-child {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ticket-article > div:first-child {
+  overflow-wrap: anywhere;
 }
 
 .ticket-total {
@@ -1894,9 +1909,39 @@ fieldset {
   display: none;
 }
 
+/* Ticket imprimé : toujours blanc et noir (même avec le thème sombre ou The Dream), à la largeur du rouleau,
+   lettres un peu plus grandes et plus foncées pour l'imprimante thermique. La feuille (taille, marges à zéro)
+   est posée par imprimer() dans Recu.jsx. */
+.zone-impression .ticket {
+  width: 80mm;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 3mm 4mm 6mm;
+  background: #fff;
+  color: #000;
+  box-shadow: none;
+  font-family: 'Consolas', 'Lucida Console', 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 10pt;
+  line-height: 1.35;
+}
+.zone-impression .ticket.ticket-58 { width: 58mm; padding: 2mm 3mm 5mm; font-size: 8.5pt; }
+.zone-impression .ticket.ticket-grand { font-size: 11.5pt; }
+.zone-impression .ticket .ticket-nom, .zone-impression .ticket .ticket-titre, .zone-impression .ticket .ticket-total { font-size: 1.2em; }
+.zone-impression .ticket .ticket-petit, .zone-impression .ticket .ticket-pied { font-size: 0.9em; }
+.zone-impression .ticket .ticket-qr .image-qr { width: 30mm; }
+
 @media print {
-  @page {
-    margin: 4mm;
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    color-scheme: light;
+  }
+
+  body.impression-ticket {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
   }
 
   body.impression-ticket > *:not(.zone-impression) {
@@ -1905,16 +1950,23 @@ fieldset {
 
   body.impression-ticket .zone-impression {
     display: block;
+    background: #fff;
+  }
+
+  body.impression-ticket .zone-impression .ticket,
+  body.impression-ticket .zone-impression .ticket * {
+    color: #000 !important;
+    background-color: transparent !important;
+    border-color: #000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
   }
 
   body.impression-ticket .zone-impression .ticket {
-    width: 72mm;
-    box-shadow: none;
-    padding: 0;
-  }
-
-  body.impression-ticket .zone-impression .ticket.ticket-58 {
-    width: 48mm;
+    background: #fff !important;
+    break-inside: auto;
   }
 }
 

@@ -148,8 +148,8 @@ export function ModaleRecuHorsLigne({ ticket, monnaie, onFermer, piedSupplementa
     >
       <p className="bandeau attention" role="status">Pas d’internet : la vente est gardée sur cet appareil. Elle partira toute seule au retour de la connexion.</p>
       {monnaie > 0 && <div className="monnaie">Monnaie à rendre : <strong>{montant(monnaie)}</strong></div>}
-      <div className="ticket-apercu"><Ticket recu={recu} modele={modele} /></div>
-      <ZoneImpression><Ticket recu={recu} modele={modele} /></ZoneImpression>
+      <div className="ticket-apercu"><Ticket recu={recu} modele={modele} monnaie={monnaie} /></div>
+      <ZoneImpression><Ticket recu={recu} modele={modele} monnaie={monnaie} /></ZoneImpression>
     </Modale>
   );
 }
