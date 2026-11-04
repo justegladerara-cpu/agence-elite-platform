@@ -7,11 +7,14 @@ import { creerBase } from './helpers/db.js';
 const fichier = resolve(import.meta.dirname, '../donnees/corrections/le-kangourou/20261104_creation_essai_un_mois.sql');
 let db;
 let corps;
+let corps2;
 
 beforeAll(async () => {
   db = await creerBase();
   const texte = await readFile(fichier, 'utf8');
   corps = texte.slice(texte.indexOf('do $$'), texte.lastIndexOf('$$;') + 3);
+  const texte2 = await readFile(resolve(import.meta.dirname, '../donnees/corrections/le-kangourou/20261104_fonctions_comme_avant.sql'), 'utf8');
+  corps2 = texte2.slice(texte2.indexOf('do $$'), texte2.lastIndexOf('$$;') + 3);
 }, 120_000);
 
 // La correction refuse de tourner après l'heure de fin : le test ne vaut que jusque-là.
@@ -34,5 +37,17 @@ describe.skipIf(apresLaFin)('Correction Le Kangourou : essai d\'un mois', () => 
 
   test('refuse de tourner une deuxième fois', async () => {
     await expect(db.exec(corps)).rejects.toThrow(/existe déjà/);
+  });
+
+  test('ajoute Devis et factures et Rapports à la licence d\'essai et les active', async () => {
+    await db.exec(corps2);
+    const [etab] = (await db.query("select e.id from public.etablissements e join public.clients c on c.id = e.client_id where c.nom = 'Le Kangourou'")).rows;
+    const actifs = (await db.query('select module_id from public.etablissement_modules where etablissement_id = $1 and actif order by 1', [etab.id])).rows.map((r) => r.module_id);
+    expect(actifs).toEqual(expect.arrayContaining(['facturation', 'rapports', 'caisse', 'articles', 'stock', 'contacts', 'depenses', 'tableau_de_bord']));
+    const [licence] = (await db.query("select modules_supplementaires from public.licences where etablissement_id = $1 and statut <> 'terminee'", [etab.id])).rows;
+    expect(licence.modules_supplementaires).toEqual(['facturation', 'rapports']);
+    await db.exec(corps2);
+    const n = (await db.query("select count(*)::int as n from public.etablissement_modules where etablissement_id = $1 and module_id in ('facturation', 'rapports') and actif", [etab.id])).rows[0].n;
+    expect(n).toBe(2);
   });
 });
