@@ -113,6 +113,38 @@ describe('code d’activation après la coupure', () => {
   });
 });
 
+describe('code d’une semaine (paiement en plusieurs fois)', () => {
+  test('le code « 1 semaine » coupe à midi (Brazzaville) le 8e jour ; le code annuel efface la coupure', async () => {
+    const semaine = await valeur(admin, 'select enregistrer_modele_licence($1::jsonb)', [JSON.stringify({
+      nom: 'Tranche 1 semaine', offre_id: 'commerce-complet', formule: 'mensuel', duree_jours: 8, montant: 100000, appareils_max: 3, coupure_midi: true,
+    })]);
+    const [cle] = await valeur(admin, "select generer_cles_licence($1, 1, null, 'Boutique Fin')", [semaine]);
+    await valeur(gerant, 'select activer_cle_licence($1, $2)', [cle, etab]);
+    const l = (await db.query(`select echeance - debut as jours, fin_a, (echeance::timestamp + time '12:00') at time zone 'Africa/Brazzaville' as attendu,
+      appareils_max from licences where etablissement_id = $1 and statut <> 'terminee'`, [etab])).rows[0];
+    expect(l.jours).toBe(8);
+    expect(new Date(l.fin_a).toISOString()).toBe(new Date(l.attendu).toISOString());
+    expect(new Date(l.fin_a).getUTCHours()).toBe(11);
+    expect(l.appareils_max).toBe(3);
+    expect((await db.query('select licence_coupee($1) c, licence_valide($1) v', [etab])).rows[0]).toEqual({ c: false, v: true });
+    // Le 8e jour après midi : coupé.
+    await db.query("update licences set fin_a = now() - interval '1 minute' where etablissement_id = $1 and statut <> 'terminee'", [etab]);
+    expect((await db.query('select licence_coupee($1) c', [etab])).rows[0].c).toBe(true);
+    // Tranche finale : licence annuelle sans coupure.
+    const annuel = (await db.query("select id from licence_modeles where formule = 'annuel' and offre_id = 'commerce-complet' and not coupure_midi limit 1")).rows[0].id;
+    const [cleAn] = await valeur(admin, "select generer_cles_licence($1, 1, null, 'Boutique Fin')", [annuel]);
+    await valeur(gerant, 'select activer_cle_licence($1, $2)', [cleAn, etab]);
+    const fin = (await db.query("select fin_a, formule from licences where etablissement_id = $1 and statut <> 'terminee'", [etab])).rows[0];
+    expect(fin).toEqual({ fin_a: null, formule: 'annuel' });
+    expect((await db.query('select licence_coupee($1) c, licence_valide($1) v', [etab])).rows[0]).toEqual({ c: false, v: true });
+  });
+
+  test('sans le réglage, un modèle ne coupe jamais (comportement inchangé)', async () => {
+    const r = (await db.query("select count(*)::int n from licence_modeles where coupure_midi")).rows[0].n;
+    expect(r).toBe(1);
+  });
+});
+
 describe('écran', () => {
   const base = { ecriture: true, statut: 'actif', client_statut: 'actif', role: 'employe' };
   const avec = (finMs) => ({ ...base, licence: { statut: 'active', valide: true, fin_a: new Date(finMs).toISOString() } });
